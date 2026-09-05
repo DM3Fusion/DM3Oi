@@ -152,7 +152,8 @@ export async function removeOwnAvatarAction() {
     .single();
   if (readError) go("error", "Your profile could not be loaded.");
   const { error } = await supabase.rpc("set_own_avatar_path", {
-    target_avatar_path: null,
+    // Supabase-generated RPC args do not express nullable function parameters.
+    target_avatar_path: null as unknown as string,
   });
   if (error) go("error", "Your avatar could not be removed.");
   if (

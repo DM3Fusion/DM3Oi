@@ -607,6 +607,72 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          archived_at: string | null
+          category: string
+          created_at: string
+          destination_path: string
+          id: string
+          message: string
+          notification_type: string
+          organization_id: string
+          read_at: string | null
+          recipient_user_id: string
+          source_domain: string
+          source_entity_id: string
+          source_event_id: string | null
+          title: string
+        }
+        Insert: {
+          archived_at?: string | null
+          category: string
+          created_at?: string
+          destination_path: string
+          id?: string
+          message: string
+          notification_type: string
+          organization_id: string
+          read_at?: string | null
+          recipient_user_id: string
+          source_domain: string
+          source_entity_id: string
+          source_event_id?: string | null
+          title: string
+        }
+        Update: {
+          archived_at?: string | null
+          category?: string
+          created_at?: string
+          destination_path?: string
+          id?: string
+          message?: string
+          notification_type?: string
+          organization_id?: string
+          read_at?: string | null
+          recipient_user_id?: string
+          source_domain?: string
+          source_entity_id?: string
+          source_event_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_case_number_counters: {
         Row: {
           next_number: number
@@ -625,6 +691,76 @@ export type Database = {
             foreignKeyName: "organization_case_number_counters_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_case_types: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_case_types_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_customer_annual_number_counters: {
+        Row: {
+          calendar_year: number
+          customer_type: Database["public"]["Enums"]["customer_type"]
+          next_number: number
+          organization_id: string
+        }
+        Insert: {
+          calendar_year: number
+          customer_type: Database["public"]["Enums"]["customer_type"]
+          next_number?: number
+          organization_id: string
+        }
+        Update: {
+          calendar_year?: number
+          customer_type?: Database["public"]["Enums"]["customer_type"]
+          next_number?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_customer_annual_number_counte_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
             referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
@@ -649,6 +785,191 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: true
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_license_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_type: Database["public"]["Enums"]["license_event_type"]
+          id: string
+          license_id: string | null
+          organization_id: string
+          prior_values: Json
+          reason: string | null
+          resulting_values: Json
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: Database["public"]["Enums"]["license_event_type"]
+          id?: string
+          license_id?: string | null
+          organization_id: string
+          prior_values?: Json
+          reason?: string | null
+          resulting_values?: Json
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["license_event_type"]
+          id?: string
+          license_id?: string | null
+          organization_id?: string
+          prior_values?: Json
+          reason?: string | null
+          resulting_values?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_license_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_license_events_license_id_fkey"
+            columns: ["license_id"]
+            isOneToOne: false
+            referencedRelation: "organization_licenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_license_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_licenses: {
+        Row: {
+          commercial_state: Database["public"]["Enums"]["commercial_state"]
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          grace_ends_at: string | null
+          id: string
+          is_current: boolean
+          license_status: Database["public"]["Enums"]["license_status"]
+          notes: string | null
+          notice_days: number
+          notification_thresholds: number[]
+          organization_id: string
+          plan_code: string
+          starts_at: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          commercial_state: Database["public"]["Enums"]["commercial_state"]
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          grace_ends_at?: string | null
+          id?: string
+          is_current?: boolean
+          license_status: Database["public"]["Enums"]["license_status"]
+          notes?: string | null
+          notice_days?: number
+          notification_thresholds?: number[]
+          organization_id: string
+          plan_code?: string
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          commercial_state?: Database["public"]["Enums"]["commercial_state"]
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          grace_ends_at?: string | null
+          id?: string
+          is_current?: boolean
+          license_status?: Database["public"]["Enums"]["license_status"]
+          notes?: string | null
+          notice_days?: number
+          notification_thresholds?: number[]
+          organization_id?: string
+          plan_code?: string
+          starts_at?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_licenses_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_licenses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_licenses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_lifecycle_statuses: {
+        Row: {
+          description: string | null
+          display_label: string
+          is_active: boolean
+          organization_id: string
+          sort_order: number
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          description?: string | null
+          display_label: string
+          is_active?: boolean
+          organization_id: string
+          sort_order?: number
+          status: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          description?: string | null
+          display_label?: string
+          is_active?: boolean
+          organization_id?: string
+          sort_order?: number
+          status?: Database["public"]["Enums"]["case_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_lifecycle_statuses_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_lifecycle_statuses_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -701,10 +1022,97 @@ export type Database = {
           },
         ]
       }
+      organization_service_request_annual_number_counters: {
+        Row: {
+          calendar_year: number
+          last_number: number
+          organization_id: string
+        }
+        Insert: {
+          calendar_year: number
+          last_number?: number
+          organization_id: string
+        }
+        Update: {
+          calendar_year?: number
+          last_number?: number
+          organization_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_service_request_annual_number_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_settings: {
+        Row: {
+          default_priority: Database["public"]["Enums"]["priority_level"]
+          organization_id: string
+          portal_enabled: boolean
+          portal_show_priority: boolean
+          portal_submission_enabled: boolean
+          portal_support_label: string | null
+          portal_welcome_message: string | null
+          timezone: string
+          timezone_resolved_from_postal_code: string | null
+          timezone_source: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          default_priority?: Database["public"]["Enums"]["priority_level"]
+          organization_id: string
+          portal_enabled?: boolean
+          portal_show_priority?: boolean
+          portal_submission_enabled?: boolean
+          portal_support_label?: string | null
+          portal_welcome_message?: string | null
+          timezone?: string
+          timezone_resolved_from_postal_code?: string | null
+          timezone_source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          default_priority?: Database["public"]["Enums"]["priority_level"]
+          organization_id?: string
+          portal_enabled?: boolean
+          portal_show_priority?: boolean
+          portal_submission_enabled?: boolean
+          portal_support_label?: string | null
+          portal_welcome_message?: string | null
+          timezone?: string
+          timezone_resolved_from_postal_code?: string | null
+          timezone_source?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_settings_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           avatar_path: string | null
           avatar_updated_at: string | null
+          business_postal_code: string | null
           created_at: string
           id: string
           name: string
@@ -715,6 +1123,7 @@ export type Database = {
         Insert: {
           avatar_path?: string | null
           avatar_updated_at?: string | null
+          business_postal_code?: string | null
           created_at?: string
           id?: string
           name: string
@@ -725,6 +1134,7 @@ export type Database = {
         Update: {
           avatar_path?: string | null
           avatar_updated_at?: string | null
+          business_postal_code?: string | null
           created_at?: string
           id?: string
           name?: string
@@ -906,12 +1316,195 @@ export type Database = {
           },
         ]
       }
+      service_request_activity: {
+        Row: {
+          actor_user_id: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          new_value: Json | null
+          occurred_at: string
+          organization_id: string
+          previous_value: Json | null
+          service_request_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          event_type: string
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          occurred_at?: string
+          organization_id: string
+          previous_value?: Json | null
+          service_request_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          event_type?: string
+          id?: string
+          metadata?: Json
+          new_value?: Json | null
+          occurred_at?: string
+          organization_id?: string
+          previous_value?: Json | null
+          service_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_activity_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_activity_organization_id_service_request_i_fkey"
+            columns: ["organization_id", "service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      service_request_communications: {
+        Row: {
+          actor_user_id: string | null
+          channel: string
+          communication_type: string
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          error_code: string | null
+          error_summary: string | null
+          id: string
+          organization_id: string
+          recipient_email: string | null
+          recipient_user_id: string | null
+          related_message_id: string | null
+          service_request_id: string
+          status: string
+          subject: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          channel: string
+          communication_type: string
+          created_at?: string
+          delivered_at?: string | null
+          direction: string
+          error_code?: string | null
+          error_summary?: string | null
+          id?: string
+          organization_id: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          related_message_id?: string | null
+          service_request_id: string
+          status: string
+          subject?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          channel?: string
+          communication_type?: string
+          created_at?: string
+          delivered_at?: string | null
+          direction?: string
+          error_code?: string | null
+          error_summary?: string | null
+          id?: string
+          organization_id?: string
+          recipient_email?: string | null
+          recipient_user_id?: string | null
+          related_message_id?: string | null
+          service_request_id?: string
+          status?: string
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_communications_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_communications_recipient_user_id_fkey"
+            columns: ["recipient_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_communications_related_message_id_fkey"
+            columns: ["related_message_id"]
+            isOneToOne: false
+            referencedRelation: "service_request_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_communications_request_fk"
+            columns: ["organization_id", "service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      service_request_messages: {
+        Row: {
+          author_type: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          organization_id: string
+          service_request_id: string
+        }
+        Insert: {
+          author_type: string
+          author_user_id: string
+          body: string
+          created_at?: string
+          id?: string
+          organization_id: string
+          service_request_id: string
+        }
+        Update: {
+          author_type?: string
+          author_user_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          organization_id?: string
+          service_request_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_request_messages_author_user_id_fkey"
+            columns: ["author_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_messages_organization_id_service_request_i_fkey"
+            columns: ["organization_id", "service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
       service_requests: {
         Row: {
           assigned_user_id: string | null
           case_id: string | null
           closed_at: string | null
           created_at: string
+          created_by_user_id: string | null
           customer_id: string
           description: string
           id: string
@@ -931,6 +1524,7 @@ export type Database = {
           case_id?: string | null
           closed_at?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           customer_id: string
           description?: string
           id?: string
@@ -950,6 +1544,7 @@ export type Database = {
           case_id?: string | null
           closed_at?: string | null
           created_at?: string
+          created_by_user_id?: string | null
           customer_id?: string
           description?: string
           id?: string
@@ -965,6 +1560,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_requests_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_requests_organization_id_assigned_user_id_fkey"
             columns: ["organization_id", "assigned_user_id"]
@@ -1124,9 +1726,71 @@ export type Database = {
       }
     }
     Functions: {
-      set_own_avatar_path: {
-        Args: { target_avatar_path: string | null }
-        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+      admin_set_organization_license: {
+        Args: {
+          target_commercial_state: Database["public"]["Enums"]["commercial_state"]
+          target_event_type?: Database["public"]["Enums"]["license_event_type"]
+          target_expires_at: string
+          target_grace_ends_at: string
+          target_notes: string
+          target_organization_id: string
+          target_plan_code: string
+          target_starts_at: string
+          target_status: Database["public"]["Enums"]["license_status"]
+        }
+        Returns: {
+          commercial_state: Database["public"]["Enums"]["commercial_state"]
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          grace_ends_at: string | null
+          id: string
+          is_current: boolean
+          license_status: Database["public"]["Enums"]["license_status"]
+          notes: string | null
+          notice_days: number
+          notification_thresholds: number[]
+          organization_id: string
+          plan_code: string
+          starts_at: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_licenses"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      allocate_service_request_number: {
+        Args: { target_organization_id: string }
+        Returns: string
+      }
+      archive_notification: {
+        Args: { target_notification_id: string }
+        Returns: {
+          archived_at: string | null
+          category: string
+          created_at: string
+          destination_path: string
+          id: string
+          message: string
+          notification_type: string
+          organization_id: string
+          read_at: string | null
+          recipient_user_id: string
+          source_domain: string
+          source_entity_id: string
+          source_event_id: string | null
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       can_access_case: {
         Args: {
@@ -1136,12 +1800,35 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_access_service_request: {
+        Args: {
+          target_organization_id: string
+          target_service_request_id: string
+          target_user_id?: string
+        }
+        Returns: boolean
+      }
       can_administer_questions: {
         Args: { target_organization_id: string; target_user_id?: string }
         Returns: boolean
       }
       can_manage_case: {
         Args: { target_organization_id: string; target_user_id?: string }
+        Returns: boolean
+      }
+      can_manage_service_request: {
+        Args: {
+          target_organization_id: string
+          target_service_request_id: string
+          target_user_id?: string
+        }
+        Returns: boolean
+      }
+      can_read_service_request_messages: {
+        Args: {
+          target_organization_id: string
+          target_service_request_id: string
+        }
         Returns: boolean
       }
       create_case_task: {
@@ -1246,9 +1933,117 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_customer_service_request: {
+        Args: {
+          target_description: string
+          target_portal_access_id: string
+          target_subject: string
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_customer_service_request_message: {
+        Args: { target_body: string; target_service_request_id: string }
+        Returns: {
+          author_type: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          organization_id: string
+          service_request_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_request_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_internal_service_request_message: {
+        Args: { target_body: string; target_service_request_id: string }
+        Returns: {
+          author_type: string
+          author_user_id: string
+          body: string
+          created_at: string
+          id: string
+          organization_id: string
+          service_request_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_request_messages"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_notification: {
+        Args: {
+          target_category: string
+          target_destination_path: string
+          target_message: string
+          target_notification_type: string
+          target_organization_id: string
+          target_recipient_user_id: string
+          target_source_domain: string
+          target_source_entity_id: string
+          target_source_event_id: string
+          target_title: string
+        }
+        Returns: {
+          archived_at: string | null
+          category: string
+          created_at: string
+          destination_path: string
+          id: string
+          message: string
+          notification_type: string
+          organization_id: string
+          read_at: string | null
+          recipient_user_id: string
+          source_domain: string
+          source_entity_id: string
+          source_event_id: string | null
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_organization: {
         Args: { target_name: string; target_slug: string }
         Returns: {
+          avatar_path: string | null
+          avatar_updated_at: string | null
+          business_postal_code: string | null
           created_at: string
           id: string
           name: string
@@ -1263,6 +2058,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_service_request: {
+        Args: {
+          target_assigned_user_id?: string
+          target_customer_id: string
+          target_description: string
+          target_organization_id: string
+          target_priority?: Database["public"]["Enums"]["priority_level"]
+          target_subject: string
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_case_task: { Args: { target_task_id: string }; Returns: undefined }
       get_case_progress: {
         Args: { target_case_id: string }
@@ -1271,6 +2102,23 @@ export type Database = {
           percentage: number
           remaining_required_tasks: number
           total_required_tasks: number
+        }[]
+      }
+      get_service_request_detail_activity: {
+        Args: { target_service_request_id: string }
+        Returns: {
+          activity_id: string
+          actor_display_name: string
+          actor_email: string
+          actor_user_id: string
+          created_by_user_id: string
+          creator_display_name: string
+          creator_email: string
+          event_type: string
+          metadata: Json
+          new_value: Json
+          occurred_at: string
+          previous_value: Json
         }[]
       }
       has_organization_role: {
@@ -1298,6 +2146,10 @@ export type Database = {
         Args: { target_organization_id: string; target_user_id: string }
         Returns: boolean
       }
+      mark_all_notifications_read: {
+        Args: { target_organization_id: string }
+        Returns: number
+      }
       move_case_task: {
         Args: { target_direction: string; target_task_id: string }
         Returns: undefined
@@ -1306,10 +2158,15 @@ export type Database = {
         Args: { target_organization_id: string }
         Returns: string
       }
-      next_customer_number: {
-        Args: { target_organization_id: string }
-        Returns: string
-      }
+      next_customer_number:
+        | { Args: { target_organization_id: string }; Returns: string }
+        | {
+            Args: {
+              target_organization_id: string
+              target_type: Database["public"]["Enums"]["customer_type"]
+            }
+            Returns: string
+          }
       provision_organization_member: {
         Args: {
           target_email: string
@@ -1393,6 +2250,85 @@ export type Database = {
         }
         Returns: undefined
       }
+      set_notification_read_state: {
+        Args: { target_notification_id: string; target_read: boolean }
+        Returns: {
+          archived_at: string | null
+          category: string
+          created_at: string
+          destination_path: string
+          id: string
+          message: string
+          notification_type: string
+          organization_id: string
+          read_at: string | null
+          recipient_user_id: string
+          source_domain: string
+          source_entity_id: string
+          source_event_id: string | null
+          title: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notifications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_own_avatar_path: {
+        Args: { target_avatar_path: string }
+        Returns: {
+          avatar_path: string | null
+          avatar_updated_at: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          first_name: string | null
+          id: string
+          is_active: boolean
+          last_name: string | null
+          phone: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_service_request_assignment: {
+        Args: {
+          target_assigned_user_id?: string
+          target_service_request_id: string
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transition_case_status: {
         Args: {
           target_case_id: string
@@ -1466,6 +2402,9 @@ export type Database = {
           target_status: Database["public"]["Enums"]["organization_status"]
         }
         Returns: {
+          avatar_path: string | null
+          avatar_updated_at: string | null
+          business_postal_code: string | null
           created_at: string
           id: string
           name: string
@@ -1499,6 +2438,70 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "organization_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_service_request_priority: {
+        Args: {
+          target_priority: Database["public"]["Enums"]["priority_level"]
+          target_service_request_id: string
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      update_service_request_status: {
+        Args: {
+          target_service_request_id: string
+          target_status: Database["public"]["Enums"]["service_request_status"]
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1539,8 +2542,28 @@ export type Database = {
         | "BLOCKED"
         | "COMPLETED"
         | "NOT_APPLICABLE"
+      commercial_state: "TRIAL" | "PAID" | "UNPAID" | "COMP" | "INTERNAL"
       customer_status: "ACTIVE" | "INACTIVE" | "ARCHIVED"
       customer_type: "INDIVIDUAL" | "BUSINESS" | "ORGANIZATION"
+      license_event_type:
+        | "CREATED"
+        | "TRIAL_STARTED"
+        | "ACTIVATED"
+        | "RENEWED"
+        | "EXTENDED"
+        | "COMMERCIAL_STATE_CHANGED"
+        | "PLAN_CHANGED"
+        | "SUSPENDED"
+        | "REACTIVATED"
+        | "CANCELLED"
+        | "GRACE_CHANGED"
+      license_status:
+        | "TRIAL"
+        | "ACTIVE"
+        | "EXPIRING"
+        | "EXPIRED"
+        | "SUSPENDED"
+        | "CANCELLED"
       organization_status: "ACTIVE" | "SUSPENDED" | "ARCHIVED"
       priority_level: "LOW" | "NORMAL" | "HIGH" | "URGENT"
       question_response_type:
@@ -1558,6 +2581,7 @@ export type Database = {
         | "PENDING_STAFF"
         | "RESOLVED"
         | "CLOSED"
+        | "ON_HOLD"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1715,8 +2739,30 @@ export const Constants = {
         "COMPLETED",
         "NOT_APPLICABLE",
       ],
+      commercial_state: ["TRIAL", "PAID", "UNPAID", "COMP", "INTERNAL"],
       customer_status: ["ACTIVE", "INACTIVE", "ARCHIVED"],
       customer_type: ["INDIVIDUAL", "BUSINESS", "ORGANIZATION"],
+      license_event_type: [
+        "CREATED",
+        "TRIAL_STARTED",
+        "ACTIVATED",
+        "RENEWED",
+        "EXTENDED",
+        "COMMERCIAL_STATE_CHANGED",
+        "PLAN_CHANGED",
+        "SUSPENDED",
+        "REACTIVATED",
+        "CANCELLED",
+        "GRACE_CHANGED",
+      ],
+      license_status: [
+        "TRIAL",
+        "ACTIVE",
+        "EXPIRING",
+        "EXPIRED",
+        "SUSPENDED",
+        "CANCELLED",
+      ],
       organization_status: ["ACTIVE", "SUSPENDED", "ARCHIVED"],
       priority_level: ["LOW", "NORMAL", "HIGH", "URGENT"],
       question_response_type: [
@@ -1735,6 +2781,7 @@ export const Constants = {
         "PENDING_STAFF",
         "RESOLVED",
         "CLOSED",
+        "ON_HOLD",
       ],
     },
   },

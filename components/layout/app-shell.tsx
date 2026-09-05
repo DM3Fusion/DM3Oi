@@ -7,6 +7,7 @@ import {
   BriefcaseBusiness,
   Building2,
   ClipboardCheck,
+  Bell,
   FileQuestion,
   Headphones,
   LayoutDashboard,
@@ -28,6 +29,7 @@ const organizationNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: BriefcaseBusiness },
   { href: "/service-desk", label: "Service Desk", icon: Headphones },
+  { href: "/communications", label: "Communications", icon: Bell },
   { href: "/customers", label: "Customers", icon: Users },
   { href: "/tasks", label: "Tasks", icon: ClipboardCheck },
   { href: "/questions", label: "Questions & Rules", icon: FileQuestion },
@@ -49,10 +51,12 @@ export function AppShell({
   children,
   access,
   applicationVersion,
+  unreadNotificationCount,
 }: {
   children: React.ReactNode;
   access: AccessContext | null;
   applicationVersion: string;
+  unreadNotificationCount: number;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -108,6 +112,11 @@ export function AppShell({
               >
                 <Icon aria-hidden />
                 <span>{label}</span>
+                {href === "/communications" && unreadNotificationCount > 0 ? (
+                  <span className="nav-unread-count" aria-label={`${unreadNotificationCount} unread notifications`}>
+                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </span>
+                ) : null}
               </Link>
             );
           })}
