@@ -19,19 +19,34 @@ export type Notification = {
   archived_at: string | null;
 };
 
-export async function getNotifications(): Promise<Notification[]> {
+export type NotificationFilters = {
+  status?: "all" | "unread" | "read" | "archived";
+  source?: "all" | "service-request" | "case" | "task" | "other";
+  createdAfter?: string;
+};
+
+export async function getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
   const context = await requireInternalContext();
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("notifications")
     .select("*")
     .eq("organization_id", context.activeOrganization.id)
     .eq("recipient_user_id", context.user.id)
-    .is("archived_at", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
+  query = filters.status === "archived" ? query.not("archived_at", "is", null) : query.is("archived_at", null);
+  if (filters.status === "unread") query = query.is("read_at", null);
+  if (filters.status === "read") query = query.not("read_at", "is", null);
+  if (filters.source === "service-request") query = query.eq("source_domain", "SERVICE_REQUEST");
+  if (filters.source === "case") query = query.eq("source_domain", "CASE");
+  if (filters.source === "task") query = query.eq("source_domain", "TASK");
+  if (filters.source === "other") query = query.not("source_domain", "in", '("SERVICE_REQUEST","CASE","TASK")');
+  if (filters.createdAfter) query = query.gte("created_at", filters.createdAfter);
+  const { data, error } = await query;
   if (error) throw new Error("Communications are temporarily unavailable.");
   const newestFirst = data ?? [];
+  if (filters.status && filters.status !== "all") return newestFirst;
   return [
     ...newestFirst.filter((notification) => !notification.read_at),
     ...newestFirst.filter((notification) => notification.read_at),
