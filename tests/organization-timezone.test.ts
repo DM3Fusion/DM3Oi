@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
-import { formatOrganizationDateTime, resolveUsZipTimeZone } from "../lib/organization-timezone.ts";
+import { formatOrganizationDateTime, resolveUsZipTimeZone, startOfOrganizationDay } from "../lib/organization-timezone.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -18,6 +18,11 @@ test("organization formatting is explicit, stable, and daylight-saving aware", (
   assert.equal(formatOrganizationDateTime("2026-09-05T22:08:00Z", "America/New_York", "medium"), "Sep 5, 2026, 6:08 PM");
   assert.equal(formatOrganizationDateTime("2026-01-05T22:08:00Z", "America/New_York"), "1/5/2026, 5:08 PM");
   assert.equal(formatOrganizationDateTime("2026-09-05T22:08:00Z", "invalid/timezone"), "9/5/2026, 10:08 PM");
+});
+
+test("Today begins at midnight in the organization timezone", () => {
+  assert.equal(startOfOrganizationDay(new Date("2026-09-06T02:00:00Z"), "America/New_York").toISOString(), "2026-09-05T04:00:00.000Z");
+  assert.equal(startOfOrganizationDay(new Date("2026-01-06T02:00:00Z"), "America/New_York").toISOString(), "2026-01-05T05:00:00.000Z");
 });
 
 test("organization operational surfaces consume the shared timezone", () => {
