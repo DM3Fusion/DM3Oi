@@ -5,20 +5,34 @@ import {
   markNotificationUnreadAction,
   openNotificationAction,
 } from "@/lib/data/communications-actions";
-import { getNotifications } from "@/lib/data/communications-repository";
+import { getNotifications, getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { requireInternalContext } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+import { formatOrganizationDateTime, startOfOrganizationDay } from "@/lib/organization-timezone";
+import { CommunicationsFilters, type CommunicationsFilterValues } from "@/components/communications-filters";
 
-export default async function CommunicationsPage() {
+const statuses = new Set(["all", "unread", "read", "archived"]);
+const sources = new Set(["all", "service-request", "case", "task", "other"]);
+const ranges = new Set(["all", "today", "7d", "30d"]);
+
+export default async function CommunicationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
   const context = await requireInternalContext();
-  const [notifications, settings] = await Promise.all([
-    getNotifications(),
-    createAdminClient().from("organization_settings").select("timezone").eq("organization_id", context.activeOrganization.id).maybeSingle(),
-  ]);
+  const query = await searchParams;
+  const values: CommunicationsFilterValues = {
+    status: (statuses.has(query?.status ?? "") ? query?.status : "all") as CommunicationsFilterValues["status"],
+    source: (sources.has(query?.source ?? "") ? query?.source : "all") as CommunicationsFilterValues["source"],
+    range: (ranges.has(query?.range ?? "") ? query?.range : "all") as CommunicationsFilterValues["range"],
+  };
+  const settings = await createAdminClient().from("organization_settings").select("timezone").eq("organization_id", context.activeOrganization.id).maybeSingle();
   const timezone = settings.data?.timezone ?? "UTC";
-  const unread = notifications.filter((item) => !item.read_at).length;
+  const now = new Date();
+  const createdAfter = values.range === "today" ? startOfOrganizationDay(now, timezone).toISOString() : values.range === "7d" ? new Date(now.getTime() - 7 * 86400000).toISOString() : values.range === "30d" ? new Date(now.getTime() - 30 * 86400000).toISOString() : undefined;
+  const [notifications, unread] = await Promise.all([
+    getNotifications({ status: values.status, source: values.source, createdAfter }),
+    getUnreadNotificationCount(),
+  ]);
+  const filtered = values.status !== "all" || values.source !== "all" || values.range !== "all";
   return (
     <>
       <PageHeader
@@ -27,6 +41,7 @@ export default async function CommunicationsPage() {
         description="Notifications from customer conversations and DM3iQCM workflows."
         action={unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…">Mark all as read</PendingSubmitButton></form> : undefined}
       />
+      <CommunicationsFilters values={values} />
       <section className="panel communications-center" aria-label="Notification inbox">
         {notifications.length ? (
           <div className="notification-list">
@@ -52,7 +67,7 @@ export default async function CommunicationsPage() {
               </article>
             ))}
           </div>
-        ) : <div className="no-results">No communications yet.</div>}
+        ) : <div className="no-results">{filtered ? "No communications match these filters." : "No communications yet."}</div>}
       </section>
     </>
   );
