@@ -23,16 +23,18 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
     status: (statuses.has(query?.status ?? "") ? query?.status : "all") as CommunicationsFilterValues["status"],
     source: (sources.has(query?.source ?? "") ? query?.source : "all") as CommunicationsFilterValues["source"],
     range: (ranges.has(query?.range ?? "") ? query?.range : "all") as CommunicationsFilterValues["range"],
+    q: (query?.q ?? "").trim().slice(0, 200),
   };
   const settings = await createAdminClient().from("organization_settings").select("timezone").eq("organization_id", context.activeOrganization.id).maybeSingle();
   const timezone = settings.data?.timezone ?? "UTC";
   const now = new Date();
   const createdAfter = values.range === "today" ? startOfOrganizationDay(now, timezone).toISOString() : values.range === "7d" ? new Date(now.getTime() - 7 * 86400000).toISOString() : values.range === "30d" ? new Date(now.getTime() - 30 * 86400000).toISOString() : undefined;
   const [notifications, unread] = await Promise.all([
-    getNotifications({ status: values.status, source: values.source, createdAfter }),
+    getNotifications({ status: values.status, source: values.source, createdAfter, search: values.q }),
     getUnreadNotificationCount(),
   ]);
-  const filtered = values.status !== "all" || values.source !== "all" || values.range !== "all";
+  const hasStructuredFilters = values.status !== "all" || values.source !== "all" || values.range !== "all";
+  const filtered = hasStructuredFilters || Boolean(values.q);
   return (
     <>
       <PageHeader
@@ -67,7 +69,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
               </article>
             ))}
           </div>
-        ) : <div className="no-results">{filtered ? "No communications match these filters." : "No communications yet."}</div>}
+        ) : <div className="no-results">{values.q ? (hasStructuredFilters ? "No communications match your search and filters." : "No communications match your search.") : filtered ? "No communications match these filters." : "No communications yet."}</div>}
       </section>
     </>
   );

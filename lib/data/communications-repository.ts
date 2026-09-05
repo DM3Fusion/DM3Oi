@@ -23,6 +23,7 @@ export type NotificationFilters = {
   status?: "all" | "unread" | "read" | "archived";
   source?: "all" | "service-request" | "case" | "task" | "other";
   createdAfter?: string;
+  search?: string;
 };
 
 export async function getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
@@ -43,6 +44,12 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
   if (filters.source === "task") query = query.eq("source_domain", "TASK");
   if (filters.source === "other") query = query.not("source_domain", "in", '("SERVICE_REQUEST","CASE","TASK")');
   if (filters.createdAfter) query = query.gte("created_at", filters.createdAfter);
+  const search = filters.search?.trim();
+  if (search) {
+    const escaped = search.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replace(/[%_]/g, (character) => `\\${character}`);
+    const pattern = `"%${escaped}%"`;
+    query = query.or(`title.ilike.${pattern},message.ilike.${pattern},source_domain.ilike.${pattern},notification_type.ilike.${pattern},category.ilike.${pattern}`);
+  }
   const { data, error } = await query;
   if (error) throw new Error("Communications are temporarily unavailable.");
   const newestFirst = data ?? [];
