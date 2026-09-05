@@ -19,6 +19,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { getCaseQuestions } from "@/lib/data/question-repository";
 import { CaseQuestions } from "@/components/cases/case-questions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 const statuses = [
   "NEW",
   "UNASSIGNED",
@@ -154,7 +155,7 @@ export default async function Page({
                   ))}
                 </select>
               </label>
-              <button type="submit">Update Status</button>
+              <PendingSubmitButton pendingLabel="Updating…">Update Status</PendingSubmitButton>
             </form>
           </section>
           <section className="panel detail-section">
@@ -259,7 +260,7 @@ export default async function Page({
                           value={task.required ? "true" : "false"}
                         />
                         <div className="mini-actions">
-                          <button type="submit">Save Task</button>
+                          <PendingSubmitButton pendingLabel="Saving…">Save Task</PendingSubmitButton>
                         </div>
                       </form>
                       {canManage ? (
@@ -356,7 +357,7 @@ export default async function Page({
                     <input type="checkbox" name="required" defaultChecked />
                     <span>Required</span>
                   </label>
-                  <button type="submit">Create Task</button>
+                  <PendingSubmitButton pendingLabel="Creating…">Create Task</PendingSubmitButton>
                 </form>
               </details>
             ) : null}
@@ -425,7 +426,7 @@ export default async function Page({
                         value="STAFF"
                       />
                       <input type="hidden" name="active" value="false" />
-                      <button className="text-button">Remove</button>
+                      <PendingSubmitButton className="text-button" pendingLabel="Removing…">Remove</PendingSubmitButton>
                     </form>
                   ) : null}
                 </div>
@@ -454,7 +455,7 @@ export default async function Page({
                         </option>
                       ))}
                   </select>
-                  <button>Assign</button>
+                  <PendingSubmitButton pendingLabel="Assigning…">Assign</PendingSubmitButton>
                 </form>
                 <form action={setCaseAssignmentAction}>
                   <input type="hidden" name="caseId" value={item.id} />
@@ -476,7 +477,7 @@ export default async function Page({
                         </option>
                       ))}
                   </select>
-                  <button>Assign</button>
+                  <PendingSubmitButton pendingLabel="Assigning…">Assign</PendingSubmitButton>
                 </form>
               </div>
             ) : null}

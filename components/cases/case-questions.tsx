@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui";
 import { saveCaseResponseAction } from "@/lib/data/question-actions";
 import type { CaseQuestion } from "@/lib/data/question-repository";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 type Option = { label: string; value: string };
 const scalar = (value: unknown) =>
   typeof value === "string" ||
@@ -64,7 +65,7 @@ export function CaseQuestions({
                     options={options}
                     value={q.response?.response_value}
                   />
-                  <button>Save</button>
+                  <PendingSubmitButton pendingLabel="Saving…">Save</PendingSubmitButton>
                 </form>
               </article>
             );

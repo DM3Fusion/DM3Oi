@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { LogOut } from "lucide-react";
 import { signOutAction } from "@/lib/auth/actions";
 import { UserAvatar } from "@/components/user-avatar";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 export function AccountMenu({
   displayName,
@@ -55,10 +56,10 @@ export function AccountMenu({
           My Profile
         </Link>
         <form action={signOutAction}>
-          <button type="submit">
+          <PendingSubmitButton pendingLabel="Signing out…">
             <LogOut aria-hidden />
             Sign Out
-          </button>
+          </PendingSubmitButton>
         </form>
       </div>
     </details>

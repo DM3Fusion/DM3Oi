@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOutAction } from "@/lib/auth/actions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 export default function PortalNav({ hasMultipleAccounts, enabled = true }: { hasMultipleAccounts: boolean; enabled?: boolean }) {
   const [open, setOpen] = useState(false);
@@ -44,7 +45,7 @@ export default function PortalNav({ hasMultipleAccounts, enabled = true }: { has
       <nav ref={navRef} id="portal-navigation" className={`portal-nav${open ? " is-open" : ""}${enabled ? "" : " is-disabled"}`} aria-label="Customer portal">
         {enabled && <><Link href="/portal" onClick={() => setOpen(false)}>Home</Link><Link href="/portal/service-requests" onClick={() => setOpen(false)}>Service Requests</Link>{hasMultipleAccounts && <Link href="/portal/select-account" onClick={() => setOpen(false)}>Switch account</Link>}</>}
         <form action={signOutAction}>
-          <button type="submit">Sign Out</button>
+          <PendingSubmitButton pendingLabel="Signing out…">Sign Out</PendingSubmitButton>
         </form>
       </nav>
     </>

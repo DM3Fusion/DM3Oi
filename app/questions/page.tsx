@@ -2,6 +2,7 @@ import { PageHeader, Badge } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
 import { saveQuestionAction } from "@/lib/data/question-actions";
 import { getQuestionDefinitions } from "@/lib/data/question-repository";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 const types = [
   "TEXT",
   "LONG_TEXT",
@@ -152,7 +153,7 @@ function QuestionForm({
         <span>Active</span>
       </label>
       <div className="mini-actions">
-        <button>Save Question</button>
+        <PendingSubmitButton pendingLabel="Saving…">Save Question</PendingSubmitButton>
       </div>
     </form>
   );

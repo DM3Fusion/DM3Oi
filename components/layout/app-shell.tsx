@@ -25,6 +25,7 @@ import type { AccessContext } from "@/lib/auth/context";
 import { AccountMenu } from "@/components/account-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 const organizationNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: BriefcaseBusiness },
@@ -175,7 +176,7 @@ export function AppShell({
             <p>No active organization</p>
           )}
         </div>
-        <form action={signOutAction} className="signout"><button type="submit"><LogOut aria-hidden />Sign Out</button></form>
+        <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><LogOut aria-hidden />Sign Out</PendingSubmitButton></form>
       </aside>
       <div className="main-column">
         <header className="topbar">
