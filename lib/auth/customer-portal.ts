@@ -51,7 +51,7 @@ export async function getCustomerPortalContext(): Promise<CustomerPortalContext 
     admin.from("organizations").select("*").eq("id", access.organization_id).eq("status", "ACTIVE").maybeSingle(),
     admin.from("customers").select("*").eq("id", access.customer_id).eq("organization_id", access.organization_id).eq("status", "ACTIVE").maybeSingle(),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any).from("organization_settings").select("portal_enabled,portal_submission_enabled,portal_show_priority").eq("organization_id", access.organization_id).maybeSingle(),
+    (admin as any).from("organization_settings").select("portal_enabled,portal_submission_enabled,portal_show_priority,timezone").eq("organization_id", access.organization_id).maybeSingle(),
   ]);
 
   if (organizationError || !organization) {
@@ -70,7 +70,7 @@ export async function getCustomerPortalContext(): Promise<CustomerPortalContext 
     return { user, access: null, organization, customer, links: activeLinks, settings: null, reason: "SETTINGS_LOOKUP_FAILED" };
   }
 
-  const effectiveSettings = settings ?? { portal_enabled: true, portal_submission_enabled: true, portal_show_priority: true };
+  const effectiveSettings = settings ?? { portal_enabled: true, portal_submission_enabled: true, portal_show_priority: true, timezone: "UTC" };
   if (effectiveSettings.portal_enabled === false) {
     return { user, access: null, organization, customer, links: activeLinks, settings: effectiveSettings, reason: "PORTAL_DISABLED" };
   }

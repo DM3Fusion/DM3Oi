@@ -7,12 +7,17 @@ import {
 } from "@/lib/data/communications-actions";
 import { getNotifications } from "@/lib/data/communications-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-
-const when = (value: string) =>
-  new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+import { requireInternalContext } from "@/lib/auth/context";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 
 export default async function CommunicationsPage() {
-  const notifications = await getNotifications();
+  const context = await requireInternalContext();
+  const [notifications, settings] = await Promise.all([
+    getNotifications(),
+    createAdminClient().from("organization_settings").select("timezone").eq("organization_id", context.activeOrganization.id).maybeSingle(),
+  ]);
+  const timezone = settings.data?.timezone ?? "UTC";
   const unread = notifications.filter((item) => !item.read_at).length;
   return (
     <>
@@ -35,7 +40,7 @@ export default async function CommunicationsPage() {
                     <span className="notification-copy">
                       <strong>{item.title}</strong>
                       <span>{item.message}</span>
-                      <small>{item.category.replaceAll("_", " ")} · {when(item.created_at)}</small>
+                      <small>{item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     </span>
                     <span aria-hidden>→</span>
                   </PendingSubmitButton>

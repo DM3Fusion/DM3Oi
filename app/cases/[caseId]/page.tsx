@@ -20,6 +20,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { getCaseQuestions } from "@/lib/data/question-repository";
 import { CaseQuestions } from "@/components/cases/case-questions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 const statuses = [
   "NEW",
   "UNASSIGNED",
@@ -383,7 +384,7 @@ export default async function Page({
                       </b>
                       <p>
                         {displayName(activity.actor)} ·{" "}
-                        {new Date(activity.created_at).toLocaleString()}
+                        {formatOrganizationDateTime(activity.created_at, data.timezone)}
                       </p>
                     </div>
                   </article>

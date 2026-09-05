@@ -14,8 +14,14 @@ export const resolveUsZipTimeZone = (postalCode: string): string | null => {
   try { return tzLookup(location.latitude, location.longitude); } catch { return null; }
 };
 
-export const formatOrganizationDateTime = (value: string | Date | null | undefined, timezone?: string | null) => {
+export type OrganizationDateTimeStyle = "numeric" | "medium";
+
+export const formatOrganizationDateTime = (value: string | Date | null | undefined, timezone?: string | null, style: OrganizationDateTimeStyle = "numeric") => {
   if (!value) return "—";
   const timeZone = isValidTimeZone(timezone) ? timezone : "UTC";
-  try { return new Intl.DateTimeFormat("en-US", { timeZone, month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date(value)); } catch { return new Intl.DateTimeFormat("en-US", { timeZone: "UTC", month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", second: "2-digit" }).format(new Date(value)); }
+  const options: Intl.DateTimeFormatOptions = style === "medium"
+    ? { timeZone, month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true }
+    : { timeZone, month: "numeric", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true };
+  try { return new Intl.DateTimeFormat("en-US", options).format(new Date(value)); }
+  catch { return new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(new Date(value)); }
 };

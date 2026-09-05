@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
 import { attachAvatarUrls, type ProfileWithAvatar } from "@/lib/data/avatar-urls";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.generated";
 type Tables = Database["public"]["Tables"];
 export type CaseRow = Tables["cases"]["Row"];
@@ -34,6 +35,7 @@ export interface StaffMember {
 }
 export interface LiveOrganizationData {
   organizationId: string;
+  timezone: string;
   cases: LiveCase[];
   customers: CustomerRow[];
   staff: StaffMember[];
@@ -72,6 +74,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     redirect("/account/unprovisioned");
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
+  const admin = createAdminClient();
   const [
     caseResult,
     customerResult,
@@ -80,6 +83,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     memberResult,
     activityResult,
     requestResult,
+    settingsResult,
   ] = await Promise.all([
     supabase
       .from("cases")
@@ -113,6 +117,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       .order("created_at", { ascending: false })
       .limit(50),
     supabase.from("service_requests").select("*").eq("organization_id", organizationId).order("updated_at", { ascending: false }),
+    admin.from("organization_settings").select("timezone").eq("organization_id", organizationId).maybeSingle(),
   ]);
   const error =
     caseResult.error ??
@@ -204,7 +209,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     assigned: request.assigned_user_id ? (byProfile.get(request.assigned_user_id) ?? null) : null,
     creator: request.created_by_user_id ? (byProfile.get(request.created_by_user_id) ?? null) : null,
   }));
-  return { organizationId, cases, customers, staff, activities, serviceRequests };
+  return { organizationId, timezone: settingsResult.data?.timezone ?? "UTC", cases, customers, staff, activities, serviceRequests };
 }
 export async function getLiveCase(caseId: string) {
   const data = await getLiveOrganizationData();
