@@ -31,7 +31,11 @@ export async function getNotifications(): Promise<Notification[]> {
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
   if (error) throw new Error("Communications are temporarily unavailable.");
-  return data ?? [];
+  const newestFirst = data ?? [];
+  return [
+    ...newestFirst.filter((notification) => !notification.read_at),
+    ...newestFirst.filter((notification) => notification.read_at),
+  ];
 }
 
 export async function getUnreadNotificationCount(): Promise<number> {
