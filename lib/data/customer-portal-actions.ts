@@ -6,6 +6,7 @@ import { ACTIVE_PORTAL_ACCESS_COOKIE, requireCustomerPortalContext } from "@/lib
 import { createClient } from "@/lib/supabase/server";
 import { recordPortalCommunication } from "@/lib/data/communication-service";
 import { notifyStaffOfCustomerReply } from "@/lib/data/communication-service";
+import { after } from "next/server";
 
 export async function selectPortalAccountAction(form: FormData) {
   const id = String(form.get("portalAccessId") ?? "");
@@ -33,18 +34,29 @@ export async function createCustomerServiceRequestAction(form: FormData): Promis
   redirect(`/portal/service-requests/${request.id}`);
 }
 
-export async function createCustomerServiceRequestMessageAction(form: FormData): Promise<void> {
-  const context = await requireCustomerPortalContext();
+export type CustomerReplyResult = { ok: true } | { ok: false; error: string };
+
+export async function createCustomerServiceRequestMessageAction(form: FormData): Promise<CustomerReplyResult> {
   const serviceRequestId = String(form.get("serviceRequestId") ?? "");
   const body = String(form.get("body") ?? "").trim();
-  if (!serviceRequestId || !body) redirect(`/portal/service-requests/${serviceRequestId}?error=Reply%20cannot%20be%20blank.`);
-  if (body.length > 4000) redirect(`/portal/service-requests/${serviceRequestId}?error=Reply%20must%20be%204000%20characters%20or%20fewer.`);
+  if (!serviceRequestId || !body) return { ok: false, error: "Reply cannot be blank." };
+  if (body.length > 4000) return { ok: false, error: "Reply must be 4000 characters or fewer." };
+  const context = await requireCustomerPortalContext();
   const supabase = await createClient();
   const { data: created, error } = await supabase.rpc("create_customer_service_request_message" as never, { target_service_request_id: serviceRequestId, target_body: body } as never);
-  if (error || !created) redirect(`/portal/service-requests/${serviceRequestId}?error=The%20reply%20could%20not%20be%20sent.`);
+  if (error || !created) {
+    console.error("Customer reply submission failed", { code: error?.code, message: error?.message });
+    return { ok: false, error: "The reply could not be sent." };
+  }
   const message = created as unknown as { id: string; organization_id: string };
-  await recordPortalCommunication({ organizationId: message.organization_id, serviceRequestId, messageId: message.id, actorUserId: context.user.id, direction: "INBOUND" });
-  await notifyStaffOfCustomerReply({ organizationId: message.organization_id, serviceRequestId, messageId: message.id });
   revalidatePath(`/portal/service-requests/${serviceRequestId}`);
-  redirect(`/portal/service-requests/${serviceRequestId}`);
+  after(async () => {
+    try {
+      await recordPortalCommunication({ organizationId: message.organization_id, serviceRequestId, messageId: message.id, actorUserId: context.user.id, direction: "INBOUND" });
+      await notifyStaffOfCustomerReply({ organizationId: message.organization_id, serviceRequestId, messageId: message.id });
+    } catch (deliveryError) {
+      console.error("Customer reply follow-up communication failed", deliveryError);
+    }
+  });
+  return { ok: true };
 }
