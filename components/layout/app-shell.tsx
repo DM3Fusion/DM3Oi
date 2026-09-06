@@ -201,7 +201,7 @@ export function AppShell({
           </button>
           <div className="workspace product-tagline" aria-label="People. Work. Progress. Intelligence.">
             <strong><span>People.</span> Work. Progress. Intelligence.</strong>
-            <small>{platformContext ? "Platform Administration" : (org?.name ?? "No active organization")}</small>
+            <small>{platformContext ? "Platform Administration" : <>for <b>{org?.name ?? "No active organization"}</b></>}</small>
           </div>
           {access ? <AccountMenu displayName={access.displayName} email={access.user.email} avatarUrl={access.avatarUrl} /> : null}
         </header>
