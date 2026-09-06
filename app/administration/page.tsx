@@ -6,13 +6,10 @@ import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
 import { canAccessOrganizationAdministration } from "@/lib/auth/permissions";
 
 const cards = [
-  { title: "Users", description: "Manage organization members and access.", href: "/users" },
-  { title: "Questions & Rules", description: "Configure operational questions and requirements.", href: "/questions" },
   { title: "Case Types", description: "Define the kinds of cases this organization manages.", href: "/administration/case-types" },
   { title: "Case Lifecycle", description: "Configure case status and workflow behavior.", href: "/administration/case-lifecycle" },
   { title: "Customer Portal", description: "Configure customer-facing portal behavior.", href: "/administration/customer-portal" },
   { title: "Organization Defaults", description: "Configure organization-wide operational defaults.", href: "/administration/defaults" },
-  { title: "Settings", description: "Manage workspace preferences and application defaults.", href: "/settings" },
 ] as const;
 
 export default async function Page() {
