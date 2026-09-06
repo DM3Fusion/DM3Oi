@@ -2,7 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
-import { canAccessOrganizationAdministration, hasTenantInternalAccess } from "@/lib/auth/access-routing";
+import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
+import { canAccessOrganizationAdministration } from "@/lib/auth/permissions";
 
 const cards = [
   { title: "Users", description: "Manage organization members and access.", href: "/users" },

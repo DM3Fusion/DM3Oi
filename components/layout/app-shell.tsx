@@ -26,7 +26,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-import { canAccessOrganizationAdministration } from "@/lib/auth/access-routing";
+import { hasPermission } from "@/lib/auth/permissions";
 const organizationNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: BriefcaseBusiness },
@@ -38,9 +38,9 @@ const organizationNav = [
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
 const organizationAdministrationNav = [
-  { href: "/users", label: "Users", icon: Users, allowed: () => true },
-  { href: "/administration", label: "Administration", icon: ShieldCheck, allowed: canAccessOrganizationAdministration },
-  { href: "/settings", label: "Settings", icon: Settings, allowed: () => true },
+  { href: "/users", label: "Users", icon: Users, permission: "VIEW_USERS" },
+  { href: "/administration", label: "Administration", icon: ShieldCheck, permission: "VIEW_ADMINISTRATION" },
+  { href: "/settings", label: "Settings", icon: Settings, permission: "VIEW_SETTINGS" },
 ] as const;
 const platformNav = [
   { href: "/", label: "Back Office", icon: ShieldCheck },
@@ -76,7 +76,7 @@ export function AppShell({
       ? organizationNav
       : [];
   const administrationNav = access?.internalAccess
-    ? organizationAdministrationNav.filter((item) => item.allowed(access))
+    ? organizationAdministrationNav.filter((item) => hasPermission(access,item.permission))
     : [];
   return (
     <div className="app-frame">

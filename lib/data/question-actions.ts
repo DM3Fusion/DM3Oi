@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requireInternalContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
+import { hasPermission } from "@/lib/auth/permissions";
 type ResponseType = Database["public"]["Enums"]["question_response_type"];
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const fail = (path: string, message: string): never =>
@@ -18,6 +19,7 @@ const friendly = (m: string) =>
         : "The question change could not be saved.";
 export async function saveQuestionAction(form: FormData) {
   const access = await requireInternalContext();
+  if(!hasPermission(access,"MANAGE_QUESTIONS")) fail("/questions","You are not authorized to manage this question.");
   const lines = text(form, "options")
     .split("\n")
     .map((v) => v.trim())

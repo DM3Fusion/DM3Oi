@@ -18,14 +18,3 @@ export function resolveRootExperience(access: AccessRoutingState): RootExperienc
 export function hasTenantInternalAccess(access: { internalAccess: boolean; activeOrganization?: unknown; isSuperAdmin?: boolean; license?: { workspaceAllowed: boolean } | null } | null): boolean {
   return Boolean(access?.internalAccess && access.activeOrganization && (access.isSuperAdmin || !access.license || access.license.workspaceAllowed));
 }
-
-export function canAccessOrganizationAdministration(access: {
-  isSuperAdmin: boolean;
-  activeOrganization?: { role?: string } | null;
-} | null): boolean {
-  const role = access?.activeOrganization?.role;
-  return Boolean(
-    access?.activeOrganization &&
-      (access.isSuperAdmin || role === "BUSINESS_OWNER" || role === "BUSINESS_ADMIN"),
-  );
-}

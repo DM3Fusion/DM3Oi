@@ -5,6 +5,7 @@ import { getQuestionDefinitions } from "@/lib/data/question-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { QuestionSearch } from "@/components/question-search";
 import { normalizeQuestionQuery,questionMatchesSearch } from "@/lib/question-filters";
+import { hasPermission } from "@/lib/auth/permissions";
 const types = [
   "TEXT",
   "LONG_TEXT",
@@ -24,12 +25,7 @@ export default async function Page({
     getAccessContext(),
     searchParams,
   ]);
-  const role = access?.activeOrganization?.role;
-  const canManage =
-    access?.isSuperAdmin ||
-    role === "BUSINESS_OWNER" ||
-    role === "BUSINESS_ADMIN" ||
-    role === "STAFF_MANAGER";
+  const canManage = hasPermission(access,"MANAGE_QUESTIONS");
   const search=normalizeQuestionQuery(query.q);
   const visibleQuestions=questions.filter(question=>questionMatchesSearch(question,search));
   return (

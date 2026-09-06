@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
 import { isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import type { Database } from "@/types/database.generated";
+import { roleHasPermission } from "@/lib/auth/permissions";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -212,7 +213,7 @@ export async function resendUserInviteAction(form: FormData) {
   if (!access?.user) return { ok: false, error: "You are not authorized to resend invitations." };
   const isPlatformAdmin = access.isSuperAdmin;
   const membership = organizationId ? access.organizations.find((org) => org.id === organizationId) : null;
-  const orgAdmin = membership && ["BUSINESS_OWNER", "BUSINESS_ADMIN"].includes(membership.role);
+  const orgAdmin = membership && roleHasPermission(membership.role, "MANAGE_USERS");
   if (!isPlatformAdmin && !orgAdmin) return { ok: false, error: "You are not authorized to resend invitations." };
   const admin = adminClient("/admin/users");
   const { data: target, error: lookupError } = await admin.auth.admin.getUserById(targetUserId);
@@ -230,7 +231,8 @@ export async function resendUserInviteAction(form: FormData) {
 }
 export async function getInvitationEligibility(userId: string, organizationId?: string) {
   const access = await getAccessContext();
-  if (!access?.user || (!access.isSuperAdmin && (!organizationId || !["BUSINESS_OWNER", "BUSINESS_ADMIN"].includes(access.organizations.find((o) => o.id === organizationId)?.role ?? "")))) return false;
+  const role=organizationId?access?.organizations.find((o)=>o.id===organizationId)?.role:undefined;
+  if (!access?.user || (!access.isSuperAdmin && (!role || !roleHasPermission(role,"MANAGE_USERS")))) return false;
   try { const admin = createAdminClient(); const { data, error } = await admin.auth.admin.getUserById(userId); const user = data?.user; return !error && Boolean(user?.email) && !user?.email_confirmed_at && !user?.last_sign_in_at; } catch { return false; }
 }
 export async function updateUserProfileAction(form: FormData) {
