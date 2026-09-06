@@ -41,6 +41,18 @@ test("approved dashboard panel order is preserved",()=>{
   assert.ok(taskStatus<needsAttention&&needsAttention<recentActivity);
 });
 
+test("case progress uses an accessible vertical bar chart with preserved categories",()=>{
+  const dashboard=source("components/dashboard/dashboard.tsx");
+  const metrics=source("lib/live-dashboard-metrics.ts");
+  const css=source("app/globals.css");
+  assert.match(dashboard,/className="case-progress-chart" role="img"/);
+  assert.match(dashboard,/className="case-progress-column"/);
+  assert.match(dashboard,/style=\{\{height:`\$\{item\.value\/maxCases\*100\}%`\}\}/);
+  assert.doesNotMatch(dashboard,/progress-distribution-row|distribution-track/);
+  for(const label of ["New","Assigned","In Progress","Waiting","Completed"])assert.match(metrics,new RegExp(`label:\\"${label}\\"`));
+  assert.match(css,/\.case-progress-plot\{display:flex;align-items:center;justify-content:flex-end;flex-direction:column/);
+});
+
 test("dashboard queries remain authorized and recipient scoped",()=>{
   const page=source("app/page.tsx");
   const repository=source("lib/data/case-repository.ts");

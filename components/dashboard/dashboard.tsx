@@ -21,9 +21,9 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
     <div className="operations-visuals">
       <section className="panel operations-panel">
         <div className="section-head"><div><h2>Case Progress</h2><p>Authorized cases by current workflow state</p></div><Link href="/cases">View cases →</Link></div>
-        <div className="progress-distribution">
-          {summary.caseProgress.map(item=><div className="progress-distribution-row" key={item.label}>
-            <span>{item.label}</span><div className="distribution-track"><i style={{width:`${item.value/maxCases*100}%`}} /></div><strong>{item.value}</strong>
+        <div className="case-progress-chart" role="img" aria-label={`Case progress: ${summary.caseProgress.map(item=>`${item.label} ${item.value}`).join(", ")}`}>
+          {summary.caseProgress.map(item=><div className="case-progress-column" key={item.label}>
+            <div className="case-progress-plot"><strong>{item.value}</strong><i style={{height:`${item.value/maxCases*100}%`}} /></div><span>{item.label}</span>
           </div>)}
         </div>
       </section>
