@@ -15,7 +15,8 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
   assert.match(shell,/People\.<\/span> Work\. Progress\. Intelligence\./);
   assert.match(shell,/<>for <b>\{org\?\.name \?\? "No active organization"\}<\/b><\/>/);
   assert.doesNotMatch(shell,/Mimms['’] Tax Service/);
-  for(const label of ["Dashboard","Cases","Service Desk","Communications","Customers","Tasks","Questions & Rules","Reports","Users","Administration","Settings"])assert.match(shell,new RegExp(`label: "${label}"`));
+  for(const label of ["Dashboard","Cases","Service Desk","Communications","Customers","Tasks","Questions & Rules","Reports","Users","Settings"])assert.match(shell,new RegExp(`label: "${label}"`));
+  assert.doesNotMatch(shell,/label: "Administration"/);
   assert.match(shell,/aria-label="Administration navigation"/);
   assert.doesNotMatch(shell,/Case Management Intelligence/);
 });

@@ -39,7 +39,6 @@ const organizationNav = [
 ];
 const organizationAdministrationNav = [
   { href: "/users", label: "Users", icon: Users, permission: "VIEW_USERS" },
-  { href: "/administration", label: "Administration", icon: ShieldCheck, permission: "VIEW_ADMINISTRATION" },
   { href: "/settings", label: "Settings", icon: Settings, permission: "VIEW_SETTINGS" },
 ] as const;
 const platformNav = [

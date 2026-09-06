@@ -2,6 +2,8 @@
 
 `lib/auth/permissions.ts` is the application capability source. Navigation visibility is not authorization. Server-side pages and actions remain authoritative, and database RLS is the final tenant/data-isolation layer.
 
+Settings is the visible organization-configuration hub. Its configuration cards are capability-filtered, while Users remains a separate destination in the Administration sidebar group. `/administration` is retained as a protected internal route namespace for the existing configuration pages; its index redirects authorized users to `/settings`.
+
 ## Roles and limits
 
 | Role | Existing limit | Enforcement |
