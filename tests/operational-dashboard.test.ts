@@ -6,8 +6,9 @@ const source=(path:string)=>readFileSync(path,"utf8");
 
 test("authenticated shell presents DM3Oi branding and preserves operational navigation",()=>{
   const shell=source("components/layout/app-shell.tsx");
-  assert.match(shell,/<strong>DM3Oi™<\/strong>/);
-  assert.match(shell,/<span>Operational Intelligence<\/span>/);
+  assert.match(shell,/className="brand-dm3">DM3<\/span><span className="brand-oi">Oi<\/span><sup>™<\/sup>/);
+  assert.match(shell,/OPERATIONAL<br\/>INTELLIGENCE/);
+  assert.match(shell,/People\.<\/span> Work\. Progress\. Intelligence\./);
   for(const label of ["Dashboard","Cases","Service Desk","Communications","Customers","Tasks","Questions & Rules","Reports","Users","Administration","Settings"])assert.match(shell,new RegExp(`label: "${label}"`));
   assert.match(shell,/aria-label="Administration navigation"/);
   assert.doesNotMatch(shell,/Case Management Intelligence/);
@@ -23,11 +24,21 @@ test("operational dashboard exposes six linked primary KPIs",()=>{
 test("dashboard includes deterministic attention, progress, task status, and linked recent activity",()=>{
   const dashboard=source("components/dashboard/dashboard.tsx");
   const metrics=source("lib/live-dashboard-metrics.ts");
-  for(const heading of ["Work Progress","Task Status","Needs Attention","Recent Activity"])assert.match(dashboard,new RegExp(`>${heading}<`));
+  for(const heading of ["Case Progress","Task Status","Needs Attention","Recent Activity"])assert.match(dashboard,new RegExp(`>${heading}<`));
   for(const signal of ["Overdue tasks","Tasks due today","Unassigned service requests","Requests awaiting staff response","Unread communications"])assert.match(metrics,new RegExp(signal));
   assert.match(dashboard,/href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
   assert.match(dashboard,/formatOrganizationDateTime\(activity\.created_at,data\.timezone\)/);
   assert.match(dashboard,/Future Operational Pulse insights/);
+});
+
+test("approved dashboard panel order is preserved",()=>{
+  const dashboard=source("components/dashboard/dashboard.tsx");
+  const caseProgress=dashboard.indexOf(">Case Progress<");
+  const taskStatus=dashboard.indexOf(">Task Status<");
+  const needsAttention=dashboard.indexOf(">Needs Attention<");
+  const recentActivity=dashboard.indexOf(">Recent Activity<");
+  assert.ok(caseProgress>-1&&caseProgress<taskStatus);
+  assert.ok(taskStatus<needsAttention&&needsAttention<recentActivity);
 });
 
 test("dashboard queries remain authorized and recipient scoped",()=>{

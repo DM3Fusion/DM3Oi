@@ -21,5 +21,5 @@ export default async function Page(){
   if(experience==="UNPROVISIONED")redirect("/account/unprovisioned");
   if(access.license && !access.license.workspaceAllowed) redirect("/account/license-expired");
   const [data,unreadCommunications]=await Promise.all([getLiveOrganizationData(),getUnreadNotificationCount({organizationId:access.activeOrganization!.id,userId:access.user.id})]);
-  return <><PageHeader eyebrow="DM3Oi Operational Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new">＋ New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications}/></>;
+  return <><PageHeader eyebrow="Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new">＋ New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications}/></>;
 }

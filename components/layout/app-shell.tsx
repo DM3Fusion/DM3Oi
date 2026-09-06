@@ -86,8 +86,8 @@ export function AppShell({
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <Link href="/" className="brand">
-            <strong>DM3Oi™</strong>
-            <span>Operational Intelligence</span>
+            <strong><span className="brand-dm3">DM3</span><span className="brand-oi">Oi</span><sup>™</sup></strong>
+            <span className="brand-descriptor">OPERATIONAL<br/>INTELLIGENCE</span>
           </Link>
           <button
             className="close-menu"
@@ -136,7 +136,7 @@ export function AppShell({
         <div
           className={`organization-card ${platformContext ? "platform-context" : ""}`}
         >
-          <div className="shell-context-label"><span>{platformContext ? "Platform" : "Organization"}</span><small>Ver. {applicationVersion}</small></div>
+          <div className="shell-context-label"><span>{platformContext ? "Platform" : "Organization"}</span></div>
           {!platformContext && org ? (
             <div>
               <OrganizationAvatar name={org.name} src={org.avatarUrl} size="sm" />
@@ -188,6 +188,7 @@ export function AppShell({
           )}
         </div>
         <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><LogOut aria-hidden />Sign Out</PendingSubmitButton></form>
+        <footer className="sidebar-product-footer"><span>DM3Oi™ | Operational Intelligence</span><small>Ver. {applicationVersion}</small></footer>
       </aside>
       <div className="main-column">
         <header className="topbar">
@@ -198,17 +199,9 @@ export function AppShell({
           >
             <Menu />
           </button>
-          <div className="workspace">
-            <strong>
-              {platformContext
-                ? "Platform Administration"
-                : "Operational Intelligence"}
-            </strong>
-            <small>
-              {platformContext
-                ? "Back Office"
-                : (org?.name ?? "No active organization")}
-            </small>
+          <div className="workspace product-tagline" aria-label="People. Work. Progress. Intelligence.">
+            <strong><span>People.</span> Work. Progress. Intelligence.</strong>
+            <small>{platformContext ? "Platform Administration" : (org?.name ?? "No active organization")}</small>
           </div>
           {access ? <AccountMenu displayName={access.displayName} email={access.user.email} avatarUrl={access.avatarUrl} /> : null}
         </header>

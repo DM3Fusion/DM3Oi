@@ -20,7 +20,7 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
     </section>
     <div className="operations-visuals">
       <section className="panel operations-panel">
-        <div className="section-head"><div><h2>Work Progress</h2><p>Authorized cases by current workflow state</p></div><Link href="/cases">View cases →</Link></div>
+        <div className="section-head"><div><h2>Case Progress</h2><p>Authorized cases by current workflow state</p></div><Link href="/cases">View cases →</Link></div>
         <div className="progress-distribution">
           {summary.caseProgress.map(item=><div className="progress-distribution-row" key={item.label}>
             <span>{item.label}</span><div className="distribution-track"><i style={{width:`${item.value/maxCases*100}%`}} /></div><strong>{item.value}</strong>
@@ -42,11 +42,11 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
     </div>
     <div className="operations-lower">
       <section className="panel needs-attention">
-        <div className="section-head"><div><span className="attention-label">Priority view</span><h2>Needs Attention</h2><p>Deterministic signals from current operational data</p></div></div>
+        <div className="section-head attention-heading"><span className="attention-heading-icon" aria-hidden>!</span><div><h2>Needs Attention</h2><p>Deterministic signals from current operational data</p></div></div>
         {summary.attention.length?<div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong><small>Open the related workspace</small></span><b>{item.value}</b><em aria-hidden>→</em></Link>)}</div>:<div className="dashboard-healthy"><span aria-hidden>✓</span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
       </section>
       <section className="panel recent-activity">
-        <div className="section-head"><div><h2>Recent Activity</h2><p>Latest authorized case workflow changes</p></div><Link href="/cases">View cases →</Link></div>
+        <div className="section-head"><div><h2>Recent Activity</h2><p>Latest authorized case workflow changes</p></div><Link href="/cases">View all →</Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>
           <span className={`activity-dot ${activity.event_type.toLowerCase()}`} aria-hidden>{activity.event_type.includes("COMPLETED")?"✓":"•"}</span>
           <span className="activity-copy"><strong>{formatActivity(activity.event_type,activity.event_data)}</strong><small>{activity.caseNumber} · {displayName(activity.actor)}</small></span>
