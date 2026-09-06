@@ -3,6 +3,8 @@ import { getAccessContext } from "@/lib/auth/context";
 import { saveQuestionAction } from "@/lib/data/question-actions";
 import { getQuestionDefinitions } from "@/lib/data/question-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { QuestionSearch } from "@/components/question-search";
+import { normalizeQuestionQuery,questionMatchesSearch } from "@/lib/question-filters";
 const types = [
   "TEXT",
   "LONG_TEXT",
@@ -15,7 +17,7 @@ const types = [
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; q?: string }>;
 }) {
   const [questions, access, query] = await Promise.all([
     getQuestionDefinitions(),
@@ -28,6 +30,8 @@ export default async function Page({
     role === "BUSINESS_OWNER" ||
     role === "BUSINESS_ADMIN" ||
     role === "STAFF_MANAGER";
+  const search=normalizeQuestionQuery(query.q);
+  const visibleQuestions=questions.filter(question=>questionMatchesSearch(question,search));
   return (
     <>
       <PageHeader
@@ -41,6 +45,7 @@ export default async function Page({
       {query.message ? (
         <div className="success-alert page-notice">{query.message}</div>
       ) : null}
+      <QuestionSearch q={search} />
       {canManage ? (
         <details className="panel question-create">
           <summary>＋ Add Question</summary>
@@ -48,9 +53,9 @@ export default async function Page({
         </details>
       ) : null}
       <section className="panel">
-        {questions.length ? (
+        {visibleQuestions.length ? (
           <div className="question-register">
-            {questions.map((q) => (
+            {visibleQuestions.map((q) => (
               <article key={q.id}>
                 <div className="question-order">{q.display_order}</div>
                 <div>
@@ -76,6 +81,8 @@ export default async function Page({
               </article>
             ))}
           </div>
+        ) : search ? (
+          <div className="no-results">No questions match the current search.</div>
         ) : (
           <div className="no-results">
             No questions configured. New cases currently have no question
