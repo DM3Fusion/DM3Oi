@@ -4,6 +4,8 @@
 
 Settings is the visible organization-configuration hub. Its configuration cards are capability-filtered, while Users remains a separate destination in the Administration sidebar group. `/administration` is retained as a protected internal route namespace for the existing configuration pages; its index redirects authorized users to `/settings`.
 
+Organization user details use `/users/[membershipId]`, with the organization membership ID as the canonical identifier. `VIEW_USERS` grants read-only detail access, while `MANAGE_USERS` gates organization role/status and invitation controls. Every lookup and update matches both the membership ID and active organization ID, so foreign-organization and nonexistent memberships use the standard not-found/unauthorized behavior. `PUBLIC_USER` is excluded. This organization-scoped route is intentionally separate from the SUPER_ADMIN-only `/admin/users/[userId]` platform identity route.
+
 ## Roles and limits
 
 | Role | Existing limit | Enforcement |

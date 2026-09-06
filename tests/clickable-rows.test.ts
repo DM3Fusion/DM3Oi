@@ -42,6 +42,18 @@ test("Users register uses row navigation and removes the redundant Open action",
   assert.doesNotMatch(users, /Open →/);
 });
 
+test("organization user rows navigate by membership ID and isolate invitation controls", () => {
+  const users = source("app/users/page.tsx");
+  assert.match(users, /<NavigableRow/);
+  assert.match(users, /href={`\/users\/\$\{m\.id\}`}/);
+  assert.doesNotMatch(users, /href={`\/users\/\$\{m\.user_id\}`}/);
+  assert.doesNotMatch(users, /href={`\/admin\/users/);
+  assert.match(users, /rows\.map/);
+  assert.match(users, /<ResendInviteButton/);
+  assert.match(source("components/resend-invite-button.tsx"), /<button type="submit"/);
+  assert.match(ROW_INTERACTIVE_SELECTOR, /button/);
+});
+
 test("Organizations and cases use the shared navigable-row pattern", () => {
   const organizations = source("app/admin/organizations/page.tsx");
   const cases = source("components/cases/case-table.tsx");
