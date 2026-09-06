@@ -6,7 +6,11 @@ const source=(path:string)=>readFileSync(path,"utf8");
 
 test("authenticated shell presents DM3Oi branding and preserves operational navigation",()=>{
   const shell=source("components/layout/app-shell.tsx");
-  assert.match(shell,/className="brand-dm3">DM3<\/span><span className="brand-oi">Oi<\/span><sup>™<\/sup>/);
+  assert.match(shell,/className="dm3oi-wordmark"/);
+  assert.match(shell,/className="dm3oi-wordmark-main"/);
+  assert.match(shell,/className="brand-dm3">DM3<\/span>/);
+  assert.match(shell,/className="brand-oi">Oi<\/span>/);
+  assert.match(shell,/className="dm3oi-wordmark-tm">™<\/span>/);
   assert.match(shell,/OPERATIONAL<br\/>INTELLIGENCE/);
   assert.match(shell,/People\.<\/span> Work\. Progress\. Intelligence\./);
   assert.match(shell,/<>for <b>\{org\?\.name \?\? "No active organization"\}<\/b><\/>/);

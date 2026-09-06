@@ -86,7 +86,13 @@ export function AppShell({
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <Link href="/" className="brand">
-            <strong><span className="brand-dm3">DM3</span><span className="brand-oi">Oi</span><sup>™</sup></strong>
+            <strong className="dm3oi-wordmark">
+              <span className="dm3oi-wordmark-main">
+                <span className="brand-dm3">DM3</span>
+                <span className="brand-oi">Oi</span>
+              </span>
+              <span className="dm3oi-wordmark-tm">™</span>
+            </strong>
             <span className="brand-descriptor">OPERATIONAL<br/>INTELLIGENCE</span>
           </Link>
           <button
