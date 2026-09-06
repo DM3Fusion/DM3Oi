@@ -7,6 +7,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { resolveRootExperience } from "@/lib/auth/access-routing";
 import { getLiveOrganizationData } from "@/lib/data/case-repository";
 import { getPlatformSummary } from "@/lib/data/platform-repository";
+import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 
 export default async function Page(){
   const access=await getAccessContext();
@@ -19,6 +20,6 @@ export default async function Page(){
   if(experience==="PORTAL")redirect("/portal");
   if(experience==="UNPROVISIONED")redirect("/account/unprovisioned");
   if(access.license && !access.license.workspaceAllowed) redirect("/account/license-expired");
-  const data=await getLiveOrganizationData();
-  return <><PageHeader eyebrow="Operations" title="Dashboard" description="Live casework requiring your organization’s attention." action={<Link className="primary-button" href="/cases/new">＋ New Case</Link>}/><Dashboard data={data}/></>;
+  const [data,unreadCommunications]=await Promise.all([getLiveOrganizationData(),getUnreadNotificationCount({organizationId:access.activeOrganization!.id,userId:access.user.id})]);
+  return <><PageHeader eyebrow="DM3Oi Operational Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new">＋ New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications}/></>;
 }

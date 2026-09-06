@@ -35,6 +35,8 @@ const organizationNav = [
   { href: "/tasks", label: "Tasks", icon: ClipboardCheck },
   { href: "/questions", label: "Questions & Rules", icon: FileQuestion },
   { href: "/reports", label: "Reports", icon: BarChart3 },
+];
+const administrationNav = [
   { href: "/users", label: "Users", icon: Users },
   { href: "/administration", label: "Administration", icon: ShieldCheck },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -122,6 +124,15 @@ export function AppShell({
             );
           })}
         </nav>
+        {!platformContext && access?.internalAccess ? (
+          <nav className="administration-nav" aria-label="Administration navigation">
+            <span className="sidebar-section-label">Administration</span>
+            {administrationNav.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href);
+              return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><Icon aria-hidden /><span>{label}</span></Link>;
+            })}
+          </nav>
+        ) : null}
         <div
           className={`organization-card ${platformContext ? "platform-context" : ""}`}
         >

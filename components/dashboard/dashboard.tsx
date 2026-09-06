@@ -2,176 +2,58 @@ import Link from "next/link";
 import type { LiveOrganizationData } from "@/lib/data/case-repository";
 import { displayName } from "@/lib/data/case-repository";
 import { formatActivity } from "@/lib/activity-format";
-import {
-  getLiveDashboardMetrics,
-  isLiveCaseActive,
-  isLiveCaseOverdue,
-  getServiceRequestMetrics,
-} from "@/lib/live-dashboard-metrics";
-import { formatRelativeDate } from "@/lib/format";
-import { CaseTable } from "@/components/cases/case-table";
-import { UserAvatar } from "@/components/user-avatar";
-export function Dashboard({ data }: { data: LiveOrganizationData }) {
-  const now = new Date();
-  const metrics = getLiveDashboardMetrics(data.cases, now);
-  const serviceMetrics = getServiceRequestMetrics(data.serviceRequests);
-  const workload = data.staff.map(({ profile }) => {
-    const activeCaseIds = new Set(
-      data.cases
-        .filter(
-          (item) =>
-            isLiveCaseActive(item) &&
-            (item.assignedStaff.some((user) => user.id === profile.id) ||
-              item.manager_user_id === profile.id),
-        )
-        .map((item) => item.id),
-    );
-    const tasks = data.cases
-      .flatMap((item) => item.tasks)
-      .filter((task) => task.assigned_user_id === profile.id);
-    return {
-      profile,
-      active: activeCaseIds.size,
-      assigned: tasks.filter(
-        (t) => !["COMPLETED", "NOT_APPLICABLE"].includes(t.status),
-      ).length,
-      completed: tasks.filter((t) => t.status === "COMPLETED").length,
-      overdue: tasks.filter(
-        (t) =>
-          t.due_at &&
-          new Date(t.due_at) < now &&
-          !["COMPLETED", "NOT_APPLICABLE"].includes(t.status),
-      ).length,
-    };
-  });
-  const overdue = data.cases.filter((item) =>
-    isLiveCaseOverdue(item, now),
-  ).length;
-  return (
-    <>
-      <section className="dashboard-metric-section"><h2>Casework</h2><div className="metric-grid">
-        {metrics.map((m, i) => (
-          <article className={`metric tone-${m.tone}`} key={m.label}>
-            <div>
-              <span>{m.label}</span>
-              <strong>{m.value}</strong>
-            </div>
-            <span className="metric-icon">
-              {["▤", "◴", "✓", "○", "!", "◇", "Ⅱ", "⌁"][i]}
-            </span>
-            <small>
-              {m.label === "Overdue"
-                ? "Needs attention"
-                : m.label === "Due Soon"
-                  ? "Next 3 calendar days"
-                  : "Current caseload"}
-            </small>
-          </article>
-        ))}
-      </div></section>
-      <section className="dashboard-metric-section"><h2>Service Requests</h2><div className="metric-grid service-metrics">
-        {serviceMetrics.map((metric) => <Link className={`metric tone-${metric.tone}`} href="/service-desk" key={metric.label}><div><span>{metric.label}</span><strong>{metric.value}</strong></div><span className="metric-icon">⌁</span><small>Current Service Desk workload</small></Link>)}
-      </div></section>
-      <section className="panel">
-        <div className="section-head">
-          <div>
-            <h2>Case Workload</h2>
-            <p>Live active and recently updated cases</p>
-          </div>
-          <Link href="/cases">View all cases →</Link>
+import { getOperationalDashboardMetrics } from "@/lib/live-dashboard-metrics";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+
+const iconFor=(label:string)=>({"Active Cases":"▤","Open Tasks":"✓","Due Today":"◷","Open Service Requests":"⌁","Unread Communications":"●","Customers":"◎"}[label]??"•");
+
+export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData;unreadCommunications:number}){
+  const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers.length,unreadCommunications,data.timezone);
+  const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
+  const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
+  return <div className="operations-dashboard">
+    <section className="operations-kpis" aria-label="Operational summary">
+      {summary.kpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label}>
+        <span className="operations-kpi-icon" aria-hidden>{iconFor(item.label)}</span>
+        <span className="operations-kpi-copy"><small>{item.label}</small><strong>{item.value}</strong><span>{item.detail}</span></span>
+      </Link>)}
+    </section>
+    <div className="operations-visuals">
+      <section className="panel operations-panel">
+        <div className="section-head"><div><h2>Work Progress</h2><p>Authorized cases by current workflow state</p></div><Link href="/cases">View cases →</Link></div>
+        <div className="progress-distribution">
+          {summary.caseProgress.map(item=><div className="progress-distribution-row" key={item.label}>
+            <span>{item.label}</span><div className="distribution-track"><i style={{width:`${item.value/maxCases*100}%`}} /></div><strong>{item.value}</strong>
+          </div>)}
         </div>
-        {data.cases.length ? (
-          <CaseTable
-            items={data.cases.filter(isLiveCaseActive).slice(0, 6)}
-            compact
-          />
-        ) : (
-          <div className="no-results">
-            No cases yet. Create the first case to begin tracking work.
-          </div>
-        )}
       </section>
-      <div className="dashboard-lower">
-        <section className="panel">
-          <div className="section-head">
-            <div>
-              <h2>Staff Workload</h2>
-              <p>Live assignments and tasks by internal member</p>
-            </div>
-          </div>
-          {workload.length ? (
-            <div className="workload-list">
-              <div className="workload-row heading">
-                <span>Staff Member</span>
-                <span>Active Cases</span>
-                <span>Assigned Tasks</span>
-                <span>Completed</span>
-                <span>Overdue</span>
-              </div>
-              {workload.map((item) => (
-                <div className="workload-row" key={item.profile.id}>
-                  <span className="staff-cell">
-                    <UserAvatar displayName={displayName(item.profile)} email={item.profile.email} src={item.profile.avatarUrl} size="sm" />
-                    <span>
-                      <b>{displayName(item.profile)}</b>
-                      <small>Internal organization member</small>
-                    </span>
-                  </span>
-                  <b>{item.active}</b>
-                  <b>{item.assigned}</b>
-                  <b className="success-text">{item.completed}</b>
-                  <b className={item.overdue ? "danger-text" : ""}>
-                    {item.overdue}
-                  </b>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="no-results">No active internal staff members.</div>
-          )}
-        </section>
-        <section className="panel">
-          <div className="section-head">
-            <div>
-              <h2>Recent Activity</h2>
-              <p>Latest live case events</p>
-            </div>
-          </div>
-          {data.activities.length ? (
-            <div className="activity-list">
-              {data.activities.slice(0, 8).map((activity) => (
-                <article key={activity.id}>
-                  <span
-                    className={`activity-dot ${activity.event_type.toLowerCase()}`}
-                  >
-                    {activity.event_type.includes("COMPLETED") ? "✓" : "•"}
-                  </span>
-                  <div>
-                    <p>
-                      {formatActivity(activity.event_type, activity.event_data)}
-                    </p>
-                    <span>
-                      {activity.caseNumber} · {displayName(activity.actor)}
-                    </span>
-                  </div>
-                  <time>{formatRelativeDate(activity.created_at, now)}</time>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="no-results">No case activity yet.</div>
-          )}
-        </section>
-      </div>
-      {overdue ? (
-        <div className="attention">
-          <strong>
-            {overdue} overdue{" "}
-            {overdue === 1 ? "case requires" : "cases require"} attention
-          </strong>
-          <Link href="/cases">Review case register →</Link>
+      <section className="panel operations-panel">
+        <div className="section-head"><div><h2>Task Status</h2><p>Current task completion and exceptions</p></div><Link href="/tasks">View tasks →</Link></div>
+        <div className="task-status-layout">
+          <div className="task-ring" style={{"--task-progress":`${taskCompletion*3.6}deg`} as React.CSSProperties} role="img" aria-label={`${taskCompletion}% of applicable tasks completed`}><span><strong>{taskCompletion}%</strong><small>Complete</small></span></div>
+          <dl className="task-status-list">
+            <div><dt><i className="status-dot completed"/>Completed</dt><dd>{summary.tasks.completed}</dd></div>
+            <div><dt><i className="status-dot open"/>Open</dt><dd>{summary.tasks.open}</dd></div>
+            <div><dt><i className="status-dot blocked"/>Blocked</dt><dd>{summary.tasks.blocked}</dd></div>
+            <div><dt><i className="status-dot overdue"/>Overdue</dt><dd>{summary.tasks.overdue}</dd></div>
+          </dl>
         </div>
-      ) : null}
-    </>
-  );
+      </section>
+    </div>
+    <div className="operations-lower">
+      <section className="panel needs-attention">
+        <div className="section-head"><div><span className="attention-label">Priority view</span><h2>Needs Attention</h2><p>Deterministic signals from current operational data</p></div></div>
+        {summary.attention.length?<div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong><small>Open the related workspace</small></span><b>{item.value}</b><em aria-hidden>→</em></Link>)}</div>:<div className="dashboard-healthy"><span aria-hidden>✓</span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
+      </section>
+      <section className="panel recent-activity">
+        <div className="section-head"><div><h2>Recent Activity</h2><p>Latest authorized case workflow changes</p></div><Link href="/cases">View cases →</Link></div>
+        {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>
+          <span className={`activity-dot ${activity.event_type.toLowerCase()}`} aria-hidden>{activity.event_type.includes("COMPLETED")?"✓":"•"}</span>
+          <span className="activity-copy"><strong>{formatActivity(activity.event_type,activity.event_data)}</strong><small>{activity.caseNumber} · {displayName(activity.actor)}</small></span>
+          <time dateTime={activity.created_at}>{formatOrganizationDateTime(activity.created_at,data.timezone)}</time>
+        </Link>)}</div>:<div className="no-results">No case activity yet.</div>}
+      </section>
+    </div>
+    {/* Future Operational Pulse insights belong below the deterministic dashboard summary. */}
+  </div>;
 }
