@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
-import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
+import { canAccessOrganizationAdministration, hasTenantInternalAccess } from "@/lib/auth/access-routing";
 
 const cards = [
   { title: "Users", description: "Manage organization members and access.", href: "/users" },
@@ -16,11 +16,10 @@ const cards = [
 
 export default async function Page() {
   const access = await getAccessContext();
-  const role = access?.activeOrganization?.role;
   const canAdminister = Boolean(
     access &&
       hasTenantInternalAccess(access) &&
-      (access.isSuperAdmin || role === "BUSINESS_OWNER" || role === "BUSINESS_ADMIN"),
+      canAccessOrganizationAdministration(access),
   );
   if (!canAdminister) notFound();
 

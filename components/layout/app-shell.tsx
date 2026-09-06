@@ -26,6 +26,7 @@ import { AccountMenu } from "@/components/account-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { canAccessOrganizationAdministration } from "@/lib/auth/access-routing";
 const organizationNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/cases", label: "Cases", icon: BriefcaseBusiness },
@@ -36,11 +37,11 @@ const organizationNav = [
   { href: "/questions", label: "Questions & Rules", icon: FileQuestion },
   { href: "/reports", label: "Reports", icon: BarChart3 },
 ];
-const administrationNav = [
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/administration", label: "Administration", icon: ShieldCheck },
-  { href: "/settings", label: "Settings", icon: Settings },
-];
+const organizationAdministrationNav = [
+  { href: "/users", label: "Users", icon: Users, allowed: () => true },
+  { href: "/administration", label: "Administration", icon: ShieldCheck, allowed: canAccessOrganizationAdministration },
+  { href: "/settings", label: "Settings", icon: Settings, allowed: () => true },
+] as const;
 const platformNav = [
   { href: "/", label: "Back Office", icon: ShieldCheck },
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
@@ -74,6 +75,9 @@ export function AppShell({
     : access?.internalAccess
       ? organizationNav
       : [];
+  const administrationNav = access?.internalAccess
+    ? organizationAdministrationNav.filter((item) => item.allowed(access))
+    : [];
   return (
     <div className="app-frame">
       {open && (
@@ -130,7 +134,7 @@ export function AppShell({
             );
           })}
         </nav>
-        {!platformContext && access?.internalAccess ? (
+        {!platformContext && administrationNav.length ? (
           <nav className="administration-nav" aria-label="Administration navigation">
             <span className="sidebar-section-label">Administration</span>
             {administrationNav.map(({ href, label, icon: Icon }) => {
