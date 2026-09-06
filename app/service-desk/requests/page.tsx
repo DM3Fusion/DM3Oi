@@ -10,8 +10,8 @@ export default async function Page({ searchParams }: { searchParams?: Promise<Re
   const data = await getLiveOrganizationData();
   const q = await searchParams;
   const term = (q?.q ?? "").toLowerCase();
-  const status = q?.status;
-  const priority = q?.priority;
+  const status = q?.status === "open" || q?.status === "resolved" || serviceRequestStatuses.includes(q?.status as (typeof serviceRequestStatuses)[number]) ? q?.status : undefined;
+  const priority = serviceRequestPriorities.includes(q?.priority as (typeof serviceRequestPriorities)[number]) ? q?.priority : undefined;
   const assignment = q?.assignment;
   const customer = q?.customer;
   const range = q?.range;

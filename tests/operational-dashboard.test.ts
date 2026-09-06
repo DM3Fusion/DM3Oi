@@ -22,7 +22,7 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
 
 test("operational dashboard exposes six linked primary KPIs",()=>{
   const metrics=source("lib/live-dashboard-metrics.ts");
-  for(const [label,href] of [["Active Cases","/cases"],["Open Tasks","/tasks"],["Due Today","/tasks"],["Open Service Requests","/service-desk"],["Unread Communications","/communications?status=unread"],["Customers","/customers"]]){
+  for(const [label,href] of [["Active Cases","/cases?status=active"],["Open Tasks","/tasks?status=open"],["Due Today","/tasks?due=today"],["Open Service Requests","/service-desk/requests?status=open"],["Unread Communications","/communications?status=unread"],["Customers","/customers"]]){
     assert.match(metrics,new RegExp(`label:\\"${label}\\",value:[^,]+,href:\\"${href.replace(/[?]/g,"\\?")}\\"`));
   }
 });
@@ -51,12 +51,35 @@ test("case progress uses an accessible vertical bar chart with preserved categor
   const dashboard=source("components/dashboard/dashboard.tsx");
   const metrics=source("lib/live-dashboard-metrics.ts");
   const css=source("app/globals.css");
-  assert.match(dashboard,/className="case-progress-chart" role="img"/);
+  assert.match(dashboard,/className="case-progress-chart" role="group"/);
   assert.match(dashboard,/className="case-progress-column"/);
   assert.match(dashboard,/style=\{\{height:`\$\{item\.value\/maxCases\*100\}%`\}\}/);
   assert.doesNotMatch(dashboard,/progress-distribution-row|distribution-track/);
   for(const label of ["New","Assigned","In Progress","Waiting","Completed"])assert.match(metrics,new RegExp(`label:\\"${label}\\"`));
   assert.match(css,/\.case-progress-plot\{display:flex;align-items:center;justify-content:flex-end;flex-direction:column/);
+});
+
+test("case progress and task status expose semantic drill-down links",()=>{
+  const dashboard=source("components/dashboard/dashboard.tsx");
+  const metrics=source("lib/live-dashboard-metrics.ts");
+  for(const href of ["/cases?status=new","/cases?status=assigned","/cases?status=in-progress","/cases?status=waiting","/cases?status=completed"])assert.match(metrics,new RegExp(`href:\"${href.replace("?","\\?")}\"`));
+  for(const href of ["/tasks?status=completed","/tasks?status=open","/tasks?status=blocked","/tasks?status=overdue"])assert.match(dashboard,new RegExp(`href=\"${href.replace("?","\\?")}\"`));
+  assert.match(dashboard,/<Link className="case-progress-column" href=\{item\.href\}/);
+  assert.match(dashboard,/aria-label=\{`View \$\{item\.label\.toLowerCase\(\)\} cases`\}/);
+});
+
+test("destination filters reuse authorized organization data and shared semantics",()=>{
+  const tasks=source("app/tasks/page.tsx");
+  const cases=source("app/cases/page.tsx");
+  const requests=source("app/service-desk/requests/page.tsx");
+  const filters=source("lib/operational-filters.ts");
+  assert.match(tasks,/getLiveOrganizationData\(\)/);
+  assert.match(tasks,/matchesTaskFilter\(task, status, due, data\.timezone\)/);
+  assert.match(cases,/matchesCaseFilter\(item,dashboardStatus\)/);
+  assert.match(filters,/!\["COMPLETED", "NOT_APPLICABLE"\]\.includes\(task\.status\)/);
+  assert.match(filters,/startOfOrganizationDay\(now, timezone\)/);
+  assert.match(requests,/q\?\.status === "open"/);
+  assert.match(requests,/serviceRequestStatuses\.includes/);
 });
 
 test("dashboard queries remain authorized and recipient scoped",()=>{

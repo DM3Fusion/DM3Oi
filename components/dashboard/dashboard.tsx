@@ -13,7 +13,7 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
   const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
   return <div className="operations-dashboard">
     <section className="operations-kpis" aria-label="Operational summary">
-      {summary.kpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label}>
+      {summary.kpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
         <span className="operations-kpi-icon" aria-hidden>{iconFor(item.label)}</span>
         <span className="operations-kpi-copy"><small>{item.label}</small><strong>{item.value}</strong><span>{item.detail}</span></span>
       </Link>)}
@@ -21,22 +21,22 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
     <div className="operations-visuals">
       <section className="panel operations-panel">
         <div className="section-head"><div><h2>Case Progress</h2><p>Authorized cases by current workflow state</p></div><Link href="/cases">View cases →</Link></div>
-        <div className="case-progress-chart" role="img" aria-label={`Case progress: ${summary.caseProgress.map(item=>`${item.label} ${item.value}`).join(", ")}`}>
-          {summary.caseProgress.map(item=><div className="case-progress-column" key={item.label}>
+        <div className="case-progress-chart" role="group" aria-label={`Case progress: ${summary.caseProgress.map(item=>`${item.label} ${item.value}`).join(", ")}`}>
+          {summary.caseProgress.map(item=><Link className="case-progress-column" href={item.href} aria-label={`View ${item.label.toLowerCase()} cases`} key={item.label}>
             <div className="case-progress-plot"><strong>{item.value}</strong><i style={{height:`${item.value/maxCases*100}%`}} /></div><span>{item.label}</span>
-          </div>)}
+          </Link>)}
         </div>
       </section>
       <section className="panel operations-panel">
         <div className="section-head"><div><h2>Task Status</h2><p>Current task completion and exceptions</p></div><Link href="/tasks">View tasks →</Link></div>
         <div className="task-status-layout">
           <div className="task-ring" style={{"--task-progress":`${taskCompletion*3.6}deg`} as React.CSSProperties} role="img" aria-label={`${taskCompletion}% of applicable tasks completed`}><span><strong>{taskCompletion}%</strong><small>Complete</small></span></div>
-          <dl className="task-status-list">
-            <div><dt><i className="status-dot completed"/>Completed</dt><dd>{summary.tasks.completed}</dd></div>
-            <div><dt><i className="status-dot open"/>Open</dt><dd>{summary.tasks.open}</dd></div>
-            <div><dt><i className="status-dot blocked"/>Blocked</dt><dd>{summary.tasks.blocked}</dd></div>
-            <div><dt><i className="status-dot overdue"/>Overdue</dt><dd>{summary.tasks.overdue}</dd></div>
-          </dl>
+          <div className="task-status-list">
+            <Link href="/tasks?status=completed" aria-label="View completed tasks"><span><i className="status-dot completed"/>Completed</span><strong>{summary.tasks.completed}</strong></Link>
+            <Link href="/tasks?status=open" aria-label="View open tasks"><span><i className="status-dot open"/>Open</span><strong>{summary.tasks.open}</strong></Link>
+            <Link href="/tasks?status=blocked" aria-label="View blocked tasks"><span><i className="status-dot blocked"/>Blocked</span><strong>{summary.tasks.blocked}</strong></Link>
+            <Link href="/tasks?status=overdue" aria-label="View overdue tasks"><span><i className="status-dot overdue"/>Overdue</span><strong>{summary.tasks.overdue}</strong></Link>
+          </div>
         </div>
       </section>
     </div>
