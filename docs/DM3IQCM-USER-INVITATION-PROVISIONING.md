@@ -1,4 +1,4 @@
-# DM3iQCM User Invitation & Provisioning
+# DM3Oi User Invitation & Provisioning
 
 DM3iQCM-05A adds platform user creation to the SUPER_ADMIN Back Office. From **Users / Access**, a SUPER_ADMIN can invite a new identity, create one without immediately sending an email, optionally grant initial organization access, and manage the resulting profile and memberships.
 

@@ -40,7 +40,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
       <PageHeader
         eyebrow="Shared Communications"
         title="Communications"
-        description="Notifications from customer conversations and DM3iQCM workflows."
+        description="Notifications from customer conversations and DM3Oi workflows."
         action={unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…">Mark all as read</PendingSubmitButton></form> : undefined}
       />
       <CommunicationsFilters values={values} />

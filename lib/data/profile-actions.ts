@@ -91,7 +91,7 @@ export async function normalizeOwnAvatarAction(form: FormData) {
     });
 
     if (profileError) {
-      console.error("DM3iQCM avatar profile RPC failed", {
+      console.error("DM3Oi avatar profile RPC failed", {
         code: profileError.code,
         message: profileError.message,
         details: profileError.details,
@@ -123,7 +123,7 @@ export async function normalizeOwnAvatarAction(form: FormData) {
               : "This image is invalid or unsupported.",
       };
     }
-    console.error("DM3iQCM avatar normalization failed", {
+    console.error("DM3Oi avatar normalization failed", {
       userId: access.user.id,
       sourcePath,
       message: error instanceof Error ? error.message : "unknown",
@@ -134,7 +134,7 @@ export async function normalizeOwnAvatarAction(form: FormData) {
       .from(AVATAR_SOURCE_BUCKET)
       .remove([sourcePath]);
     if (error)
-      console.error("DM3iQCM temporary avatar cleanup failed", {
+      console.error("DM3Oi temporary avatar cleanup failed", {
         userId: access.user.id,
         sourcePath,
         message: error.message,

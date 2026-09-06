@@ -1,4 +1,4 @@
-# DM3iQCM Licensing (06A)
+# DM3Oi Licensing (06A)
 
 License entitlement (`TRIAL`, `ACTIVE`, `EXPIRING`, `EXPIRED`, `SUSPENDED`, `CANCELLED`) is separate from commercial state (`TRIAL`, `PAID`, `UNPAID`, `COMP`, `INTERNAL`). Commercial state never independently grants or denies access.
 

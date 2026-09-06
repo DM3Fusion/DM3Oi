@@ -1,4 +1,4 @@
-# DM3iQCM Question and Response Workflow
+# DM3Oi Question and Response Workflow
 
 ## Domain model
 
@@ -20,7 +20,7 @@ Question readiness is separate from the existing task progress percentage. Requi
 
 All four tables have tenant-aware RLS. Definition writes require question-administration roles. Responses use `can_access_case`. That helper now permits either a platform-level Super Admin or a valid active internal member who also has a management role, active case assignment, or case task assignment. This prevents assignment records from bypassing inactive profiles or suspended/archived organizations.
 
-Super Admin remains solely in `platform_user_roles`, can administer and respond inside a selected active organization without membership, and remains a valid profile-based DM3iQCM actor. `organization_members` is unchanged and never stores `SUPER_ADMIN`.
+Super Admin remains solely in `platform_user_roles`, can administer and respond inside a selected active organization without membership, and remains a valid profile-based DM3Oi actor. `organization_members` is unchanged and never stores `SUPER_ADMIN`.
 
 ## Future extension points
 

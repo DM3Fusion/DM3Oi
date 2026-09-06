@@ -11,7 +11,7 @@ export const viewport: Viewport = { viewportFit: "cover" };
 async function PortalHeader({ context, hasMultipleAccounts, enabled = true }: { context: Awaited<ReturnType<typeof getCustomerPortalContext>>; hasMultipleAccounts: boolean; enabled?: boolean }) {
   let organizationAvatarUrl: string | null = null;
   if (context?.organization?.avatar_path) organizationAvatarUrl = (await createAdminClient().storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(context.organization.avatar_path, 3600)).data?.signedUrl ?? null;
-  return <header className="portal-header"><div className="portal-brand"><OrganizationAvatar name={context?.organization?.name ?? "Organization"} src={organizationAvatarUrl} size="md" /><span className="portal-brand-copy"><strong>DM3iQ™</strong><small>Customer Portal</small>{context?.organization?.name && <b className="portal-brand-organization">{context.organization.name}</b>}</span></div><PortalNav hasMultipleAccounts={hasMultipleAccounts} enabled={enabled} /></header>;
+  return <header className="portal-header"><div className="portal-brand"><OrganizationAvatar name={context?.organization?.name ?? "Organization"} src={organizationAvatarUrl} size="md" /><span className="portal-brand-copy"><strong>DM3Oi™</strong><small>Customer Portal</small>{context?.organization?.name && <b className="portal-brand-organization">{context.organization.name}</b>}</span></div><PortalNav hasMultipleAccounts={hasMultipleAccounts} enabled={enabled} /></header>;
 }
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {

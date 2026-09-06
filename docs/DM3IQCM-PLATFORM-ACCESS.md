@@ -1,6 +1,6 @@
-# DM3iQCM Platform Access
+# DM3Oi Platform Access
 
-DM3iQCM separates platform authorization from organization authorization. `SUPER_ADMIN` is a platform role stored in `platform_user_roles`; business and staff roles belong to an organization through `organization_members`. A Super Admin does not need, and must not receive, a synthetic organization membership.
+DM3Oi separates platform authorization from organization authorization. `SUPER_ADMIN` is a platform role stored in `platform_user_roles`; business and staff roles belong to an organization through `organization_members`. A Super Admin does not need, and must not receive, a synthetic organization membership.
 
 ## Platform and organization contexts
 

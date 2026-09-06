@@ -27,7 +27,7 @@ export default async function Page({
       <PageHeader
         eyebrow="Platform Administration"
         title="Create user"
-        description="Invite a DM3iQ user and optionally provision initial organization access."
+        description="Invite a DM3Oi user and optionally provision initial organization access."
       />
       <section className="panel form-panel admin-form-panel">
         {query.error ? <div className="form-alert">{query.error}</div> : null}

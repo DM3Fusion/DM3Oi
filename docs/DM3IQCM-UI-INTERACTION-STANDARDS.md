@@ -1,4 +1,4 @@
-# DM3iQCM UI Interaction Standards
+# DM3Oi UI Interaction Standards
 
 ## Clickable entity rows
 
@@ -24,4 +24,4 @@ Links, buttons, inputs, selects, textareas, labels, disclosure controls, and ele
 
 ## Visual and responsive behavior
 
-Use a subtle background change, pointer cursor, and restrained focus outline consistent with the DM3iQ visual system. Do not add navigation icons solely to advertise row clickability. The full row remains a touch target on responsive layouts, while nested controls remain independently tappable and existing horizontal table scrolling is preserved.
+Use a subtle background change, pointer cursor, and restrained focus outline consistent with the DM3Oi visual system. Do not add navigation icons solely to advertise row clickability. The full row remains a touch target on responsive layouts, while nested controls remain independently tappable and existing horizontal table scrolling is preserved.

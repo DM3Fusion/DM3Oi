@@ -1,8 +1,8 @@
-# DM3iQCM Permanent Data Architecture
+# DM3Oi Permanent Data Architecture
 
 ## Platform and tenant boundaries
 
-DM3iQCM is the internal codebase for DM3iQ™ — Case Management Intelligence. The platform is multi-tenant. `organizations` are the tenant boundary, and every operational record carries `organization_id`. PostgreSQL Row Level Security (RLS), not UI filtering, enforces tenant visibility.
+DM3Oi is the product identity for **DM3Oi™ — Operational Intelligence**. The platform is multi-tenant. `organizations` are the tenant boundary, and every operational record carries `organization_id`. PostgreSQL Row Level Security (RLS), not UI filtering, enforces tenant visibility.
 
 The permanent hierarchy is platform → organization → internal membership → customers → cases → assignments/tasks/activity. Service requests are customer-service intake objects and can exist independently or link to a case.
 

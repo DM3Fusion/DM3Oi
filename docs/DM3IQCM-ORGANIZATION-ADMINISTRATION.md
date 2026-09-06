@@ -1,4 +1,4 @@
-# DM3iQCM Organization Administration
+# DM3Oi Organization Administration
 
 ## Administration contexts
 

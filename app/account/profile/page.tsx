@@ -39,7 +39,7 @@ export default async function Page({
       <PageHeader
         eyebrow="Account"
         title="My Profile"
-        description="Manage your user-level identity across every DM3iQ organization."
+        description="Manage your user-level identity across every DM3Oi organization."
       />
       {query.error ? (
         <div className="form-alert page-notice">{query.error}</div>

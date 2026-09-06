@@ -53,7 +53,7 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
   let authUser = linked.data?.user_id ? (await admin!.auth.admin.getUserById(linked.data.user_id)).data.user : null;
   if (!authUser) authUser = await authUserByEmail(admin!, email);
   if (authUser && authUser.id !== linked.data?.user_id) {
-    if (await getIdentityCategory(authUser.id) === "INTERNAL") redirect(destination(customerId, "error", "This email belongs to an internal DM3iQCM user and cannot be used for Customer Portal access."));
+    if (await getIdentityCategory(authUser.id) === "INTERNAL") redirect(destination(customerId, "error", "This email belongs to an internal DM3Oi user and cannot be used for Customer Portal access."));
     const collision = await supabase.from("organization_members").select("id").eq("organization_id", org.id).eq("is_active", true).eq("user_id", authUser.id).maybeSingle();
     if (collision.data) redirect(destination(customerId, "error", "This email belongs to an internal organization user and cannot be provisioned as customer portal access."));
   }

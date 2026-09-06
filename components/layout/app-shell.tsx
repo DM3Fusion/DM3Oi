@@ -84,8 +84,8 @@ export function AppShell({
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <Link href="/" className="brand">
-            <strong>DM3iQ™</strong>
-            <span>Case Management Intelligence</span>
+            <strong>DM3Oi™</strong>
+            <span>Operational Intelligence</span>
           </Link>
           <button
             className="close-menu"
@@ -168,7 +168,7 @@ export function AppShell({
                 />
               </Link>
               <div className="organization-details">
-                <strong>DM3iQ Administration</strong>
+                <strong>DM3Oi Administration</strong>
                 <small>SUPER ADMIN</small>
               </div>
             </div>
@@ -191,7 +191,7 @@ export function AppShell({
             <strong>
               {platformContext
                 ? "Platform Administration"
-                : "Case Management Intelligence"}
+                : "Operational Intelligence"}
             </strong>
             <small>
               {platformContext
@@ -204,8 +204,8 @@ export function AppShell({
         {!platformContext && access?.license && (access.license.status === "EXPIRING" || access.license.isInGrace) ? (
           <div className="license-warning" role="status">
             {access.license.isInGrace
-              ? `Your DM3iQ license expired${access.license.expiresAt ? ` on ${new Date(access.license.expiresAt).toLocaleDateString()}` : ""}. Access remains available during the grace period.`
-              : `Your DM3iQ license expires in ${access.license.daysRemaining ?? 0} days.`}
+              ? `Your DM3Oi license expired${access.license.expiresAt ? ` on ${new Date(access.license.expiresAt).toLocaleDateString()}` : ""}. Access remains available during the grace period.`
+              : `Your DM3Oi license expires in ${access.license.daysRemaining ?? 0} days.`}
           </div>
         ) : null}
         <main>{children}</main>

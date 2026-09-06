@@ -14,7 +14,7 @@ export default async function Page(){
   const experience=resolveRootExperience({...access,hasActiveOrganization:Boolean(access.activeOrganization)});
   if(experience==="PLATFORM"){
     const summary=await getPlatformSummary();
-    return <><PageHeader eyebrow="Platform Administration" title="Back Office" description="Manage DM3iQ organizations, users, access, and platform operations."/><PlatformDashboard summary={summary}/></>;
+    return <><PageHeader eyebrow="Platform Administration" title="Back Office" description="Manage DM3Oi organizations, users, access, and platform operations."/><PlatformDashboard summary={summary}/></>;
   }
   if(experience==="PORTAL")redirect("/portal");
   if(experience==="UNPROVISIONED")redirect("/account/unprovisioned");

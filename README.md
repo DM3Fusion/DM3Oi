@@ -1,6 +1,8 @@
-# DM3iQCM™
+# DM3Oi™ — Operational Intelligence
 
-DM3iQCM is the internal codebase for **DM3iQ™ — Case Management Intelligence**, a production-oriented case-management platform in the DM3iQ™ product family. Its master workflow is Customer / Request → Case → Requirements → Tasks → Staff Work → Review → Completion.
+**People. Work. Progress. Intelligence.**
+
+DM3Oi is Operational Intelligence for service businesses: Operational Intelligence for the Real World. It turns daily work into measurable progress across the Customer / Request → Case → Requirements → Tasks → Staff Work → Review → Completion workflow.
 
 ## Getting started
 
@@ -49,7 +51,7 @@ DM3iQCM-02 establishes the permanent tenant schema, transactional role constrain
 
 DM3iQCM-03 replaces core fixtures with live, active-organization Supabase operations for the dashboard, case register, case creation/workspace, assignments, task CRUD/reordering, status transitions, completion safeguards, activity, and customers. Service Desk alone remains a presentation fixture until the customer-service milestone.
 
-For local database validation (this resets only the local DM3iQCM stack):
+For local database validation (this resets only the local stack, whose historical Supabase project identifier remains `DM3iQCM`):
 
 ```bash
 supabase start

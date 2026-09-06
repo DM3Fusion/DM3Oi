@@ -1,8 +1,8 @@
-# DM3iQCM™ Product Foundation
+# DM3Oi™ Product Foundation
 
 ## Purpose and workflow
 
-DM3iQCM is the internal codebase identifier for **DM3iQ™ — Case Management Intelligence**. The subtitle distinguishes it from DM3iQ™ — Business Decision Intelligence. It is an independent codebase designed as an extensible operational system, not a demonstration.
+**DM3Oi™ — Operational Intelligence** is an extensible operational system for service businesses, not a demonstration. Its positioning is Operational Intelligence for the Real World, with a core promise to turn daily work into measurable progress.
 
 The master workflow is:
 
