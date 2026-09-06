@@ -20,19 +20,34 @@ const profilePath = "/account/profile";
 const go = (key: "error" | "message", message: string): never =>
   redirect(`${profilePath}?${key}=${encodeURIComponent(message)}`);
 
-export async function updateOwnProfileAction(form: FormData) {
+export type ProfileUpdateResult =
+  | { ok: true; values: { displayName: string } }
+  | { ok: false; values: { displayName: string }; error: string };
+
+export async function updateOwnProfileAction(form: FormData): Promise<ProfileUpdateResult> {
   const access = await requireAuthenticatedInternalUser();
-  const displayName = String(form.get("displayName") ?? "").trim();
+  const submittedDisplayName = String(form.get("displayName") ?? "");
+  const displayName = submittedDisplayName.trim();
   if (!displayName || displayName.length > 160)
-    go("error", "Enter a display name of 160 characters or fewer.");
+    return {
+      ok: false,
+      values: { displayName: submittedDisplayName },
+      error: "Enter a display name of 160 characters or fewer.",
+    };
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
     .update({ display_name: displayName })
     .eq("id", access.user.id);
-  if (error) go("error", "Your profile could not be updated.");
-  revalidatePath("/");
-  go("message", "Profile updated.");
+  if (error)
+    return {
+      ok: false,
+      values: { displayName: submittedDisplayName },
+      error: "Your profile could not be updated.",
+    };
+  revalidatePath("/", "layout");
+  revalidatePath(profilePath);
+  return { ok: true, values: { displayName } };
 }
 
 export async function normalizeOwnAvatarAction(form: FormData) {

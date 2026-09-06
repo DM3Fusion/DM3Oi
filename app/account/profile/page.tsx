@@ -1,12 +1,12 @@
 import { PageHeader } from "@/components/ui";
 import { UserAvatar } from "@/components/user-avatar";
 import { AvatarUploadForm } from "@/components/avatar-upload-form";
+import { ProfileIdentityForm } from "@/components/profile-identity-form";
 import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { attachAvatarUrls } from "@/lib/data/avatar-urls";
 import {
   removeOwnAvatarAction,
-  updateOwnProfileAction,
 } from "@/lib/data/profile-actions";
 
 export default async function Page({
@@ -76,37 +76,11 @@ export default async function Page({
               <p>Email is managed by Supabase Auth and is read-only here.</p>
             </div>
           </div>
-          <form action={updateOwnProfileAction} className="entity-form">
-            <div className="form-grid">
-              <label>
-                <span>Display name</span>
-                <input
-                  name="displayName"
-                  defaultValue={identity.display_name ?? ""}
-                  required
-                  maxLength={160}
-                />
-              </label>
-              <label>
-                <span>Email</span>
-                <input
-                  value={identity.email ?? access.user.email ?? ""}
-                  readOnly
-                />
-              </label>
-              <label className="full">
-                <span>Access summary</span>
-                <textarea
-                  value={roleSummary || "Pending Access"}
-                  readOnly
-                  rows={3}
-                />
-              </label>
-            </div>
-            <div className="form-actions">
-              <button className="primary-button">Save profile</button>
-            </div>
-          </form>
+          <ProfileIdentityForm
+            displayName={identity.display_name ?? ""}
+            email={identity.email ?? access.user.email ?? ""}
+            accessSummary={roleSummary || "Pending Access"}
+          />
         </section>
       </div>
     </>
