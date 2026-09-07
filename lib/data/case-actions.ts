@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { requirePermission } from "@/lib/auth/context";
+import { getAccessContext, requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { customerEmailPattern, normalizeCustomerPhone } from "@/lib/customer-validation";
 import type { Database, Json } from "@/types/database.generated";
@@ -22,6 +22,51 @@ const refreshCase = (id?: string) => {
   revalidatePath("/customers");
   if (id) revalidatePath(`/cases/${id}`);
 };
+
+type ReassignCaseCustomerResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function reassignCaseCustomerAction(input: {
+  caseId: string;
+  targetCustomerId: string;
+}): Promise<ReassignCaseCustomerResult> {
+  const access = await getAccessContext();
+  const organization = access?.activeOrganization;
+  if (!organization || !hasPermission(access, "REASSIGN_CASE_CUSTOMER")) {
+    return { ok: false, error: "You are not authorized to perform that action." };
+  }
+  const supabase = await createClient();
+  const { data: visibleCase, error: caseError } = await supabase
+    .from("organization_cases")
+    .select("id")
+    .eq("id", input.caseId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+  if (caseError || !visibleCase) {
+    return { ok: false, error: "The Case was not found or is not authorized." };
+  }
+  const { error } = await supabase.rpc("reassign_case_customer", {
+    target_case_id: input.caseId,
+    target_customer_id: input.targetCustomerId,
+  });
+  if (error) {
+    console.error("Case customer reassignment failed", {
+      code: error.code,
+      message: error.message,
+    });
+    if (error.message.includes("customer history prevents reassignment")) {
+      return {
+        ok: false,
+        error:
+          "This Case contains customer activity associated with the current Customer and cannot be reassigned safely. Create a new Case for the correct Customer instead.",
+      };
+    }
+    return { ok: false, error: friendly(error.message) };
+  }
+  refreshCase(input.caseId);
+  return { ok: true };
+}
 
 export async function createCaseAction(data: FormData) {
   const context = await requirePermission("CREATE_CASE");

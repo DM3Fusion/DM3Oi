@@ -2133,6 +2133,10 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      reassign_case_customer: {
+        Args: { target_case_id: string; target_customer_id: string }
+        Returns: undefined
+      }
       create_customer_record: {
         Args: {
           target_email?: string

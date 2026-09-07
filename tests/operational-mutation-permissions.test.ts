@@ -19,14 +19,14 @@ const managers:ApplicationRole[]=["SUPER_ADMIN","BUSINESS_OWNER","BUSINESS_ADMIN
 const internal:ApplicationRole[]=[...managers,"STAFF_USER"];
 
 test("operational capabilities preserve manager and worker distinctions",()=>{
- allowed("CREATE_CASE",managers);allowed("WORK_CASES",internal);allowed("ASSIGN_CASES",managers);
+ allowed("CREATE_CASE",managers);allowed("WORK_CASES",internal);allowed("ASSIGN_CASES",managers);allowed("REASSIGN_CASE_CUSTOMER",managers);
  allowed("WORK_TASKS",internal);allowed("MANAGE_TASKS",managers);allowed("ASSIGN_TASKS",managers);
  allowed("CREATE_SERVICE_REQUEST",internal);allowed("WORK_SERVICE_REQUEST",internal);allowed("RESPOND_SERVICE_REQUEST",internal);allowed("MANAGE_SERVICE_REQUEST",managers);allowed("ASSIGN_SERVICE_REQUEST",managers);
  allowed("CREATE_CUSTOMER",internal);allowed("EDIT_CUSTOMER",internal);allowed("VIEW_COMMUNICATIONS",internal);
 });
 
 test("SUPER_ADMIN needs active organization context and PUBLIC_USER has no internal mutation",()=>{
- for(const permission of ["CREATE_CASE","WORK_TASKS","CREATE_SERVICE_REQUEST","EDIT_CUSTOMER","VIEW_COMMUNICATIONS"] as Permission[]){assert.equal(hasPermission(access("SUPER_ADMIN",false),permission),false);assert.equal(hasPermission(access("PUBLIC_USER"),permission),false);}
+ for(const permission of ["CREATE_CASE","REASSIGN_CASE_CUSTOMER","WORK_TASKS","CREATE_SERVICE_REQUEST","EDIT_CUSTOMER","VIEW_COMMUNICATIONS"] as Permission[]){assert.equal(hasPermission(access("SUPER_ADMIN",false),permission),false);assert.equal(hasPermission(access("PUBLIC_USER"),permission),false);}
 });
 
 test("case task and customer actions enforce centralized capabilities before writes",()=>{

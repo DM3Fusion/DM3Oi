@@ -29,6 +29,7 @@ const managementRows = [
   { label: "Case creation", permission: "CREATE_CASE" },
   { label: "Case work", permission: "WORK_CASES" },
   { label: "Case assignment", permission: "ASSIGN_CASES" },
+  { label: "Case customer reassignment", permission: "REASSIGN_CASE_CUSTOMER" },
   { label: "Task work / completion", permission: "WORK_TASKS" },
   { label: "Task management", permission: "MANAGE_TASKS" },
   { label: "Task assignment", permission: "ASSIGN_TASKS" },

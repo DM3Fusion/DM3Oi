@@ -27,6 +27,7 @@ Organization user details use `/users/[membershipId]`, with the organization mem
 | Dashboard | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Cases: view/work | ✓ | ✓ | ✓ | ✓ | R | — |
 | Cases: create/assign | ✓ | ✓ | ✓ | ✓ | — | — |
+| Cases: reassign customer | ✓ | ✓ | ✓ | ✓ | — | — |
 | Service Desk: view/create | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Service Desk: manage/assign | ✓ | ✓ | ✓ | ✓ | — | — |
 | Communications: view | ✓ | ✓ | ✓ | ✓ | R | — |
@@ -83,6 +84,7 @@ Operational server actions resolve the authenticated active-organization context
 | Case creation | `CREATE_CASE` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | New Case control, route, and action | **Aligned:** `create_case_workflow` uses `can_manage_case` |
 | Case workflow status | `WORK_CASES` | All internal roles | Status control and action; non-managers retain the existing reduced status list | **Aligned with record backstop:** RPC limits non-manager statuses and requires `can_access_case` |
 | Case assignment | `ASSIGN_CASES` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Assignment controls and action | **Aligned:** `set_case_assignment` uses `can_manage_case` |
+| Case customer reassignment | `REASSIGN_CASE_CUSTOMER` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Case Overview control and structured server action | **Aligned with record backstop:** `reassign_case_customer` enforces the effective permission, same-tenant active customer, and `can_access_case` |
 | Task status/work | `WORK_TASKS` | All internal roles | Action permits work; non-manager fields are read-only in the UI | **Aligned with record backstop:** `update_case_task` permits STAFF_USER status-only changes only on assigned tasks |
 | Task create/delete/reorder | `MANAGE_TASKS` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Controls and actions | **Aligned:** task RPCs require `can_manage_case` |
 | Task assignment | `ASSIGN_TASKS` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Represented by manager-only task editing | **Aligned:** update RPC requires manager authority for assignment changes |
