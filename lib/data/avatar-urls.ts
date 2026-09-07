@@ -1,5 +1,6 @@
 import "server-only";
-import { AVATAR_BUCKET } from "@/lib/profile/avatar";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { AVATAR_BUCKET, isOwnedAvatarPath } from "@/lib/profile/avatar";
 
 type StorageClient = {
   storage: {
@@ -24,12 +25,16 @@ export type ProfileWithAvatar<T extends AvatarProfile> = T & {
   avatarUrl: string | null;
 };
 
+type AuthorizedAvatarProfile = AvatarProfile & { id: string };
+
+const withoutAvatarUrls = <T extends AvatarProfile>(profiles: T[]) =>
+  profiles.map((profile) => ({ ...profile, avatarUrl: null }));
+
 export async function attachAvatarUrls<T extends AvatarProfile>(
   supabase: StorageClient,
   profiles: T[],
 ): Promise<ProfileWithAvatar<T>[]> {
-  const withoutUrls = () =>
-    profiles.map((profile) => ({ ...profile, avatarUrl: null }));
+  const withoutUrls = () => withoutAvatarUrls(profiles);
   const paths = [
     ...new Set(
       profiles.flatMap((profile) =>
@@ -59,4 +64,26 @@ export async function attachAvatarUrls<T extends AvatarProfile>(
       ? (urls.get(profile.avatar_path) ?? null)
       : null,
   }));
+}
+
+export async function attachAuthorizedAvatarUrls<
+  T extends AuthorizedAvatarProfile,
+>(profiles: T[]): Promise<ProfileWithAvatar<T>[]> {
+  const signableProfiles = profiles.map((profile) => ({
+    ...profile,
+    avatar_path:
+      profile.avatar_path && isOwnedAvatarPath(profile.avatar_path, profile.id)
+        ? profile.avatar_path
+        : null,
+  }));
+
+  try {
+    const signed = await attachAvatarUrls(createAdminClient(), signableProfiles);
+    return signed.map((profile, index) => ({
+      ...profiles[index],
+      avatarUrl: profile.avatarUrl,
+    }));
+  } catch {
+    return withoutAvatarUrls(profiles);
+  }
 }

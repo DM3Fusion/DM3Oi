@@ -11,7 +11,7 @@ import { ORGANIZATION_USER_ROLES } from "@/lib/data/user-provisioning";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
-import { attachAvatarUrls } from "@/lib/data/avatar-urls";
+import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
 
 export default async function Page({
   params,
@@ -43,7 +43,7 @@ export default async function Page({
     ? membership.profiles[0]
     : membership.profiles;
   const [profile] = membershipProfile
-    ? await attachAvatarUrls(supabase, [membershipProfile])
+    ? await attachAuthorizedAvatarUrls([membershipProfile])
     : [];
   const name = profile?.display_name || profile?.email || "Unnamed user";
   const canManage = hasPermission(access, "MANAGE_USERS");

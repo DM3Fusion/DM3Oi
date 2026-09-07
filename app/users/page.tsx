@@ -9,7 +9,7 @@ import { normalizeUserQuery, userMatchesSearch } from "@/lib/user-filters";
 import { NavigableRow } from "@/components/navigable-row";
 import Link from "next/link";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
-import { attachAvatarUrls } from "@/lib/data/avatar-urls";
+import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
 const requireInternalContext = () => requirePermission("VIEW_USERS");
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function Page({
@@ -30,8 +30,7 @@ export default async function Page({
   const platformAdminIds=await getPlatformAdminUserIds();
   const q = normalizeUserQuery(query.q);
   const rows = (members ?? []).filter((member) => !platformAdminIds.has(member.user_id)&&userMatchesSearch(member, q));
-  const avatarProfiles = await attachAvatarUrls(
-    supabase,
+  const avatarProfiles = await attachAuthorizedAvatarUrls(
     rows.flatMap((member: any) => {
       const profile = Array.isArray(member.profiles)
         ? member.profiles[0]
