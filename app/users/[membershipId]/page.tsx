@@ -11,6 +11,7 @@ import { ORGANIZATION_USER_ROLES } from "@/lib/data/user-provisioning";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
+import { attachAvatarUrls } from "@/lib/data/avatar-urls";
 
 export default async function Page({
   params,
@@ -30,7 +31,7 @@ export default async function Page({
   const { data: membership } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,joined_at,updated_at,profiles(id,email,display_name,avatar_path)",
+      "id,user_id,role,is_active,joined_at,updated_at,profiles(id,email,display_name,avatar_path,avatar_updated_at)",
     )
     .eq("id", membershipId)
     .eq("organization_id", access.activeOrganization.id)
@@ -38,9 +39,12 @@ export default async function Page({
   if (!membership) notFound();
   if((await getPlatformAdminUserIds()).has(membership.user_id))notFound();
 
-  const profile = Array.isArray(membership.profiles)
+  const membershipProfile = Array.isArray(membership.profiles)
     ? membership.profiles[0]
     : membership.profiles;
+  const [profile] = membershipProfile
+    ? await attachAvatarUrls(supabase, [membershipProfile])
+    : [];
   const name = profile?.display_name || profile?.email || "Unnamed user";
   const canManage = hasPermission(access, "MANAGE_USERS");
   const canViewUserAccess=
@@ -74,6 +78,7 @@ export default async function Page({
             <UserAvatar
               displayName={profile?.display_name}
               email={profile?.email}
+              src={profile?.avatarUrl}
               size="lg"
             />
             <span>

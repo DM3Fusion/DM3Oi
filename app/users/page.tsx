@@ -9,6 +9,7 @@ import { normalizeUserQuery, userMatchesSearch } from "@/lib/user-filters";
 import { NavigableRow } from "@/components/navigable-row";
 import Link from "next/link";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
+import { attachAvatarUrls } from "@/lib/data/avatar-urls";
 const requireInternalContext = () => requirePermission("VIEW_USERS");
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function Page({
@@ -21,7 +22,7 @@ export default async function Page({
   const { data: members } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,joined_at,profiles(id,email,display_name,avatar_path)",
+      "id,user_id,role,is_active,joined_at,profiles(id,email,display_name,avatar_path,avatar_updated_at)",
     )
     .eq("organization_id", org.id)
     .order("joined_at");
@@ -29,6 +30,18 @@ export default async function Page({
   const platformAdminIds=await getPlatformAdminUserIds();
   const q = normalizeUserQuery(query.q);
   const rows = (members ?? []).filter((member) => !platformAdminIds.has(member.user_id)&&userMatchesSearch(member, q));
+  const avatarProfiles = await attachAvatarUrls(
+    supabase,
+    rows.flatMap((member: any) => {
+      const profile = Array.isArray(member.profiles)
+        ? member.profiles[0]
+        : member.profiles;
+      return profile ? [profile] : [];
+    }),
+  );
+  const profilesById = new Map(
+    avatarProfiles.map((profile) => [profile.id, profile]),
+  );
   const eligible = await Promise.all(
     rows.map(
       async (m) =>
@@ -64,9 +77,12 @@ export default async function Page({
               </thead>
               <tbody>
                 {rows.map((m: any) => {
-                  const profile = Array.isArray(m.profiles)
+                  const membershipProfile = Array.isArray(m.profiles)
                     ? m.profiles[0]
                     : m.profiles;
+                  const profile = membershipProfile
+                    ? profilesById.get(membershipProfile.id) ?? membershipProfile
+                    : null;
                   const name =
                     profile?.display_name || profile?.email || "Unnamed user";
                   return (
@@ -80,6 +96,7 @@ export default async function Page({
                           <UserAvatar
                             displayName={profile?.display_name}
                             email={profile?.email}
+                            src={profile?.avatarUrl}
                             size="sm"
                           />
                           <span>

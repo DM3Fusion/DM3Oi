@@ -28,6 +28,8 @@ export async function attachAvatarUrls<T extends AvatarProfile>(
   supabase: StorageClient,
   profiles: T[],
 ): Promise<ProfileWithAvatar<T>[]> {
+  const withoutUrls = () =>
+    profiles.map((profile) => ({ ...profile, avatarUrl: null }));
   const paths = [
     ...new Set(
       profiles.flatMap((profile) =>
@@ -35,13 +37,21 @@ export async function attachAvatarUrls<T extends AvatarProfile>(
       ),
     ),
   ];
-  if (!paths.length)
-    return profiles.map((profile) => ({ ...profile, avatarUrl: null }));
-  const { data, error } = await supabase.storage
-    .from(AVATAR_BUCKET)
-    .createSignedUrls(paths, 3600);
-  if (error || !data)
-    return profiles.map((profile) => ({ ...profile, avatarUrl: null }));
+  if (!paths.length) return withoutUrls();
+  let result: Awaited<
+    ReturnType<
+      ReturnType<StorageClient["storage"]["from"]>["createSignedUrls"]
+    >
+  >;
+  try {
+    result = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .createSignedUrls(paths, 3600);
+  } catch {
+    return withoutUrls();
+  }
+  const { data, error } = result;
+  if (error || !data) return withoutUrls();
   const urls = new Map(data.map((item) => [item.path, item.signedUrl]));
   return profiles.map((profile) => ({
     ...profile,
