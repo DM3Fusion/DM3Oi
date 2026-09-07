@@ -53,7 +53,7 @@ export default async function Page({
     searchParams,
     getAccessContext(),
   ]);
-  const [{ data, item }, questions] = await Promise.all([
+  const [{ data, item, recentCommunications }, questions] = await Promise.all([
     getLiveCase(caseId),
     getCaseQuestions(caseId),
   ]);
@@ -513,26 +513,43 @@ export default async function Page({
               </div>
             ) : null}
           </section>
-          {[
-            [
-              "Customer Communications",
-              "Linked conversations and correspondence will appear here.",
-            ],
-            ["Attachments", "Case documents and evidence will appear here."],
-            [
-              "Completion Review",
-              "Completion rules and final approval will appear here.",
-            ],
-          ].map(([title, text]) => (
-            <section className="panel future-panel" key={title}>
-              <span>◇</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-                <small>Future milestone</small>
+          <section className="panel detail-section case-communications-panel">
+            <h2>Customer Communications</h2>
+            {recentCommunications.length ? (
+              <div className="case-communication-list">
+                {recentCommunications.map((communication) => (
+                  <article key={communication.id}>
+                    <div className="case-communication-meta">
+                      <span className={`case-communication-direction ${communication.direction.toLowerCase()}`}>
+                        {communication.direction === "INBOUND" ? "Inbound" : "Outbound"}
+                      </span>
+                      <span>{communication.serviceRequestNumber}</span>
+                    </div>
+                    <p>{communication.summary}</p>
+                    <small>
+                      {communication.participantLabel} ·{" "}
+                      {formatOrganizationDateTime(communication.createdAt, data.timezone)}
+                    </small>
+                  </article>
+                ))}
               </div>
-            </section>
-          ))}
+            ) : (
+              <p className="case-communications-empty">
+                No customer communications linked to this case yet.
+              </p>
+            )}
+          </section>
+          <section className="panel future-panel">
+            <span>◇</span>
+            <div>
+              <h3>Case Readiness</h3>
+              <p>
+                Readiness will summarize required questions, tasks, and blocking
+                work.
+              </p>
+              <small>Future milestone</small>
+            </div>
+          </section>
         </aside>
       </div>
     </>

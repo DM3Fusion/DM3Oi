@@ -52,6 +52,15 @@ export interface StaffMember {
   membership: MemberRow;
   profile: AvatarProfileRow;
 }
+export interface RecentCaseCommunication {
+  id: string;
+  serviceRequestId: string;
+  serviceRequestNumber: string;
+  direction: "INBOUND" | "OUTBOUND";
+  participantLabel: "Customer" | "DM3Oi team";
+  summary: string;
+  createdAt: string;
+}
 export interface LiveOrganizationData {
   organizationId: string;
   timezone: string;
@@ -271,7 +280,42 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
 }
 export async function getLiveCase(caseId: string) {
   const data = await getLiveOrganizationData();
-  return { data, item: data.cases.find((item) => item.id === caseId) ?? null };
+  const item = data.cases.find((candidate) => candidate.id === caseId) ?? null;
+  if (!item) return { data, item, recentCommunications: [] as RecentCaseCommunication[] };
+  const supabase = await createClient();
+  const result = await supabase
+    .from("service_request_messages")
+    .select(
+      "id,service_request_id,author_type,body,created_at,service_requests!inner(request_number,case_id)",
+    )
+    .eq("organization_id", data.organizationId)
+    .eq("service_requests.case_id", item.id)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(5);
+  if (result.error) {
+    console.error("Recent Case communications query failed", {
+      code: result.error.code,
+      message: result.error.message,
+    });
+    throw new DataAccessError();
+  }
+  const recentCommunications = (result.data ?? []).map((message) => {
+    const request = Array.isArray(message.service_requests)
+      ? message.service_requests[0]
+      : message.service_requests;
+    const normalized = message.body.replace(/\s+/g, " ").trim();
+    return {
+      id: message.id,
+      serviceRequestId: message.service_request_id,
+      serviceRequestNumber: request?.request_number ?? "Service Request",
+      direction: message.author_type === "CUSTOMER" ? "INBOUND" as const : "OUTBOUND" as const,
+      participantLabel: message.author_type === "CUSTOMER" ? "Customer" as const : "DM3Oi team" as const,
+      summary: normalized.length > 160 ? `${normalized.slice(0, 157)}…` : normalized,
+      createdAt: message.created_at,
+    };
+  });
+  return { data, item, recentCommunications };
 }
 export const displayName = (profile: ProfileRow | null | undefined) =>
   profile?.display_name ||
