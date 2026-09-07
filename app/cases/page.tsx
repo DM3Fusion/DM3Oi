@@ -1,23 +1,27 @@
 import { CasesRegister } from "@/components/cases/cases-register";
+import { CaseKpis } from "@/components/cases/case-kpis";
 import { PageHeader } from "@/components/ui";
 import Link from "next/link";
 import { getLiveOrganizationData } from "@/lib/data/case-repository";
-import { matchesCaseFilter, normalizeCaseStatus } from "@/lib/operational-filters";
+import { normalizeCaseStatus } from "@/lib/operational-filters";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, normalizeRawCaseStatus } from "@/lib/case-dashboard";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
   status?: string;
   priority?: string;
   assignment?: string;
+  view?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
   const [data, filters, access] = await Promise.all([getLiveOrganizationData(), searchParams, getAccessContext()]);
-  const query = (filters.query ?? "").toLowerCase();
   const dashboardStatus = normalizeCaseStatus(filters.status);
-  const rawStatus = ["NEW", "UNASSIGNED", "ASSIGNED", "IN_PROGRESS", "WAITING", "REVIEW", "COMPLETED", "CLOSED", "CANCELLED"].includes(filters.status ?? "") ? filters.status : undefined;
-  const items = data.cases.filter((item) => `${item.case_number} ${item.title} ${item.customer?.name ?? ""}`.toLowerCase().includes(query) && (dashboardStatus ? matchesCaseFilter(item, dashboardStatus) : rawStatus ? item.status === rawStatus : true) && (filters.priority && filters.priority !== "ALL" ? item.priority === filters.priority : true) && (filters.assignment === "ASSIGNED" ? Boolean(item.manager_user_id || item.assignedStaff.length) : filters.assignment === "UNASSIGNED" ? !item.manager_user_id && !item.assignedStaff.length : true));
+  const rawStatus = normalizeRawCaseStatus(filters.status);
+  const selectedView = normalizeCaseView(filters.view);
+  const counts = getCaseDashboardCounts(data.cases, data.timezone);
+  const items = data.cases.filter((item) => matchesCaseRegisterFilters(item, filters, data.timezone));
   const canCreate = hasPermission(access, "CREATE_CASE");
   return (
     <>
@@ -33,7 +37,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           ) : undefined
         }
       />
-      <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL" }} />
+      <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
+      <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>
   );
 }
