@@ -7,7 +7,7 @@ import {
 } from "@/lib/data/communications-actions";
 import { getNotifications, getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-import { requireInternalContext } from "@/lib/auth/context";
+import { requirePermission } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatOrganizationDateTime, startOfOrganizationDay } from "@/lib/organization-timezone";
 import { CommunicationsFilters, type CommunicationsFilterValues } from "@/components/communications-filters";
@@ -17,7 +17,7 @@ const sources = new Set(["all", "service-request", "case", "task", "other"]);
 const ranges = new Set(["all", "today", "7d", "30d"]);
 
 export default async function CommunicationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
-  const context = await requireInternalContext();
+  const context = await requirePermission("VIEW_COMMUNICATIONS");
   const query = await searchParams;
   const values: CommunicationsFilterValues = {
     status: (statuses.has(query?.status ?? "") ? query?.status : "all") as CommunicationsFilterValues["status"],

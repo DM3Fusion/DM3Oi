@@ -74,6 +74,30 @@ Database row policies alone cannot conceal one column of an otherwise readable r
 - Customer reads/writes currently use organization membership in RLS. This is intentional current behavior but is a candidate for later action-specific hardening.
 - Communications combine recipient/user scoping with organization membership depending on the table and operation.
 
+## Operational Mutation Enforcement
+
+Operational server actions resolve the authenticated active-organization context and call `requirePermission()` before writing. UI controls use the same capability source; RPC and RLS checks remain authoritative record/tenant backstops. SUPER_ADMIN receives these capabilities only in an active organization context, and PUBLIC_USER portal actions remain governed by the separate portal authorization path.
+
+| Area / operation | Capability | Roles | UI and server enforcement | DB/RPC alignment |
+|---|---|---|---|---|
+| Case creation | `CREATE_CASE` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | New Case control, route, and action | **Aligned:** `create_case_workflow` uses `can_manage_case` |
+| Case workflow status | `WORK_CASES` | All internal roles | Status control and action; non-managers retain the existing reduced status list | **Aligned with record backstop:** RPC limits non-manager statuses and requires `can_access_case` |
+| Case assignment | `ASSIGN_CASES` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Assignment controls and action | **Aligned:** `set_case_assignment` uses `can_manage_case` |
+| Task status/work | `WORK_TASKS` | All internal roles | Action permits work; non-manager fields are read-only in the UI | **Aligned with record backstop:** `update_case_task` permits STAFF_USER status-only changes only on assigned tasks |
+| Task create/delete/reorder | `MANAGE_TASKS` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Controls and actions | **Aligned:** task RPCs require `can_manage_case` |
+| Task assignment | `ASSIGN_TASKS` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Represented by manager-only task editing | **Aligned:** update RPC requires manager authority for assignment changes |
+| Internal Service Desk creation | `CREATE_SERVICE_REQUEST` | All internal roles | New Request control, route, and action | **Application stricter for assignment:** creation RPC accepts any internal member; application requires `ASSIGN_SERVICE_REQUEST` when an assignee is supplied |
+| Service Desk status/priority work | `WORK_SERVICE_REQUEST` | All internal roles | Edit controls and actions; STAFF_USER UI is limited to assigned requests | **Aligned with record backstop:** `can_manage_service_request` permits managers or the assigned STAFF_USER |
+| Service Desk assignment | `ASSIGN_SERVICE_REQUEST` | SUPER_ADMIN, BUSINESS_OWNER, BUSINESS_ADMIN, STAFF_MANAGER | Assignment field/control and action | **Aligned:** assignment RPC uses the same manager-role set |
+| Service Desk staff reply | `RESPOND_SERVICE_REQUEST` | All internal roles | Reply control and action; STAFF_USER UI is limited to assigned requests | **Aligned with record backstop:** message RPC uses `can_manage_service_request` |
+| Customer creation | `CREATE_CUSTOMER` | All internal roles | New Customer control, route, and action | **Aligned for current matrix:** creation RPC accepts any internal member |
+| Customer edit/status/archive | `EDIT_CUSTOMER` | All internal roles | Edit control, route, and action | **Legacy/broad DB policy:** `customers_internal_write` permits any internal member; the application capability is now explicit but currently grants the same roles |
+| Communications read/unread/all-read | `VIEW_COMMUNICATIONS` | All internal roles | Inbox page and actions | **Aligned with recipient backstop:** RPCs constrain mutations to the authenticated recipient and active organization |
+
+Notification archive has an authorized recipient-scoped RPC but no current application control/action. No unsupported mutation was added. Customer Portal submission and reply are not internal operational actions and retain their existing customer-link authorization.
+
+Record-level visibility and ownership policy remain deferred to DM3Oi-03C. In particular, assigned-case/task/request scope continues to come from the existing `can_access_case`, task RPC, and `can_manage_service_request` checks rather than new application filtering.
+
 ## RLS review and later hardening
 
 Tenant membership is consistently checked for organizations, members, customers, question definitions, and Service Desk records. Cases, tasks, assignments, and case responses use `can_access_case`. Question and Service Desk mutation RPCs contain explicit role checks.

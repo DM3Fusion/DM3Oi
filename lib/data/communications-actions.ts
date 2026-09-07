@@ -1,7 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requireInternalContext } from "@/lib/auth/context";
+import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
@@ -9,7 +9,7 @@ const safeDestination = (path: string) =>
   path.startsWith("/") && !path.startsWith("//") ? path : "/communications";
 
 async function setReadState(id: string, read: boolean) {
-  await requireInternalContext();
+  await requirePermission("VIEW_COMMUNICATIONS");
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_notification_read_state", {
     target_notification_id: id,
@@ -34,7 +34,7 @@ export async function markNotificationUnreadAction(form: FormData) {
 }
 
 export async function markAllNotificationsReadAction() {
-  const context = await requireInternalContext();
+  const context = await requirePermission("VIEW_COMMUNICATIONS");
   const supabase = await createClient();
   const { error } = await supabase.rpc("mark_all_notifications_read", {
     target_organization_id: context.activeOrganization.id,

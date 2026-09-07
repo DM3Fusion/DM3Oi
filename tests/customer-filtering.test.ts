@@ -1,5 +1,38 @@
-import test from "node:test";import assert from "node:assert/strict";import {readFileSync} from "node:fs";import {customerMatchesFilters,normalizeCustomerQuery,normalizeCustomerStatus} from "../lib/customer-filters.ts";
-const customer={customer_number:"CUS-000001",name:"Jessica Jones",email:"jessica@aol.com",phone:"2405551212",type:"INDIVIDUAL",status:"ACTIVE"};
-test("customer search is trimmed partial case-insensitive and covers useful fields",()=>{for(const query of ["jessica","JONES","000001","aol","240","individual"])assert.equal(customerMatchesFilters(customer,query,"all"),true);assert.equal(customerMatchesFilters(customer,"missing","all"),false);assert.equal(customerMatchesFilters(customer,"   ","all"),true);assert.equal(normalizeCustomerQuery("  Jessica  "),"Jessica");});
-test("customer status combines with search and invalid values become all",()=>{assert.equal(customerMatchesFilters(customer,"jess","active"),true);assert.equal(customerMatchesFilters(customer,"jess","inactive"),false);assert.equal(normalizeCustomerStatus("inactive"),"inactive");assert.equal(normalizeCustomerStatus("banana"),"all");assert.equal(normalizeCustomerStatus(undefined),"all");});
-test("customer filter UI is URL driven debounced clearable and server authorized",()=>{const controls=readFileSync("components/customer-filters.tsx","utf8");const page=readFileSync("app/customers/page.tsx","utf8");assert.match(controls,/setTimeout\(\(\)=>updateUrl\(value\),300\)/);assert.match(controls,/router\.replace\(destination\)/);assert.match(controls,/aria-label="Clear customer search"/);assert.match(controls,/placeholder="Search customers\.\.\."/);assert.match(controls,/<option value="active">Active<\/option><option value="inactive">Inactive<\/option>/);assert.match(page,/getLiveOrganizationData\(\)/);assert.match(page,/data\.customers\.filter\(customer=>customerMatchesFilters/);assert.match(page,/No customers match the current filters\./);assert.match(page,/＋ New Customer/);});
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { customerMatchesFilters, normalizeCustomerQuery, normalizeCustomerStatus } from "../lib/customer-filters.ts";
+const customer = {
+  customer_number: "CUS-000001",
+  name: "Jessica Jones",
+  email: "jessica@aol.com",
+  phone: "2405551212",
+  type: "INDIVIDUAL",
+  status: "ACTIVE",
+};
+test("customer search is trimmed partial case-insensitive and covers useful fields", () => {
+  for (const query of ["jessica", "JONES", "000001", "aol", "240", "individual"]) assert.equal(customerMatchesFilters(customer, query, "all"), true);
+  assert.equal(customerMatchesFilters(customer, "missing", "all"), false);
+  assert.equal(customerMatchesFilters(customer, "   ", "all"), true);
+  assert.equal(normalizeCustomerQuery("  Jessica  "), "Jessica");
+});
+test("customer status combines with search and invalid values become all", () => {
+  assert.equal(customerMatchesFilters(customer, "jess", "active"), true);
+  assert.equal(customerMatchesFilters(customer, "jess", "inactive"), false);
+  assert.equal(normalizeCustomerStatus("inactive"), "inactive");
+  assert.equal(normalizeCustomerStatus("banana"), "all");
+  assert.equal(normalizeCustomerStatus(undefined), "all");
+});
+test("customer filter UI is URL driven debounced clearable and server authorized", () => {
+  const controls = readFileSync("components/customer-filters.tsx", "utf8");
+  const page = readFileSync("app/customers/page.tsx", "utf8");
+  assert.match(controls, /setTimeout\(\(\)=>updateUrl\(value\),300\)/);
+  assert.match(controls, /router\.replace\(destination\)/);
+  assert.match(controls, /aria-label="Clear customer search"/);
+  assert.match(controls, /placeholder="Search customers\.\.\."/);
+  assert.match(controls, /<option value="active">Active<\/option><option value="inactive">Inactive<\/option>/);
+  assert.match(page, /getLiveOrganizationData\(\)/);
+  assert.match(page, /data\.customers\.filter\(\(customer\) =>/);
+  assert.match(page, /No customers match the current filters\./);
+  assert.match(page, /＋ New Customer/);
+});

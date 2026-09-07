@@ -21,6 +21,7 @@ import { getCaseQuestions } from "@/lib/data/question-repository";
 import { CaseQuestions } from "@/components/cases/case-questions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 const statuses = [
   "NEW",
   "UNASSIGNED",
@@ -56,13 +57,10 @@ export default async function Page({
     getCaseQuestions(caseId),
   ]);
   if (!item) notFound();
-  const role = access?.activeOrganization?.role;
-  const canManage =
-    access?.isSuperAdmin ||
-    role === "BUSINESS_ADMIN" ||
-    role === "BUSINESS_OWNER" ||
-    role === "STAFF_MANAGER";
-  const permittedStatuses = canManage
+  const canManage = hasPermission(access, "MANAGE_TASKS");
+  const canAssignCases = hasPermission(access, "ASSIGN_CASES");
+  const canWorkCases = hasPermission(access, "WORK_CASES");
+  const permittedStatuses = canAssignCases
     ? statuses
     : (["IN_PROGRESS", "WAITING", "REVIEW"] as const);
   const activities = data.activities.filter(
@@ -141,7 +139,7 @@ export default async function Page({
                 <dd>{formatDate(item.updated_at)}</dd>
               </div>
             </dl>
-            <form
+            {canWorkCases ? <form
               action={transitionCaseStatusAction}
               className="inline-control"
             >
@@ -157,7 +155,7 @@ export default async function Page({
                 </select>
               </label>
               <PendingSubmitButton pendingLabel="Updating…">Update Status</PendingSubmitButton>
-            </form>
+            </form> : null}
           </section>
           <section className="panel detail-section">
             <div className="section-head">
@@ -205,6 +203,7 @@ export default async function Page({
                             name="title"
                             defaultValue={task.title}
                             required
+                            readOnly={!canManage}
                           />
                         </label>
                         <label>
@@ -212,6 +211,7 @@ export default async function Page({
                           <input
                             name="description"
                             defaultValue={task.description}
+                            readOnly={!canManage}
                           />
                         </label>
                         <label>
@@ -219,6 +219,7 @@ export default async function Page({
                           <select
                             name="assignedUserId"
                             defaultValue={task.assigned_user_id ?? ""}
+                            disabled={!canManage}
                           >
                             <option value="">Unassigned</option>
                             {data.staff.map((staff) => (
@@ -230,6 +231,7 @@ export default async function Page({
                               </option>
                             ))}
                           </select>
+                          {!canManage ? <input type="hidden" name="assignedUserId" value={task.assigned_user_id ?? ""} /> : null}
                         </label>
                         <label>
                           <span>Status</span>
@@ -245,6 +247,7 @@ export default async function Page({
                             type="date"
                             name="dueAt"
                             defaultValue={task.due_at?.slice(0, 10)}
+                            readOnly={!canManage}
                           />
                         </label>
                         <label className="checkbox-label">
@@ -252,6 +255,7 @@ export default async function Page({
                             type="checkbox"
                             name="requiredCheck"
                             defaultChecked={task.required}
+                            disabled={!canManage}
                           />
                           <span>Required task</span>
                         </label>
@@ -417,7 +421,7 @@ export default async function Page({
                     <b>{displayName(profile)}</b>
                     <small>Staff</small>
                   </span>
-                  {canManage ? (
+                  {canAssignCases ? (
                     <form action={setCaseAssignmentAction}>
                       <input type="hidden" name="caseId" value={item.id} />
                       <input type="hidden" name="userId" value={profile.id} />
@@ -433,7 +437,7 @@ export default async function Page({
                 </div>
               ))}
             </div>
-            {canManage ? (
+            {canAssignCases ? (
               <div className="assignment-controls">
                 <form action={setCaseAssignmentAction}>
                   <input type="hidden" name="caseId" value={item.id} />
@@ -443,13 +447,7 @@ export default async function Page({
                       Change manager…
                     </option>
                     {data.staff
-                      .filter((staff) =>
-                        [
-                          "BUSINESS_ADMIN",
-                          "BUSINESS_OWNER",
-                          "STAFF_MANAGER",
-                        ].includes(staff.membership.role),
-                      )
+                      .filter((staff) => roleHasPermission(staff.membership.role, "ASSIGN_CASES"))
                       .map((staff) => (
                         <option key={staff.profile.id} value={staff.profile.id}>
                           {displayName(staff.profile)}

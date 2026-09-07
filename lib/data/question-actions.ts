@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireInternalContext } from "@/lib/auth/context";
+import { requireInternalContext, requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -62,7 +62,7 @@ function responseValue(form: FormData, type: ResponseType): Json {
   return raw;
 }
 export async function saveCaseResponseAction(form: FormData) {
-  await requireInternalContext();
+  await requirePermission("WORK_CASES");
   const caseId = text(form, "caseId");
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_case_question_response", {

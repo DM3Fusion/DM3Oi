@@ -32,10 +32,10 @@ test("organization operational surfaces consume the shared timezone", () => {
   const cases = source("app/cases/[caseId]/page.tsx");
   const customers = source("app/customers/[customerId]/page.tsx");
   assert.match(communications, /formatOrganizationDateTime\(item\.created_at, timezone, "medium"\)/);
-  assert.match(staff, /formatOrganizationDateTime\(message\.created_at,data\.timezone\)/);
+  assert.match(staff, /formatOrganizationDateTime\(message\.created_at, data\.timezone\)/);
   assert.match(portal, /formatOrganizationDateTime\(message\.created_at, timezone\)/);
   assert.match(cases, /formatOrganizationDateTime\(activity\.created_at, data\.timezone\)/);
-  assert.match(customers, /formatOrganizationDateTime\(customer\.updated_at, settings\?\.timezone\)/);
+  assert.match(customers, /formatOrganizationDateTime\(\s*customer\.updated_at,\s*settings\?\.timezone,?\s*\)/);
 });
 
 test("timestamps remain timestamptz and date-only formatting remains UTC anchored", () => {
