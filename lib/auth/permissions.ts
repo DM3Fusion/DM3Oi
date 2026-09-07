@@ -65,3 +65,10 @@ export const roleHasPermission=roleHasDefaultPermission;
 export const hasAnyPermission=(context:PermissionContext|null,required:readonly Permission[])=>required.some(permission=>hasPermission(context,permission));
 export const hasAllPermissions=(context:PermissionContext|null,required:readonly Permission[])=>required.every(permission=>hasPermission(context,permission));
 export const canAccessOrganizationAdministration=(context:PermissionContext|null)=>hasPermission(context,"VIEW_ADMINISTRATION");
+export const canInviteOrganizationUsers=(context:PermissionContext|null)=>
+  Boolean(
+    context &&
+    !context.isSuperAdmin &&
+    hasPermission(context,"MANAGE_USERS") &&
+    (context.activeOrganization?.role==="BUSINESS_OWNER" || context.activeOrganization?.role==="BUSINESS_ADMIN"),
+  );

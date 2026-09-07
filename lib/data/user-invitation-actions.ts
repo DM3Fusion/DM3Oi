@@ -4,9 +4,14 @@ import { redirect } from "next/navigation";
 import { requireSuperAdmin, getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
-import { isOrganizationUserRole } from "@/lib/data/user-provisioning";
+import {
+  assignableOrganizationUserRoles,
+  isOrganizationUserRole,
+  organizationRoleLimit,
+  type OrganizationUserRole,
+} from "@/lib/data/user-provisioning";
 import type { Database } from "@/types/database.generated";
-import { hasPermission } from "@/lib/auth/permissions";
+import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permissions";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -203,6 +208,223 @@ export async function inviteUserAction(form: FormData) {
   revalidatePath("/admin/users");
   redirect(
     `/admin/users/${userId}?message=${encodeURIComponent(sendInvitation ? "User invited." : "User created.")}`,
+  );
+}
+
+export async function inviteOrganizationUserAction(form: FormData) {
+  const path = "/users/new";
+  const access = await getAccessContext();
+  const organization = access?.activeOrganization;
+  if (
+    !access?.user ||
+    !organization ||
+    !canInviteOrganizationUsers(access)
+  )
+    go(path, "error", "You are not authorized to invite organization users.");
+  const activeOrganization = organization!;
+  const actorUser = access!.user;
+
+  const email = value(form, "email").toLowerCase();
+  const firstName = value(form, "firstName");
+  const lastName = value(form, "lastName");
+  const displayName = `${firstName} ${lastName}`.trim();
+  const role = value(form, "role") as OrganizationUserRole;
+  if (
+    !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ||
+    email.length > 320 ||
+    !firstName ||
+    !lastName ||
+    firstName.length > 80 ||
+    lastName.length > 80
+  )
+    go(path, "error", "Enter a valid first name, last name, and email address.");
+
+  const session = await createClient();
+  const { data: actorMembership } = await session
+    .from("organization_members")
+    .select("role")
+    .eq("organization_id", activeOrganization.id)
+    .eq("user_id", actorUser.id)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (
+    !actorMembership ||
+    (actorMembership.role !== "BUSINESS_OWNER" &&
+      actorMembership.role !== "BUSINESS_ADMIN")
+  )
+    go(path, "error", "You are not authorized to invite organization users.");
+  const actorRole = actorMembership!.role as OrganizationUserRole;
+
+  const assignableRoles = assignableOrganizationUserRoles(actorRole);
+  if (!isOrganizationUserRole(role) || !assignableRoles.includes(role))
+    go(path, "error", "Select a role you are authorized to assign.");
+
+  const limit = organizationRoleLimit(role);
+  if (limit !== null) {
+    const { count, error: countError } = await session
+      .from("organization_members")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", activeOrganization.id)
+      .eq("role", role)
+      .eq("is_active", true);
+    if (countError)
+      go(path, "error", "Organization role capacity could not be verified.");
+    if ((count ?? 0) >= limit)
+      go(
+        path,
+        "error",
+        `This organization already has the maximum of ${limit} active ${role === "BUSINESS_OWNER" ? "Business Owners" : "Business Administrators"}.`,
+      );
+  }
+
+  const admin = adminClient(path);
+  const existingAuthUser = await findAuthUserByEmail(admin, email);
+  let userId = existingAuthUser?.id;
+  let createdUser = false;
+
+  if (existingAuthUser) {
+    const [{ data: platformRole }, { data: profile, error: profileLookupError }] =
+      await Promise.all([
+        admin
+          .from("platform_user_roles")
+          .select("id")
+          .eq("user_id", existingAuthUser.id)
+          .eq("role", "SUPER_ADMIN")
+          .eq("is_active", true)
+          .maybeSingle(),
+        admin
+          .from("profiles")
+          .select("id,is_active")
+          .eq("id", existingAuthUser.id)
+          .maybeSingle(),
+      ]);
+    if (platformRole || profileLookupError || profile?.is_active === false)
+      go(path, "error", "The invitation could not be completed for this user.");
+    if (!profile) {
+      const { error: profileError } = await admin.from("profiles").upsert({
+        id: existingAuthUser.id,
+        email,
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        is_active: true,
+      });
+      if (profileError)
+        go(path, "error", "The invitation could not be completed for this user.");
+    }
+  } else {
+    const { data: invited, error: inviteError } =
+      await admin.auth.admin.inviteUserByEmail(email, {
+        redirectTo: getInvitationRedirect(),
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          display_name: displayName,
+        },
+      });
+    if (inviteError || !invited.user) {
+      console.error("Organization user invitation failed", {
+        code: inviteError?.code,
+        message: inviteError?.message,
+      });
+      go(path, "error", "The invitation could not be sent.");
+    }
+    userId = invited.user!.id;
+    createdUser = true;
+    const { error: profileError } = await admin.from("profiles").upsert({
+      id: userId,
+      email,
+      first_name: firstName,
+      last_name: lastName,
+      display_name: displayName,
+      is_active: true,
+    });
+    if (profileError) {
+      await admin.auth.admin.deleteUser(userId);
+      go(
+        path,
+        "error",
+        "The user profile could not be prepared; the invitation was rolled back.",
+      );
+    }
+  }
+
+  if (!userId) go(path, "error", "The invitation could not be completed.");
+  const targetUserId = userId!;
+  const { data: priorMembership } = await session
+    .from("organization_members")
+    .select("id,role,is_active")
+    .eq("organization_id", activeOrganization.id)
+    .eq("user_id", targetUserId)
+    .maybeSingle();
+  if (priorMembership?.is_active) {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(path, "error", "A user with this email already belongs to this organization.");
+  }
+
+  const membershipResult = priorMembership
+    ? await session
+        .from("organization_members")
+        .update({ role, is_active: true })
+        .eq("id", priorMembership.id)
+        .eq("organization_id", activeOrganization.id)
+        .select("id")
+        .maybeSingle()
+    : await session
+        .from("organization_members")
+        .insert({
+          organization_id: activeOrganization.id,
+          user_id: targetUserId,
+          role,
+          is_active: true,
+        })
+        .select("id")
+        .maybeSingle();
+  if (membershipResult.error || !membershipResult.data) {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(path, "error", roleError(membershipResult.error?.message ?? ""));
+  }
+  const membershipId = membershipResult.data!.id;
+
+  if (
+    existingAuthUser &&
+    !existingAuthUser.email_confirmed_at &&
+    !existingAuthUser.last_sign_in_at
+  ) {
+    const { error: resendError } = await admin.auth.admin.inviteUserByEmail(
+      email,
+      {
+        redirectTo: getInvitationRedirect(),
+        data: existingAuthUser.user_metadata,
+      },
+    );
+    if (resendError) {
+      if (priorMembership)
+        await admin
+          .from("organization_members")
+          .update({
+            role: priorMembership.role,
+            is_active: priorMembership.is_active,
+          })
+          .eq("id", priorMembership.id)
+          .eq("organization_id", activeOrganization.id);
+      else
+        await admin
+          .from("organization_members")
+          .delete()
+          .eq("id", membershipId)
+          .eq("organization_id", activeOrganization.id);
+      console.error("Existing organization user invitation failed", {
+        code: resendError.code,
+        message: resendError.message,
+      });
+      go(path, "error", "The invitation could not be sent.");
+    }
+  }
+
+  revalidatePath("/users");
+  redirect(
+    `/users?message=${encodeURIComponent(existingAuthUser?.email_confirmed_at || existingAuthUser?.last_sign_in_at ? "Organization access added." : "Invitation sent.")}`,
   );
 }
 

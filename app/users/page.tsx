@@ -2,6 +2,7 @@ import { PageHeader, Badge } from "@/components/ui";
 import { UserAvatar } from "@/components/user-avatar";
 import { ResendInviteButton } from "@/components/resend-invite-button";
 import { requirePermission } from "@/lib/auth/context";
+import { canInviteOrganizationUsers } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
 import { UrlSearch } from "@/components/question-search";
@@ -15,9 +16,11 @@ const requireInternalContext = () => requirePermission("VIEW_USERS");
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; message?: string }>;
 }) {
-  const { activeOrganization: org } = await requireInternalContext();
+  const context = await requireInternalContext();
+  const { activeOrganization: org } = context;
+  const canAddUser = canInviteOrganizationUsers(context);
   const supabase = await createClient();
   const { data: members } = await supabase
     .from("organization_members")
@@ -53,7 +56,17 @@ export default async function Page({
         eyebrow="Organization"
         title="Users"
         description="Manage the people who serve customers and complete case work."
+        action={
+          canAddUser ? (
+            <Link className="primary-button" href="/users/new">
+              + Add User
+            </Link>
+          ) : undefined
+        }
       />
+      {query.message ? (
+        <div className="success-alert page-notice">{query.message}</div>
+      ) : null}
       <UrlSearch
         q={q}
         label="Search organization users"
