@@ -1022,6 +1022,54 @@ export type Database = {
           },
         ]
       }
+      organization_role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          is_allowed: boolean
+          organization_id: string
+          permission: string
+          role: Database["public"]["Enums"]["application_role"]
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_allowed: boolean
+          organization_id: string
+          permission: string
+          role: Database["public"]["Enums"]["application_role"]
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_allowed?: boolean
+          organization_id?: string
+          permission?: string
+          role?: Database["public"]["Enums"]["application_role"]
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_role_permissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_role_permissions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organization_service_request_annual_number_counters: {
         Row: {
           calendar_year: number
@@ -1613,6 +1661,173 @@ export type Database = {
       }
     }
     Views: {
+      organization_case_activity: {
+        Row: {
+          actor_display_name: string | null
+          actor_user_id: string | null
+          case_id: string
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: string
+          organization_id: string
+        }
+        Relationships: []
+      }
+      organization_case_tasks: {
+        Row: {
+          assigned_user_id: string | null
+          case_id: string
+          completed_at: string | null
+          completed_by_display_name: string | null
+          completed_by_user_id: string | null
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          description: string
+          due_at: string | null
+          id: string
+          organization_id: string
+          required: boolean
+          sequence: number
+          status: Database["public"]["Enums"]["case_task_status"]
+          title: string
+          updated_at: string
+        }
+        Relationships: []
+      }
+      organization_cases: {
+        Row: {
+          case_number: string
+          case_type: string
+          closed_at: string | null
+          completed_at: string | null
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          due_at: string | null
+          id: string
+          manager_user_id: string | null
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          status: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at: string
+        }
+        Relationships: []
+      }
+      organization_customers: {
+        Row: {
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          customer_number: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          organization_id: string
+          phone: string | null
+          status: Database["public"]["Enums"]["customer_status"]
+          type: Database["public"]["Enums"]["customer_type"]
+          updated_at: string
+        }
+        Relationships: []
+      }
+      organization_question_definitions: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          description: string
+          display_order: number
+          id: string
+          organization_id: string
+          question_text: string
+          required: boolean
+          response_type: Database["public"]["Enums"]["question_response_type"]
+          updated_at: string
+        }
+        Relationships: []
+      }
+      organization_service_request_activity: {
+        Row: {
+          actor_display_name: string | null
+          actor_user_id: string | null
+          event_type: string
+          id: string
+          metadata: Json
+          new_value: Json | null
+          occurred_at: string
+          organization_id: string
+          previous_value: Json | null
+          service_request_id: string
+        }
+        Relationships: []
+      }
+      organization_service_request_communications: {
+        Row: {
+          actor_display_name: string | null
+          actor_user_id: string | null
+          channel: string
+          communication_type: string
+          created_at: string
+          delivered_at: string | null
+          direction: string
+          error_code: string | null
+          error_summary: string | null
+          id: string
+          organization_id: string
+          recipient_email: string | null
+          recipient_user_id: string | null
+          related_message_id: string | null
+          service_request_id: string
+          status: string
+          subject: string | null
+        }
+        Relationships: []
+      }
+      organization_service_request_messages: {
+        Row: {
+          author_display_name: string | null
+          author_type: string
+          author_user_id: string | null
+          body: string
+          created_at: string
+          id: string
+          organization_id: string
+          service_request_id: string
+        }
+        Relationships: []
+      }
+      organization_service_requests: {
+        Row: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        Relationships: []
+      }
       case_operational_status: {
         Row: {
           case_number: string | null
@@ -1805,6 +2020,21 @@ export type Database = {
           target_organization_id: string
           target_service_request_id: string
           target_user_id?: string
+        }
+        Returns: boolean
+      }
+      default_organization_role_permission: {
+        Args: {
+          target_permission: string
+          target_role: Database["public"]["Enums"]["application_role"]
+        }
+        Returns: boolean
+      }
+      effective_organization_role_permission: {
+        Args: {
+          target_organization_id: string
+          target_permission: string
+          target_role: Database["public"]["Enums"]["application_role"]
         }
         Returns: boolean
       }
@@ -2104,6 +2334,15 @@ export type Database = {
           total_required_tasks: number
         }[]
       }
+      get_platform_operational_actor_audit: {
+        Args: { target_organization_id: string }
+        Returns: {
+          actor_column: string
+          actor_user_id: string | null
+          record_id: string
+          source_table: string
+        }[]
+      }
       get_service_request_detail_activity: {
         Args: { target_service_request_id: string }
         Returns: {
@@ -2126,6 +2365,13 @@ export type Database = {
           allowed_roles: Database["public"]["Enums"]["application_role"][]
           check_organization_id: string
           check_user_id?: string
+        }
+        Returns: boolean
+      }
+      has_effective_organization_permission: {
+        Args: {
+          target_organization_id: string
+          target_permission: string
         }
         Returns: boolean
       }
@@ -2153,6 +2399,14 @@ export type Database = {
       move_case_task: {
         Args: { target_direction: string; target_task_id: string }
         Returns: undefined
+      }
+      organization_actor_id: {
+        Args: { target_actor: string }
+        Returns: string | null
+      }
+      organization_actor_label: {
+        Args: { target_actor: string }
+        Returns: string | null
       }
       next_case_number: {
         Args: { target_organization_id: string }
@@ -2208,6 +2462,15 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      save_organization_role_permissions: {
+        Args: {
+          target_changes?: Json
+          target_organization_id: string
+          target_restore?: boolean
+          target_role: Database["public"]["Enums"]["application_role"]
+        }
+        Returns: undefined
       }
       save_question_definition: {
         Args: {

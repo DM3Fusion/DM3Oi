@@ -6,6 +6,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { QuestionSearch } from "@/components/question-search";
 import { normalizeQuestionQuery,questionMatchesSearch } from "@/lib/question-filters";
 import { hasPermission } from "@/lib/auth/permissions";
+import { notFound } from "next/navigation";
 const types = [
   "TEXT",
   "LONG_TEXT",
@@ -20,11 +21,9 @@ export default async function Page({
 }: {
   searchParams: Promise<{ error?: string; message?: string; q?: string }>;
 }) {
-  const [questions, access, query] = await Promise.all([
-    getQuestionDefinitions(),
-    getAccessContext(),
-    searchParams,
-  ]);
+  const [access, query] = await Promise.all([getAccessContext(), searchParams]);
+  if(!hasPermission(access,"VIEW_QUESTIONS"))notFound();
+  const questions = await getQuestionDefinitions();
   const canManage = hasPermission(access,"MANAGE_QUESTIONS");
   const search=normalizeQuestionQuery(query.q);
   const visibleQuestions=questions.filter(question=>questionMatchesSearch(question,search));

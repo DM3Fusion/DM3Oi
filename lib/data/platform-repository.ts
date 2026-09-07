@@ -66,8 +66,8 @@ async function loadPlatformData() {
     supabase.from("profiles").select("*").order("display_name"),
     supabase.from("platform_user_roles").select("*"),
     supabase.from("customer_portal_users").select("*"),
-    supabase.from("cases").select("*"),
-    supabase.from("customers").select("*"),
+    supabase.from("organization_cases").select("*"),
+    supabase.from("organization_customers").select("*"),
   ]);
   const licenseQuery = await (supabase as any).from("organization_licenses").select("*").eq("is_current", true).order("created_at", { ascending: false });
   if (licenseQuery.error) {

@@ -28,15 +28,15 @@ import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { hasPermission } from "@/lib/auth/permissions";
 const organizationNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/cases", label: "Cases", icon: BriefcaseBusiness },
-  { href: "/service-desk", label: "Service Desk", icon: Headphones },
-  { href: "/communications", label: "Communications", icon: Bell },
-  { href: "/customers", label: "Customers", icon: Users },
-  { href: "/tasks", label: "Tasks", icon: ClipboardCheck },
-  { href: "/questions", label: "Questions & Rules", icon: FileQuestion },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
-];
+  { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "VIEW_DASHBOARD" },
+  { href: "/cases", label: "Cases", icon: BriefcaseBusiness, permission: "VIEW_CASES" },
+  { href: "/service-desk", label: "Service Desk", icon: Headphones, permission: "VIEW_SERVICE_DESK" },
+  { href: "/communications", label: "Communications", icon: Bell, permission: "VIEW_COMMUNICATIONS" },
+  { href: "/customers", label: "Customers", icon: Users, permission: "VIEW_CUSTOMERS" },
+  { href: "/tasks", label: "Tasks", icon: ClipboardCheck, permission: "VIEW_TASKS" },
+  { href: "/questions", label: "Questions & Rules", icon: FileQuestion, permission: "VIEW_QUESTIONS" },
+  { href: "/reports", label: "Reports", icon: BarChart3, permission: "VIEW_REPORTS" },
+] as const;
 const organizationAdministrationNav = [
   { href: "/users", label: "Users", icon: Users, permission: "VIEW_USERS" },
   { href: "/settings", label: "Settings", icon: Settings, permission: "VIEW_SETTINGS" },
@@ -72,7 +72,7 @@ export function AppShell({
   const nav = platformContext
     ? platformNav
     : access?.internalAccess
-      ? organizationNav
+      ? organizationNav.filter((item) => hasPermission(access,item.permission))
       : [];
   const administrationNav = access?.internalAccess
     ? organizationAdministrationNav.filter((item) => hasPermission(access,item.permission))

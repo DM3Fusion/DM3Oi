@@ -15,7 +15,7 @@ export async function getQuestionDefinitions() {
   const supabase = await createClient();
   const [questions, options] = await Promise.all([
     supabase
-      .from("question_definitions")
+      .from("organization_question_definitions")
       .select("*")
       .eq("organization_id", access.activeOrganization.id)
       .order("display_order"),

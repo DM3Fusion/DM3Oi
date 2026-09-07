@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
 import { isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import type { Database } from "@/types/database.generated";
-import { roleHasPermission } from "@/lib/auth/permissions";
+import { hasPermission } from "@/lib/auth/permissions";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -212,28 +212,47 @@ export async function resendUserInviteAction(form: FormData) {
   const access = await getAccessContext();
   if (!access?.user) return { ok: false, error: "You are not authorized to resend invitations." };
   const isPlatformAdmin = access.isSuperAdmin;
-  const membership = organizationId ? access.organizations.find((org) => org.id === organizationId) : null;
-  const orgAdmin = membership && roleHasPermission(membership.role, "MANAGE_USERS");
+  const orgAdmin =
+    access.activeOrganization?.id === organizationId &&
+    hasPermission(access, "MANAGE_USERS");
   if (!isPlatformAdmin && !orgAdmin) return { ok: false, error: "You are not authorized to resend invitations." };
   const admin = adminClient("/admin/users");
+  if (!isPlatformAdmin) {
+    const session = await createClient();
+    const [{ data: member }, { data: platformRole }] = await Promise.all([
+      session.from("organization_members").select("id").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle(),
+      admin.from("platform_user_roles").select("id").eq("user_id", targetUserId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
+    ]);
+    if (!member || platformRole) return { ok: false, error: "You are not authorized to resend invitations." };
+  }
   const { data: target, error: lookupError } = await admin.auth.admin.getUserById(targetUserId);
   const targetUser = target?.user;
   if (lookupError || !targetUser?.email) return { ok: false, error: "The invitation could not be resent." };
   if (targetUser.email_confirmed_at || targetUser.last_sign_in_at) return { ok: false, error: "This user has already completed account activation." };
-  if (!isPlatformAdmin && organizationId) {
-    const session = await createClient();
-    const { data: member } = await session.from("organization_members").select("id").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle();
-    if (!member) return { ok: false, error: "You are not authorized to resend invitations." };
-  }
   const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, { redirectTo: getInvitationRedirect(), data: targetUser.user_metadata });
   if (error) { console.error("Invitation resend failed", { code: error.code, message: error.message }); return { ok: false, error: "Unable to resend invitation." }; }
   return { ok: true };
 }
 export async function getInvitationEligibility(userId: string, organizationId?: string) {
   const access = await getAccessContext();
-  const role=organizationId?access?.organizations.find((o)=>o.id===organizationId)?.role:undefined;
-  if (!access?.user || (!access.isSuperAdmin && (!role || !roleHasPermission(role,"MANAGE_USERS")))) return false;
-  try { const admin = createAdminClient(); const { data, error } = await admin.auth.admin.getUserById(userId); const user = data?.user; return !error && Boolean(user?.email) && !user?.email_confirmed_at && !user?.last_sign_in_at; } catch { return false; }
+  const orgAdmin =
+    access?.activeOrganization?.id === organizationId &&
+    hasPermission(access, "MANAGE_USERS");
+  if (!access?.user || (!access.isSuperAdmin && !orgAdmin)) return false;
+  try {
+    const admin = createAdminClient();
+    if (!access.isSuperAdmin) {
+      const session = await createClient();
+      const [{ data: member }, { data: platformRole }] = await Promise.all([
+        session.from("organization_members").select("id").eq("organization_id", organizationId!).eq("user_id", userId).maybeSingle(),
+        admin.from("platform_user_roles").select("id").eq("user_id", userId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
+      ]);
+      if (!member || platformRole) return false;
+    }
+    const { data, error } = await admin.auth.admin.getUserById(userId);
+    const user = data?.user;
+    return !error && Boolean(user?.email) && !user?.email_confirmed_at && !user?.last_sign_in_at;
+  } catch { return false; }
 }
 export async function updateUserProfileAction(form: FormData) {
   try { await requireSuperAdmin(); } catch { return { ok: false as const, error: "You are not authorized to edit user identities." }; }

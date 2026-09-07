@@ -5,6 +5,7 @@ import type { Database } from "@/types/database.generated";
 import { hasTenantInternalAccess } from "./access-routing";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
+import { getEffectiveOrganizationPermissions, hasPermission, permissions, type OrganizationPermissionOverride, type Permission } from "@/lib/auth/permissions";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
 type Role = Database["public"]["Enums"]["application_role"];
@@ -28,6 +29,7 @@ export interface AccessContext {
   provisioned: boolean;
   internalAccess: boolean;
   license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null;
+  effectivePermissions: ReadonlySet<Permission>;
 }
 export type InternalAccessContext = AccessContext & {
   activeOrganization: AuthorizedOrganization;
@@ -115,7 +117,13 @@ export async function getAccessContext(): Promise<AccessContext | null> {
           organizations[0] ??
           null);
     let license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null = null;
+    let effectivePermissions = new Set<Permission>();
     if (activeOrganization) {
+      const overrideResult=await supabase.from("organization_role_permissions").select("role,permission,is_allowed").eq("organization_id",activeOrganization.id).eq("role",activeOrganization.role);
+      if (overrideResult.error) throw overrideResult.error;
+      const overrideRows=overrideResult.data??[];
+      const overrides=overrideRows.filter(row=>permissions.some(permission=>permission===row.permission)).map(row=>({role:row.role,permission:row.permission,isAllowed:row.is_allowed})) as OrganizationPermissionOverride[];
+      effectivePermissions=new Set(getEffectiveOrganizationPermissions(isSuperAdmin?"SUPER_ADMIN":activeOrganization.role,overrides));
       // The licensing migration extends the generated schema at deployment time.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: currentLicense } = await (supabase as any).from("organization_licenses").select("license_status,commercial_state,starts_at,expires_at,grace_ends_at,notice_days,notification_thresholds").eq("organization_id", activeOrganization.id).eq("is_current", true).maybeSingle();
@@ -148,6 +156,7 @@ export async function getAccessContext(): Promise<AccessContext | null> {
         customerPortalIds.length > 0,
       internalAccess: isSuperAdmin || organizations.length > 0,
       license,
+      effectivePermissions,
     };
   } catch (error) {
     console.error("Unable to resolve authenticated access context", error);
@@ -157,6 +166,12 @@ export async function getAccessContext(): Promise<AccessContext | null> {
 export async function requireInternalContext(): Promise<InternalAccessContext> {
   const context = await getAccessContext();
   if (!context?.user || !hasTenantInternalAccess(context))
+    throw new Error("UNAUTHORIZED");
+  return context as InternalAccessContext;
+}
+export async function requirePermission(permission: Permission): Promise<InternalAccessContext> {
+  const context = await getAccessContext();
+  if (!context?.activeOrganization || !hasPermission(context, permission))
     throw new Error("UNAUTHORIZED");
   return context as InternalAccessContext;
 }

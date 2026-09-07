@@ -46,6 +46,24 @@ Organization user details use `/users/[membershipId]`, with the organization mem
 
 SUPER_ADMIN receives organization capabilities only while operating in an active organization context; platform context remains distinct. Portal access continues to derive from authorized customer portal links rather than internal membership.
 
+## Organization-configurable User Access
+
+`/settings/user-access` presents the actual navigation capabilities and supported management capabilities for `BUSINESS_OWNER`, `BUSINESS_ADMIN`, `STAFF_MANAGER`, and `STAFF_USER`. `SUPER_ADMIN` and `PUBLIC_USER` are never tenant-configurable columns. The static `rolePermissionMatrix` is the DM3Oi-recommended default, so existing and new organizations retain intended access without requiring seeded rows. Tenant-scoped `organization_role_permissions` rows store explicit organization selections; effective access resolves the recommended default, then the matching organization/role override.
+
+Permissions are role-level only. There are no per-user exceptions. A user's active organization membership role plus that organization's overrides produces the same effective permission set consumed by sidebar visibility and protected routes. The user detail page links authorized administrators to the corresponding role column with `/settings/user-access?role={membershipRole}`.
+
+Business Owners may configure Business Admin, Staff Manager, and Staff User. Business Admins may configure Staff Manager and Staff User. Neither role may edit itself or a higher role, and no actor may grant a capability they do not effectively hold. Staff Manager, Staff User, and PUBLIC_USER cannot administer role access; `MANAGE_ROLE_PERMISSIONS` is system-denied to the two configurable staff roles even if a malformed override is encountered. The Business Owner continuity baseline (`VIEW_SETTINGS`, `VIEW_USERS`, `MANAGE_USERS`, `VIEW_ADMINISTRATION`, `MANAGE_ORGANIZATION_SETTINGS`, and `MANAGE_ROLE_PERMISSIONS`) is always restored by the effective resolver and is not editable in the UI.
+
+Changes require an explicit **Save Access** action. Restoring recommended defaults deletes only the selected tenant/role overrides after confirmation. Both workflows derive the active organization server-side and call a security-definer RPC. Direct authenticated table writes are revoked; RLS scopes reads to the active tenant membership, and the RPC repeats role hierarchy, grant-boundary, role allowlist, permission allowlist, and protected-access checks.
+
+## Platform identity privacy
+
+`SUPER_ADMIN` remains a platform role, outside organization membership configuration, invitations, selectors, search, and User Access. Organization-facing member results and direct membership detail routes exclude active platform administrators. Where an organization-visible operational record must identify a platform support actor, its presentation profile is stripped of name, email, and avatar metadata and displayed exactly as **DM3Oi Sys Support**. The underlying actor UUID is not rewritten, preserving protected platform audit correlation and the authorized `/admin/*` audit/identity view. Privacy lookups fail closed: inability to resolve the protected platform-role set prevents the organization surface from rendering identity data.
+
+Database row policies alone cannot conceal one column of an otherwise readable row. Authenticated access therefore has only column-level grants that omit operational actor fields, while security-barrier organization projections apply the existing row authorization functions and return ordinary member IDs unchanged. A platform actor is projected as a null UUID with the exact **DM3Oi Sys Support** label. Update RPCs similarly clear platform creator fields only in their returned composite value; stored audit rows are unchanged. The separately guarded `get_platform_operational_actor_audit` RPC returns true attribution only after a `SUPER_ADMIN` check.
+
+`PUBLIC_USER` remains customer-portal-only through customer portal linkage and `ACCESS_CUSTOMER_PORTAL`; it cannot be promoted into the internal matrix. Existing role-count constraints are independent of User Access configuration. DM3Oi-03B uses these effective permissions for operational mutation controls and server actions while existing record-scoped RLS/RPC checks remain the database backstop.
+
 ## Current enforcement inventory
 
 - Internal module loaders use authenticated access context and organization-scoped repositories. Users is intentionally readable by licensed internal users; invitation and role-changing mutations remain separately restricted.

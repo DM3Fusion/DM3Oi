@@ -2,21 +2,40 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
-import { attachAvatarUrls, type ProfileWithAvatar } from "@/lib/data/avatar-urls";
+import {
+  attachAvatarUrls,
+  type ProfileWithAvatar,
+} from "@/lib/data/avatar-urls";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.generated";
+import { getPlatformAdminUserIds, maskPlatformProfile, ORGANIZATION_SUPPORT_IDENTITY } from "@/lib/data/platform-privacy";
 type Tables = Database["public"]["Tables"];
-export type CaseRow = Tables["cases"]["Row"];
-export type CustomerRow = Tables["customers"]["Row"];
-export type TaskRow = Tables["case_tasks"]["Row"];
+type Views = Database["public"]["Views"];
+export type CaseRow = Views["organization_cases"]["Row"];
+export type CustomerRow = Views["organization_customers"]["Row"];
+export type TaskRow = Views["organization_case_tasks"]["Row"];
 export type AssignmentRow = Tables["case_assignments"]["Row"];
-export type ActivityRow = Tables["case_activity"]["Row"];
+export type ActivityRow = Views["organization_case_activity"]["Row"];
 export type ProfileRow = Tables["profiles"]["Row"];
 export type AvatarProfileRow = ProfileWithAvatar<ProfileRow>;
 export type MemberRow = Tables["organization_members"]["Row"];
-export type ServiceRequestRow = Tables["service_requests"]["Row"] & { created_by_user_id: string | null };
-export type ServiceRequestActivityRow = { id: string; organization_id: string; service_request_id: string; event_type: string; actor_user_id: string | null; occurred_at: string; previous_value: unknown; new_value: unknown; metadata: unknown };
-export interface LiveServiceRequest extends ServiceRequestRow { customer: CustomerRow | null; assigned: AvatarProfileRow | null; creator: AvatarProfileRow | null }
+export type ServiceRequestRow = Views["organization_service_requests"]["Row"];
+export type ServiceRequestActivityRow = {
+  id: string;
+  organization_id: string;
+  service_request_id: string;
+  event_type: string;
+  actor_user_id: string | null;
+  occurred_at: string;
+  previous_value: unknown;
+  new_value: unknown;
+  metadata: unknown;
+};
+export interface LiveServiceRequest extends ServiceRequestRow {
+  customer: CustomerRow | null;
+  assigned: AvatarProfileRow | null;
+  creator: AvatarProfileRow | null;
+}
 export interface LiveCase extends CaseRow {
   customer: CustomerRow | null;
   manager: AvatarProfileRow | null;
@@ -86,12 +105,12 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     settingsResult,
   ] = await Promise.all([
     supabase
-      .from("cases")
+      .from("organization_cases")
       .select("*")
       .eq("organization_id", organizationId)
       .order("updated_at", { ascending: false }),
     supabase
-      .from("customers")
+      .from("organization_customers")
       .select("*")
       .eq("organization_id", organizationId)
       .order("name"),
@@ -101,7 +120,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       .eq("organization_id", organizationId)
       .eq("is_active", true),
     supabase
-      .from("case_tasks")
+      .from("organization_case_tasks")
       .select("*")
       .eq("organization_id", organizationId)
       .order("sequence"),
@@ -111,13 +130,21 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       .eq("organization_id", organizationId)
       .eq("is_active", true),
     supabase
-      .from("case_activity")
+      .from("organization_case_activity")
       .select("*")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
       .limit(50),
-    supabase.from("service_requests").select("*").eq("organization_id", organizationId).order("updated_at", { ascending: false }),
-    admin.from("organization_settings").select("timezone").eq("organization_id", organizationId).maybeSingle(),
+    supabase
+      .from("organization_service_requests")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false }),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
   ]);
   const error =
     caseResult.error ??
@@ -126,9 +153,23 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     taskResult.error ??
     memberResult.error ??
     activityResult.error;
-  const requestError = (requestResult as { error?: { code?: string; message?: string; details?: string; hint?: string } | null }).error;
+  const requestError = (
+    requestResult as {
+      error?: {
+        code?: string;
+        message?: string;
+        details?: string;
+        hint?: string;
+      } | null;
+    }
+  ).error;
   if (requestError) {
-    console.error("Service request query failed", { code: requestError.code, message: requestError.message, details: requestError.details, hint: requestError.hint });
+    console.error("Service request query failed", {
+      code: requestError.code,
+      message: requestError.message,
+      details: requestError.details,
+      hint: requestError.hint,
+    });
     throw new DataAccessError();
   }
   if (error) {
@@ -138,14 +179,20 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     });
     throw new DataAccessError();
   }
-  const memberships = memberResult.data ?? [];
+  const platformAdminIds=await getPlatformAdminUserIds();
+  const memberships = (memberResult.data ?? []).filter(member=>!platformAdminIds.has(member.user_id));
   const profileIds = [
     ...new Set([
       ...memberships.map((row) => row.user_id),
       ...(activityResult.data ?? []).flatMap((row) =>
         row.actor_user_id ? [row.actor_user_id] : [],
       ),
-      ...((requestResult.data ?? []) as unknown as ServiceRequestRow[]).flatMap((row) => [row.assigned_user_id, row.created_by_user_id].filter((id): id is string => Boolean(id))),
+      ...((requestResult.data ?? []) as unknown as ServiceRequestRow[]).flatMap(
+        (row) =>
+          [row.assigned_user_id, row.created_by_user_id].filter(
+            (id): id is string => Boolean(id),
+          ),
+      ),
     ]),
   ];
   const profileResult = profileIds.length
@@ -158,8 +205,9 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     });
     throw new DataAccessError();
   }
-  const profiles = await attachAvatarUrls(supabase, profileResult.data ?? []);
+  const profiles = await attachAvatarUrls(supabase, (profileResult.data ?? []).map(profile=>maskPlatformProfile(profile,platformAdminIds)));
   const byProfile = new Map(profiles.map((row) => [row.id, row]));
+  const profileForOrganization=(id:string):AvatarProfileRow|null=>platformAdminIds.has(id)?{id,display_name:ORGANIZATION_SUPPORT_IDENTITY,first_name:null,last_name:null,email:null,phone:null,is_active:true,avatar_path:null,avatar_updated_at:null,avatarUrl:null,created_at:"",updated_at:""}:byProfile.get(id)??null;
   const customers = customerResult.data ?? [];
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
@@ -172,11 +220,9 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     return {
       ...item,
       customer: customers.find((c) => c.id === item.customer_id) ?? null,
-      manager: item.manager_user_id
-        ? (byProfile.get(item.manager_user_id) ?? null)
-        : null,
+      manager: item.manager_user_id ? profileForOrganization(item.manager_user_id) : null,
       assignedStaff: staffIds.flatMap((id) => {
-        const profile = byProfile.get(id);
+        const profile = profileForOrganization(id);
         return profile ? [profile] : [];
       }),
       tasks: itemTasks,
@@ -195,21 +241,33 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
           {
             ...activity,
             actor: activity.actor_user_id
-              ? (byProfile.get(activity.actor_user_id) ?? null)
-              : null,
+              ? profileForOrganization(activity.actor_user_id)
+              : activity.actor_display_name
+                ? { id: "masked-platform-actor", display_name: activity.actor_display_name, first_name: null, last_name: null, email: null, phone: null, is_active: true, avatar_path: null, avatar_updated_at: null, avatarUrl: null, created_at: "", updated_at: "" }
+                : null,
             caseNumber,
           },
         ]
       : [];
   });
-  const rawRequests = (requestResult.data ?? []) as unknown as ServiceRequestRow[];
+  const rawRequests = (requestResult.data ??
+    []) as unknown as ServiceRequestRow[];
   const serviceRequests: LiveServiceRequest[] = rawRequests.map((request) => ({
     ...request,
-    customer: customers.find((customer) => customer.id === request.customer_id) ?? null,
-    assigned: request.assigned_user_id ? (byProfile.get(request.assigned_user_id) ?? null) : null,
-    creator: request.created_by_user_id ? (byProfile.get(request.created_by_user_id) ?? null) : null,
+    customer:
+      customers.find((customer) => customer.id === request.customer_id) ?? null,
+    assigned: request.assigned_user_id ? profileForOrganization(request.assigned_user_id) : null,
+    creator: request.created_by_user_id ? profileForOrganization(request.created_by_user_id) : null,
   }));
-  return { organizationId, timezone: settingsResult.data?.timezone ?? "UTC", cases, customers, staff, activities, serviceRequests };
+  return {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    cases,
+    customers,
+    staff,
+    activities,
+    serviceRequests,
+  };
 }
 export async function getLiveCase(caseId: string) {
   const data = await getLiveOrganizationData();
