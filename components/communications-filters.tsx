@@ -10,7 +10,7 @@ export type CommunicationsFilterValues = {
   q: string;
 };
 
-export function CommunicationsFilters({ values }: { values: CommunicationsFilterValues }) {
+export function CommunicationsFilters({ values, recipientStatus = false }: { values: CommunicationsFilterValues; recipientStatus?: boolean }) {
   const pathname = usePathname();
   const router = useRouter();
   const [search, setSearch] = useState(values.q);
@@ -46,7 +46,7 @@ export function CommunicationsFilters({ values }: { values: CommunicationsFilter
 
   return <form key={`${values.status}:${values.source}:${values.range}`} className="communications-filters" aria-label="Filter communications" onSubmit={(event) => event.preventDefault()}>
     <label className="communications-search"><span>Search</span><span className="communications-search-control"><input type="search" name="q" value={search} onChange={(event) => changeSearch(event.currentTarget.value)} placeholder="Search communications..." autoComplete="off" />{search ? <button type="button" onClick={clearSearch} aria-label="Clear communications search">×</button> : null}</span></label>
-    <label><span>Status</span><select name="status" defaultValue={values.status} onChange={(event) => update("status", event.currentTarget.value)}><option value="all">All</option><option value="unread">Unread</option><option value="read">Read</option><option value="archived">Archived</option></select></label>
+    <label><span>Status</span><select name="status" defaultValue={values.status} onChange={(event) => update("status", event.currentTarget.value)}><option value="all">All</option><option value="unread">{recipientStatus ? "Recipient unread" : "Unread"}</option><option value="read">{recipientStatus ? "Recipient read" : "Read"}</option><option value="archived">Archived</option></select></label>
     <label><span>Source</span><select name="source" defaultValue={values.source} onChange={(event) => update("source", event.currentTarget.value)}><option value="all">All sources</option><option value="service-request">Service Requests</option><option value="case">Cases</option><option value="task">Tasks</option><option value="other">Other</option></select></label>
     <label><span>Date</span><select name="range" defaultValue={values.range} onChange={(event) => update("range", event.currentTarget.value)}><option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select></label>
   </form>;

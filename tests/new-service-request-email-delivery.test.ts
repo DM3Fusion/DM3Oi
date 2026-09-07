@@ -117,7 +117,7 @@ test("trusted dispatcher derives recipients from tenant notifications and active
   const service = source("lib/data/new-service-request-email-service.ts");
   const mailer = source("lib/email/mailer.ts");
   const eventMigration = source(
-    "supabase/migrations/20260907120000_dm3oi_new_service_request_notifications.sql",
+    "supabase/migrations/20260907124500_dm3oi_correct_new_service_request_recipient_selection.sql",
   );
   assert.match(service, /\.from\("notifications"\)/);
   assert.match(service, /\.eq\("organization_id", input\.organizationId\)/);
@@ -131,8 +131,14 @@ test("trusted dispatcher derives recipients from tenant notifications and active
   assert.match(service, /applicationEmailProvider/);
   assert.match(mailer, /applicationEmailProvider: EmailProvider = smtpEmailProvider/);
   assert.doesNotMatch(service, /formData|FormData|recipientEmail:/);
+  assert.doesNotMatch(
+    service,
+    /MANAGE_SERVICE_REQUEST|BUSINESS_OWNER|BUSINESS_ADMIN|STAFF_MANAGER|STAFF_USER/,
+  );
+  assert.match(mailer, /to: input\.to/);
   assert.match(eventMigration, /m\.user_id = new\.assigned_user_id/);
-  assert.match(eventMigration, /new\.assigned_user_id is null[\s\S]*MANAGE_SERVICE_REQUEST/);
+  assert.match(eventMigration, /if new\.assigned_user_id is not null then/);
+  assert.match(eventMigration, /else[\s\S]*MANAGE_SERVICE_REQUEST/);
   assert.match(eventMigration, /m\.user_id is distinct from new\.created_by_user_id/);
 });
 
@@ -173,7 +179,7 @@ test("notification delivery has durable channel idempotency without broader clie
 
 test("existing in-app and customer-response notifications remain intact", () => {
   const eventMigration = source(
-    "supabase/migrations/20260907120000_dm3oi_new_service_request_notifications.sql",
+    "supabase/migrations/20260907124500_dm3oi_correct_new_service_request_recipient_selection.sql",
   );
   const communicationsMigration = source(
     "supabase/migrations/20260904230000_dm3iqcm_communications_center.sql",

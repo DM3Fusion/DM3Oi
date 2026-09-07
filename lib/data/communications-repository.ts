@@ -17,6 +17,8 @@ export type Notification = {
   created_at: string;
   read_at: string | null;
   archived_at: string | null;
+  is_personal: boolean;
+  recipient_display_name: string | null;
 };
 
 export type NotificationFilters = {
@@ -28,14 +30,15 @@ export type NotificationFilters = {
 
 export async function getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
   const context = await requireInternalContext();
+  const organizationWide = !context.isSuperAdmin && context.activeOrganization.role === "BUSINESS_OWNER";
   const supabase = await createClient();
   let query = supabase
     .from("notifications")
     .select("*")
     .eq("organization_id", context.activeOrganization.id)
-    .eq("recipient_user_id", context.user.id)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
+  if (!organizationWide) query = query.eq("recipient_user_id", context.user.id);
   query = filters.status === "archived" ? query.not("archived_at", "is", null) : query.is("archived_at", null);
   if (filters.status === "unread") query = query.is("read_at", null);
   if (filters.status === "read") query = query.not("read_at", "is", null);
@@ -52,7 +55,30 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
   }
   const { data, error } = await query;
   if (error) throw new Error("Communications are temporarily unavailable.");
-  const newestFirst = data ?? [];
+  let newestFirst = (data ?? []).map((notification) => ({
+    ...notification,
+    is_personal: notification.recipient_user_id === context.user.id,
+    recipient_display_name: null as string | null,
+  }));
+  if (organizationWide && newestFirst.length) {
+    const recipientIds = [...new Set(newestFirst.map((notification) => notification.recipient_user_id))];
+    const profiles = await supabase
+      .from("profiles")
+      .select("id,display_name,first_name,last_name")
+      .in("id", recipientIds);
+    if (profiles.error) throw new Error("Communications are temporarily unavailable.");
+    const recipientNames = new Map(
+      (profiles.data ?? []).map((profile) => [
+        profile.id,
+        profile.display_name || [profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Organization user",
+      ]),
+    );
+    newestFirst = newestFirst.map((notification) => ({
+      ...notification,
+      recipient_display_name: recipientNames.get(notification.recipient_user_id) ?? "Organization user",
+    }));
+  }
+  if (organizationWide) return newestFirst;
   if (filters.status && filters.status !== "all") return newestFirst;
   return [
     ...newestFirst.filter((notification) => !notification.read_at),
