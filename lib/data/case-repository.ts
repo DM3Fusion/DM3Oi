@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
 import {
-  attachAvatarUrls,
+  attachAuthorizedAvatarUrls,
   type ProfileWithAvatar,
 } from "@/lib/data/avatar-urls";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -205,7 +205,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     });
     throw new DataAccessError();
   }
-  const profiles = await attachAvatarUrls(supabase, (profileResult.data ?? []).map(profile=>maskPlatformProfile(profile,platformAdminIds)));
+  const profiles = await attachAuthorizedAvatarUrls((profileResult.data ?? []).map(profile=>maskPlatformProfile(profile,platformAdminIds)));
   const byProfile = new Map(profiles.map((row) => [row.id, row]));
   const profileForOrganization=(id:string):AvatarProfileRow|null=>platformAdminIds.has(id)?{id,display_name:ORGANIZATION_SUPPORT_IDENTITY,first_name:null,last_name:null,email:null,phone:null,is_active:true,avatar_path:null,avatar_updated_at:null,avatarUrl:null,created_at:"",updated_at:""}:byProfile.get(id)??null;
   const customers = customerResult.data ?? [];
