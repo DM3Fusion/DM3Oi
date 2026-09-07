@@ -5,6 +5,8 @@ import { requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { recordPortalCommunication, notifyCustomerOfStaffReply } from "@/lib/data/communication-service";
+import { deliverNewServiceRequestNotificationEmails } from "@/lib/data/new-service-request-email-service";
+import { after } from "next/server";
 const text = (data: FormData, key: string) => String(data.get(key) ?? "");
 const safe = (message: string) => (message.includes("invalid customer") ? "Select a valid customer." : message.includes("assignee") ? "Select a valid active staff member." : message.includes("not authorized") ? "You are not authorized to perform that action." : "The service request could not be saved.");
 export async function createServiceRequestAction(data: FormData) {
@@ -60,7 +62,19 @@ export async function createServiceRequestAction(data: FormData) {
       values,
     };
   }
-  const request = created as unknown as { id: string };
+  const request = created as unknown as { id: string; organization_id: string };
+  after(async () => {
+    try {
+      await deliverNewServiceRequestNotificationEmails({
+        organizationId: request.organization_id,
+        serviceRequestId: request.id,
+      });
+    } catch (deliveryError) {
+      console.error("New internal Service Request email follow-up failed", {
+        code: (deliveryError as { code?: string }).code ?? "UNKNOWN",
+      });
+    }
+  });
   revalidatePath("/");
   revalidatePath("/service-desk");
   redirect(`/service-desk/${request.id}`);

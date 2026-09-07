@@ -6,6 +6,7 @@ import { ACTIVE_PORTAL_ACCESS_COOKIE, requireCustomerPortalContext } from "@/lib
 import { createClient } from "@/lib/supabase/server";
 import { recordPortalCommunication } from "@/lib/data/communication-service";
 import { notifyStaffOfCustomerReply } from "@/lib/data/communication-service";
+import { deliverNewServiceRequestNotificationEmails } from "@/lib/data/new-service-request-email-service";
 import { after } from "next/server";
 
 export async function selectPortalAccountAction(form: FormData) {
@@ -30,7 +31,19 @@ export async function createCustomerServiceRequestAction(form: FormData): Promis
   if (error || !data) redirect("/portal/service-requests/new?error=The%20service%20request%20could%20not%20be%20submitted.");
   revalidatePath("/portal");
   revalidatePath("/portal/service-requests");
-  const request = data as unknown as { id: string };
+  const request = data as unknown as { id: string; organization_id: string };
+  after(async () => {
+    try {
+      await deliverNewServiceRequestNotificationEmails({
+        organizationId: request.organization_id,
+        serviceRequestId: request.id,
+      });
+    } catch (deliveryError) {
+      console.error("New customer Service Request email follow-up failed", {
+        code: (deliveryError as { code?: string }).code ?? "UNKNOWN",
+      });
+    }
+  });
   redirect(`/portal/service-requests/${request.id}`);
 }
 

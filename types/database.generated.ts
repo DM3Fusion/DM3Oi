@@ -1426,6 +1426,7 @@ export type Database = {
           error_code: string | null
           error_summary: string | null
           id: string
+          notification_id: string | null
           organization_id: string
           recipient_email: string | null
           recipient_user_id: string | null
@@ -1444,6 +1445,7 @@ export type Database = {
           error_code?: string | null
           error_summary?: string | null
           id?: string
+          notification_id?: string | null
           organization_id: string
           recipient_email?: string | null
           recipient_user_id?: string | null
@@ -1462,6 +1464,7 @@ export type Database = {
           error_code?: string | null
           error_summary?: string | null
           id?: string
+          notification_id?: string | null
           organization_id?: string
           recipient_email?: string | null
           recipient_user_id?: string | null
@@ -1476,6 +1479,13 @@ export type Database = {
             columns: ["actor_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_request_communications_notification_id_fkey"
+            columns: ["notification_id"]
+            isOneToOne: false
+            referencedRelation: "notifications"
             referencedColumns: ["id"]
           },
           {
