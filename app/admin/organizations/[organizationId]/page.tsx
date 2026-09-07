@@ -8,12 +8,12 @@ import {
   enterOrganizationWorkspaceAction,
   provisionMemberAction,
   updateMembershipAction,
-  updateOrganizationAction,
 } from "@/lib/data/platform-actions";
 import { getOrganizationAdministration } from "@/lib/data/platform-repository";
 import { LicenseForm } from "@/components/license-form";
 import { effectiveLicense } from "@/lib/licensing";
 import { OrganizationSummaryRow } from "@/components/organization-summary-row";
+import { PlatformOrganizationDetailsForm } from "@/components/platform-organization-details-form";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -82,41 +82,22 @@ export default async function Page({
             </div>
             <Badge value={organization.status} />
           </div>
-          <form action={updateOrganizationAction} className="entity-form">
-            <input
-              type="hidden"
-              name="organizationId"
-              value={organization.id}
-            />
-            <div className="form-grid">
-              <label>
-                <span>Name</span>
-                <input name="name" defaultValue={organization.name} required />
-              </label>
-              <label>
-                <span>Slug</span>
-                <input name="slug" defaultValue={organization.slug} required />
-              </label>
-              <label>
-                <span>Status</span>
-                <select name="status" defaultValue={organization.status}>
-                  <option value="ACTIVE">Active</option>
-                  <option value="SUSPENDED">Suspended</option>
-                  <option value="ARCHIVED">Archived</option>
-                </select>
-              </label>
-              <label>
-                <span>Created</span>
-                <input
-                  value={new Date(organization.created_at).toLocaleString()}
-                  disabled
-                />
-              </label>
-            </div>
-            <div className="form-actions">
-              <span className="organization-form-actions"><OrganizationAvatarUploadForm organizationId={organization.id} hasAvatar={Boolean(organization.avatar_path)} showRemove={false} /><button className="primary-button">Save changes</button></span>
-            </div>
-          </form>
+          <PlatformOrganizationDetailsForm
+            organizationId={organization.id}
+            initial={{
+              name: organization.name,
+              slug: organization.slug,
+              status: organization.status,
+            }}
+            createdAt={new Date(organization.created_at).toLocaleString()}
+            avatarAction={
+              <OrganizationAvatarUploadForm
+                organizationId={organization.id}
+                hasAvatar={Boolean(organization.avatar_path)}
+                showRemove={false}
+              />
+            }
+          />
           <div id="organization-avatar" className="organization-avatar-panel">
             <OrganizationAvatar name={organization.name} src={organization.avatarUrl} size="md" />
             <div><strong>Organization avatar</strong><p>Private identity shown in the workspace.</p></div>
