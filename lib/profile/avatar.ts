@@ -9,6 +9,33 @@ export const AVATAR_WEBP_QUALITY = 0.82;
 export const MAX_AVATAR_SOURCE_BYTES = 5 * 1024 * 1024;
 export const MAX_AVATAR_BYTES = 1 * 1024 * 1024;
 
+export const AVATAR_SOURCE_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+] as const;
+
+export function avatarSourceExtension(contentType: string) {
+  return contentType === "image/jpeg"
+    ? "jpg"
+    : contentType === "image/png"
+      ? "png"
+      : contentType === "image/webp"
+        ? "webp"
+        : null;
+}
+
+export function createAvatarPath(userId: string) {
+  return `${userId}/avatar-${crypto.randomUUID()}.webp`;
+}
+
+export function createAvatarSourcePath(userId: string, contentType: string) {
+  const extension = avatarSourceExtension(contentType);
+  return extension
+    ? `${userId}/source-${crypto.randomUUID()}.${extension}`
+    : null;
+}
+
 export function avatarInitials(
   displayName?: string | null,
   email?: string | null,

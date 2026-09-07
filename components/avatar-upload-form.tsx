@@ -4,10 +4,14 @@ import { FormEvent, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { normalizeOwnAvatarAction } from "@/lib/data/profile-actions";
 import { createClient } from "@/lib/supabase/client";
-import { AVATAR_SOURCE_BUCKET, MAX_AVATAR_SOURCE_BYTES } from "@/lib/profile/avatar";
+import {
+  AVATAR_SOURCE_BUCKET,
+  AVATAR_SOURCE_TYPES,
+  MAX_AVATAR_SOURCE_BYTES,
+  createAvatarSourcePath,
+} from "@/lib/profile/avatar";
 
-const ACCEPTED_SOURCE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const extensionForType: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+const ACCEPTED_SOURCE_TYPES = new Set<string>(AVATAR_SOURCE_TYPES);
 
 export function AvatarUploadForm() {
   const router = useRouter();
@@ -29,7 +33,8 @@ export function AvatarUploadForm() {
       const supabase = createClient();
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) throw new Error("AUTHENTICATION");
-      const path = `${user.id}/source-${crypto.randomUUID()}.${extensionForType[source.type]}`;
+      const path = createAvatarSourcePath(user.id, source.type);
+      if (!path) throw new Error("SOURCE_TYPE");
       const { error: uploadError } = await supabase.storage.from(AVATAR_SOURCE_BUCKET).upload(path, source, {
         cacheControl: "300", contentType: source.type, upsert: false,
       });
@@ -47,7 +52,7 @@ export function AvatarUploadForm() {
   }
 
   return <form className="avatar-upload-form" onSubmit={handleSubmit}>
-    <input ref={inputRef} type="file" name="avatarSource" accept="image/jpeg,image/png,image/webp" required disabled={processing} />
+    <input ref={inputRef} type="file" name="avatarSource" accept={AVATAR_SOURCE_TYPES.join(",")} required disabled={processing} />
     {error ? <div className="form-alert">{error}</div> : null}
     <button className="primary-button" type="submit" disabled={processing}>{processing ? "Optimizing…" : "Upload / Change"}</button>
   </form>;

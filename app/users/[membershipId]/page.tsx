@@ -12,6 +12,7 @@ import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
+import { OrganizationUserProfileEditor } from "@/components/organization-user-profile-editor";
 
 export default async function Page({
   params,
@@ -86,7 +87,17 @@ export default async function Page({
               <p>Access applies only to the active organization.</p>
             </span>
           </span>
-          <Badge value={membership.is_active ? "ACTIVE" : "INACTIVE"} />
+          <span className="user-detail-actions">
+            <Badge value={membership.is_active ? "ACTIVE" : "INACTIVE"} />
+            {canManage ? (
+              <OrganizationUserProfileEditor
+                membershipId={membership.id}
+                displayName={profile?.display_name ?? ""}
+                email={profile?.email ?? ""}
+                hasAvatar={Boolean(profile?.avatar_path)}
+              />
+            ) : null}
+          </span>
         </div>
         <dl className="detail-facts">
           <div>

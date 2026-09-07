@@ -1,6 +1,5 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
@@ -8,9 +7,11 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AVATAR_BUCKET,
   AVATAR_SOURCE_BUCKET,
+  createAvatarPath,
   isOwnedAvatarSourcePath,
   isOwnedAvatarPath,
 } from "@/lib/profile/avatar";
+import { validateDisplayName } from "@/lib/profile/identity";
 import {
   AvatarNormalizationError,
   normalizeAvatarSource,
@@ -27,13 +28,14 @@ export type ProfileUpdateResult =
 export async function updateOwnProfileAction(form: FormData): Promise<ProfileUpdateResult> {
   const access = await requireAuthenticatedInternalUser();
   const submittedDisplayName = String(form.get("displayName") ?? "");
-  const displayName = submittedDisplayName.trim();
-  if (!displayName || displayName.length > 160)
+  const validated = validateDisplayName(submittedDisplayName);
+  if (!validated.ok)
     return {
       ok: false,
       values: { displayName: submittedDisplayName },
-      error: "Enter a display name of 160 characters or fewer.",
+      error: validated.error,
     };
+  const { displayName } = validated;
   const supabase = await createClient();
   const { error } = await supabase
     .from("profiles")
@@ -89,7 +91,7 @@ export async function normalizeOwnAvatarAction(form: FormData) {
       return { ok: false as const, error: "Your profile could not be loaded." };
     }
 
-    finalPath = `${access.user.id}/avatar-${randomUUID()}.webp`;
+    finalPath = createAvatarPath(access.user.id);
 
     const { error: uploadError } = await supabase.storage
       .from(AVATAR_BUCKET)
