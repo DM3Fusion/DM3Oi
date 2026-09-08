@@ -2606,6 +2606,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_service_request_case: {
+        Args: {
+          expected_case_id: string | null
+          target_case_id: string | null
+          target_service_request_id: string
+        }
+        Returns: {
+          assigned_user_id: string | null
+          case_id: string | null
+          closed_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          description: string
+          id: string
+          last_activity_at: string
+          opened_at: string
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          request_number: string
+          requester_user_id: string | null
+          resolved_at: string | null
+          status: Database["public"]["Enums"]["service_request_status"]
+          subject: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "service_requests"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       transition_case_status: {
         Args: {
           target_case_id: string

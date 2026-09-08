@@ -151,6 +151,45 @@ export async function setServiceRequestAssignmentAction(data: { requestId: strin
   revalidatePath(`/service-desk/${data.requestId}`);
   return { ok: true };
 }
+export async function setServiceRequestCaseAction(data: { requestId: string; caseId: string | null; expectedCaseId: string | null }): Promise<MutationResult> {
+  const context = await requirePermission("MANAGE_SERVICE_REQUEST");
+  const supabase = await createClient();
+  const { data: visibleRequest, error: lookupError } = await supabase
+    .from("organization_service_requests")
+    .select("id")
+    .eq("id", data.requestId)
+    .eq("organization_id", context.activeOrganization.id)
+    .maybeSingle();
+  if (lookupError || !visibleRequest) {
+    return { ok: false, error: "The Service Request was not found or is not authorized." };
+  }
+  const { error } = await supabase.rpc(
+    "set_service_request_case" as never,
+    {
+      target_service_request_id: data.requestId,
+      target_case_id: data.caseId,
+      expected_case_id: data.expectedCaseId,
+    } as never,
+  );
+  if (error) {
+    logFailure("Service request Case link update", error);
+    return {
+      ok: false,
+      error: error.message.includes("invalid target case")
+        ? "The selected Case is not available for this customer."
+        : error.message.includes("case link changed")
+          ? "The Case link changed while you were editing. Refresh and try again."
+        : safe(error.message ?? ""),
+    };
+  }
+  revalidatePath("/");
+  revalidatePath("/service-desk");
+  revalidatePath(`/service-desk/${data.requestId}`);
+  revalidatePath("/cases");
+  if (data.caseId) revalidatePath(`/cases/${data.caseId}`);
+  if (data.expectedCaseId) revalidatePath(`/cases/${data.expectedCaseId}`);
+  return { ok: true };
+}
 export async function createInternalServiceRequestMessageAction(form: FormData): Promise<void> {
   const serviceRequestId = String(form.get("serviceRequestId") ?? "");
   const body = String(form.get("body") ?? "").trim();

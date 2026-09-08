@@ -9,6 +9,11 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Database } from "@/types/database.generated";
 import { getPlatformAdminUserIds, maskPlatformProfile, ORGANIZATION_SUPPORT_IDENTITY } from "@/lib/data/platform-privacy";
+import {
+  selectRecentCaseCommunications,
+  type CaseCommunicationMessage,
+  type RecentCaseCommunication,
+} from "@/lib/case-communications";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
 export type CaseRow = Views["organization_cases"]["Row"];
@@ -51,15 +56,6 @@ export interface LiveCase extends CaseRow {
 export interface StaffMember {
   membership: MemberRow;
   profile: AvatarProfileRow;
-}
-export interface RecentCaseCommunication {
-  id: string;
-  serviceRequestId: string;
-  serviceRequestNumber: string;
-  direction: "INBOUND" | "OUTBOUND";
-  participantLabel: "Customer" | "DM3Oi team";
-  summary: string;
-  createdAt: string;
 }
 export interface LiveOrganizationData {
   organizationId: string;
@@ -282,17 +278,20 @@ export async function getLiveCase(caseId: string) {
   const data = await getLiveOrganizationData();
   const item = data.cases.find((candidate) => candidate.id === caseId) ?? null;
   if (!item) return { data, item, recentCommunications: [] as RecentCaseCommunication[] };
+  const linkedRequests = data.serviceRequests.filter(
+    (request) => request.case_id === item.id,
+  );
   const supabase = await createClient();
-  const result = await supabase
-    .from("service_request_messages")
-    .select(
-      "id,service_request_id,author_type,body,created_at,service_requests!inner(request_number,case_id)",
-    )
-    .eq("organization_id", data.organizationId)
-    .eq("service_requests.case_id", item.id)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .limit(5);
+  const result = linkedRequests.length
+    ? await supabase
+        .from("organization_service_request_messages")
+        .select("id,organization_id,service_request_id,author_type,body,created_at")
+        .eq("organization_id", data.organizationId)
+        .in("service_request_id", linkedRequests.map((request) => request.id))
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .limit(5)
+    : { data: [] as CaseCommunicationMessage[], error: null };
   if (result.error) {
     console.error("Recent Case communications query failed", {
       code: result.error.code,
@@ -300,20 +299,12 @@ export async function getLiveCase(caseId: string) {
     });
     throw new DataAccessError();
   }
-  const recentCommunications = (result.data ?? []).map((message) => {
-    const request = Array.isArray(message.service_requests)
-      ? message.service_requests[0]
-      : message.service_requests;
-    const normalized = message.body.replace(/\s+/g, " ").trim();
-    return {
-      id: message.id,
-      serviceRequestId: message.service_request_id,
-      serviceRequestNumber: request?.request_number ?? "Service Request",
-      direction: message.author_type === "CUSTOMER" ? "INBOUND" as const : "OUTBOUND" as const,
-      participantLabel: message.author_type === "CUSTOMER" ? "Customer" as const : "DM3Oi team" as const,
-      summary: normalized.length > 160 ? `${normalized.slice(0, 157)}…` : normalized,
-      createdAt: message.created_at,
-    };
+  const recentCommunications = selectRecentCaseCommunications({
+    organizationId: data.organizationId,
+    caseId: item.id,
+    caseCustomerId: item.customer_id,
+    requests: linkedRequests,
+    messages: (result.data ?? []) as CaseCommunicationMessage[],
   });
   return { data, item, recentCommunications };
 }

@@ -10,6 +10,7 @@ import { serviceRequestLabel } from "@/lib/service-request-format";
 import { createInternalServiceRequestMessageAction } from "@/lib/data/service-request-actions";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
+import { ServiceRequestCaseLink } from "@/components/service-request-case-link";
 // Detail contract: initial={{ status: item.status, priority: item.priority }}; query.error; actor_user_id || "System".
 // activityRows.filter((activity) => activity.activity_id); order("created_at", { ascending: false }).order("id", { ascending: false });
 // actor_user_id || "System"; activity.actor_display_name || activity.actor_email || activity.actor_user_id || "System".
@@ -24,10 +25,11 @@ const transitionText = (
   },
   staffById: Map<string, string>,
 ) => {
-  if (!["STATUS_CHANGED", "PRIORITY_CHANGED", "ASSIGNMENT_CHANGED"].includes(activity.event_type)) return null;
+  if (!["STATUS_CHANGED", "PRIORITY_CHANGED", "ASSIGNMENT_CHANGED", "CASE_LINKED", "CASE_CHANGED", "CASE_UNLINKED"].includes(activity.event_type)) return null;
   const previous = storedValue(activity.previous_value);
   const next = storedValue(activity.new_value);
   if (activity.event_type === "ASSIGNMENT_CHANGED") return `${previous ? (staffById.get(previous) ?? "Unknown") : "Unassigned"} → ${next ? (staffById.get(next) ?? "Unknown") : "Unassigned"}`;
+  if (["CASE_LINKED", "CASE_CHANGED", "CASE_UNLINKED"].includes(activity.event_type)) return `${previous ?? "Not linked"} → ${next ?? "Not linked"}`;
   return `${previous ? serviceRequestLabel(previous) : "Unknown"} → ${next ? serviceRequestLabel(next) : "Unknown"}`;
 };
 
@@ -53,6 +55,14 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const staffById = new Map(data.staff.map((staff) => [staff.profile.id, displayName(staff.profile)]));
   const canAssign = hasPermission(access, "ASSIGN_SERVICE_REQUEST");
   const canManage = hasPermission(access, "MANAGE_SERVICE_REQUEST");
+  const eligibleCases = data.cases
+    .filter((candidate) => candidate.customer_id === item.customer_id)
+    .map((candidate) => ({
+      id: candidate.id,
+      caseNumber: candidate.case_number,
+      title: candidate.title,
+    }));
+  const linkedCase = eligibleCases.find((candidate) => candidate.id === item.case_id) ?? null;
   const assignedToCurrentUser = item.assigned_user_id === access?.user.id;
   const canWork = hasPermission(access, "WORK_SERVICE_REQUEST") && (canManage || assignedToCurrentUser);
   const supabase = await createClient();
@@ -183,6 +193,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <dt>Created By</dt>
               <dd>{creator?.creator_display_name || creator?.creator_email || creator?.created_by_user_id || "Unknown / Historical"}</dd>
             </div>
+            <ServiceRequestCaseLink
+              requestId={item.id}
+              initialCase={linkedCase}
+              eligibleCases={eligibleCases}
+              canManage={canManage}
+            />
             <div>
               <dt>Created</dt>
               <dd>{formatOrganizationDateTime(item.created_at, data.timezone)}</dd>
