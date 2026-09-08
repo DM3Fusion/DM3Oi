@@ -25,6 +25,16 @@ export function organizationRoleLimit(role: OrganizationUserRole) {
   return role === "BUSINESS_OWNER" || role === "BUSINESS_ADMIN" ? 2 : null;
 }
 
+export function organizationInvitationMetadata(
+  existingData: Record<string, unknown> | null | undefined,
+  organizationName: string,
+) {
+  return {
+    ...(existingData ?? {}),
+    organization_name: organizationName,
+  };
+}
+
 export function classifyAccess(input: {
   platformAdmin: boolean;
   activeOrganizationMembership: boolean;

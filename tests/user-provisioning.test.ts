@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   classifyAccess,
   isOrganizationUserRole,
+  organizationInvitationMetadata,
   ORGANIZATION_USER_ROLES,
 } from "../lib/data/user-provisioning.ts";
 
@@ -48,6 +49,20 @@ test("platform access remains distinct from organization membership", () => {
       activePortalAccess: false,
     }),
     "Platform Admin",
+  );
+});
+
+test("organization invitation metadata is display-only and additive", () => {
+  assert.deepEqual(
+    organizationInvitationMetadata(
+      { display_name: "Casey User", setup_state: "INVITED" },
+      "Mimms Tax Service",
+    ),
+    {
+      display_name: "Casey User",
+      setup_state: "INVITED",
+      organization_name: "Mimms Tax Service",
+    },
   );
 });
 

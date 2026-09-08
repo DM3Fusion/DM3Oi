@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   assignableOrganizationUserRoles,
+  organizationInvitationMetadata,
   organizationRoleLimit,
 } from "../lib/data/user-provisioning.ts";
 import {
@@ -93,12 +94,67 @@ test("invitation reuses canonical Auth, profile, and membership infrastructure",
   assert.match(actions, /redirectTo: getInvitationRedirect\(\)/);
   assert.match(actions, /first_name: firstName/);
   assert.match(actions, /last_name: lastName/);
+  assert.match(actions, /organization_name: activeOrganization\.name/);
   assert.match(actions, /\.from\("organization_members"\)/);
   assert.match(actions, /deleteUser\(userId\)|deleteUser\(targetUserId\)/);
   assert.match(actions, /revalidatePath\("\/users"\)/);
   assert.match(actions, /Invitation sent\./);
   assert.match(usersPage, /getInvitationEligibility/);
   assert.match(usersPage, /ResendInviteButton/);
+});
+
+test("organization invitation metadata preserves existing Auth data", () => {
+  assert.deepEqual(
+    organizationInvitationMetadata(
+      {
+        first_name: "Avery",
+        last_name: "Owner",
+        display_name: "Avery Owner",
+        existing_key: "preserved",
+      },
+      "Authorized Organization",
+    ),
+    {
+      first_name: "Avery",
+      last_name: "Owner",
+      display_name: "Avery Owner",
+      existing_key: "preserved",
+      organization_name: "Authorized Organization",
+    },
+  );
+});
+
+test("organization name is server-derived for initial and reissued invitations", () => {
+  const organizationFlow = actions.slice(
+    actions.indexOf("export async function inviteOrganizationUserAction"),
+    actions.indexOf("export async function resendUserInviteAction"),
+  );
+  assert.match(
+    organizationFlow,
+    /organization_name: activeOrganization\.name/,
+  );
+  assert.match(
+    organizationFlow,
+    /organizationInvitationMetadata\([\s\S]*existingAuthUser\.user_metadata,[\s\S]*activeOrganization\.name/,
+  );
+  assert.doesNotMatch(organizationFlow, /value\(form, "organizationName"\)/);
+  assert.doesNotMatch(newUserPage, /name="organizationName"/);
+});
+
+test("manual resend distinguishes organization and platform metadata", () => {
+  const resendFlow = actions.slice(
+    actions.indexOf("export async function resendUserInviteAction"),
+    actions.indexOf("export async function getInvitationEligibility"),
+  );
+  assert.match(
+    resendFlow,
+    /const orgAdmin =[\s\S]*access\.activeOrganization\?\.id === organizationId[\s\S]*hasPermission\(access, "MANAGE_USERS"\)/,
+  );
+  assert.match(
+    resendFlow,
+    /const resendData = orgAdmin[\s\S]*organizationInvitationMetadata\([\s\S]*access\.activeOrganization!\.name[\s\S]*: targetUser\.user_metadata/,
+  );
+  assert.doesNotMatch(resendFlow, /value\(form, "organizationName"\)/);
 });
 
 test("form submission is duplicate-safe and errors remain sanitized", () => {

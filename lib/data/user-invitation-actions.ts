@@ -7,6 +7,7 @@ import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
 import {
   assignableOrganizationUserRoles,
   isOrganizationUserRole,
+  organizationInvitationMetadata,
   organizationRoleLimit,
   type OrganizationUserRole,
 } from "@/lib/data/user-provisioning";
@@ -54,14 +55,15 @@ async function requireActiveOrganization(
   organizationId: string,
   path: string,
 ) {
-  if (!organizationId) return;
+  if (!organizationId) return null;
   const { data, error } = await session
     .from("organizations")
-    .select("id")
+    .select("id,name")
     .eq("id", organizationId)
     .eq("status", "ACTIVE")
     .maybeSingle();
   if (error || !data) go(path, "error", "Select an active organization.");
+  return data;
 }
 export async function inviteUserAction(form: FormData) {
   await requireSuperAdmin();
@@ -76,7 +78,11 @@ export async function inviteUserAction(form: FormData) {
   if (organizationId && !isOrganizationUserRole(role))
     go("/admin/users/new", "error", "Select a valid organization role.");
   const session = await createClient();
-  await requireActiveOrganization(session, organizationId, "/admin/users/new");
+  const invitationOrganization = await requireActiveOrganization(
+    session,
+    organizationId,
+    "/admin/users/new",
+  );
   const { data: existing } = await session
     .from("profiles")
     .select("id")
@@ -146,7 +152,12 @@ export async function inviteUserAction(form: FormData) {
   const { data: invited, error: inviteError } = sendInvitation
     ? await admin.auth.admin.inviteUserByEmail(email, {
         redirectTo: getInvitationRedirect(),
-        data: { display_name: displayName },
+        data: invitationOrganization
+          ? organizationInvitationMetadata(
+              { display_name: displayName },
+              invitationOrganization.name,
+            )
+          : { display_name: displayName },
       })
     : await admin.auth.admin.createUser({
         email,
@@ -320,6 +331,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
           first_name: firstName,
           last_name: lastName,
           display_name: displayName,
+          organization_name: activeOrganization.name,
         },
       });
     if (inviteError || !invited.user) {
@@ -395,7 +407,10 @@ export async function inviteOrganizationUserAction(form: FormData) {
       email,
       {
         redirectTo: getInvitationRedirect(),
-        data: existingAuthUser.user_metadata,
+        data: organizationInvitationMetadata(
+          existingAuthUser.user_metadata,
+          activeOrganization.name,
+        ),
       },
     );
     if (resendError) {
@@ -451,7 +466,13 @@ export async function resendUserInviteAction(form: FormData) {
   const targetUser = target?.user;
   if (lookupError || !targetUser?.email) return { ok: false, error: "The invitation could not be resent." };
   if (targetUser.email_confirmed_at || targetUser.last_sign_in_at) return { ok: false, error: "This user has already completed account activation." };
-  const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, { redirectTo: getInvitationRedirect(), data: targetUser.user_metadata });
+  const resendData = orgAdmin
+    ? organizationInvitationMetadata(
+        targetUser.user_metadata,
+        access.activeOrganization!.name,
+      )
+    : targetUser.user_metadata;
+  const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, { redirectTo: getInvitationRedirect(), data: resendData });
   if (error) { console.error("Invitation resend failed", { code: error.code, message: error.message }); return { ok: false, error: "Unable to resend invitation." }; }
   return { ok: true };
 }
