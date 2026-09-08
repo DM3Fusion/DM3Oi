@@ -5,6 +5,8 @@ import { getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
 import { getIdentityCategory } from "@/lib/auth/identity-category";
+import { customerPortalInvitationMetadata } from "@/lib/data/customer-portal-invitation-metadata";
+import { sendCustomerPortalInvitationEmail } from "@/lib/data/customer-portal-invitation-email-service";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
 const destination = (id: string, key: string, message: string) => `/customers/${id}?${key}=${encodeURIComponent(message)}`;
@@ -57,14 +59,42 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
     const collision = await supabase.from("organization_members").select("id").eq("organization_id", org.id).eq("is_active", true).eq("user_id", authUser.id).maybeSingle();
     if (collision.data) redirect(destination(customerId, "error", "This email belongs to an internal organization user and cannot be provisioned as customer portal access."));
   }
+  let invitationUrl: string | null = null;
   if (!authUser) {
-    const invited = await admin!.auth.admin.inviteUserByEmail(email, { redirectTo: getInvitationRedirect() });
-    if (invited.error || !invited.data.user) { console.error("Customer portal invitation failed", { code: invited.error?.code, message: invited.error?.message }); redirect(destination(customerId, "error", "The Portal Access invitation could not be sent.")); }
-    authUser = invited.data.user;
+    const generated = await admin!.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        redirectTo: getInvitationRedirect(),
+        data: customerPortalInvitationMetadata(undefined, org.name),
+      },
+    });
+    if (generated.error || !generated.data.user || !generated.data.properties?.action_link) {
+      console.error("Customer portal invitation link generation failed", {
+        code: generated.error?.code ?? "INVITATION_LINK_UNAVAILABLE",
+      });
+      redirect(destination(customerId, "error", "The Customer Portal invitation could not be prepared."));
+    }
+    authUser = generated.data.user;
+    invitationUrl = generated.data.properties.action_link;
   } else if (intent === "resend") {
     if (authUser.email_confirmed_at || authUser.last_sign_in_at) redirect(destination(customerId, "message", "This customer has already activated Portal Access."));
-    const resent = await admin!.auth.admin.inviteUserByEmail(email, { redirectTo: getInvitationRedirect(), data: authUser.user_metadata });
-    if (resent.error) redirect(destination(customerId, "error", "The Portal Access invitation could not be resent."));
+    const generated = await admin!.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        redirectTo: getInvitationRedirect(),
+        data: customerPortalInvitationMetadata(authUser.user_metadata, org.name),
+      },
+    });
+    if (generated.error || !generated.data.properties?.action_link) {
+      console.error("Customer portal invitation link regeneration failed", {
+        code: generated.error?.code ?? "INVITATION_LINK_UNAVAILABLE",
+      });
+      redirect(destination(customerId, "error", "The Customer Portal invitation could not be prepared."));
+    }
+    authUser = generated.data.user ?? authUser;
+    invitationUrl = generated.data.properties.action_link;
   }
   const profile = await admin!.from("profiles").upsert({ id: authUser.id, email, display_name: authUser.user_metadata?.display_name ?? email, is_active: true });
   if (profile.error) { console.error("Customer portal profile provisioning failed", { code: profile.error.code, message: profile.error.message }); redirect(destination(customerId, "error", "The customer identity could not be prepared.")); }
@@ -75,5 +105,19 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
     : await supabase.from("customer_portal_users").insert({ organization_id: org.id, customer_id: customerId, user_id: authUser.id, is_active: true });
   if (relation.error) redirect(destination(customerId, "error", "Portal access could not be provisioned."));
   revalidatePath(path);
-  redirect(destination(customerId, "message", intent === "resend" ? "Portal Access invitation resent." : "Portal Access enabled."));
+  if (invitationUrl) {
+    const delivery = await sendCustomerPortalInvitationEmail({
+      recipientEmail: email,
+      organizationName: org.name,
+      invitationUrl,
+    });
+    if (!delivery.ok) {
+      console.error("Customer Portal invitation email delivery failed", {
+        code: delivery.errorCode,
+      });
+      redirect(destination(customerId, "error", "Customer Portal access was prepared, but the invitation email could not be sent."));
+    }
+    redirect(destination(customerId, "message", intent === "resend" ? "Customer Portal invitation resent." : "Customer Portal invitation sent."));
+  }
+  redirect(destination(customerId, "message", "Portal Access enabled."));
 }

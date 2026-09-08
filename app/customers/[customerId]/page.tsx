@@ -9,6 +9,7 @@ import { manageCustomerPortalAccessAction } from "@/lib/data/customer-portal-pro
 import { createAdminClient } from "@/lib/supabase/admin";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission } from "@/lib/auth/permissions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 export default async function Page({ params, searchParams }: { params: Promise<{ customerId: string }>; searchParams: Promise<{ message?: string; error?: string }> }) {
   const [{ customerId }, query, access] = await Promise.all([params, searchParams, getAccessContext()]);
@@ -109,13 +110,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <input type="hidden" name="customerId" value={customer.id} />
               <input type="hidden" name="portalAccessId" value={portal.id} />
               <input type="hidden" name="intent" value={portal.is_active ? "disable" : "enable"} />
-              <button className="primary-button">{portal.is_active ? "Disable Portal Access" : "Enable / Reactivate Portal Access"}</button>
+              <PendingSubmitButton className="primary-button" pendingLabel="Updating…">{portal.is_active ? "Disable Portal Access" : "Enable / Reactivate Portal Access"}</PendingSubmitButton>
             </form>
             {portal.is_active && linkedAuthEmail ? (
               <form action={manageCustomerPortalAccessAction}>
                 <input type="hidden" name="customerId" value={customer.id} />
                 <input type="hidden" name="intent" value="resend" />
-                <button className="text-button">Resend invitation</button>
+                <PendingSubmitButton className="text-button" pendingLabel="Resending…">Resend invitation</PendingSubmitButton>
               </form>
             ) : null}
           </>
@@ -123,9 +124,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <form action={manageCustomerPortalAccessAction}>
             <input type="hidden" name="customerId" value={customer.id} />
             <input type="hidden" name="intent" value="enable" />
-            <button className="primary-button" disabled={!customer.email}>
+            <PendingSubmitButton className="primary-button" pendingLabel="Sending…" disabled={!customer.email}>
               Enable Portal Access
-            </button>
+            </PendingSubmitButton>
             {!customer.email ? <small className="field-error">Add a valid customer email first.</small> : null}
           </form>
         )}

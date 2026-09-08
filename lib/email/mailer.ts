@@ -22,12 +22,13 @@ export const smtpEmailProvider: EmailProvider = {
         auth: { user, pass: password },
       });
       await transport.sendMail({
-        from: process.env.DM3IQCM_SMTP_FROM_NAME
-          ? `"${process.env.DM3IQCM_SMTP_FROM_NAME}" <${from}>`
+        from: input.fromName || process.env.DM3IQCM_SMTP_FROM_NAME
+          ? `"${input.fromName ?? process.env.DM3IQCM_SMTP_FROM_NAME}" <${from}>`
           : from,
         to: input.to,
         subject: input.subject,
         text: input.text,
+        html: input.html,
       });
       return { ok: true };
     } catch (error) {
