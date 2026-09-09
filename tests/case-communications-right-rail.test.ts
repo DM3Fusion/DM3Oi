@@ -26,10 +26,9 @@ test("right rail contains Assignments, Customer Communications, and Case Readine
   assert.ok(communications > assignments);
   assert.ok(readiness > communications);
   assert.doesNotMatch(page, /Attachments|Completion Review/);
-  assert.match(
-    page,
-    /Readiness will summarize required questions, tasks, and blocking\s+work\./,
-  );
+  assert.match(page, /Ready for completion/);
+  assert.match(page, /Not ready for completion/);
+  assert.match(page, /remainingWork\.slice\(0, 5\)\.map/);
 });
 
 test("Assignments preserves canonical private avatar presentation", () => {

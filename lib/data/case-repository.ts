@@ -14,6 +14,12 @@ import {
   type CaseCommunicationMessage,
   type RecentCaseCommunication,
 } from "@/lib/case-communications";
+import { calculateCaseReadiness, type CaseReadiness } from "@/lib/case-readiness";
+import { loadOrganizationCaseRuleEvaluations } from "@/lib/data/rule-task-synchronization";
+import {
+  evaluatedCaseQuestionsFrom,
+  type EvaluatedCaseQuestion,
+} from "@/lib/data/question-repository";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
 export type CaseRow = Views["organization_cases"]["Row"];
@@ -46,12 +52,8 @@ export interface LiveCase extends CaseRow {
   manager: AvatarProfileRow | null;
   assignedStaff: AvatarProfileRow[];
   tasks: TaskRow[];
-  progress: {
-    percentage: number;
-    completedRequiredTasks: number;
-    totalRequiredTasks: number;
-    remainingRequiredTasks: number;
-  };
+  questions: EvaluatedCaseQuestion[];
+  progress: CaseReadiness;
 }
 export interface StaffMember {
   membership: MemberRow;
@@ -75,22 +77,6 @@ export class DataAccessError extends Error {
     this.name = "DataAccessError";
   }
 }
-const progressFor = (tasks: TaskRow[]) => {
-  const applicable = tasks.filter(
-    (task) => task.required && task.status !== "NOT_APPLICABLE",
-  );
-  const completed = applicable.filter(
-    (task) => task.status === "COMPLETED",
-  ).length;
-  return {
-    percentage: applicable.length
-      ? Math.round((completed / applicable.length) * 100)
-      : 0,
-    completedRequiredTasks: completed,
-    totalRequiredTasks: applicable.length,
-    remainingRequiredTasks: applicable.length - completed,
-  };
-};
 export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   const access = await getAccessContext();
   if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
@@ -217,8 +203,13 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
   const rawCases = caseResult.data ?? [];
+  const ruleEvaluations = await loadOrganizationCaseRuleEvaluations(
+    organizationId,
+    rawCases.map((item) => item.id),
+  );
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);
+    const questions = evaluatedCaseQuestionsFrom(ruleEvaluations.get(item.id)!);
     const staffIds = assignments
       .filter((a) => a.case_id === item.id && a.assignment_role === "STAFF")
       .map((a) => a.user_id);
@@ -231,7 +222,24 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
         return profile ? [profile] : [];
       }),
       tasks: itemTasks,
-      progress: progressFor(itemTasks),
+      questions,
+      progress: calculateCaseReadiness({
+        questions: questions.map((question) => ({
+          id: question.id,
+          label: question.question_text,
+          responseType: question.response_type,
+          responseValue: question.response?.response_value,
+          applicable: question.applicable,
+          effectiveRequired: question.effectiveRequired,
+        })),
+        tasks: itemTasks.map((task) => ({
+          id: task.id,
+          label: task.title,
+          status: task.status,
+          required: task.required,
+          blocking: task.blocking,
+        })),
+      }),
     };
   });
   const staff: StaffMember[] = memberships.flatMap((membership) => {

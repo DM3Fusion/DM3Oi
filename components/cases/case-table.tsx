@@ -71,7 +71,7 @@ export function CaseTable({
                 </div>
               </td>
               <td>
-                <ProgressBar percentage={item.progress.percentage} compact />
+                <ProgressBar percentage={item.progress.progressPercent} compact />
               </td>
               <td>{formatDate(item.due_at ?? undefined)}</td>
             </NavigableRow>

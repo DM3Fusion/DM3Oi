@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import { loadCaseRuleEvaluation } from "@/lib/data/rule-task-synchronization";
+import { loadCaseRuleEvaluation, type CaseRuleEvaluation } from "@/lib/data/rule-task-synchronization";
 import type { Database } from "@/types/database.generated";
 type Tables = Database["public"]["Tables"];
 export type QuestionDefinition = Tables["question_definitions"]["Row"] & {
@@ -15,6 +15,20 @@ export type EvaluatedCaseQuestion = CaseQuestion & {
   effectiveRequired: boolean;
   baselineRequired: boolean;
 };
+export function evaluatedCaseQuestionsFrom(evaluation: CaseRuleEvaluation) {
+  const evaluationByCaseQuestion = new Map(
+    evaluation.questions.map((question) => [question.caseQuestionId, question]),
+  );
+  return evaluation.caseQuestions.map((question): EvaluatedCaseQuestion => {
+    const result = evaluationByCaseQuestion.get(question.id);
+    return {
+      ...question,
+      applicable: result?.applicable ?? true,
+      effectiveRequired: result?.required ?? question.required,
+      baselineRequired: question.required,
+    };
+  });
+}
 export async function getQuestionDefinitions() {
   const access = await getAccessContext();
   if (!access?.activeOrganization) redirect("/");
@@ -53,14 +67,5 @@ export async function getCaseQuestions(caseId: string) {
   if (authorizedCase.error) throw new Error("Case questions are temporarily unavailable.");
   if (!authorizedCase.data) throw new Error("Case questions are not available for this Case.");
   const evaluation = await loadCaseRuleEvaluation(organizationId, caseId);
-  const evaluationByCaseQuestion = new Map(evaluation.questions.map((question) => [question.caseQuestionId, question]));
-  return evaluation.caseQuestions.map((question): EvaluatedCaseQuestion => {
-    const result = evaluationByCaseQuestion.get(question.id);
-    return {
-      ...question,
-      applicable: result?.applicable ?? true,
-      effectiveRequired: result?.required ?? question.required,
-      baselineRequired: question.required,
-    };
-  });
+  return evaluatedCaseQuestionsFrom(evaluation);
 }

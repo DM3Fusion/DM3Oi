@@ -17,7 +17,6 @@ import {
   updateTaskAction,
 } from "@/lib/data/case-actions";
 import { UserAvatar } from "@/components/user-avatar";
-import { getCaseQuestions } from "@/lib/data/question-repository";
 import { CaseQuestions } from "@/components/cases/case-questions";
 import { CaseCustomerReassignment } from "@/components/cases/case-customer-reassignment";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
@@ -55,7 +54,7 @@ export default async function Page({
   ]);
   const { data, item, recentCommunications } = await getLiveCase(caseId);
   if (!item) notFound();
-  const questions = await getCaseQuestions(caseId);
+  const questions = item.questions;
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
   const canWorkCases = hasPermission(access, "WORK_CASES");
@@ -100,11 +99,11 @@ export default async function Page({
           <div>
             <span>Overall progress</span>
             <b>
-              {item.progress.completedRequiredTasks} of{" "}
-              {item.progress.totalRequiredTasks} required tasks complete
+              {item.progress.completedUnits} of{" "}
+              {item.progress.totalUnits} required work items complete
             </b>
           </div>
-          <ProgressBar percentage={item.progress.percentage} />
+          <ProgressBar percentage={item.progress.progressPercent} />
           <div>
             <span>Due date</span>
             <b>{formatDate(item.due_at ?? undefined)}</b>
@@ -194,7 +193,7 @@ export default async function Page({
                 <p>Required applicable work determines live progress</p>
               </div>
               <span className="count-pill">
-                {item.progress.remainingRequiredTasks} remaining
+                {item.progress.remainingWork.filter((work) => work.kind === "TASK").length} remaining
               </span>
             </div>
             {item.tasks.length ? (
@@ -356,11 +355,10 @@ export default async function Page({
               </div>
             )}
             <div className="progress-explainer">
-              <b>{item.progress.percentage}% complete</b>
+              <b>{item.progress.progressPercent}% complete</b>
               <span>
-                Completed required tasks ({item.progress.completedRequiredTasks}
-                ) ÷ applicable required tasks (
-                {item.progress.totalRequiredTasks})
+                Completed required work ({item.progress.completedUnits}) ÷
+                currently applicable required work ({item.progress.totalUnits})
               </span>
             </div>
             {canManage ? (
@@ -540,16 +538,51 @@ export default async function Page({
               </p>
             )}
           </section>
-          <section className="panel future-panel">
-            <span>◇</span>
-            <div>
-              <h3>Case Readiness</h3>
-              <p>
-                Readiness will summarize required questions, tasks, and blocking
-                work.
-              </p>
-              <small>Future milestone</small>
+          <section className="panel case-readiness-panel">
+            <div className="case-readiness-heading">
+              <div>
+                <h3>Case Readiness</h3>
+                <p>{item.progress.progressPercent}% complete</p>
+              </div>
+              <span className={item.progress.ready ? "ready" : "not-ready"}>
+                {item.progress.ready ? "Ready" : "Not ready"}
+              </span>
             </div>
+            <ProgressBar percentage={item.progress.progressPercent} />
+            <b className="case-readiness-state">
+              {item.progress.ready
+                ? "Ready for completion"
+                : "Not ready for completion"}
+            </b>
+            {item.progress.remainingWork.length ? (
+              <div className="case-readiness-remaining">
+                <strong>Remaining</strong>
+                <ul>
+                  {item.progress.remainingWork.slice(0, 5).map((work) => (
+                    <li key={`${work.kind}-${work.id}`}>
+                      <span>{work.label}</span>
+                      <small>
+                        {work.kind === "QUESTION"
+                          ? "Question"
+                          : work.blocked
+                            ? "Blocked task"
+                            : "Task"}
+                      </small>
+                    </li>
+                  ))}
+                </ul>
+                {item.progress.remainingWork.length > 5 ? (
+                  <small className="case-readiness-more">
+                    +{item.progress.remainingWork.length - 5} more required work
+                    items
+                  </small>
+                ) : null}
+              </div>
+            ) : (
+              <p className="case-readiness-complete">
+                All currently required work is complete.
+              </p>
+            )}
           </section>
         </aside>
       </div>

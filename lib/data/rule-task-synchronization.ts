@@ -3,23 +3,32 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { evaluateCaseRules, type RuleEvaluationResult } from "@/lib/rule-evaluator";
 
 export type CaseRuleEvaluation = RuleEvaluationResult & {
-  caseQuestions: Awaited<ReturnType<typeof loadCaseRuleState>>["caseQuestions"];
+  caseQuestions: Array<
+    Awaited<ReturnType<typeof loadOrganizationRuleState>>["questions"][number] & {
+      response:
+        | Awaited<ReturnType<typeof loadOrganizationRuleState>>["responses"][number]
+        | null;
+    }
+  >;
 };
 
-async function loadCaseRuleState(organizationId: string, caseId: string) {
+async function loadOrganizationRuleState(organizationId: string, caseIds: string[]) {
+  if (!caseIds.length) {
+    return { questions: [], responses: [], rules: [], actions: [], options: [] };
+  }
   const admin = createAdminClient();
   const [questions, responses, rules, actions, options] = await Promise.all([
     admin
       .from("case_questions")
       .select("*")
       .eq("organization_id", organizationId)
-      .eq("case_id", caseId)
+      .in("case_id", caseIds)
       .order("display_order"),
     admin
       .from("case_question_responses")
       .select("*")
       .eq("organization_id", organizationId)
-      .eq("case_id", caseId),
+      .in("case_id", caseIds),
     admin
       .from("rule_definitions")
       .select("id,organization_id,name,source_question_id,condition_operator,condition_option_id,active")
@@ -39,24 +48,24 @@ async function loadCaseRuleState(organizationId: string, caseId: string) {
   ]);
   const error = questions.error ?? responses.error ?? rules.error ?? actions.error ?? options.error;
   if (error) throw new Error("Case Rule evaluation is temporarily unavailable.");
-  const caseQuestions = (questions.data ?? []).map((question) => ({
-    ...question,
-    response: (responses.data ?? []).find((response) => response.case_question_id === question.id) ?? null,
-  }));
   return {
-    caseQuestions,
+    questions: questions.data ?? [],
+    responses: responses.data ?? [],
     rules: rules.data ?? [],
     actions: actions.data ?? [],
     options: options.data ?? [],
   };
 }
 
-export async function loadCaseRuleEvaluation(organizationId: string, caseId: string): Promise<CaseRuleEvaluation> {
-  const state = await loadCaseRuleState(organizationId, caseId);
+function evaluateCaseState(
+  organizationId: string,
+  caseQuestions: CaseRuleEvaluation["caseQuestions"],
+  state: Awaited<ReturnType<typeof loadOrganizationRuleState>>,
+): CaseRuleEvaluation {
   return {
     ...evaluateCaseRules({
       organizationId,
-      questions: state.caseQuestions.map((question) => ({
+      questions: caseQuestions.map((question) => ({
         id: question.id,
         organization_id: question.organization_id,
         question_definition_id: question.question_definition_id,
@@ -68,8 +77,45 @@ export async function loadCaseRuleEvaluation(organizationId: string, caseId: str
       rules: state.rules,
       actions: state.actions,
     }),
-    caseQuestions: state.caseQuestions,
+    caseQuestions,
   };
+}
+
+export async function loadOrganizationCaseRuleEvaluations(
+  organizationId: string,
+  caseIds: string[],
+) {
+  const state = await loadOrganizationRuleState(organizationId, caseIds);
+  const responseByQuestion = new Map(
+    state.responses.map((response) => [response.case_question_id, response]),
+  );
+  const questionsByCase = new Map<string, CaseRuleEvaluation["caseQuestions"]>();
+  for (const question of state.questions) {
+    const questions = questionsByCase.get(question.case_id) ?? [];
+    questions.push({
+      ...question,
+      response: responseByQuestion.get(question.id) ?? null,
+    });
+    questionsByCase.set(question.case_id, questions);
+  }
+  return new Map(
+    caseIds.map((caseId) => [
+      caseId,
+      evaluateCaseState(
+        organizationId,
+        questionsByCase.get(caseId) ?? [],
+        state,
+      ),
+    ]),
+  );
+}
+
+export async function loadCaseRuleEvaluation(
+  organizationId: string,
+  caseId: string,
+): Promise<CaseRuleEvaluation> {
+  const evaluations = await loadOrganizationCaseRuleEvaluations(organizationId, [caseId]);
+  return evaluations.get(caseId)!;
 }
 
 export async function synchronizeCaseRuleTasks({
