@@ -20,13 +20,13 @@ async function loadOrganizationRuleState(organizationId: string, caseIds: string
   const [questions, responses, rules, actions, options] = await Promise.all([
     admin
       .from("case_questions")
-      .select("*")
+      .select("id,organization_id,case_id,question_definition_id,question_text,description,response_type,required,display_order,options_snapshot")
       .eq("organization_id", organizationId)
       .in("case_id", caseIds)
       .order("display_order"),
     admin
       .from("case_question_responses")
-      .select("*")
+      .select("case_question_id,response_value")
       .eq("organization_id", organizationId)
       .in("case_id", caseIds),
     admin

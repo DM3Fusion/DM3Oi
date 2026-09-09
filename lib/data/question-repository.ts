@@ -7,8 +7,23 @@ type Tables = Database["public"]["Tables"];
 export type QuestionDefinition = Tables["question_definitions"]["Row"] & {
   options: Tables["question_options"]["Row"][];
 };
-export type CaseQuestion = Tables["case_questions"]["Row"] & {
-  response: Tables["case_question_responses"]["Row"] | null;
+export type CaseQuestion = Pick<
+  Tables["case_questions"]["Row"],
+  | "id"
+  | "organization_id"
+  | "case_id"
+  | "question_definition_id"
+  | "question_text"
+  | "description"
+  | "response_type"
+  | "required"
+  | "display_order"
+  | "options_snapshot"
+> & {
+  response: Pick<
+    Tables["case_question_responses"]["Row"],
+    "case_question_id" | "response_value"
+  > | null;
 };
 export type EvaluatedCaseQuestion = CaseQuestion & {
   applicable: boolean;
