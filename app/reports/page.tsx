@@ -1,4 +1,13 @@
-import { EmptyFoundation, PageHeader } from "@/components/ui";
-import { UrlSearch } from "@/components/question-search";
-import { normalizeQuestionQuery } from "@/lib/question-filters";
-export default async function Page({searchParams}:{searchParams:Promise<{q?:string}>}){const query=await searchParams;const q=normalizeQuestionQuery(query.q);return <><PageHeader eyebrow="Insights" title="Reports" description="Operational reporting across cases, customers, and staff work."/><UrlSearch q={q} label="Search reports" placeholder="Search reports..." clearLabel="Clear report search"/><EmptyFoundation icon="↗" title="Reporting foundation is ready" description={q?"No reports are available to search yet.":"Saved reports, performance trends, and exports will be built here."}/></>}
+import { PageHeader } from "@/components/ui";
+import { ReportsDashboard } from "@/components/reports/reports-dashboard";
+import { getOperationalReport, type ReportSearchParams } from "@/lib/data/reports-repository";
+
+export const metadata = { title: "Reports" };
+
+export default async function Page({ searchParams }: { searchParams: Promise<ReportSearchParams> }) {
+  const report = await getOperationalReport(await searchParams);
+  return <>
+    <PageHeader eyebrow="Insights" title="Reports" description="Historical operational performance, trends, and comparisons." />
+    <ReportsDashboard report={report} />
+  </>;
+}
