@@ -1364,6 +1364,138 @@ export type Database = {
           },
         ]
       }
+      rule_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["rule_action_type"]
+          created_at: string
+          created_by_user_id: string
+          display_order: number
+          id: string
+          organization_id: string
+          rule_definition_id: string
+          target_question_id: string | null
+          task_blocking: boolean | null
+          task_description: string | null
+          task_priority: Database["public"]["Enums"]["priority_level"] | null
+          task_required: boolean | null
+          task_title: string | null
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          action_type: Database["public"]["Enums"]["rule_action_type"]
+          created_at?: string
+          created_by_user_id: string
+          display_order?: number
+          id?: string
+          organization_id: string
+          rule_definition_id: string
+          target_question_id?: string | null
+          task_blocking?: boolean | null
+          task_description?: string | null
+          task_priority?: Database["public"]["Enums"]["priority_level"] | null
+          task_required?: boolean | null
+          task_title?: string | null
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          action_type?: Database["public"]["Enums"]["rule_action_type"]
+          created_at?: string
+          created_by_user_id?: string
+          display_order?: number
+          id?: string
+          organization_id?: string
+          rule_definition_id?: string
+          target_question_id?: string | null
+          task_blocking?: boolean | null
+          task_description?: string | null
+          task_priority?: Database["public"]["Enums"]["priority_level"] | null
+          task_required?: boolean | null
+          task_title?: string | null
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_actions_rule_definition_fkey"
+            columns: ["organization_id", "rule_definition_id"]
+            isOneToOne: false
+            referencedRelation: "rule_definitions"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "rule_actions_target_question_fkey"
+            columns: ["organization_id", "target_question_id"]
+            isOneToOne: false
+            referencedRelation: "question_definitions"
+            referencedColumns: ["organization_id", "id"]
+          },
+        ]
+      }
+      rule_definitions: {
+        Row: {
+          active: boolean
+          condition_operator: Database["public"]["Enums"]["rule_condition_operator"]
+          condition_option_id: string | null
+          created_at: string
+          created_by_user_id: string
+          description: string
+          display_order: number
+          id: string
+          name: string
+          organization_id: string
+          source_question_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          active?: boolean
+          condition_operator: Database["public"]["Enums"]["rule_condition_operator"]
+          condition_option_id?: string | null
+          created_at?: string
+          created_by_user_id: string
+          description?: string
+          display_order?: number
+          id?: string
+          name: string
+          organization_id: string
+          source_question_id: string
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          active?: boolean
+          condition_operator?: Database["public"]["Enums"]["rule_condition_operator"]
+          condition_option_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          description?: string
+          display_order?: number
+          id?: string
+          name?: string
+          organization_id?: string
+          source_question_id?: string
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rule_definitions_source_question_fkey"
+            columns: ["organization_id", "source_question_id"]
+            isOneToOne: false
+            referencedRelation: "question_definitions"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "rule_definitions_condition_option_fkey"
+            columns: ["organization_id", "source_question_id", "condition_option_id"]
+            isOneToOne: false
+            referencedRelation: "question_options"
+            referencedColumns: ["organization_id", "question_id", "id"]
+          },
+        ]
+      }
       service_request_activity: {
         Row: {
           actor_user_id: string | null
@@ -1761,6 +1893,48 @@ export type Database = {
           required: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at: string
+        }
+        Relationships: []
+      }
+      organization_rule_actions: {
+        Row: {
+          action_type: Database["public"]["Enums"]["rule_action_type"]
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          display_order: number
+          id: string
+          organization_id: string
+          rule_definition_id: string
+          target_question_id: string | null
+          task_blocking: boolean | null
+          task_description: string | null
+          task_priority: Database["public"]["Enums"]["priority_level"] | null
+          task_required: boolean | null
+          task_title: string | null
+          updated_at: string
+          updated_by_display_name: string | null
+          updated_by_user_id: string | null
+        }
+        Relationships: []
+      }
+      organization_rule_definitions: {
+        Row: {
+          active: boolean
+          condition_operator: Database["public"]["Enums"]["rule_condition_operator"]
+          condition_option_id: string | null
+          created_at: string
+          created_by_display_name: string | null
+          created_by_user_id: string | null
+          description: string
+          display_order: number
+          id: string
+          name: string
+          organization_id: string
+          source_question_id: string
+          updated_at: string
+          updated_by_display_name: string | null
+          updated_by_user_id: string | null
         }
         Relationships: []
       }
@@ -2486,6 +2660,42 @@ export type Database = {
         }
         Returns: undefined
       }
+      save_rule_definition: {
+        Args: {
+          expected_updated_at?: string | null
+          target_actions: Json
+          target_active: boolean
+          target_condition_operator: Database["public"]["Enums"]["rule_condition_operator"]
+          target_condition_option_id: string | null
+          target_description: string
+          target_display_order: number
+          target_name: string
+          target_organization_id: string
+          target_rule_id: string | null
+          target_source_question_id: string
+        }
+        Returns: {
+          active: boolean
+          condition_operator: Database["public"]["Enums"]["rule_condition_operator"]
+          condition_option_id: string | null
+          created_at: string
+          created_by_user_id: string
+          description: string
+          display_order: number
+          id: string
+          name: string
+          organization_id: string
+          source_question_id: string
+          updated_at: string
+          updated_by_user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "rule_definitions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       save_question_definition: {
         Args: {
           target_active: boolean
@@ -2884,6 +3094,16 @@ export type Database = {
         | "MULTI_SELECT"
         | "DATE"
         | "NUMBER"
+      rule_action_type: "SHOW_QUESTION" | "REQUIRE_QUESTION" | "CREATE_TASK"
+      rule_condition_operator:
+        | "IS_YES"
+        | "IS_NO"
+        | "EQUALS"
+        | "NOT_EQUALS"
+        | "CONTAINS"
+        | "NOT_CONTAINS"
+        | "IS_ANSWERED"
+        | "IS_NOT_ANSWERED"
       service_request_status:
         | "NEW"
         | "OPEN"

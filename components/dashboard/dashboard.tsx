@@ -35,7 +35,7 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
             <Link href="/tasks?status=completed" aria-label="View completed tasks"><span><i className="status-dot completed"/>Completed</span><strong>{summary.tasks.completed}</strong></Link>
             <Link href="/tasks?status=open" aria-label="View open tasks"><span><i className="status-dot open"/>Open</span><strong>{summary.tasks.open}</strong></Link>
             <Link href="/tasks?status=blocked" aria-label="View blocked tasks"><span><i className="status-dot blocked"/>Blocked</span><strong>{summary.tasks.blocked}</strong></Link>
-            <Link href="/tasks?status=overdue" aria-label="View overdue tasks"><span><i className="status-dot overdue"/>Overdue</span><strong>{summary.tasks.overdue}</strong></Link>
+            <Link href="/tasks?due=overdue" aria-label="View overdue tasks"><span><i className="status-dot overdue"/>Overdue</span><strong>{summary.tasks.overdue}</strong></Link>
           </div>
         </div>
       </section>

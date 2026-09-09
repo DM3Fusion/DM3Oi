@@ -10,13 +10,31 @@ const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const fail = (path: string, message: string): never =>
   redirect(`${path}?error=${encodeURIComponent(message)}`);
 const friendly = (m: string) =>
-  m.includes("not authorized")
+  m.includes("rule_definitions_condition_option_fkey")
+    ? "This option is used by a Rule and cannot be removed. Rename it or retire the Rule first."
+    : m.includes("not authorized")
     ? "You are not authorized to manage this question."
     : m.includes("require options")
       ? "Select questions require at least one option."
       : m.includes("invalid question response")
         ? "The response is not valid for this question type."
         : "The question change could not be saved.";
+type ExistingOption = { id: string; label: string; value: string };
+const existingOptions = (form: FormData): ExistingOption[] => {
+  try {
+    const parsed = JSON.parse(text(form, "existingOptions"));
+    return Array.isArray(parsed)
+      ? parsed.filter(
+          (option): option is ExistingOption =>
+            typeof option?.id === "string" &&
+            typeof option?.label === "string" &&
+            typeof option?.value === "string",
+        )
+      : [];
+  } catch {
+    return [];
+  }
+};
 export async function saveQuestionAction(form: FormData) {
   const access = await requireInternalContext();
   if(!hasPermission(access,"MANAGE_QUESTIONS")) fail("/questions","You are not authorized to manage this question.");
@@ -24,14 +42,30 @@ export async function saveQuestionAction(form: FormData) {
     .split("\n")
     .map((v) => v.trim())
     .filter(Boolean);
-  const options = lines.map((label, index) => ({
-    label,
-    value: label
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, ""),
-    display_order: index,
-  })) as Json;
+  const priorOptions = existingOptions(form);
+  const claimed = new Set<string>();
+  const exactByLabel = new Map(priorOptions.map((option) => [option.label, option]));
+  const options = lines.map((label, index) => {
+    const exact = exactByLabel.get(label);
+    const positional = priorOptions[index];
+    const prior = exact && !claimed.has(exact.id)
+      ? exact
+      : positional && !claimed.has(positional.id)
+        ? positional
+        : undefined;
+    if (prior) claimed.add(prior.id);
+    return {
+      id: prior?.id,
+      label,
+      value:
+        prior?.value ??
+        label
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, ""),
+      display_order: index,
+    };
+  }) as Json;
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_question_definition", {
     target_organization_id: access.activeOrganization.id,

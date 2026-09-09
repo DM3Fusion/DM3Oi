@@ -41,7 +41,7 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
     ],
     tasks:{total:tasks.filter(task=>task.status!=="NOT_APPLICABLE").length,completed:completedTasks,open:openTasks,blocked:blockedTasks,overdue:overdueTasks},
     attention:[
-      {label:"Overdue tasks",value:overdueTasks,href:"/tasks?status=overdue",tone:"red"},
+      {label:"Overdue tasks",value:overdueTasks,href:"/tasks?due=overdue",tone:"red"},
       {label:"Tasks due today",value:dueToday,href:"/tasks?due=today",tone:"amber"},
       {label:"Unassigned service requests",value:unassignedRequests,href:"/service-desk/requests?assignment=unassigned",tone:"orange"},
       {label:"Requests awaiting staff response",value:awaitingStaff,href:"/service-desk/requests?status=PENDING_STAFF",tone:"blue"},

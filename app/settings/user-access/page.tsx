@@ -21,6 +21,7 @@ const navigationRows = [
   { label: "Customers", permission: "VIEW_CUSTOMERS" },
   { label: "Tasks", permission: "VIEW_TASKS" },
   { label: "Questions & Rules", permission: "VIEW_QUESTIONS" },
+  { label: "Rules", permission: "VIEW_RULES" },
   { label: "Reports", permission: "VIEW_REPORTS" },
   { label: "Users", permission: "VIEW_USERS" },
   { label: "Settings", permission: "VIEW_SETTINGS" },
@@ -41,6 +42,7 @@ const managementRows = [
   { label: "Customer creation", permission: "CREATE_CUSTOMER" },
   { label: "Customer management", permission: "EDIT_CUSTOMER" },
   { label: "Question management", permission: "MANAGE_QUESTIONS" },
+  { label: "Rule management", permission: "MANAGE_RULES" },
   { label: "User management", permission: "MANAGE_USERS" },
   {
     label: "Organization configuration",

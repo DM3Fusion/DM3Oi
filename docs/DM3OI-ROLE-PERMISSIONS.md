@@ -35,8 +35,10 @@ Organization user details use `/users/[membershipId]`, with the organization mem
 | Customers: view/create/edit | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Tasks: view/work | ✓ | ✓ | ✓ | ✓ | R | — |
 | Tasks: assign | ✓ | ✓ | ✓ | ✓ | — | — |
-| Questions & Rules: view | ✓ | ✓ | ✓ | ✓ | R | — |
-| Questions & Rules: manage | ✓ | ✓ | ✓ | ✓ | — | — |
+| Questions: view | ✓ | ✓ | ✓ | ✓ | R | — |
+| Questions: manage | ✓ | ✓ | ✓ | ✓ | — | — |
+| Rules: view | ✓ | ✓ | ✓ | ✓ | — | — |
+| Rules: manage | ✓ | ✓ | ✓ | — | — | — |
 | Reports: view | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Users: view | ✓ | ✓ | ✓ | ✓ | R | — |
 | Users: manage/invite/change roles | ✓ | ✓ | ✓ | — | — | — |
@@ -69,6 +71,7 @@ Database row policies alone cannot conceal one column of an otherwise readable r
 
 - Internal module loaders use authenticated access context and organization-scoped repositories. Users is intentionally readable by licensed internal users; invitation and role-changing mutations remain separately restricted.
 - Questions definitions are readable by internal members. `MANAGE_QUESTIONS` is enforced in both UI and the save action and is also protected by `can_administer_questions` in PostgreSQL.
+- Rule definitions/actions are separately governed by `VIEW_RULES` and `MANAGE_RULES`. Tenant overrides remain authoritative; Rules are not exposed to `PUBLIC_USER`, and the data foundation grants tenant reads only through platform-safe organization projections.
 - Administration and organization-setting mutations use centralized capabilities and retain direct-request checks.
 - Case visibility retains the existing `can_access_case` assignment/manager rules. Record-level visibility is intentionally not redesigned in 03A.
 - Service Request reads are organization-member scoped. Management RPCs distinguish manager roles; application action wrappers still rely substantially on those authoritative RPC checks.
