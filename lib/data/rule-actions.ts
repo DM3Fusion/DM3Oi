@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
+import { synchronizeOrganizationRuleTasks } from "@/lib/data/rule-task-synchronization";
 
 type Operator = Database["public"]["Enums"]["rule_condition_operator"];
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
@@ -43,6 +44,16 @@ export async function saveRuleAction(form: FormData) {
     console.error("Save Rule failed", { code: error.code, message: error.message });
     fail(friendly(error.message));
   }
+  try {
+    await synchronizeOrganizationRuleTasks(access.activeOrganization.id, access.user.id);
+  } catch (syncError) {
+    console.error("Rule-generated Task synchronization failed after Rule save", syncError);
+    revalidatePath("/questions");
+    fail("The Rule was saved, but generated Tasks could not be synchronized. Save the Rule again to retry.");
+  }
+  revalidatePath("/");
+  revalidatePath("/cases");
+  revalidatePath("/tasks");
   revalidatePath("/questions");
   redirect("/questions?view=rules&message=Rule%20saved.");
 }

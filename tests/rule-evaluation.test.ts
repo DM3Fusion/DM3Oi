@@ -127,15 +127,16 @@ test("cross-tenant Questions Rules options and actions are excluded", () => {
 
 test("Case integration remains server-authorized evaluation-only UI", () => {
   const repository = source("lib/data/question-repository.ts");
+  const synchronization = source("lib/data/rule-task-synchronization.ts");
   const ui = source("components/cases/case-questions.tsx");
   const actions = source("lib/data/question-actions.ts");
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)[\s\S]*?\.eq\("id", caseId\)[\s\S]*?\.maybeSingle\(\)/);
   assert.match(repository, /if \(!authorizedCase\.data\) throw new Error\("Case questions are not available for this Case\."\)/);
-  assert.match(repository, /evaluateCaseRules/);
-  assert.match(repository, /\.from\("rule_definitions"\)[\s\S]*?\.select\("id,organization_id,name,source_question_id,condition_operator,condition_option_id,active"\)/);
-  assert.match(repository, /\.from\("rule_actions"\)[\s\S]*?\.select\("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking"\)/);
+  assert.match(synchronization, /evaluateCaseRules/);
+  assert.match(synchronization, /\.from\("rule_definitions"\)[\s\S]*?\.select\("id,organization_id,name,source_question_id,condition_operator,condition_option_id,active"\)/);
+  assert.match(synchronization, /\.from\("rule_actions"\)[\s\S]*?\.select\("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking"\)[\s\S]*?\.is\("retired_at", null\)/);
   assert.match(ui, /Not applicable/);
   assert.match(ui, /effectiveRequired/);
-  assert.match(actions, /revalidatePath\(`\/cases\/\$\{caseId\}`\)/);
+  assert.match(actions, /revalidatePath\(`\/cases\/\$\{saved\.case_id\}`\)/);
   assert.doesNotMatch(repository + ui, /insert\([\s\S]*case_tasks|\.from\("case_tasks"\)/);
 });

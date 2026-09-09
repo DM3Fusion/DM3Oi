@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext, requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { synchronizeCaseRuleTasks } from "@/lib/data/rule-task-synchronization";
 import { customerEmailPattern, normalizeCustomerPhone } from "@/lib/customer-validation";
 import type { Database, Json } from "@/types/database.generated";
 type Priority = Database["public"]["Enums"]["priority_level"];
@@ -100,6 +101,17 @@ export async function createCaseAction(data: FormData) {
     fail("/cases/new", friendly(error?.message ?? ""));
   }
   const createdCase = created!;
+  try {
+    await synchronizeCaseRuleTasks({
+      organizationId: createdCase.organization_id,
+      caseId: createdCase.id,
+      actorUserId: context.user.id,
+    });
+  } catch (syncError) {
+    console.error("Rule-generated Task synchronization failed after Case creation", syncError);
+    refreshCase(createdCase.id);
+    fail(`/cases/${createdCase.id}`, "The Case was created, but Rule-generated Tasks could not be synchronized. Retry by saving a Case response.");
+  }
   refreshCase(createdCase.id);
   redirect(`/cases/${createdCase.id}?message=${encodeURIComponent(`Case ${createdCase.case_number} created.`)}`);
 }

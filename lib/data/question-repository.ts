@@ -1,8 +1,7 @@
 import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { evaluateCaseRules } from "@/lib/rule-evaluator";
+import { loadCaseRuleEvaluation } from "@/lib/data/rule-task-synchronization";
 import type { Database } from "@/types/database.generated";
 type Tables = Database["public"]["Tables"];
 export type QuestionDefinition = Tables["question_definitions"]["Row"] & {
@@ -45,69 +44,17 @@ export async function getCaseQuestions(caseId: string) {
   if (!access?.activeOrganization) redirect("/");
   const supabase = await createClient();
   const organizationId = access.activeOrganization.id;
-  const [authorizedCase, questions, responses] = await Promise.all([
-    supabase
-      .from("organization_cases")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("id", caseId)
-      .maybeSingle(),
-    supabase
-      .from("case_questions")
-      .select("*")
-      .eq("organization_id", organizationId)
-      .eq("case_id", caseId)
-      .order("display_order"),
-    supabase
-      .from("case_question_responses")
-      .select("*")
-      .eq("organization_id", organizationId)
-      .eq("case_id", caseId),
-  ]);
-  const error = authorizedCase.error ?? questions.error ?? responses.error;
-  if (error) throw new Error("Case questions are temporarily unavailable.");
+  const authorizedCase = await supabase
+    .from("organization_cases")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("id", caseId)
+    .maybeSingle();
+  if (authorizedCase.error) throw new Error("Case questions are temporarily unavailable.");
   if (!authorizedCase.data) throw new Error("Case questions are not available for this Case.");
-  const caseQuestions = (questions.data ?? []).map((q) => ({
-    ...q,
-    response:
-      (responses.data ?? []).find((r) => r.case_question_id === q.id) ?? null,
-  }));
-  const admin = createAdminClient();
-  const [rules, actions, options] = await Promise.all([
-    admin
-      .from("rule_definitions")
-      .select("id,organization_id,name,source_question_id,condition_operator,condition_option_id,active")
-      .eq("organization_id", organizationId)
-      .eq("active", true)
-      .order("display_order"),
-    admin
-      .from("rule_actions")
-      .select("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking")
-      .eq("organization_id", organizationId)
-      .order("display_order"),
-    admin
-      .from("question_options")
-      .select("id,organization_id,question_id,option_value")
-      .eq("organization_id", organizationId),
-  ]);
-  const evaluationError = rules.error ?? actions.error ?? options.error;
-  if (evaluationError) throw new Error("Case question applicability is temporarily unavailable.");
-  const evaluation = evaluateCaseRules({
-    organizationId,
-    questions: caseQuestions.map((question) => ({
-      id: question.id,
-      organization_id: question.organization_id,
-      question_definition_id: question.question_definition_id,
-      response_type: question.response_type,
-      required: question.required,
-      response_value: question.response?.response_value,
-    })),
-    options: options.data ?? [],
-    rules: rules.data ?? [],
-    actions: actions.data ?? [],
-  });
+  const evaluation = await loadCaseRuleEvaluation(organizationId, caseId);
   const evaluationByCaseQuestion = new Map(evaluation.questions.map((question) => [question.caseQuestionId, question]));
-  return caseQuestions.map((question): EvaluatedCaseQuestion => {
+  return evaluation.caseQuestions.map((question): EvaluatedCaseQuestion => {
     const result = evaluationByCaseQuestion.get(question.id);
     return {
       ...question,

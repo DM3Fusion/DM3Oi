@@ -319,6 +319,7 @@ export type Database = {
       case_tasks: {
         Row: {
           assigned_user_id: string | null
+          blocking: boolean
           case_id: string
           completed_at: string | null
           completed_by_user_id: string | null
@@ -328,14 +329,21 @@ export type Database = {
           due_at: string | null
           id: string
           organization_id: string
+          prior_actionable_status:
+            | Database["public"]["Enums"]["case_task_status"]
+            | null
+          priority: Database["public"]["Enums"]["priority_level"]
           required: boolean
           sequence: number
+          source_rule_action_id: string | null
+          source_rule_id: string | null
           status: Database["public"]["Enums"]["case_task_status"]
           title: string
           updated_at: string
         }
         Insert: {
           assigned_user_id?: string | null
+          blocking?: boolean
           case_id: string
           completed_at?: string | null
           completed_by_user_id?: string | null
@@ -345,14 +353,21 @@ export type Database = {
           due_at?: string | null
           id?: string
           organization_id: string
+          prior_actionable_status?:
+            | Database["public"]["Enums"]["case_task_status"]
+            | null
+          priority?: Database["public"]["Enums"]["priority_level"]
           required?: boolean
           sequence?: number
+          source_rule_action_id?: string | null
+          source_rule_id?: string | null
           status?: Database["public"]["Enums"]["case_task_status"]
           title: string
           updated_at?: string
         }
         Update: {
           assigned_user_id?: string | null
+          blocking?: boolean
           case_id?: string
           completed_at?: string | null
           completed_by_user_id?: string | null
@@ -362,8 +377,14 @@ export type Database = {
           due_at?: string | null
           id?: string
           organization_id?: string
+          prior_actionable_status?:
+            | Database["public"]["Enums"]["case_task_status"]
+            | null
+          priority?: Database["public"]["Enums"]["priority_level"]
           required?: boolean
           sequence?: number
+          source_rule_action_id?: string | null
+          source_rule_id?: string | null
           status?: Database["public"]["Enums"]["case_task_status"]
           title?: string
           updated_at?: string
@@ -1372,6 +1393,7 @@ export type Database = {
           display_order: number
           id: string
           organization_id: string
+          retired_at: string | null
           rule_definition_id: string
           target_question_id: string | null
           task_blocking: boolean | null
@@ -1389,6 +1411,7 @@ export type Database = {
           display_order?: number
           id?: string
           organization_id: string
+          retired_at?: string | null
           rule_definition_id: string
           target_question_id?: string | null
           task_blocking?: boolean | null
@@ -1406,6 +1429,7 @@ export type Database = {
           display_order?: number
           id?: string
           organization_id?: string
+          retired_at?: string | null
           rule_definition_id?: string
           target_question_id?: string | null
           task_blocking?: boolean | null
@@ -1819,6 +1843,7 @@ export type Database = {
       organization_case_tasks: {
         Row: {
           assigned_user_id: string | null
+          blocking: boolean
           case_id: string
           completed_at: string | null
           completed_by_display_name: string | null
@@ -1828,8 +1853,10 @@ export type Database = {
           created_by_user_id: string | null
           description: string
           due_at: string | null
+          generated_by_rule: boolean
           id: string
           organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
           required: boolean
           sequence: number
           status: Database["public"]["Enums"]["case_task_status"]
@@ -2256,6 +2283,7 @@ export type Database = {
         }
         Returns: {
           assigned_user_id: string | null
+          blocking: boolean
           case_id: string
           completed_at: string | null
           completed_by_user_id: string | null
@@ -2265,8 +2293,14 @@ export type Database = {
           due_at: string | null
           id: string
           organization_id: string
+          prior_actionable_status:
+            | Database["public"]["Enums"]["case_task_status"]
+            | null
+          priority: Database["public"]["Enums"]["priority_level"]
           required: boolean
           sequence: number
+          source_rule_action_id: string | null
+          source_rule_id: string | null
           status: Database["public"]["Enums"]["case_task_status"]
           title: string
           updated_at: string
@@ -2651,6 +2685,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      synchronize_case_rule_tasks: {
+        Args: {
+          target_actor_user_id: string
+          target_case_id: string
+          target_effective_action_ids: string[]
+          target_organization_id: string
+        }
+        Returns: undefined
+      }
       save_organization_role_permissions: {
         Args: {
           target_changes?: Json
@@ -2892,6 +2935,7 @@ export type Database = {
         }
         Returns: {
           assigned_user_id: string | null
+          blocking: boolean
           case_id: string
           completed_at: string | null
           completed_by_user_id: string | null
@@ -2901,8 +2945,14 @@ export type Database = {
           due_at: string | null
           id: string
           organization_id: string
+          prior_actionable_status:
+            | Database["public"]["Enums"]["case_task_status"]
+            | null
+          priority: Database["public"]["Enums"]["priority_level"]
           required: boolean
           sequence: number
+          source_rule_action_id: string | null
+          source_rule_id: string | null
           status: Database["public"]["Enums"]["case_task_status"]
           title: string
           updated_at: string

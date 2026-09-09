@@ -5,6 +5,7 @@ import { requireInternalContext, requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/types/database.generated";
 import { hasPermission } from "@/lib/auth/permissions";
+import { synchronizeCaseRuleTasks } from "@/lib/data/rule-task-synchronization";
 type ResponseType = Database["public"]["Enums"]["question_response_type"];
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const fail = (path: string, message: string): never =>
@@ -96,10 +97,10 @@ function responseValue(form: FormData, type: ResponseType): Json {
   return raw;
 }
 export async function saveCaseResponseAction(form: FormData) {
-  await requirePermission("WORK_CASES");
+  const access = await requirePermission("WORK_CASES");
   const caseId = text(form, "caseId");
   const supabase = await createClient();
-  const { error } = await supabase.rpc("save_case_question_response", {
+  const { data: saved, error } = await supabase.rpc("save_case_question_response", {
     target_case_question_id: text(form, "caseQuestionId"),
     target_response_value: responseValue(
       form,
@@ -113,6 +114,21 @@ export async function saveCaseResponseAction(form: FormData) {
     });
     fail(`/cases/${caseId}`, friendly(error.message));
   }
-  revalidatePath(`/cases/${caseId}`);
-  redirect(`/cases/${caseId}?message=Response%20saved.`);
+  if (!saved) {
+    return fail(`/cases/${caseId}`, friendly(""));
+  }
+  try {
+    await synchronizeCaseRuleTasks({
+      organizationId: saved.organization_id,
+      caseId: saved.case_id,
+      actorUserId: access.user.id,
+    });
+  } catch (syncError) {
+    console.error("Rule-generated Task synchronization failed after response save", syncError);
+    fail(`/cases/${saved.case_id}`, "The response was saved, but Rule-generated Tasks could not be synchronized. Save the response again to retry.");
+  }
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath(`/cases/${saved.case_id}`);
+  redirect(`/cases/${saved.case_id}?message=Response%20saved.`);
 }
