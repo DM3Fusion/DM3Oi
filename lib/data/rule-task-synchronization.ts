@@ -85,6 +85,14 @@ export async function loadOrganizationCaseRuleEvaluations(
   organizationId: string,
   caseIds: string[],
 ) {
+  return (await loadOrganizationCaseRuleEvaluationBundle(organizationId, caseIds))
+    .evaluations;
+}
+
+export async function loadOrganizationCaseRuleEvaluationBundle(
+  organizationId: string,
+  caseIds: string[],
+) {
   const state = await loadOrganizationRuleState(organizationId, caseIds);
   const responseByQuestion = new Map(
     state.responses.map((response) => [response.case_question_id, response]),
@@ -98,7 +106,7 @@ export async function loadOrganizationCaseRuleEvaluations(
     });
     questionsByCase.set(question.case_id, questions);
   }
-  return new Map(
+  const evaluations = new Map(
     caseIds.map((caseId) => [
       caseId,
       evaluateCaseState(
@@ -108,6 +116,10 @@ export async function loadOrganizationCaseRuleEvaluations(
       ),
     ]),
   );
+  return {
+    evaluations,
+    activeRules: state.rules.map((rule) => ({ id: rule.id, name: rule.name })),
+  };
 }
 
 export async function loadCaseRuleEvaluation(

@@ -15,7 +15,10 @@ import {
   type RecentCaseCommunication,
 } from "@/lib/case-communications";
 import { calculateCaseReadiness, type CaseReadiness } from "@/lib/case-readiness";
-import { loadOrganizationCaseRuleEvaluations } from "@/lib/data/rule-task-synchronization";
+import {
+  loadOrganizationCaseRuleEvaluationBundle,
+  type CaseRuleEvaluation,
+} from "@/lib/data/rule-task-synchronization";
 import {
   evaluatedCaseQuestionsFrom,
   type EvaluatedCaseQuestion,
@@ -53,6 +56,7 @@ export interface LiveCase extends CaseRow {
   assignedStaff: AvatarProfileRow[];
   tasks: TaskRow[];
   questions: EvaluatedCaseQuestion[];
+  ruleEvaluation: CaseRuleEvaluation;
   progress: CaseReadiness;
 }
 export interface StaffMember {
@@ -70,6 +74,7 @@ export interface LiveOrganizationData {
     caseNumber: string;
   })[];
   serviceRequests: LiveServiceRequest[];
+  activeRules: { id: string; name: string }[];
 }
 export class DataAccessError extends Error {
   constructor(message = "Case-management data is temporarily unavailable.") {
@@ -203,13 +208,14 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
   const rawCases = caseResult.data ?? [];
-  const ruleEvaluations = await loadOrganizationCaseRuleEvaluations(
+  const ruleEvaluationBundle = await loadOrganizationCaseRuleEvaluationBundle(
     organizationId,
     rawCases.map((item) => item.id),
   );
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);
-    const questions = evaluatedCaseQuestionsFrom(ruleEvaluations.get(item.id)!);
+    const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;
+    const questions = evaluatedCaseQuestionsFrom(ruleEvaluation);
     const staffIds = assignments
       .filter((a) => a.case_id === item.id && a.assignment_role === "STAFF")
       .map((a) => a.user_id);
@@ -223,6 +229,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       }),
       tasks: itemTasks,
       questions,
+      ruleEvaluation,
       progress: calculateCaseReadiness({
         questions: questions.map((question) => ({
           id: question.id,
@@ -280,6 +287,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     staff,
     activities,
     serviceRequests,
+    activeRules: ruleEvaluationBundle.activeRules,
   };
 }
 export async function getLiveCase(caseId: string) {

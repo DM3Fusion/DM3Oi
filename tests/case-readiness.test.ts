@@ -171,7 +171,7 @@ test("internal repository derives readiness in a bounded authorized organization
   const repository = source("lib/data/case-repository.ts");
   const loader = source("lib/data/rule-task-synchronization.ts");
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*\.eq\("organization_id", organizationId\)/);
-  assert.match(repository, /loadOrganizationCaseRuleEvaluations\([\s\S]*rawCases\.map\(\(item\) => item\.id\)/);
+  assert.match(repository, /loadOrganizationCaseRuleEvaluationBundle\([\s\S]*rawCases\.map\(\(item\) => item\.id\)/);
   assert.match(loader, /\.from\("case_questions"\)[\s\S]*\.eq\("organization_id", organizationId\)[\s\S]*\.in\("case_id", caseIds\)/);
   assert.match(loader, /\.from\("case_question_responses"\)[\s\S]*\.in\("case_id", caseIds\)/);
   assert.match(loader, /\.from\("rule_definitions"\)[\s\S]*\.eq\("organization_id", organizationId\)/);

@@ -42,7 +42,7 @@ test("dashboard includes deterministic attention, progress, task status, and lin
   for (const signal of ["Overdue tasks", "Tasks due today", "Unassigned service requests", "Requests awaiting staff response", "Unread communications"]) assert.match(metrics, new RegExp(signal));
   assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
   assert.match(dashboard, /formatOrganizationDateTime\(activity\.created_at,data\.timezone\)/);
-  assert.match(dashboard, /Future Operational Pulse insights/);
+  assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
 });
 
 test("approved dashboard panel order is preserved", () => {

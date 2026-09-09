@@ -4,10 +4,12 @@ import { displayName } from "@/lib/data/case-repository";
 import { formatActivity } from "@/lib/activity-format";
 import { getOperationalDashboardMetrics } from "@/lib/live-dashboard-metrics";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+import { OperationalIntelligenceSection } from "@/components/dashboard/operational-intelligence";
+import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 
 const iconFor=(label:string)=>({"Active Cases":"▤","Open Tasks":"✓","Due Today":"◷","Open Service Requests":"⌁","Unread Communications":"●","Customers":"◎"}[label]??"•");
 
-export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData;unreadCommunications:number}){
+export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrganizationData;unreadCommunications:number;intelligence:AuthorizedOperationalIntelligence|null}){
   const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers.length,unreadCommunications,data.timezone);
   const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
   const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
@@ -54,6 +56,6 @@ export function Dashboard({data,unreadCommunications}:{data:LiveOrganizationData
         </Link>)}</div>:<div className="no-results">No case activity yet.</div>}
       </section>
     </div>
-    {/* Future Operational Pulse insights belong below the deterministic dashboard summary. */}
+    {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
   </div>;
 }
