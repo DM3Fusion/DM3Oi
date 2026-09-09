@@ -53,11 +53,9 @@ export default async function Page({
     searchParams,
     getAccessContext(),
   ]);
-  const [{ data, item, recentCommunications }, questions] = await Promise.all([
-    getLiveCase(caseId),
-    getCaseQuestions(caseId),
-  ]);
+  const { data, item, recentCommunications } = await getLiveCase(caseId);
   if (!item) notFound();
+  const questions = await getCaseQuestions(caseId);
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
   const canWorkCases = hasPermission(access, "WORK_CASES");

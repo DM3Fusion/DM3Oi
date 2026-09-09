@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui";
 import { saveCaseResponseAction } from "@/lib/data/question-actions";
-import type { CaseQuestion } from "@/lib/data/question-repository";
+import type { EvaluatedCaseQuestion } from "@/lib/data/question-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 type Option = { label: string; value: string };
 const scalar = (value: unknown) =>
@@ -14,9 +14,9 @@ export function CaseQuestions({
   questions,
 }: {
   caseId: string;
-  questions: CaseQuestion[];
+  questions: EvaluatedCaseQuestion[];
 }) {
-  const required = questions.filter((q) => q.required);
+  const required = questions.filter((q) => q.applicable && q.effectiveRequired);
   const answered = required.filter((q) => q.response).length;
   return (
     <section className="panel detail-section">
@@ -38,18 +38,18 @@ export function CaseQuestions({
               : [];
             return (
               <article
-                className={q.required && !q.response ? "unanswered" : ""}
+                className={!q.applicable ? "not-applicable" : q.effectiveRequired && !q.response ? "unanswered" : ""}
                 key={q.id}
               >
                 <div>
                   <b>{q.question_text}</b>
                   <p>{q.description}</p>
-                  <span className={q.required ? "required" : "optional"}>
-                    {q.required ? "Required" : "Optional"}
+                  <span className={!q.applicable ? "optional" : q.effectiveRequired ? "required" : "optional"}>
+                    {!q.applicable ? "Not applicable" : q.effectiveRequired ? "Required" : "Optional"}
                   </span>{" "}
                   <Badge value={q.response ? "ANSWERED" : "UNANSWERED"} />
                 </div>
-                <form
+                {q.applicable ? <form
                   action={saveCaseResponseAction}
                   className="question-response-form"
                 >
@@ -66,7 +66,7 @@ export function CaseQuestions({
                     value={q.response?.response_value}
                   />
                   <PendingSubmitButton pendingLabel="Saving…">Save</PendingSubmitButton>
-                </form>
+                </form> : <p className="question-applicability-note">This Question is not currently applicable.</p>}
               </article>
             );
           })}
@@ -84,7 +84,7 @@ function ResponseInput({
   options,
   value,
 }: {
-  type: CaseQuestion["response_type"];
+  type: EvaluatedCaseQuestion["response_type"];
   options: Option[];
   value: unknown;
 }) {
