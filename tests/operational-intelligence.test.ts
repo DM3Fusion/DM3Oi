@@ -12,6 +12,9 @@ import type { CaseReadiness } from "../lib/case-readiness.ts";
 
 const source = (path: string) =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+const provenancePrivileges = source(
+  "supabase/migrations/20260909120000_dm3oi_fix_operational_intelligence_provenance_privileges.sql",
+);
 
 const readiness = ({
   progress = 100,
@@ -266,6 +269,29 @@ test("repository constrains provenance to already authorized Case IDs and gates 
   assert.match(repository, /attentionCases: canViewCases \? intelligence\.attentionCases : \[\]/);
   assert.match(caseRepository, /\.from\("organization_cases"\)[\s\S]*\.eq\("organization_id", organizationId\)/);
   assert.doesNotMatch(repository, /\.from\("cases"\)/);
+});
+
+test("trusted provenance access is column-limited and remains unavailable to organization clients", () => {
+  assert.match(
+    provenancePrivileges,
+    /grant select \(id, organization_id, case_id, source_rule_id, source_rule_action_id\)\s+on table public\.case_tasks to service_role/,
+  );
+  assert.match(
+    provenancePrivileges,
+    /revoke select on table public\.case_tasks from service_role/,
+  );
+  assert.doesNotMatch(
+    provenancePrivileges,
+    /to (?:authenticated|anon|public)\b/i,
+  );
+  assert.doesNotMatch(
+    provenancePrivileges,
+    /grant (?:all|select) on (?:table )?public\.case_tasks/i,
+  );
+  assert.doesNotMatch(
+    provenancePrivileges,
+    /create policy|disable row level security|organization_case_tasks/i,
+  );
 });
 
 test("Dashboard renders compact actionable intelligence without exposing it to Customer Portal", () => {
