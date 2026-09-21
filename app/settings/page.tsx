@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EmptyFoundation, PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { ApplicationIcon } from "@/components/application-icon";
 const configurationCards = [
   {
     title: "User Access",
@@ -54,13 +55,13 @@ export default async function Page() {
             <Link href={href} className="panel admin-config-card" key={href}>
               <h2>{title}</h2>
               <p>{description}</p>
-              <span className="admin-card-action">Manage →</span>
+              <span className="admin-card-action">Manage <ApplicationIcon name="forward" /></span>
             </Link>
           ))}
         </div>
       ) : (
         <EmptyFoundation
-          icon="⚙"
+          icon="settings"
           title="Settings foundation is ready"
           description="Notifications, preferences, branding, and integration settings will be added here."
         />

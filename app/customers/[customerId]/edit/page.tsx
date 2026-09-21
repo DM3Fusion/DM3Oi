@@ -6,6 +6,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/format-phone";
+import { ApplicationIcon } from "@/components/application-icon";
 export default async function Page({ params }: { params: Promise<{ customerId: string }> }) {
   const [{ customerId }, access] = await Promise.all([params, getAccessContext()]);
   if (!access?.activeOrganization || !hasPermission(access, "EDIT_CUSTOMER")) notFound();
@@ -35,7 +36,7 @@ export default async function Page({ params }: { params: Promise<{ customerId: s
         />
       </section>
       <Link className="auth-link" href={`/customers/${customer.id}`}>
-        ← Customer detail
+        <ApplicationIcon name="back" />Customer detail
       </Link>
     </>
   );

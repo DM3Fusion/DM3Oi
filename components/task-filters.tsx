@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { taskStatusLabels, taskStatuses, type TaskDueFilter, type TaskStatusFilter } from "@/lib/operational-filters";
 import { taskSearchUrl } from "@/lib/task-search-url";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatusFilter; due?: TaskDueFilter }) {
   const pathname = usePathname();
@@ -80,8 +81,9 @@ export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatus
     <label className="task-search">
       <span className="sr-only">Search tasks</span>
       <span className="customer-search-control">
+        <ApplicationIcon name="search" className="search-field-icon" />
         <input type="search" name={search.trim() ? "q" : undefined} value={search} maxLength={200} onChange={(event) => changeSearch(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="Search tasks..." autoComplete="off" />
-        {search ? <button type="button" onClick={clearSearch} aria-label="Clear task search">×</button> : null}
+        {search ? <button type="button" onClick={clearSearch} aria-label="Clear task search"><ApplicationIcon name="close" /></button> : null}
       </span>
     </label>
     <select name="status" aria-label="Filter tasks by status" defaultValue={status ?? "all"}>
@@ -93,7 +95,7 @@ export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatus
       <option value="today">Due today</option>
       <option value="overdue">Overdue</option>
     </select>
-    <button className="filter-button" type="submit">Apply</button>
+    <button className="filter-button" type="submit"><ApplicationIcon name="filter" />Apply</button>
     {hasFilters ? <Link href="/tasks" onClick={prepareClearFilters}>Clear filters</Link> : null}
   </form>;
 }

@@ -22,6 +22,7 @@ import { CaseCustomerReassignment } from "@/components/cases/case-customer-reass
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
+import { ApplicationIcon } from "@/components/application-icon";
 const statuses = [
   "NEW",
   "UNASSIGNED",
@@ -203,7 +204,7 @@ export default async function Page({
                     <span
                       className={`task-check ${task.status === "COMPLETED" ? "done" : ""}`}
                     >
-                      {task.status === "COMPLETED" ? "✓" : task.sequence}
+                      {task.status === "COMPLETED" ? <ApplicationIcon name="check" /> : task.sequence}
                     </span>
                     <div>
                       <b>{task.title}</b>
@@ -363,7 +364,7 @@ export default async function Page({
             </div>
             {canManage ? (
               <details className="create-panel">
-                <summary>＋ Add Task</summary>
+                <summary><ApplicationIcon name="add" />Add Task</summary>
                 <form action={createTaskAction} className="mini-form">
                   <input type="hidden" name="caseId" value={item.id} />
                   <label>

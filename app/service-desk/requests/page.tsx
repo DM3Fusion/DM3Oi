@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui";
 import { NavigableRow } from "@/components/navigable-row";
 import { getLiveOrganizationData, displayName } from "@/lib/data/case-repository";
 import { formatServiceRequestUpdatedAt, serviceRequestLabel, serviceRequestPriorities, serviceRequestStatuses } from "@/lib/service-request-format";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export const metadata = { title: "Service Requests" };
 
@@ -27,7 +28,7 @@ export default async function Page({ searchParams }: { searchParams?: Promise<Re
   const hasFilters = Boolean(term || status || priority || assignment || customer || range);
 
   return <>
-    <div className="page-header"><div><span className="eyebrow">Customer Service</span><h1>Service Requests</h1><p>{rows.length} matching requests</p></div><Link className="primary-button" href="/service-desk/new">＋ New Service Request</Link></div>
+    <div className="page-header"><div><span className="eyebrow">Customer Service</span><h1>Service Requests</h1><p>{rows.length} matching requests</p></div><Link className="primary-button" href="/service-desk/new"><ApplicationIcon name="add" />New Service Request</Link></div>
     <section className="panel">
       <form className="filters" method="get">
         <input className="search" name="q" placeholder="Search requests" defaultValue={q?.q ?? ""} />

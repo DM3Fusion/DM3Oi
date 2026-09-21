@@ -85,7 +85,7 @@ test("filtered and genuine empty states remain distinct with creation available"
   assert.match(page, /No users match this search\./);
   assert.match(page, /No user profiles yet/);
   assert.match(page, /href="\/admin\/users\/new"/);
-  assert.match(page, /＋ Create User/);
+  assert.match(page, /<ApplicationIcon name="add" \/>Create User/);
 });
 
 test("row detail behavior and organization-facing platform privacy are unchanged", () => {

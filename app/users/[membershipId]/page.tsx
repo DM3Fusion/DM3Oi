@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
 import { OrganizationUserProfileEditor } from "@/components/organization-user-profile-editor";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function Page({
   params,
@@ -110,7 +111,7 @@ export default async function Page({
           </div>
           <div>
             <dt>Organization role</dt>
-            <dd>{membership.role.replaceAll("_", " ")}{canViewUserAccess?<small className="table-secondary"><Link href={`/settings/user-access?role=${membership.role}`}>View {membership.role.replaceAll("_"," ")} access →</Link></small>:null}</dd>
+            <dd>{membership.role.replaceAll("_", " ")}{canViewUserAccess?<small className="table-secondary"><Link href={`/settings/user-access?role=${membership.role}`}>View {membership.role.replaceAll("_"," ")} access <ApplicationIcon name="forward" /></Link></small>:null}</dd>
           </div>
           <div>
             <dt>Membership status</dt>
@@ -186,7 +187,7 @@ export default async function Page({
         </section>
       ) : null}
       <Link className="auth-link" href="/users">
-        ← All users
+        <ApplicationIcon name="back" />All users
       </Link>
     </>
   );

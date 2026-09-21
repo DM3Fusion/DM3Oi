@@ -15,6 +15,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { CommunicationsViewToggle } from "@/components/communications-view-toggle";
 import { communicationsDestination, communicationsViewCookie, normalizeCommunicationsView } from "@/lib/communications-view";
+import { ApplicationIcon } from "@/components/application-icon";
 
 const statuses = new Set(["all", "unread", "read", "archived"]);
 const sources = new Set(["all", "service-request", "case", "task", "other"]);
@@ -67,7 +68,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                       <span>{item.message}</span>
                       <small><span className="notification-read-label">{item.read_at ? "Read" : "Unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     </span>
-                    <span aria-hidden>→</span>
+                    <ApplicationIcon name="forward" />
                   </PendingSubmitButton>
                 </form> : <Link href={communicationsDestination(item.destination_path)} className="notification-open">
                   <span className="notification-state" aria-hidden />
@@ -77,7 +78,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                     <small><span className="notification-read-label">{item.read_at ? "Recipient read" : "Recipient unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     <small className="notification-recipient">Recipient: {item.recipient_display_name}</small>
                   </span>
-                  <span aria-hidden>→</span>
+                  <ApplicationIcon name="forward" />
                 </Link>}
                 {item.is_personal ? <form action={item.read_at ? markNotificationUnreadAction : markNotificationReadAction} className="notification-state-form">
                   <input type="hidden" name="notificationId" value={item.id} />

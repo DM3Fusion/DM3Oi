@@ -12,6 +12,7 @@ import { getRuleBuilderData } from "@/lib/data/rule-repository";
 import { RuleBuilder } from "@/components/rule-builder";
 import { RuleFilters } from "@/components/rule-filters";
 import { normalizeRuleQuery,normalizeRuleStatus,ruleMatchesSearch } from "@/lib/rule-filters";
+import { ApplicationIcon } from "@/components/application-icon";
 const types = [
   "TEXT",
   "LONG_TEXT",
@@ -62,7 +63,7 @@ export default async function Page({
       {view==="questions"?<>
       {canManage ? (
         <details className="panel question-create">
-          <summary>＋ Add Question</summary>
+          <summary><ApplicationIcon name="add" />Add Question</summary>
           <QuestionForm />
         </details>
       ) : null}

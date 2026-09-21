@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
+import { ApplicationIcon } from "@/components/application-icon";
 
 const levelLabel = (value: string) =>
   value.charAt(0) + value.slice(1).toLowerCase();
@@ -177,7 +178,7 @@ export function OperationalIntelligenceSection({
               })}
             </div>
           ) : (
-            <div className="dashboard-healthy"><span aria-hidden>✓</span><div><strong>No current Cases need completion attention</strong><p>All visible current Cases are ready for completion.</p></div></div>
+            <div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>No current Cases need completion attention</strong><p>All visible current Cases are ready for completion.</p></div></div>
           )}
         </section>
 
@@ -185,7 +186,7 @@ export function OperationalIntelligenceSection({
           <section className="panel intelligence-panel">
             <div className="section-head">
               <div><h2>Rule Activity</h2><p>Current matches versus durable generated Tasks</p></div>
-              {capabilities.viewRules ? <Link href="/questions?view=rules">View Rules →</Link> : null}
+              {capabilities.viewRules ? <Link href="/questions?view=rules">View Rules <ApplicationIcon name="forward" /></Link> : null}
             </div>
             {activeRuleActivity.length ? (
               <div className="rule-activity-list">

@@ -3,25 +3,12 @@ import {
   type Permission,
   type PermissionContext,
 } from "./auth/permissions.ts";
-
-export type NavigationIconKey =
-  | "dashboard"
-  | "cases"
-  | "service-desk"
-  | "communications"
-  | "customers"
-  | "tasks"
-  | "questions"
-  | "reports"
-  | "users"
-  | "settings"
-  | "platform"
-  | "organizations";
+import type { ApplicationIconName } from "./application-icons.ts";
 
 export type ApplicationNavigationItem = {
   href: string;
   label: string;
-  icon: NavigationIconKey;
+  icon: ApplicationIconName;
   permission?: Permission;
 };
 
@@ -43,7 +30,7 @@ export const organizationAdministrationNavigation = [
 
 export const platformNavigation = [
   { href: "/", label: "Back Office", icon: "platform" },
-  { href: "/admin/organizations", label: "Organizations", icon: "organizations" },
+  { href: "/admin/organizations", label: "Organizations", icon: "organization" },
   { href: "/admin/users", label: "Users / Access", icon: "users" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 

@@ -38,7 +38,8 @@ test("builder exposes only type-compatible operators and stable option IDs",()=>
 
 test("builder supports ordered multi-actions and complete task templates",()=>{
   for(const value of ["SHOW_QUESTION","REQUIRE_QUESTION","CREATE_TASK"])assert.match(builder,new RegExp(`value=\"${value}\"`));
-  for(const label of ["Question to Show","Question to Require","Task Title","Task Description","Priority","Required","Blocking","＋ Add Action","Remove"])assert.match(builder,new RegExp(label));
+  for(const label of ["Question to Show","Question to Require","Task Title","Task Description","Priority","Required","Blocking","Add Action","Remove"])assert.match(builder,new RegExp(label));
+  assert.match(builder, /<ApplicationIcon name="add"\/>Add Action/);
   assert.match(migration,/jsonb_array_elements\(target_actions\) with ordinality/);assert.match(migration,/action_order-1/);assert.match(migration,/task_blocking boolean/);
   assert.match(migration,/update public\.rule_actions set task_blocking=false where action_type='CREATE_TASK'/);
   assert.doesNotMatch(migration,/insert into public\.case_tasks/);

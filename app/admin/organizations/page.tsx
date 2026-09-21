@@ -2,6 +2,7 @@ import Link from "next/link";
 import { NavigableRow } from "@/components/navigable-row";
 import { PageHeader, Badge } from "@/components/ui";
 import { getPlatformAdministration } from "@/lib/data/platform-repository";
+import { ApplicationIcon } from "@/components/application-icon";
 export default async function Page({
   searchParams,
 }: {
@@ -29,13 +30,14 @@ export default async function Page({
         description="Provision and manage DM3Oi business organizations."
         action={
           <Link href="/admin/organizations/new" className="primary-button">
-            ＋ Create Organization
+            <ApplicationIcon name="add" />Create Organization
           </Link>
         }
       />
       <section className="panel">
         <form className="filters">
           <label className="search">
+            <ApplicationIcon name="search" />
             <input
               name="query"
               defaultValue={params.query}

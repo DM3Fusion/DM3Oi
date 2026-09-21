@@ -4,6 +4,7 @@ import { requireCustomerPortalContext } from "@/lib/auth/customer-portal";
 import { createClient } from "@/lib/supabase/server";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { CustomerReplyForm } from "@/components/customer-reply-form";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function PortalRequestDetail({ params }: { params: Promise<{ serviceRequestId: string }> }) {
   const context = await requireCustomerPortalContext();
@@ -31,6 +32,6 @@ export default async function PortalRequestDetail({ params }: { params: Promise<
     </section>
     <section className="portal-reply" aria-labelledby="reply-heading"><h2 id="reply-heading">Reply to this request</h2><CustomerReplyForm serviceRequestId={request.id} /></section>
     <details className="portal-request-details"><summary>Request Details</summary><dl><dt>Status</dt><dd>{request.status.replaceAll("_", " ")}</dd><dt>Created</dt><dd>{formatOrganizationDateTime(request.created_at, timezone)}</dd><dt>Last Updated</dt><dd>{formatOrganizationDateTime(request.updated_at, timezone)}</dd></dl></details>
-    <Link className="portal-back-link" href="/portal/service-requests">← Service Requests</Link>
+    <Link className="portal-back-link" href="/portal/service-requests"><ApplicationIcon name="back" />Service Requests</Link>
   </section>;
 }

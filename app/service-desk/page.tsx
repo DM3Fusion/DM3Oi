@@ -6,6 +6,7 @@ import { getServiceRequestMetrics } from "@/lib/live-dashboard-metrics";
 import { formatServiceRequestUpdatedAt } from "@/lib/service-request-format";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { ApplicationIcon } from "@/components/application-icon";
 export const metadata = { title: "Service Desk" };
 export default async function Page() {
   const [data, access] = await Promise.all([getLiveOrganizationData(), getAccessContext()]);
@@ -20,7 +21,7 @@ export default async function Page() {
         </div>
         {hasPermission(access, "CREATE_SERVICE_REQUEST") ? (
           <Link className="primary-button" href="/service-desk/new">
-            ＋ New Service Request
+            <ApplicationIcon name="add" />New Service Request
           </Link>
         ) : null}
       </div>
@@ -38,7 +39,7 @@ export default async function Page() {
             <h2>Recent Service Requests</h2>
             <p>Latest operational activity</p>
           </div>
-          <Link href="/service-desk/requests">View All Service Requests →</Link>
+          <Link href="/service-desk/requests">View All Service Requests <ApplicationIcon name="forward" /></Link>
         </div>
         {data.serviceRequests.length ? (
           <div className="table-scroll">
@@ -82,7 +83,7 @@ export default async function Page() {
             <h2>No service requests yet</h2>
             <p>Create the first service request to begin tracking customer support work.</p>
             <Link className="primary-button" href="/service-desk/new">
-              New Service Request
+              <ApplicationIcon name="add" />New Service Request
             </Link>
           </div>
         )}

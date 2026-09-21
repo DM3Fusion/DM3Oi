@@ -7,6 +7,7 @@ import { CustomerFilters } from "@/components/customer-filters";
 import { customerMatchesFilters, normalizeCustomerQuery, normalizeCustomerStatus } from "@/lib/customer-filters";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { ApplicationIcon } from "@/components/application-icon";
 export const metadata = { title: "Customers" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string }> }) {
   const [data, query, access] = await Promise.all([getLiveOrganizationData(), searchParams, getAccessContext()]);
@@ -23,7 +24,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         action={
           hasPermission(access, "CREATE_CUSTOMER") ? (
             <Link className="primary-button" href="/customers/new">
-              ＋ New Customer
+              <ApplicationIcon name="add" />New Customer
             </Link>
           ) : undefined
         }
@@ -73,7 +74,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
             <h2>No customers yet</h2>
             <p>Create the first customer before opening case work.</p>
             <Link className="primary-button" href="/customers/new">
-              Create Customer
+              <ApplicationIcon name="add" />Create Customer
             </Link>
           </div>
         )}

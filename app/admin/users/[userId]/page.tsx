@@ -10,6 +10,7 @@ import {
   updateUserMembershipAction,
   getInvitationEligibility,
 } from "@/lib/data/user-invitation-actions";
+import { ApplicationIcon } from "@/components/application-icon";
 
 const roles = [
   "BUSINESS_OWNER",
@@ -129,7 +130,7 @@ export default async function Page({
         </div>
         {activeOrganizations.length ? (
           <details className="admin-provision">
-            <summary>＋ Add organization access</summary>
+            <summary><ApplicationIcon name="add" />Add organization access</summary>
             <form action={addUserMembershipAction} className="mini-form">
               <input type="hidden" name="userId" value={user.id} />
               <label>
@@ -235,7 +236,7 @@ export default async function Page({
         )}
       </section>
       <Link className="auth-link" href="/admin/users">
-        ← All users
+        <ApplicationIcon name="back" />All users
       </Link>
     </>
   );

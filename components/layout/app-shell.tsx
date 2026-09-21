@@ -2,23 +2,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState, useSyncExternalStore } from "react";
-import {
-  BarChart3,
-  BriefcaseBusiness,
-  Building2,
-  ClipboardCheck,
-  Bell,
-  FileQuestion,
-  Headphones,
-  LayoutDashboard,
-  LogOut,
-  Menu,
-  CircleUserRound,
-  Settings,
-  ShieldCheck,
-  Users,
-  X,
-} from "lucide-react";
 import { signOutAction } from "@/lib/auth/actions";
 import { selectActiveOrganizationAction } from "@/lib/auth/organization-actions";
 import { returnToBackOfficeAction } from "@/lib/data/platform-actions";
@@ -28,28 +11,13 @@ import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { MobileBottomNavigation } from "@/components/layout/mobile-bottom-navigation";
+import { ApplicationIcon } from "@/components/application-icon";
 import {
   authorizedOrganizationAdministrationNavigation,
   authorizedOrganizationNavigation,
   mobilePrimaryDestinations,
   platformNavigation,
-  type NavigationIconKey,
 } from "@/lib/application-navigation";
-
-const navigationIcons = {
-  dashboard: LayoutDashboard,
-  cases: BriefcaseBusiness,
-  "service-desk": Headphones,
-  communications: Bell,
-  customers: Users,
-  tasks: ClipboardCheck,
-  questions: FileQuestion,
-  reports: BarChart3,
-  users: Users,
-  settings: Settings,
-  platform: ShieldCheck,
-  organizations: Building2,
-} satisfies Record<NavigationIconKey, typeof LayoutDashboard>;
 
 const phoneMediaQuery = "(max-width: 600px)";
 const getPhoneSnapshot = () => window.matchMedia(phoneMediaQuery).matches;
@@ -106,10 +74,10 @@ export function AppShell({
       .map((item) => ({
         href: item.href,
         label: item.href === "/" ? "Home" : item.label,
-        icon: navigationIcons[item.icon],
+        icon: item.icon,
         unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
       })),
-    ...(access ? [{ href: "/account/profile", label: "Account", icon: CircleUserRound }] : []),
+    ...(access ? [{ href: "/account/profile", label: "Account", icon: "account" as const }] : []),
   ];
   return (
     <div className="app-frame">
@@ -137,17 +105,16 @@ export function AppShell({
             aria-label="Close navigation"
             onClick={() => setOpen(false)}
           >
-            <X />
+            <ApplicationIcon name="close" />
           </button>
         </div>
         {access?.isSuperAdmin && org && !platformContext ? (
           <form action={returnToBackOfficeAction} className="back-office-link">
-            <button>← Back Office</button>
+            <button><ApplicationIcon name="back" />Back Office</button>
           </form>
         ) : null}
         <nav aria-label="Primary navigation">
           {nav.map(({ href, label, icon }) => {
-            const Icon = navigationIcons[icon];
             const active =
               href === "/" ? pathname === href : pathname.startsWith(href);
             return (
@@ -157,7 +124,7 @@ export function AppShell({
                 onClick={() => setOpen(false)}
                 className={`${active ? "active " : ""}${mobilePrimaryDestinations.has(href) ? "mobile-primary-nav-item" : ""}`.trim()}
               >
-                <Icon aria-hidden />
+                <ApplicationIcon name={icon} />
                 <span>{label}</span>
                 {href === "/communications" && unreadNotificationCount > 0 ? (
                   <span className="nav-unread-count" aria-label={`${unreadNotificationCount} unread notifications`}>
@@ -172,9 +139,8 @@ export function AppShell({
           <nav className="administration-nav" aria-label="Administration navigation">
             <span className="sidebar-section-label">Administration</span>
             {administrationNav.map(({ href, label, icon }) => {
-              const Icon = navigationIcons[icon];
               const active = pathname.startsWith(href);
-              return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><Icon aria-hidden /><span>{label}</span></Link>;
+              return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><ApplicationIcon name={icon} /><span>{label}</span></Link>;
             })}
           </nav>
         ) : null}
@@ -232,7 +198,7 @@ export function AppShell({
             <p>No active organization</p>
           )}
         </div>
-        <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><LogOut aria-hidden />Sign Out</PendingSubmitButton></form>
+        <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><ApplicationIcon name="sign-out" />Sign Out</PendingSubmitButton></form>
         <footer className="sidebar-product-footer"><span>DM3Oi™ | Operational Intelligence</span><small>Ver. {applicationVersion}</small></footer>
       </aside> : null}
       <div className="main-column">
@@ -242,7 +208,7 @@ export function AppShell({
             onClick={() => setOpen(true)}
             aria-label="Open navigation"
           >
-            <Menu />
+            <ApplicationIcon name="menu" />
           </button> : null}
           <div className="workspace product-tagline" aria-label="People. Work. Progress. Intelligence.">
             <strong><span>People.</span> Work. Progress. Intelligence.</strong>

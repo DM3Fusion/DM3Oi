@@ -14,6 +14,7 @@ import { LicenseForm } from "@/components/license-form";
 import { effectiveLicense } from "@/lib/licensing";
 import { OrganizationSummaryRow } from "@/components/organization-summary-row";
 import { PlatformOrganizationDetailsForm } from "@/components/platform-organization-details-form";
+import { ApplicationIcon } from "@/components/application-icon";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -62,7 +63,7 @@ export default async function Page({
                 name="organizationId"
                 value={organization.id}
               />
-              <button className="primary-button">Enter Workspace →</button>
+              <button className="primary-button">Enter Workspace <ApplicationIcon name="forward" /></button>
             </form>
           ) : undefined
         }
@@ -146,7 +147,7 @@ export default async function Page({
           </div>
         </div>
         <details className="admin-provision">
-          <summary>＋ Add User</summary>
+          <summary><ApplicationIcon name="add" />Add User</summary>
           <form action={provisionMemberAction} className="mini-form">
             <input
               type="hidden"
@@ -243,7 +244,7 @@ export default async function Page({
         )}
       </section>
       <Link className="auth-link" href="/admin/organizations">
-        ← All organizations
+        <ApplicationIcon name="back" />All organizations
       </Link>
     </>
   );

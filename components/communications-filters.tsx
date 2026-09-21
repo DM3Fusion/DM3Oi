@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export type CommunicationsFilterValues = {
   status: "all" | "unread" | "read" | "archived";
@@ -53,8 +54,8 @@ export function CommunicationsFilters({ values, recipientStatus = false }: { val
   };
 
   return <form key={`${values.status}:${values.source}:${values.range}`} className="communications-filters" aria-label="Filter communications" onSubmit={(event) => event.preventDefault()}>
-    <label className="communications-search"><span>Search</span><span className="communications-search-control"><input type="search" name="q" value={search} onChange={(event) => changeSearch(event.currentTarget.value)} placeholder="Search communications..." autoComplete="off" />{search ? <button type="button" onClick={clearSearch} aria-label="Clear communications search">×</button> : null}</span></label>
-    <div className="communications-filter-toggle"><button type="button" className="secondary-button" aria-expanded={filtersOpen} aria-controls="communications-filter-fields" onClick={() => setFiltersOpen((open) => !open)}>Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}</button>{activeFilterCount ? <button type="button" className="communications-clear-filters" onClick={clearFilters}>Clear Filters</button> : null}</div>
+    <label className="communications-search"><span>Search</span><span className="communications-search-control"><ApplicationIcon name="search" className="search-field-icon"/><input type="search" name="q" value={search} onChange={(event) => changeSearch(event.currentTarget.value)} placeholder="Search communications..." autoComplete="off" />{search ? <button type="button" onClick={clearSearch} aria-label="Clear communications search"><ApplicationIcon name="close"/></button> : null}</span></label>
+    <div className="communications-filter-toggle"><button type="button" className="secondary-button" aria-expanded={filtersOpen} aria-controls="communications-filter-fields" onClick={() => setFiltersOpen((open) => !open)}><ApplicationIcon name="filter"/>Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}</button>{activeFilterCount ? <button type="button" className="communications-clear-filters" onClick={clearFilters}>Clear Filters</button> : null}</div>
     <div className={`communications-filter-fields${filtersOpen ? " open" : ""}`} id="communications-filter-fields">
       <label><span>Status</span><select name="status" defaultValue={values.status} onChange={(event) => update("status", event.currentTarget.value)}><option value="all">All</option><option value="unread">{recipientStatus ? "Recipient unread" : "Unread"}</option><option value="read">{recipientStatus ? "Recipient read" : "Read"}</option><option value="archived">Archived</option></select></label>
       <label><span>Source</span><select name="source" defaultValue={values.source} onChange={(event) => update("source", event.currentTarget.value)}><option value="all">All sources</option><option value="service-request">Service Requests</option><option value="case">Cases</option><option value="task">Tasks</option><option value="other">Other</option></select></label>

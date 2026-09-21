@@ -9,6 +9,7 @@ import { getLiveOrganizationData } from "@/lib/data/case-repository";
 import { getPlatformSummary } from "@/lib/data/platform-repository";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function Page(){
   const access=await getAccessContext();
@@ -23,5 +24,5 @@ export default async function Page(){
   if(access.license && !access.license.workspaceAllowed) redirect("/account/license-expired");
   const [data,unreadCommunications]=await Promise.all([getLiveOrganizationData(),getUnreadNotificationCount({organizationId:access.activeOrganization!.id,userId:access.user.id})]);
   const intelligence=await getOperationalIntelligence(data);
-  return <><PageHeader eyebrow="Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new">＋ New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications} intelligence={intelligence}/></>;
+  return <><PageHeader eyebrow="Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new"><ApplicationIcon name="add" />New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications} intelligence={intelligence}/></>;
 }

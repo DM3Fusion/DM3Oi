@@ -3,6 +3,7 @@
 import { FormEvent, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { reassignCaseCustomerAction } from "@/lib/data/case-actions";
+import { ApplicationIcon } from "@/components/application-icon";
 
 type CustomerOption = {
   id: string;
@@ -118,6 +119,7 @@ export function CaseCustomerReassignment({
           <fieldset className="case-customer-selector" disabled={pending}>
             <legend>New Customer</legend>
             <div className="customer-search-control">
+              <ApplicationIcon name="search" className="search-field-icon" />
               <input
                 type="search"
                 value={search}
@@ -132,7 +134,7 @@ export function CaseCustomerReassignment({
                   onClick={() => setSearch("")}
                   aria-label="Clear customer search"
                 >
-                  ×
+                  <ApplicationIcon name="close" />
                 </button>
               ) : null}
             </div>

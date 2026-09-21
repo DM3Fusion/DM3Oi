@@ -34,5 +34,5 @@ test("customer filter UI is URL driven debounced clearable and server authorized
   assert.match(page, /getLiveOrganizationData\(\)/);
   assert.match(page, /data\.customers\.filter\(\(customer\) =>/);
   assert.match(page, /No customers match the current filters\./);
-  assert.match(page, /＋ New Customer/);
+  assert.match(page, /<ApplicationIcon name="add" \/>New Customer/);
 });

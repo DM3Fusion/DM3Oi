@@ -8,6 +8,7 @@ import {
   normalizePlatformUserQuery,
   platformUserMatchesSearch,
 } from "@/lib/platform-user-filters";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function Page({
   searchParams,
@@ -30,7 +31,7 @@ export default async function Page({
         description="Review and provision platform, organization, portal, and pending access."
         action={
           <Link className="primary-button" href="/admin/users/new">
-            ＋ Create User
+            <ApplicationIcon name="add" />Create User
           </Link>
         }
       />

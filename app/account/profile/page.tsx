@@ -12,6 +12,7 @@ import Link from "next/link";
 import { mobileSecondaryNavigation } from "@/lib/application-navigation";
 import { signOutAction } from "@/lib/auth/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function Page({
   searchParams,
@@ -61,7 +62,7 @@ export default async function Page({
           </div>
         </div>
         <nav aria-label={platformContext ? "Platform destinations" : "Organization destinations"}>
-          {secondaryNavigation.map((item) => <Link href={item.href} key={item.href}><span>{item.label}</span><span aria-hidden>→</span></Link>)}
+          {secondaryNavigation.map((item) => <Link href={item.href} key={item.href}><ApplicationIcon name={item.icon} /><span>{item.label}</span><ApplicationIcon name="forward" /></Link>)}
         </nav>
       </section> : null}
       <div className="profile-layout">
@@ -106,7 +107,7 @@ export default async function Page({
             <h2 id="mobile-account-actions-heading">Account actions</h2>
           </div>
         </div>
-        <form action={signOutAction}><PendingSubmitButton pendingLabel="Signing out…">Sign Out</PendingSubmitButton></form>
+        <form action={signOutAction}><PendingSubmitButton pendingLabel="Signing out…"><ApplicationIcon name="sign-out" />Sign Out</PendingSubmitButton></form>
       </section>
     </>
   );

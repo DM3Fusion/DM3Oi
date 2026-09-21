@@ -7,6 +7,7 @@ import { normalizeCaseStatus } from "@/lib/operational-filters";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, normalizeRawCaseStatus } from "@/lib/case-dashboard";
+import { ApplicationIcon } from "@/components/application-icon";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -32,7 +33,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         action={
           canCreate ? (
             <Link className="primary-button" href="/cases/new">
-              ＋ New Case
+              <ApplicationIcon name="add" />New Case
             </Link>
           ) : undefined
         }

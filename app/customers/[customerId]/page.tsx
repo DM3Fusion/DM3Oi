@@ -10,6 +10,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission } from "@/lib/auth/permissions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { ApplicationIcon } from "@/components/application-icon";
 
 export default async function Page({ params, searchParams }: { params: Promise<{ customerId: string }>; searchParams: Promise<{ message?: string; error?: string }> }) {
   const [{ customerId }, query, access] = await Promise.all([params, searchParams, getAccessContext()]);
@@ -132,7 +133,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         )}
       </section>
       <Link className="auth-link" href="/customers">
-        ← All customers
+        <ApplicationIcon name="back" />All customers
       </Link>
     </>
   );
