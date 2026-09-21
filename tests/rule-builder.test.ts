@@ -98,12 +98,12 @@ test("04B stays configuration-only",()=>{
 
 test("Questions heading and shared sidebar label retain the polished 04B presentation",()=>{
   const page=source("app/questions/page.tsx");
-  const shell=source("components/layout/app-shell.tsx");
+  const navigation=source("lib/application-navigation.ts");
   const css=source("app/globals.css");
   assert.match(page,/title=\{view==="rules"\?"Rules":"Questions"\}/);
   assert.match(page,/Define the information required for new organization cases\./);
   assert.doesNotMatch(page,/Questions & Responses/);
-  assert.match(shell,/label: "Questions & Rules"/);
+  assert.match(navigation,/label: "Questions & Rules"/);
   assert.match(css,/\.sidebar nav\{padding-inline:0\}/);
   assert.match(css,/\.sidebar nav a\{min-height:39px;gap:10px;padding:7px 8px;font-size:16px/);
   assert.match(css,/\.sidebar nav a\.active\{background:#0b3558;box-shadow:inset 3px 0 #22c1cf;color:#fff\}/);

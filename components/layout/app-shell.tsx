@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useState, useSyncExternalStore } from "react";
 import {
   BarChart3,
   BriefcaseBusiness,
@@ -27,28 +27,46 @@ import { AccountMenu } from "@/components/account-menu";
 import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-import { hasPermission } from "@/lib/auth/permissions";
 import { MobileBottomNavigation } from "@/components/layout/mobile-bottom-navigation";
-const organizationNav = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "VIEW_DASHBOARD" },
-  { href: "/cases", label: "Cases", icon: BriefcaseBusiness, permission: "VIEW_CASES" },
-  { href: "/service-desk", label: "Service Desk", icon: Headphones, permission: "VIEW_SERVICE_DESK" },
-  { href: "/communications", label: "Communications", icon: Bell, permission: "VIEW_COMMUNICATIONS" },
-  { href: "/customers", label: "Customers", icon: Users, permission: "VIEW_CUSTOMERS" },
-  { href: "/tasks", label: "Tasks", icon: ClipboardCheck, permission: "VIEW_TASKS" },
-  { href: "/questions", label: "Questions & Rules", icon: FileQuestion, permission: "VIEW_QUESTIONS" },
-  { href: "/reports", label: "Reports", icon: BarChart3, permission: "VIEW_REPORTS" },
-] as const;
-const organizationAdministrationNav = [
-  { href: "/users", label: "Users", icon: Users, permission: "VIEW_USERS" },
-  { href: "/settings", label: "Settings", icon: Settings, permission: "VIEW_SETTINGS" },
-] as const;
-const platformNav = [
-  { href: "/", label: "Back Office", icon: ShieldCheck },
-  { href: "/admin/organizations", label: "Organizations", icon: Building2 },
-  { href: "/admin/users", label: "Users / Access", icon: Users },
-];
-const mobilePrimaryDestinations = new Set(["/", "/cases", "/communications"]);
+import {
+  authorizedOrganizationAdministrationNavigation,
+  authorizedOrganizationNavigation,
+  mobilePrimaryDestinations,
+  platformNavigation,
+  type NavigationIconKey,
+} from "@/lib/application-navigation";
+
+const navigationIcons = {
+  dashboard: LayoutDashboard,
+  cases: BriefcaseBusiness,
+  "service-desk": Headphones,
+  communications: Bell,
+  customers: Users,
+  tasks: ClipboardCheck,
+  questions: FileQuestion,
+  reports: BarChart3,
+  users: Users,
+  settings: Settings,
+  platform: ShieldCheck,
+  organizations: Building2,
+} satisfies Record<NavigationIconKey, typeof LayoutDashboard>;
+
+const phoneMediaQuery = "(max-width: 600px)";
+const getPhoneSnapshot = () => window.matchMedia(phoneMediaQuery).matches;
+const getServerPhoneSnapshot = () => false;
+
+function usePhoneLayout(onPhoneLayout: () => void) {
+  const subscribe = useCallback((notify: () => void) => {
+    const media = window.matchMedia(phoneMediaQuery);
+    const update = () => {
+      if (media.matches) onPhoneLayout();
+      notify();
+    };
+    media.addEventListener("change", update);
+    return () => media.removeEventListener("change", update);
+  }, [onPhoneLayout]);
+  return useSyncExternalStore(subscribe, getPhoneSnapshot, getServerPhoneSnapshot);
+}
 const isPublic = (path: string) =>
   path === "/login" ||
   path === "/portal" || path.startsWith("/portal/") ||
@@ -66,6 +84,8 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const closeDrawer = useCallback(() => setOpen(false), []);
+  const phoneLayout = usePhoneLayout(closeDrawer);
   if (isPublic(pathname))
     return <main className="public-main">{children}</main>;
   const org = access?.activeOrganization;
@@ -73,12 +93,12 @@ export function AppShell({
     access?.isSuperAdmin && (!org || pathname.startsWith("/admin")),
   );
   const nav = platformContext
-    ? platformNav
+    ? platformNavigation
     : access?.internalAccess
-      ? organizationNav.filter((item) => hasPermission(access,item.permission))
+      ? authorizedOrganizationNavigation(access)
       : [];
   const administrationNav = access?.internalAccess
-    ? organizationAdministrationNav.filter((item) => hasPermission(access,item.permission))
+    ? authorizedOrganizationAdministrationNavigation(access)
     : [];
   const mobileNavigation = [
     ...nav
@@ -86,21 +106,21 @@ export function AppShell({
       .map((item) => ({
         href: item.href,
         label: item.href === "/" ? "Home" : item.label,
-        icon: item.icon,
+        icon: navigationIcons[item.icon],
         unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
       })),
     ...(access ? [{ href: "/account/profile", label: "Account", icon: CircleUserRound }] : []),
   ];
   return (
     <div className="app-frame">
-      {open && (
+      {!phoneLayout && open && (
         <button
           className="scrim"
           aria-label="Close navigation"
           onClick={() => setOpen(false)}
         />
       )}
-      <aside className={`sidebar ${open ? "open" : ""}`}>
+      {!phoneLayout ? <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
           <Link href="/" className="brand">
             <strong className="dm3oi-wordmark">
@@ -126,7 +146,8 @@ export function AppShell({
           </form>
         ) : null}
         <nav aria-label="Primary navigation">
-          {nav.map(({ href, label, icon: Icon }) => {
+          {nav.map(({ href, label, icon }) => {
+            const Icon = navigationIcons[icon];
             const active =
               href === "/" ? pathname === href : pathname.startsWith(href);
             return (
@@ -150,7 +171,8 @@ export function AppShell({
         {!platformContext && administrationNav.length ? (
           <nav className="administration-nav" aria-label="Administration navigation">
             <span className="sidebar-section-label">Administration</span>
-            {administrationNav.map(({ href, label, icon: Icon }) => {
+            {administrationNav.map(({ href, label, icon }) => {
+              const Icon = navigationIcons[icon];
               const active = pathname.startsWith(href);
               return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><Icon aria-hidden /><span>{label}</span></Link>;
             })}
@@ -212,16 +234,16 @@ export function AppShell({
         </div>
         <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><LogOut aria-hidden />Sign Out</PendingSubmitButton></form>
         <footer className="sidebar-product-footer"><span>DM3Oi™ | Operational Intelligence</span><small>Ver. {applicationVersion}</small></footer>
-      </aside>
+      </aside> : null}
       <div className="main-column">
         <header className="topbar">
-          <button
+          {!phoneLayout ? <button
             className="menu-button"
             onClick={() => setOpen(true)}
             aria-label="Open navigation"
           >
             <Menu />
-          </button>
+          </button> : null}
           <div className="workspace product-tagline" aria-label="People. Work. Progress. Intelligence.">
             <strong><span>People.</span> Work. Progress. Intelligence.</strong>
             <small>{platformContext ? "Platform Administration" : <>for <b>{org?.name ?? "No active organization"}</b></>}</small>

@@ -6,6 +6,7 @@ const source = (path: string) => readFileSync(path, "utf8");
 
 test("authenticated shell presents DM3Oi branding and preserves operational navigation", () => {
   const shell = source("components/layout/app-shell.tsx");
+  const navigation = source("lib/application-navigation.ts");
   assert.match(shell, /className="dm3oi-wordmark"/);
   assert.match(shell, /className="dm3oi-wordmark-main"/);
   assert.match(shell, /className="brand-dm3">DM3<\/span>/);
@@ -15,8 +16,8 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
   assert.match(shell, /People\.<\/span> Work\. Progress\. Intelligence\./);
   assert.match(shell, /<>for <b>\{org\?\.name \?\? "No active organization"\}<\/b><\/>/);
   assert.doesNotMatch(shell, /Mimms['’] Tax Service/);
-  for (const label of ["Dashboard", "Cases", "Service Desk", "Communications", "Customers", "Tasks", "Questions & Rules", "Reports", "Users", "Settings"]) assert.match(shell, new RegExp(`label: "${label}"`));
-  assert.doesNotMatch(shell, /label: "Administration"/);
+  for (const label of ["Dashboard", "Cases", "Service Desk", "Communications", "Customers", "Tasks", "Questions & Rules", "Reports", "Users", "Settings"]) assert.match(navigation, new RegExp(`label: "${label}"`));
+  assert.doesNotMatch(navigation, /label: "Administration"/);
   assert.match(shell, /aria-label="Administration navigation"/);
   assert.doesNotMatch(shell, /Case Management Intelligence/);
 });
