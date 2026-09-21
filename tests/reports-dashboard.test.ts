@@ -100,6 +100,26 @@ test("operational report aggregates authoritative rows and excludes other tenant
   assert.equal(result.requestVolume.find((item) => item.key === "2026-09-04")?.resolved, 1);
 });
 
+test("current Task exceptions are independent of the historical reporting window", () => {
+  const period = resolveReportingPeriod({ period: "7d" }, "UTC", now);
+  const result = buildOperationalReport({
+    organizationId, timezone: "UTC", period,
+    cases: [], tasks: [], requests: [], customers: [], capabilities, now,
+    currentTasks: [
+      reportTask({ title: "Old overdue", status: "IN_PROGRESS", created_at: "2025-01-01T00:00:00Z", completed_at: null, due_at: "2026-01-01T00:00:00Z" }),
+      reportTask({ title: "Current blocked", status: "BLOCKED", completed_at: null, due_at: null }),
+      reportTask({ title: "Completed old", status: "COMPLETED", due_at: "2026-01-01T00:00:00Z" }),
+      reportTask({ title: "Not applicable old", status: "NOT_APPLICABLE", completed_at: null, due_at: "2026-01-01T00:00:00Z" }),
+      reportTask({ title: "Future task", status: "NOT_STARTED", completed_at: null, due_at: "2026-10-01T00:00:00Z" }),
+      reportTask({ organization_id: otherOrganizationId, title: "Foreign overdue", status: "IN_PROGRESS", completed_at: null, due_at: "2026-01-01T00:00:00Z" }),
+    ],
+  });
+  assert.equal(result.taskPerformance.completed, 0);
+  assert.equal(result.taskPerformance.overdue, 1);
+  assert.equal(result.taskPerformance.blocked, 1);
+  assert.deepEqual(result.bottlenecks.map((item) => item.label).sort(), ["Current blocked", "Old overdue"]);
+});
+
 test("comparison deltas and empty denominators are deterministic", () => {
   assert.deepEqual(reportDelta(12, 10), { absolute: 2, percent: 20 });
   assert.deepEqual(reportDelta(3, 0), { absolute: 3, percent: null });
@@ -148,15 +168,35 @@ test("dimension permissions suppress restricted Task Customer Service Desk and R
   assert.deepEqual(result.topCustomers, []);
 });
 
+test("Case permission is enforced in the model while independent dimensions remain available", () => {
+  const period = resolveReportingPeriod({ period: "30d" }, "UTC", now);
+  const noCases = { ...capabilities, cases: false };
+  const result = buildOperationalReport({
+    organizationId, timezone: "UTC", period,
+    cases: [reportCase()], tasks: [reportTask()], currentTasks: [reportTask({ status: "BLOCKED", completed_at: null })],
+    requests: [reportRequest()], customers: [customer()], capabilities: noCases, now,
+  });
+  for (const label of ["Cases Opened", "Cases Completed", "Completion Rate", "Average Case Duration", "Median Case Duration", "Customers Served"]) {
+    assert.equal(result.kpis.find((item) => item.label === label)?.value, null);
+  }
+  assert.equal(result.kpis.find((item) => item.label === "Tasks Completed")?.value, 1);
+  assert.equal(result.kpis.find((item) => item.label === "Service Requests Received")?.value, 1);
+  assert.equal(result.taskPerformance.blocked, 1);
+  assert.equal(result.requestPerformance.received, 1);
+  assert.deepEqual(result.topCustomers, []);
+});
+
 test("reports repository enforces authorization scope and bounded safe-view queries", () => {
   const repository = readFileSync("lib/data/reports-repository.ts", "utf8");
   assert.match(repository, /hasPermission\(access, "VIEW_REPORTS"\)/);
   for (const permission of ["VIEW_CASES", "VIEW_TASKS", "VIEW_SERVICE_DESK", "VIEW_CUSTOMERS", "VIEW_QUESTIONS", "VIEW_RULES"]) assert.match(repository, new RegExp(`hasPermission\\(access, "${permission}"\\)`));
   for (const view of ["organization_cases", "organization_case_tasks", "organization_service_requests", "organization_customers"]) assert.match(repository, new RegExp(`\\.from\\("${view}"\\)`));
-  assert.equal((repository.match(/\.eq\("organization_id", organizationId\)/g) ?? []).length, 6);
+  assert.equal((repository.match(/\.eq\("organization_id", organizationId\)/g) ?? []).length, 7);
   assert.match(repository, /Promise\.all/);
   assert.match(repository, /capabilities\.rules[\s\S]*generated_by_rule[\s\S]*assigned_user_id/);
   assert.match(repository, /select\("organization_id,title,status,created_at,completed_at,due_at,assigned_user_id"\)/);
+  assert.match(repository, /select\("organization_id,title,status,due_at"\)[\s\S]*\.in\("status", \["NOT_STARTED", "IN_PROGRESS", "BLOCKED"\]\)[\s\S]*due_at\.lt/);
+  assert.doesNotMatch(repository, /currentTasksPromise[\s\S]*updated_at\.gte/);
   assert.doesNotMatch(repository, /for\s*\([^)]*\)\s*\{[^}]*await/);
   assert.doesNotMatch(repository, /\.select\("\*"\)/);
   assert.match(repository, /if \(!access\?\.activeOrganization \|\| !hasPermission/);
@@ -173,6 +213,10 @@ test("reports UI exposes accessible responsive charts, truthful limitations, and
   assert.match(component, /\/tasks\?due=overdue/);
   assert.match(component, /\/tasks\?status=blocked/);
   assert.match(component, /Historical readiness, Question response state/);
+  assert.match(component, /Case performance requires Case access/);
+  assert.doesNotMatch(component, /!capabilities\.cases \?[^:]+: <>/);
+  assert.match(component, /availableKpis/);
+  assert.match(component, /Current blocked or overdue Task patterns/);
   assert.match(component, /Duration trend/);
   assert.match(component, /Throughput trend/);
   assert.doesNotMatch(component, /portal/i);

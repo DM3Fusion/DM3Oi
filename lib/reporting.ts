@@ -107,6 +107,9 @@ const startOfLocalDate = (key: string, timezone: string) => {
   return new Date(instant);
 };
 
+export const startOfReportingDay = (value: Date, timezone: string) =>
+  startOfLocalDate(dateKey(value, timezone), timezone);
+
 const range = (from: string, to: string, timezone: string): DateRange => {
   const fromParts = parseDateKey(from);
   const toParts = parseDateKey(to);
@@ -198,6 +201,7 @@ export const isCanonicalReportParams = (params: ReportParams, period: ReportingP
 
 export type ReportCase = { organization_id: string; customer_id: string; opened_at: string; completed_at: string | null; closed_at: string | null };
 export type ReportTask = { organization_id: string; title: string; status: string; created_at: string; completed_at: string | null; due_at: string | null; generated_by_rule: boolean; assigned_user_id: string | null };
+export type ReportCurrentTask = Pick<ReportTask, "organization_id" | "title" | "status" | "due_at">;
 export type ReportRequest = { organization_id: string; case_id: string | null; opened_at: string; resolved_at: string | null };
 export type ReportCustomer = { id: string; organization_id: string; name: string };
 export type ReportCapabilities = { cases: boolean; tasks: boolean; serviceRequests: boolean; customers: boolean; questions: boolean; rules: boolean };
@@ -248,25 +252,28 @@ const localBucketKey = (local: string, period: ReportingPeriod) => {
 };
 const bucketKey = (timestamp: string, period: ReportingPeriod) => localBucketKey(dateKey(new Date(timestamp), period.timezone), period);
 
-export function buildOperationalReport({ organizationId, timezone, period, cases, tasks, requests, customers, capabilities, now = new Date() }: {
+export function buildOperationalReport({ organizationId, timezone, period, cases, tasks, currentTasks = tasks, requests, customers, capabilities, now = new Date() }: {
   organizationId: string; timezone: string; period: ReportingPeriod; cases: ReportCase[]; tasks: ReportTask[];
+  currentTasks?: ReportCurrentTask[];
   requests: ReportRequest[]; customers: ReportCustomer[]; capabilities: ReportCapabilities; now?: Date;
 }) {
-  const scopedCases = cases.filter((item) => item.organization_id === organizationId);
+  const scopedCases = capabilities.cases ? cases.filter((item) => item.organization_id === organizationId) : [];
   const scopedTasks = capabilities.tasks ? tasks.filter((item) => item.organization_id === organizationId) : [];
+  const scopedCurrentTasks = capabilities.tasks ? currentTasks.filter((item) => item.organization_id === organizationId) : [];
   const scopedRequests = capabilities.serviceRequests ? requests.filter((item) => item.organization_id === organizationId) : [];
   const scopedCustomers = capabilities.customers ? customers.filter((item) => item.organization_id === organizationId) : [];
   const current = summarize(period.range, scopedCases, scopedTasks, scopedRequests);
   const prior = period.previous ? summarize(period.previous, scopedCases, scopedTasks, scopedRequests) : null;
+  const caseValue = <T,>(value: T) => capabilities.cases ? value : null;
   const kpiValues = [
-    ["Cases Opened", "Cases with an opening timestamp in the period", current.opened, prior?.opened, null],
-    ["Cases Completed", "Cases with a completion timestamp in the period", current.completed, prior?.completed, null],
-    ["Completion Rate", "Cases opened in the period and completed by period end ÷ Cases opened", current.completionRate, prior?.completionRate, null],
-    ["Average Case Duration", "Mean elapsed time for Cases completed in the period", current.averageDuration, prior?.averageDuration, null],
-    ["Customers Served", "Distinct customers with Case openings or completions in the period", capabilities.customers ? current.customers : null, capabilities.customers ? prior?.customers : undefined, capabilities.customers ? "/customers" : null],
+    ["Cases Opened", "Cases with an opening timestamp in the period", caseValue(current.opened), caseValue(prior?.opened), null],
+    ["Cases Completed", "Cases with a completion timestamp in the period", caseValue(current.completed), caseValue(prior?.completed), null],
+    ["Completion Rate", "Cases opened in the period and completed by period end ÷ Cases opened", caseValue(current.completionRate), caseValue(prior?.completionRate), null],
+    ["Average Case Duration", "Mean elapsed time for Cases completed in the period", caseValue(current.averageDuration), caseValue(prior?.averageDuration), null],
+    ["Customers Served", "Distinct customers with Case openings or completions in the period", capabilities.cases && capabilities.customers ? current.customers : null, capabilities.cases && capabilities.customers ? prior?.customers : null, capabilities.cases && capabilities.customers ? "/customers" : null],
     ["Tasks Completed", "Tasks with a completion timestamp in the period", capabilities.tasks ? current.tasksCompleted : null, capabilities.tasks ? prior?.tasksCompleted : undefined, null],
     ["Service Requests Received", "Requests with an opening timestamp in the period", capabilities.serviceRequests ? current.requestsReceived : null, capabilities.serviceRequests ? prior?.requestsReceived : undefined, null],
-    ["Median Case Duration", "Median elapsed time for Cases completed in the period", current.medianDuration, prior?.medianDuration, null],
+    ["Median Case Duration", "Median elapsed time for Cases completed in the period", caseValue(current.medianDuration), caseValue(prior?.medianDuration), null],
   ] as const;
   const kpis = kpiValues.map(([label, description, value, previous, href]) => ({ label, description, value, href, delta: prior && value !== null && previous !== undefined && previous !== null ? reportDelta(value, previous) : null }));
 
@@ -303,10 +310,14 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
   }));
   const taskPeriod = scopedTasks.filter((item) => inRange(item.created_at, period.range) || inRange(item.completed_at, period.range));
   const overdueBoundary = startOfLocalDate(dateKey(now, timezone), timezone);
-  const overdue = scopedTasks.filter((item) => item.due_at && new Date(item.due_at) < overdueBoundary && !["COMPLETED", "NOT_APPLICABLE"].includes(item.status));
+  const currentExceptions = scopedCurrentTasks.filter((item) =>
+    !["COMPLETED", "NOT_APPLICABLE"].includes(item.status) &&
+    (item.status === "BLOCKED" || Boolean(item.due_at && new Date(item.due_at) < overdueBoundary)),
+  );
+  const overdue = currentExceptions.filter((item) => item.due_at && new Date(item.due_at) < overdueBoundary);
   const taskPerformance = {
     completed: current.tasksCompleted,
-    blocked: taskPeriod.filter((item) => item.status === "BLOCKED").length,
+    blocked: currentExceptions.filter((item) => item.status === "BLOCKED").length,
     overdue: overdue.length,
     manual: capabilities.rules ? taskPeriod.filter((item) => !item.generated_by_rule).length : null,
     generated: capabilities.rules ? taskPeriod.filter((item) => item.generated_by_rule).length : null,
@@ -332,8 +343,8 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
   const customerCounts = new Map<string, number>();
   scopedCases.filter((item) => inRange(item.opened_at, period.range) || inRange(item.completed_at, period.range)).forEach((item) => customerCounts.set(item.customer_id, (customerCounts.get(item.customer_id) ?? 0) + 1));
   const topCustomers = capabilities.customers ? [...customerCounts].map(([id, count]) => ({ id, label: customerNames.get(id) ?? "Customer", count })).sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 5) : [];
-  const bottlenecks = [...new Map(overdue.concat(taskPeriod.filter((item) => item.status === "BLOCKED")).map((item) => [item.title.trim().toLowerCase(), item.title])).entries()]
-    .map(([key, label]) => ({ key, label, count: overdue.concat(taskPeriod.filter((item) => item.status === "BLOCKED")).filter((item) => item.title.trim().toLowerCase() === key).length }))
+  const bottlenecks = [...new Map(currentExceptions.map((item) => [item.title.trim().toLowerCase(), item.title])).entries()]
+    .map(([key, label]) => ({ key, label, count: currentExceptions.filter((item) => item.title.trim().toLowerCase() === key).length }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label)).slice(0, 5);
   const workDistribution = {
     assigned: taskPeriod.filter((item) => item.assigned_user_id).length,
