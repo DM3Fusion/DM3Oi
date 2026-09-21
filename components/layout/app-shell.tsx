@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  CircleUserRound,
   Settings,
   ShieldCheck,
   Users,
@@ -27,6 +28,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { hasPermission } from "@/lib/auth/permissions";
+import { MobileBottomNavigation } from "@/components/layout/mobile-bottom-navigation";
 const organizationNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, permission: "VIEW_DASHBOARD" },
   { href: "/cases", label: "Cases", icon: BriefcaseBusiness, permission: "VIEW_CASES" },
@@ -46,6 +48,7 @@ const platformNav = [
   { href: "/admin/organizations", label: "Organizations", icon: Building2 },
   { href: "/admin/users", label: "Users / Access", icon: Users },
 ];
+const mobilePrimaryDestinations = new Set(["/", "/cases", "/communications"]);
 const isPublic = (path: string) =>
   path === "/login" ||
   path === "/portal" || path.startsWith("/portal/") ||
@@ -77,6 +80,17 @@ export function AppShell({
   const administrationNav = access?.internalAccess
     ? organizationAdministrationNav.filter((item) => hasPermission(access,item.permission))
     : [];
+  const mobileNavigation = [
+    ...nav
+      .filter((item) => mobilePrimaryDestinations.has(item.href))
+      .map((item) => ({
+        href: item.href,
+        label: item.href === "/" ? "Home" : item.label,
+        icon: item.icon,
+        unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
+      })),
+    ...(access ? [{ href: "/account/profile", label: "Account", icon: CircleUserRound }] : []),
+  ];
   return (
     <div className="app-frame">
       {open && (
@@ -120,7 +134,7 @@ export function AppShell({
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className={active ? "active" : ""}
+                className={`${active ? "active " : ""}${mobilePrimaryDestinations.has(href) ? "mobile-primary-nav-item" : ""}`.trim()}
               >
                 <Icon aria-hidden />
                 <span>{label}</span>
@@ -222,6 +236,7 @@ export function AppShell({
           </div>
         ) : null}
         <main>{children}</main>
+        <MobileBottomNavigation items={mobileNavigation} />
       </div>
     </div>
   );

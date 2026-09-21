@@ -89,7 +89,7 @@ test("portal Case cards are non-navigational, responsive, and precede Service Re
   assert.ok(caseIndex > home.indexOf("Welcome Back!") && caseIndex < requestKpiIndex);
   assert.match(css, /\.portal-case-grid\{display:grid;grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:700px\)\{\.portal-case-section,[\s\S]*?\.portal-case-grid\{grid-template-columns:1fr\}/);
-  assert.doesNotMatch(home + component + css, /bottom-nav|portal-bottom/);
+  assert.doesNotMatch(home + component + layout + navigation, /MobileBottomNavigation|bottom-nav|portal-bottom/);
 });
 
 test("organization branding and the existing Service Request experience remain unchanged", () => {

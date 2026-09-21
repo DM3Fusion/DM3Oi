@@ -46,9 +46,11 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         eyebrow="Shared Communications"
         title="Communications"
         description={organizationWide ? "Organization-wide notifications from customer conversations and DM3Oi workflows. Read status belongs to each intended recipient." : "Notifications from customer conversations and DM3Oi workflows."}
-        action={unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…">{organizationWide ? "Mark my notifications as read" : "Mark all as read"}</PendingSubmitButton></form> : undefined}
+        action={<div className="communications-header-actions">
+          {unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…" aria-label={organizationWide ? "Mark my notifications as read" : "Mark all as read"}><span className="communications-mark-label-full">{organizationWide ? "Mark my notifications as read" : "Mark all as read"}</span><span className="communications-mark-label-compact">{organizationWide ? "Mark mine read" : "Mark all read"}</span></PendingSubmitButton></form> : null}
+          <CommunicationsViewToggle view={communicationsView} />
+        </div>}
       />
-      <CommunicationsViewToggle view={communicationsView} />
       <CommunicationsFilters values={values} recipientStatus={organizationWide} />
       <section className="panel communications-center" aria-label="Notification inbox">
         {notifications.length ? (
@@ -63,7 +65,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                     <span className="notification-copy">
                       <strong>{item.title}</strong>
                       <span>{item.message}</span>
-                      <small><span className="notification-read-label">{item.read_at ? "Read" : "Unread"}</span> · {item.source_domain.replaceAll("_", " ")} · {item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
+                      <small><span className="notification-read-label">{item.read_at ? "Read" : "Unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     </span>
                     <span aria-hidden>→</span>
                   </PendingSubmitButton>
@@ -72,7 +74,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                   <span className="notification-copy">
                     <strong>{item.title}</strong>
                     <span>{item.message}</span>
-                    <small><span className="notification-read-label">{item.read_at ? "Recipient read" : "Recipient unread"}</span> · {item.source_domain.replaceAll("_", " ")} · {item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
+                    <small><span className="notification-read-label">{item.read_at ? "Recipient read" : "Recipient unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     <small className="notification-recipient">Recipient: {item.recipient_display_name}</small>
                   </span>
                   <span aria-hidden>→</span>

@@ -9,10 +9,11 @@ export function CommunicationsViewToggle({ view }: { view: CommunicationsView })
   const [pending, setPending] = useState(false);
   const nextView = view === "full" ? "mobile" : "full";
   const label = view === "full" ? "Return to Mobile View" : "View Full Site";
+  const compactLabel = view === "full" ? "Mobile View" : "Full Site";
   const selectView = () => {
     setPending(true);
     document.cookie = `${communicationsViewCookie}=${nextView}; Path=/; Max-Age=31536000; SameSite=Lax`;
     router.refresh();
   };
-  return <div className="communications-view-toggle"><button type="button" className="secondary-button" onClick={selectView} disabled={pending} aria-busy={pending}>{pending ? "Switching…" : label}</button></div>;
+  return <div className="communications-view-toggle"><button type="button" className="secondary-button" onClick={selectView} disabled={pending} aria-busy={pending} aria-label={label}>{pending ? "Switching…" : <><span className="communications-view-label-full">{label}</span><span className="communications-view-label-compact">{compactLabel}</span></>}</button></div>;
 }
