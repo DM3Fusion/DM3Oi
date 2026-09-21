@@ -96,9 +96,9 @@ test("SUPER_ADMIN identity updates Auth email before synchronizing the profile",
   assert.match(form, /license-save-button/);
 });
 
-test("password and email-code login paths remain available", () => {
+test("email-code login remains available without interactive password authentication", () => {
   const login = readFileSync("app/login/page.tsx", "utf8");
-  assert.match(login, /signInAction/);
   assert.match(login, /sendLoginOtpAction/);
   assert.match(login, /verifyLoginOtpAction/);
+  assert.doesNotMatch(login, /signInAction|type="password"|Password/);
 });
