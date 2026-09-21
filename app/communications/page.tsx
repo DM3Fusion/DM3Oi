@@ -12,14 +12,17 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { formatOrganizationDateTime, startOfOrganizationDay } from "@/lib/organization-timezone";
 import { CommunicationsFilters, type CommunicationsFilterValues } from "@/components/communications-filters";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { CommunicationsViewToggle } from "@/components/communications-view-toggle";
+import { communicationsDestination, communicationsViewCookie, normalizeCommunicationsView } from "@/lib/communications-view";
 
 const statuses = new Set(["all", "unread", "read", "archived"]);
 const sources = new Set(["all", "service-request", "case", "task", "other"]);
 const ranges = new Set(["all", "today", "7d", "30d"]);
 
 export default async function CommunicationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
-  const context = await requirePermission("VIEW_COMMUNICATIONS");
-  const query = await searchParams;
+  const [context, query, cookieStore] = await Promise.all([requirePermission("VIEW_COMMUNICATIONS"), searchParams, cookies()]);
+  const communicationsView = normalizeCommunicationsView(cookieStore.get(communicationsViewCookie)?.value);
   const values: CommunicationsFilterValues = {
     status: (statuses.has(query?.status ?? "") ? query?.status : "all") as CommunicationsFilterValues["status"],
     source: (sources.has(query?.source ?? "") ? query?.source : "all") as CommunicationsFilterValues["source"],
@@ -38,13 +41,14 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   const hasStructuredFilters = values.status !== "all" || values.source !== "all" || values.range !== "all";
   const filtered = hasStructuredFilters || Boolean(values.q);
   return (
-    <>
+    <div className={`communications-workspace communications-view-${communicationsView}`}>
       <PageHeader
         eyebrow="Shared Communications"
         title="Communications"
         description={organizationWide ? "Organization-wide notifications from customer conversations and DM3Oi workflows. Read status belongs to each intended recipient." : "Notifications from customer conversations and DM3Oi workflows."}
         action={unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…">{organizationWide ? "Mark my notifications as read" : "Mark all as read"}</PendingSubmitButton></form> : undefined}
       />
+      <CommunicationsViewToggle view={communicationsView} />
       <CommunicationsFilters values={values} recipientStatus={organizationWide} />
       <section className="panel communications-center" aria-label="Notification inbox">
         {notifications.length ? (
@@ -55,20 +59,20 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
                   <input type="hidden" name="notificationId" value={item.id} />
                   <input type="hidden" name="destination" value={item.destination_path} />
                   <PendingSubmitButton className="notification-open" pendingLabel="Opening…">
-                    <span className="notification-state" aria-label={item.read_at ? "Read" : "Unread"} />
+                    <span className="notification-state" aria-hidden />
                     <span className="notification-copy">
                       <strong>{item.title}</strong>
                       <span>{item.message}</span>
-                      <small>{item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
+                      <small><span className="notification-read-label">{item.read_at ? "Read" : "Unread"}</span> · {item.source_domain.replaceAll("_", " ")} · {item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     </span>
                     <span aria-hidden>→</span>
                   </PendingSubmitButton>
-                </form> : <Link href={item.destination_path} className="notification-open">
-                  <span className="notification-state" aria-label={item.read_at ? "Recipient has read" : "Recipient has not read"} />
+                </form> : <Link href={communicationsDestination(item.destination_path)} className="notification-open">
+                  <span className="notification-state" aria-hidden />
                   <span className="notification-copy">
                     <strong>{item.title}</strong>
                     <span>{item.message}</span>
-                    <small>{item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
+                    <small><span className="notification-read-label">{item.read_at ? "Recipient read" : "Recipient unread"}</span> · {item.source_domain.replaceAll("_", " ")} · {item.category.replaceAll("_", " ")} · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
                     <small className="notification-recipient">Recipient: {item.recipient_display_name}</small>
                   </span>
                   <span aria-hidden>→</span>
@@ -82,6 +86,6 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
           </div>
         ) : <div className="no-results">{values.q ? (hasStructuredFilters ? "No communications match your search and filters." : "No communications match your search.") : filtered ? "No communications match these filters." : "No communications yet."}</div>}
       </section>
-    </>
+    </div>
   );
 }

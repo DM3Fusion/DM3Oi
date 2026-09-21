@@ -48,7 +48,7 @@ test("recipient names use profile display conventions without exposing email or 
 
 test("observed rows navigate without mutating another recipient's read state", () => {
   assert.match(page, /item\.is_personal \? <form action=\{openNotificationAction\}/);
-  assert.match(page, /: <Link href=\{item\.destination_path\} className="notification-open">/);
+  assert.match(page, /: <Link href=\{communicationsDestination\(item\.destination_path\)\} className="notification-open">/);
   assert.match(page, /item\.is_personal \? <form action=\{item\.read_at \? markNotificationUnreadAction : markNotificationReadAction\}/);
   assert.match(permissionMigration, /where n\.id=target_notification_id and n\.recipient_user_id=actor/);
   assert.match(permissionMigration, /recipient_user_id=actor and read_at is null and archived_at is null/);
@@ -72,8 +72,8 @@ test("status, source, date, search, and destination behavior remain intact", () 
   assert.match(repository, /filters\.source === "service-request"/);
   assert.match(repository, /filters\.createdAfter/);
   assert.match(repository, /title\.ilike/);
-  assert.match(page, /item\.destination_path/);
-  assert.match(page, /Recipient has not read/);
+  assert.match(page, /communicationsDestination\(item\.destination_path\)/);
+  assert.match(page, /Recipient unread/);
 });
 
 test("other internal roles, portal users, and platform behavior remain constrained", () => {

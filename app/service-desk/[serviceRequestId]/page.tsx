@@ -11,6 +11,10 @@ import { createInternalServiceRequestMessageAction } from "@/lib/data/service-re
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 import { ServiceRequestCaseLink } from "@/components/service-request-case-link";
+import { cookies } from "next/headers";
+import { CommunicationsViewToggle } from "@/components/communications-view-toggle";
+import { communicationsViewCookie, normalizeCommunicationsView } from "@/lib/communications-view";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 // Detail contract: initial={{ status: item.status, priority: item.priority }}; query.error; actor_user_id || "System".
 // activityRows.filter((activity) => activity.activity_id); order("created_at", { ascending: false }).order("id", { ascending: false });
 // actor_user_id || "System"; activity.actor_display_name || activity.actor_email || activity.actor_user_id || "System".
@@ -33,8 +37,8 @@ const transitionText = (
   return `${previous ? serviceRequestLabel(previous) : "Unknown"} → ${next ? serviceRequestLabel(next) : "Unknown"}`;
 };
 
-export default async function Page({ params, searchParams }: { params: Promise<{ serviceRequestId: string }>; searchParams?: Promise<{ error?: string; warning?: string }> }) {
-  const [{ serviceRequestId }, data, access, query] = await Promise.all([
+export default async function Page({ params, searchParams }: { params: Promise<{ serviceRequestId: string }>; searchParams?: Promise<{ error?: string; warning?: string; from?: string }> }) {
+  const [{ serviceRequestId }, data, access, query, cookieStore] = await Promise.all([
     params,
     getLiveOrganizationData(),
     getAccessContext(),
@@ -42,8 +46,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       Promise.resolve({
         error: undefined as string | undefined,
         warning: undefined as string | undefined,
+        from: undefined as string | undefined,
       }),
+    cookies(),
   ]);
+  const fromCommunications = query.from === "communications";
+  const communicationsView = normalizeCommunicationsView(cookieStore.get(communicationsViewCookie)?.value);
   const item = data.serviceRequests.find((request) => request.id === serviceRequestId);
   if (!item) notFound();
   const assignees = data.staff
@@ -108,7 +116,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     .map((activity) => ({ ...activity, id: activity.activity_id as string }));
   const creator = activityRows[0];
   return (
-    <>
+    <div className={`service-request-detail${fromCommunications ? ` communication-origin communications-view-${communicationsView}` : ""}`}>
+      {fromCommunications ? <><CommunicationsViewToggle view={communicationsView} /><Link className="communication-back-link" href="/communications">← Communications</Link></> : null}
       <PageHeader
         eyebrow="Customer Service"
         title={item.subject}
@@ -140,6 +149,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
         {canReply && (
           <form action={createInternalServiceRequestMessageAction} className="service-request-reply entity-form">
             <input type="hidden" name="serviceRequestId" value={item.id} />
+            {fromCommunications ? <input type="hidden" name="fromCommunications" value="true" /> : null}
             {query.error && (
               <div className="form-alert" role="alert">
                 {query.error}
@@ -149,9 +159,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
               <span>Reply to customer</span>
               <textarea name="body" rows={5} required maxLength={4000} placeholder="Write a response to the customer…" />
             </label>
-            <button className="primary-button" type="submit">
-              Send Reply
-            </button>
+            <PendingSubmitButton className="primary-button" pendingLabel="Sending…">Send Reply</PendingSubmitButton>
           </form>
         )}
       </section>
@@ -251,9 +259,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           )}
         </aside>
       </div>
-      <Link className="auth-link" href="/service-desk">
-        ← All service requests
+      <Link className="auth-link" href={fromCommunications ? "/communications" : "/service-desk"}>
+        ← {fromCommunications ? "Communications" : "All service requests"}
       </Link>
-    </>
+    </div>
   );
 }

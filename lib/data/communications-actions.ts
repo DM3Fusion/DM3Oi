@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
+import { communicationsDestination } from "@/lib/communications-view";
 
 const value = (form: FormData, key: string) => String(form.get(key) ?? "");
 const safeDestination = (path: string) =>
@@ -22,7 +23,7 @@ async function setReadState(id: string, read: boolean) {
 
 export async function openNotificationAction(form: FormData) {
   await setReadState(value(form, "notificationId"), true);
-  redirect(safeDestination(value(form, "destination")));
+  redirect(communicationsDestination(safeDestination(value(form, "destination"))));
 }
 
 export async function markNotificationReadAction(form: FormData) {

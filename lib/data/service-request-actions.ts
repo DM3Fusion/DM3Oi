@@ -193,8 +193,15 @@ export async function setServiceRequestCaseAction(data: { requestId: string; cas
 export async function createInternalServiceRequestMessageAction(form: FormData): Promise<void> {
   const serviceRequestId = String(form.get("serviceRequestId") ?? "");
   const body = String(form.get("body") ?? "").trim();
-  if (!serviceRequestId || !body) redirect(`/service-desk/${serviceRequestId}?error=Reply%20cannot%20be%20blank.`);
-  if (body.length > 4000) redirect(`/service-desk/${serviceRequestId}?error=Reply%20must%20be%204000%20characters%20or%20fewer.`);
+  const fromCommunications = form.get("fromCommunications") === "true";
+  const detailQuery = (name?: "error" | "warning", message?: string) => {
+    const query = new URLSearchParams();
+    if (fromCommunications) query.set("from", "communications");
+    if (name && message) query.set(name, message);
+    return query.size ? `?${query.toString()}` : "";
+  };
+  if (!serviceRequestId || !body) redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "Reply cannot be blank.")}`);
+  if (body.length > 4000) redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "Reply must be 4000 characters or fewer.")}`);
   const context = await requirePermission("RESPOND_SERVICE_REQUEST");
   const supabase = await createClient();
   const { data: created, error } = await supabase.rpc("create_internal_service_request_message" as never, { target_service_request_id: serviceRequestId, target_body: body } as never);
@@ -205,7 +212,7 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
       details: error?.details,
       hint: error?.hint,
     });
-    redirect(`/service-desk/${serviceRequestId}?error=The%20reply%20could%20not%20be%20sent.`);
+    redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "The reply could not be sent.")}`);
   }
   const message = created as unknown as { id: string; organization_id: string };
   await recordPortalCommunication({
@@ -221,6 +228,6 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
     messageId: message.id,
   });
   revalidatePath(`/service-desk/${serviceRequestId}`);
-  if (!notificationResult.ok) redirect(`/service-desk/${serviceRequestId}?warning=Reply%20saved%2C%20but%20the%20customer%20email%20notification%20could%20not%20be%20sent.`);
-  redirect(`/service-desk/${serviceRequestId}`);
+  if (!notificationResult.ok) redirect(`/service-desk/${serviceRequestId}${detailQuery("warning", "Reply saved, but the customer email notification could not be sent.")}`);
+  redirect(`/service-desk/${serviceRequestId}${detailQuery()}`);
 }
