@@ -171,9 +171,84 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 @media(max-width:600px){.attention-summary-layout{grid-template-columns:72px minmax(0,1fr);gap:10px;padding-inline:14px}.attention-case-list>a,.attention-case-list>div{grid-template-columns:58px minmax(0,1fr)}.attention-case-list .case-attention-progress{grid-column:2;justify-self:end;margin:4px 0 8px}}
 
-/* Match the desktop/tablet All Needing Attention SVG ring to the shared heading donut footprint. */
+/* Desktop/tablet attention cards share identical header geometry. */
 @media(min-width:601px){
+  .needs-attention,
+  .cases-needing-attention{
+    --attention-card-header-block-size:124px;
+    --attention-heading-donut-size:96px;
+    --attention-heading-ring-width:9px;
+    --attention-heading-gap:24px;
+  }
+
+  .needs-attention.has-attention-summary,
+  .single-attention-case{
+    display:grid;
+    grid-template-columns:120px minmax(0,1fr);
+    grid-template-rows:124px auto;
+    align-items:center;
+  }
+
+  .needs-attention.has-attention-summary{
+    grid-template-areas:
+      "attention-summary attention-heading"
+      "attention-rows attention-rows";
+  }
+
+  .has-attention-summary>.attention-heading{
+    grid-area:attention-heading;
+  }
+
+  .has-attention-summary .attention-summary-ring{
+    grid-area:attention-summary;
+  }
+
+  .single-attention-case>.cases-attention-heading{
+    grid-column:1/-1;
+    grid-row:1;
+    display:grid;
+    grid-template-columns:96px minmax(0,1fr);
+    column-gap:24px;
+    align-items:center;
+  }
+
+  .has-attention-summary>.attention-heading,
+  .single-attention-case>.cases-attention-heading{
+    min-block-size:124px;
+    margin:0;
+    padding:14px 32px;
+  }
+
+  .has-attention-summary>.attention-heading{
+    padding-left:0;
+  }
+
+  .has-attention-summary .attention-summary-ring,
+  .single-attention-case .case-heading-progress{
+    width:96px;
+    height:96px;
+  }
+
+  .has-attention-summary .attention-summary-ring{
+    justify-self:end;
+  }
+
   .has-attention-summary .attention-summary-ring svg{
-    transform:rotate(-90deg) scale(1.22);
+    transform:rotate(-90deg);
+  }
+
+  .single-attention-case .case-heading-progress{
+    justify-self:start;
+  }
+
+  .has-attention-summary>.attention-summary-layout .attention-list{
+    grid-area:attention-rows;
+  }
+
+  .single-attention-case>.attention-case-list,
+  .single-attention-case>.dashboard-healthy,
+  .single-attention-case>.no-results{
+    grid-column:1/-1;
+    grid-row:2;
   }
 }
