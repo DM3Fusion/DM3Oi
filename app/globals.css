@@ -1073,11 +1073,23 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 @media(min-width:701px){
+  .communications-inbox-desktop{
+    height:calc(100vh - 250px);
+    min-height:520px;
+    overflow:hidden;
+  }
+
+  .communications-master{
+    height:100%;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+
   .communications-preview{
-    position:sticky;
-    top:16px;
-    align-self:start;
-    max-height:calc(100vh - 32px);
+    position:static;
+    align-self:stretch;
+    height:100%;
+    max-height:none;
     overflow-y:auto;
   }
 }
