@@ -171,9 +171,23 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 @media(max-width:600px){.attention-summary-layout{grid-template-columns:72px minmax(0,1fr);gap:10px;padding-inline:14px}.attention-case-list>a,.attention-case-list>div{grid-template-columns:58px minmax(0,1fr)}.attention-case-list .case-attention-progress{grid-column:2;justify-self:end;margin:4px 0 8px}}
 
-/* Match the desktop/tablet All Needing Attention SVG ring to the shared heading donut footprint. */
+/* Desktop/tablet attention summary uses the same visual header inset as case attention. */
 @media(min-width:601px){
+  .needs-attention.has-attention-summary{
+    grid-template-columns:128px minmax(0,1fr);
+  }
+
+  .has-attention-summary .attention-summary-ring{
+    width:96px;
+    height:96px;
+    justify-self:end;
+  }
+
   .has-attention-summary .attention-summary-ring svg{
-    transform:rotate(-90deg) scale(1.22);
+    transform:rotate(-90deg);
+  }
+
+  .has-attention-summary>.attention-heading{
+    padding-left:24px;
   }
 }
