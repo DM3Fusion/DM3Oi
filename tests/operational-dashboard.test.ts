@@ -7,12 +7,11 @@ const source = (path: string) => readFileSync(path, "utf8");
 test("authenticated shell presents DM3Oi branding and preserves operational navigation", () => {
   const shell = source("components/layout/app-shell.tsx");
   const navigation = source("lib/application-navigation.ts");
-  assert.match(shell, /className="dm3oi-wordmark"/);
-  assert.match(shell, /className="dm3oi-wordmark-main"/);
-  assert.match(shell, /className="brand-dm3">DM3<\/span>/);
-  assert.match(shell, /className="brand-oi">Oi<\/span>/);
-  assert.match(shell, /className="dm3oi-wordmark-tm">™<\/span>/);
-  assert.match(shell, /OPERATIONAL<br\/>INTELLIGENCE/);
+  assert.match(shell, /className="brand brand-hero"/);
+  assert.match(shell, /aria-label="DM3Oi Operational Intelligence home"/);
+  assert.match(shell, /src="\/images\/dm3oi-operations-hero\.jpg"/);
+  assert.match(shell, /className="brand-hero-image"/);
+  assert.match(shell, /className="sidebar-brand-version">\{applicationVersionLabel\}<\/div>/);
   assert.match(shell, /People\.<\/span> Work\. Progress\. Intelligence\./);
   assert.match(shell, /className="organization-context-prefix">for<\/span><b className="organization-context-name">\{org\?\.name \?\? "No active organization"\}<\/b>/);
   assert.doesNotMatch(shell, /Mimms['’] Tax Service/);

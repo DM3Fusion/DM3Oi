@@ -423,3 +423,21 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     line-height:1.4;
   }
 }
+
+/* Keep blocked-work summary labels visually separate from their values. */
+.blocked-case-links > div{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:5px;
+}
+
+.blocked-case-links > div > strong{
+  display:block;
+}
+
+.blocked-case-links > div > span{
+  display:block;
+  font-weight:400;
+  line-height:1.4;
+}

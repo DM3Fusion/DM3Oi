@@ -6,25 +6,23 @@ const source = (path: string) => readFileSync(path, "utf8");
 const shell = source("components/layout/app-shell.tsx");
 const css = source("app/globals.css");
 
-test("desktop and tablet sidebar retain the complete DM3Oi product identity", () => {
-  assert.match(shell, /className="dm3oi-wordmark"/);
-  assert.match(shell, /className="brand-dm3">DM3<\/span>/);
-  assert.match(shell, /className="brand-oi">Oi<\/span>/);
-  assert.match(shell, /className="dm3oi-wordmark-tm">™<\/span>/);
-  assert.match(shell, /className="brand-descriptor">OPERATIONAL<br\/>INTELLIGENCE<\/span>/);
-  assert.match(css, /\/\* Desktop and tablet product identity; the phone header remains independent\. \*\//);
-  assert.match(css, /@media\(min-width:601px\)\{\.brand-row/);
-  assert.match(css, /font-family:"Avenir Next",Avenir,"Century Gothic","Trebuchet MS",Arial,sans-serif/);
-  assert.match(css, /\.brand strong \.brand-dm3\{color:#fff\}/);
-  assert.match(css, /\.brand strong \.brand-oi\{color:var\(--dm3oi-cyan\)\}/);
-  assert.match(css, /\.brand \.dm3oi-wordmark-tm\{top:-\.02em;right:0;font-size:\.25em/);
-  assert.match(css, /\.brand \.brand-descriptor\{margin-top:12px[^}]*letter-spacing:2\.15px/);
+test("desktop and tablet sidebar retain the approved DM3Oi photographic product identity", () => {
+  assert.match(shell, /className="brand brand-hero"/);
+  assert.match(shell, /aria-label="DM3Oi Operational Intelligence home"/);
+  assert.match(shell, /src="\/images\/dm3oi-operations-hero\.jpg"/);
+  assert.match(shell, /width=\{600\}/);
+  assert.match(shell, /height=\{349\}/);
+  assert.match(shell, /sizes="240px"/);
+  assert.match(shell, /className="brand-hero-image"/);
+  assert.match(shell, /className="sidebar-brand-version">\{applicationVersionLabel\}<\/div>/);
+  assert.match(css, /\.brand-hero-image\{[^}]*display:block[^}]*width:100%[^}]*height:auto/);
+  assert.match(css, /\.sidebar-brand-version\{[^}]*font-size:7px[^}]*white-space:nowrap/);
 });
 
-test("tablet keeps the existing drawer architecture with refined branding", () => {
+test("tablet keeps the existing drawer architecture with photographic branding", () => {
   assert.match(shell, /\{!phoneLayout \? <aside className=\{`sidebar \$\{open \? "open" : ""\}`\}>/);
   assert.match(shell, /className="close-menu"/);
-  assert.match(css, /@media\(min-width:601px\) and \(max-width:850px\)\{\.brand \.dm3oi-wordmark\{font-size:37px\}/);
+  assert.match(shell, /className="brand brand-hero"/);
   assert.match(css, /@media\(max-width:850px\)[^\n]*\.sidebar\.open\{transform:translateX\(0\)\}/);
 });
 
