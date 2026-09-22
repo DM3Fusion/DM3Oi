@@ -236,3 +236,9 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   .attention-case-list>a,.attention-case-list>div{grid-template-columns:58px minmax(0,1fr)}
   .attention-case-list .case-attention-progress{grid-column:2;justify-self:end;margin:4px 0 8px}
 }
+
+@media(min-width:601px){
+  .attention-summary-heading .attention-summary-ring svg{
+    transform:rotate(-90deg) scale(1.18);
+  }
+}
