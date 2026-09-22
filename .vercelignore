@@ -1,0 +1,8 @@
+.next/
+.vercel/
+node_modules/
+*.tsbuildinfo
+supabase/.temp/
+supabase/.branches/
+.DS_Store
+*.log
