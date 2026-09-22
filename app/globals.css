@@ -1071,3 +1071,13 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .service-desk-metrics .metric strong{
   margin-top:6px;
 }
+
+@media(min-width:701px){
+  .communications-preview{
+    position:sticky;
+    top:16px;
+    align-self:start;
+    max-height:calc(100vh - 32px);
+    overflow-y:auto;
+  }
+}
