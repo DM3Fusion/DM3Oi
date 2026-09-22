@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useState, useSyncExternalStore } from "react";
@@ -90,16 +91,20 @@ export function AppShell({
       )}
       {!phoneLayout ? <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="brand-row">
-          <Link href="/" className="brand">
-            <strong className="dm3oi-wordmark">
-              <span className="dm3oi-wordmark-main">
-                <span className="brand-dm3">DM3</span>
-                <span className="brand-oi">Oi</span>
-              </span>
-              <span className="dm3oi-wordmark-tm">™</span>
-            </strong>
-            <span className="brand-descriptor">OPERATIONAL<br/>INTELLIGENCE</span>
-            <span className="brand-version">{applicationVersionLabel}</span>
+          <Link
+            href="/"
+            className="brand brand-hero"
+            aria-label="DM3Oi Operational Intelligence home"
+          >
+            <Image
+              src="/images/dm3oi-operations-hero.jpg"
+              alt=""
+              width={600}
+              height={349}
+              priority
+              sizes="240px"
+              className="brand-hero-image"
+            />
           </Link>
           <button
             className="close-menu"
@@ -109,6 +114,7 @@ export function AppShell({
             <ApplicationIcon name="close" />
           </button>
         </div>
+        <div className="sidebar-brand-version">{applicationVersionLabel}</div>
         {access?.isSuperAdmin && org && !platformContext ? (
           <form action={returnToBackOfficeAction} className="back-office-link">
             <button><ApplicationIcon name="back" />Back Office</button>
