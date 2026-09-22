@@ -32,7 +32,7 @@ test("redundant Operational Dashboard explanations are absent while operational 
     "Current matches versus durable generated Tasks",
   ]) assert.doesNotMatch(combined, new RegExp(copy.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   for (const content of [
-    "Case Progress", "Task Status", "Needs Attention", "Recent Activity",
+    "Case Progress", "Task Status", "All Needing Attention", "Recent Activity",
     "Readiness Distribution", "Top Bottlenecks", "Cases Needing Attention", "Rule Activity",
     "Completed", "Open", "Blocked", "Overdue",
   ]) assert.match(combined, new RegExp(content));

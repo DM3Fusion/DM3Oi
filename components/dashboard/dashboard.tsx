@@ -59,8 +59,11 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
     </div>
     <div className="operations-lower">
       <section className={`panel needs-attention${summary.attention.length ? " has-attention-summary" : ""}`}>
-        <div className="section-head attention-heading"><span className="attention-heading-icon"><ApplicationIcon name="warning" /></span><h2>All Needing Attention</h2></div>
-        {summary.attention.length?<div className="attention-summary-layout"><AttentionSummaryRing items={summary.attention}/><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
+        <div className={`section-head attention-heading${summary.attention.length ? " attention-summary-heading" : ""}`}>
+          {summary.attention.length ? <AttentionSummaryRing items={summary.attention} /> : <span className="attention-heading-icon"><ApplicationIcon name="warning" /></span>}
+          <h2>All Needing Attention</h2>
+        </div>
+        {summary.attention.length?<div className="attention-summary-layout"><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
       </section>
       {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
       {intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null}

@@ -39,7 +39,7 @@ test("operational dashboard exposes six linked primary KPIs", () => {
 test("dashboard includes deterministic attention, progress, task status, and linked recent activity", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const metrics = source("lib/live-dashboard-metrics.ts");
-  for (const heading of ["Case Progress", "Task Status", "Needs Attention", "Recent Activity"]) assert.match(dashboard, new RegExp(`>${heading}<`));
+  for (const heading of ["Case Progress", "Task Status", "All Needing Attention", "Recent Activity"]) assert.match(dashboard, new RegExp(`>${heading}<`));
   for (const signal of ["Overdue tasks", "Tasks due today", "Unassigned service requests", "Requests awaiting staff response", "Unread communications"]) assert.match(metrics, new RegExp(signal));
   assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
   assert.match(dashboard, /formatOrganizationDateTime\(activity\.created_at,data\.timezone\)/);
@@ -50,7 +50,7 @@ test("Dashboard DOM preserves the streamlined phone order with Recent Activity o
   const dashboard = source("components/dashboard/dashboard.tsx");
   const caseProgress = dashboard.indexOf(">Case Progress<");
   const taskStatus = dashboard.indexOf(">Task Status<");
-  const needsAttention = dashboard.indexOf(">Needs Attention<");
+  const needsAttention = dashboard.indexOf(">All Needing Attention<");
   const intelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
   const casesNeedingAttention = dashboard.indexOf("<CasesNeedingAttention intelligence={intelligence}");
   const recentActivity = dashboard.indexOf(">Recent Activity<");
@@ -113,11 +113,12 @@ test("Needs Attention donut summarizes only the existing actionable row counts",
   assert.match(dashboard, /<small>Items<\/small>/);
   assert.doesNotMatch(dashboard, /attention-summary-ring[\s\S]{0,300}(?:Complete|Progress|Readiness)/);
   assert.doesNotMatch(dashboard, /getLiveOrganizationData|getOperationalIntelligence/);
-  assert.match(css, /\.needs-attention\.has-attention-summary\{[^}]*grid-template-areas:"attention-summary attention-heading" "attention-rows attention-rows"/);
-  assert.match(css, /\.has-attention-summary>\.attention-summary-layout\{display:contents\}/);
-  assert.match(css, /\.has-attention-summary \.attention-summary-layout \.attention-list\{grid-area:attention-rows;padding:0 18px 12px\}/);
-  assert.match(css, /\.has-attention-summary \.attention-heading-icon\{display:none\}/);
-  assert.match(css, /@media\(max-width:600px\)\{\.attention-summary-layout\{grid-template-columns:72px minmax\(0,1fr\)/);
+  assert.match(dashboard, /attention-summary-heading/);
+  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{summary\.attention\}\s*\/>/);
+  assert.match(dashboard, /<h2>All Needing Attention<\/h2>/);
+  assert.match(dashboard, /<div className="attention-summary-layout"><div className="attention-list">/);
+  assert.doesNotMatch(css, /grid-template-areas:"attention-summary attention-heading"/);
+  assert.match(css, /\.attention-summary-heading\{display:block\}/);
 });
 
 test("a single Case needing attention moves its existing progress ring to the wide heading", () => {
@@ -134,25 +135,54 @@ test("a single Case needing attention moves its existing progress ring to the wi
   assert.doesNotMatch(intelligence, /<b>\{(?:item\.)?progressPercent\}%<\/b>/);
   assert.match(css, /\.case-attention-progress\{[^}]*width:58px;height:58px[^}]*conic-gradient\(#2d8fa9 var\(--case-progress\),#e7edf3 0\)/);
   assert.match(css, /\.case-heading-progress\{display:none\}/);
-  assert.match(css, /@media\(min-width:601px\)[^\n]*\.has-attention-summary \.attention-summary-ring,\.single-attention-case \.case-heading-progress\{width:var\(--attention-heading-donut-size\);height:var\(--attention-heading-donut-size\)\}/);
-  assert.match(css, /\.single-attention-case \.case-heading-progress\{display:grid\}/);
-  assert.match(css, /\.single-attention-case \.case-row-progress\{display:none\}/);
-  assert.match(css, /\.single-attention-case \.attention-case-list>a,\.single-attention-case \.attention-case-list>div\{grid-template-columns:64px minmax\(0,1fr\)\}/);
-  assert.match(css, /@media\(max-width:600px\)[^\n]*\.attention-case-list \.case-attention-progress\{grid-column:2;justify-self:end/);
+  assert.match(css, /\.attention-summary-heading \.attention-summary-ring,[\s\S]*?\.single-attention-case \.case-heading-progress\{[\s\S]*?width:96px;[\s\S]*?height:96px;[\s\S]*?flex:0 0 96px/);
+  assert.match(css, /\.single-attention-case \.case-heading-progress\s*\{[^}]*display:grid/);
+  assert.match(css, /\.single-attention-case \.case-row-progress\s*\{[^}]*display:none/);
+  assert.match(css, /\.single-attention-case \.attention-case-list>a,\s*\.single-attention-case \.attention-case-list>div\s*\{[^}]*grid-template-columns:64px minmax\(0,1fr\)/);
+  assert.match(css, /@media\(max-width:600px\)\{[\s\S]*?\.attention-case-list \.case-attention-progress\{grid-column:2;justify-self:end/);
 });
 
-test("wide attention cards share a stable header band and equivalent donut treatment", () => {
+test("wide attention cards share structural header geometry and equivalent donut treatment", () => {
+  const dashboard = source("components/dashboard/dashboard.tsx");
   const css = source("app/globals.css");
-  assert.match(css, /@media\(min-width:601px\)\{\.needs-attention,\.cases-needing-attention\{--attention-card-header-block-size:108px;--attention-heading-donut-size:64px;--attention-heading-ring-width:7px;--attention-heading-gap:12px;--attention-heading-value-size:12px;--attention-heading-label-size:7px\}/);
-  assert.match(css, /\.needs-attention>\.attention-heading,\.cases-needing-attention>\.cases-attention-heading\{min-block-size:var\(--attention-card-header-block-size\);align-items:center;padding-block:10px\}/);
-  assert.match(css, /\.has-attention-summary \.attention-summary-ring,\.single-attention-case \.case-heading-progress\{width:var\(--attention-heading-donut-size\);height:var\(--attention-heading-donut-size\)\}/);
-  assert.match(css, /\.has-attention-summary \.attention-ring-track,\.has-attention-summary \.attention-ring-segment\{stroke-width:var\(--attention-heading-ring-width\);vector-effect:non-scaling-stroke\}/);
-  assert.match(css, /\.single-attention-case \.case-heading-progress:after\{inset:var\(--attention-heading-ring-width\)\}/);
-  assert.match(css, /\.has-attention-summary \.attention-summary-ring strong,\.single-attention-case \.case-heading-progress strong\{color:#263b52;font-size:var\(--attention-heading-value-size\);font-weight:700;line-height:1\}/);
-  assert.match(css, /\.has-attention-summary \.attention-summary-ring small,\.single-attention-case \.case-heading-progress small\{margin-top:3px;color:var\(--muted\);font-size:var\(--attention-heading-label-size\);font-weight:750;line-height:1;text-transform:uppercase\}/);
-  assert.match(css, /\.has-attention-summary>\.attention-heading\{grid-area:attention-heading;padding-left:var\(--attention-heading-gap\)\}/);
-  assert.match(css, /\.single-attention-case \.cases-attention-heading\{justify-content:flex-start;gap:var\(--attention-heading-gap\)\}/);
-  assert.doesNotMatch(css, /attention-card-header-block-size[^\n]*(?:attentionCases|displayedCases)/);
+
+  assert.match(dashboard, /attention-summary-heading/);
+  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{summary\.attention\}\s*\/>/);
+
+  assert.match(
+    css,
+    /\.attention-summary-heading,\s*\.single-attention-case \.cases-attention-heading\{[\s\S]*?min-block-size:124px;[\s\S]*?display:flex;[\s\S]*?align-items:center;[\s\S]*?justify-content:flex-start;[\s\S]*?gap:24px;[\s\S]*?padding:14px 32px/,
+  );
+
+  assert.match(
+    css,
+    /\.attention-summary-heading \.attention-summary-ring,\s*\.single-attention-case \.case-heading-progress\{[\s\S]*?width:96px;[\s\S]*?height:96px;[\s\S]*?flex:0 0 96px/,
+  );
+
+  assert.match(
+    css,
+    /\.attention-summary-heading \.attention-ring-track,\s*\.attention-summary-heading \.attention-ring-segment\{[\s\S]*?stroke-width:9;[\s\S]*?vector-effect:non-scaling-stroke/,
+  );
+
+  assert.match(
+    css,
+    /\.attention-summary-heading \.attention-summary-ring strong,\s*\.single-attention-case \.case-heading-progress strong\{[\s\S]*?font-size:12px/,
+  );
+
+  assert.match(
+    css,
+    /\.attention-summary-heading \.attention-summary-ring small,\s*\.single-attention-case \.case-heading-progress small\{[\s\S]*?font-size:7px/,
+  );
+
+  assert.match(
+    css,
+    /\.single-attention-case \.case-heading-progress:after\{\s*inset:9px/,
+  );
+
+  assert.doesNotMatch(
+    css,
+    /grid-template-areas:"attention-summary attention-heading"/,
+  );
 });
 
 test("multiple Cases needing attention keep one progress ring associated with every row", () => {
