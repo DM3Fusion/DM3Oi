@@ -69,7 +69,7 @@ test("Dashboard metric-summary cards center labels values and supporting metrics
   assert.match(css, /@media\(max-width:760px\)\{\.intelligence-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
 });
 
-test("phone Dashboard reading order places complete Intelligence before one Recent Activity panel", () => {
+test("phone Dashboard hides Rule and Recent Activity without changing their data behavior", () => {
   const needsAttention = dashboard.indexOf('className="panel needs-attention"');
   const operationalIntelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
   const recentActivity = dashboard.indexOf('className="panel recent-activity"');
@@ -79,12 +79,29 @@ test("phone Dashboard reading order places complete Intelligence before one Rece
   assert.equal(dashboard.match(/className="panel recent-activity"/g)?.length, 1);
   assert.match(dashboard, /data\.activities\.slice\(0,8\)\.map/);
   assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
+  assert.match(intelligence, /className="panel intelligence-panel rule-activity"/);
+  assert.match(intelligence, /activeRuleActivity\.slice\(0, 5\)\.map/);
+  assert.match(intelligence, /href="\/questions\?view=rules">View Rules/);
+  assert.match(css, /@media\(max-width:600px\)\{\.operational-intelligence \.rule-activity,\.operations-lower>\.recent-activity\{display:none\}\}/);
+  assert.doesNotMatch(css, /@media\(min-width:601px\)\{[^}]*rule-activity[^}]*display:none/);
 });
 
 test("tablet and desktop visually retain Recent Activity before full-width Intelligence", () => {
   assert.match(css, /@media\(min-width:601px\)\{\.operations-lower>\.needs-attention\{order:1\}\.operations-lower>\.recent-activity\{order:2\}\.operations-lower>\.operational-intelligence\{grid-column:1\/-1;order:3\}\}/);
   assert.match(css, /\.operations-visuals,\.operations-lower\{display:grid;gap:16px\}/);
   assert.match(css, /\.operations-visuals,\.operations-lower\{grid-template-columns:minmax\(0,1\.35fr\) minmax\(310px,\.8fr\)\}/);
+});
+
+test("phone Dashboard retains complete readiness content and centered KPI summaries", () => {
+  for (const content of [
+    "Current completion readiness",
+    "Readiness Distribution",
+    "Top Bottlenecks",
+    "Cases Needing Attention",
+  ]) assert.match(intelligence, new RegExp(content));
+  assert.match(css, /\.intelligence-kpi\{align-items:center;text-align:center\}/);
+  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.doesNotMatch(css, /@media\(max-width:600px\)\{[^}]*\.operational-intelligence\{display:none/);
 });
 
 test("Inbox is the shared navigation label while Communications remains the workspace", () => {

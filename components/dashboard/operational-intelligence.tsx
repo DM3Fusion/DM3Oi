@@ -182,7 +182,7 @@ export function OperationalIntelligenceSection({
         </section>
 
         {intelligence.ruleActivity ? (
-          <section className="panel intelligence-panel">
+          <section className="panel intelligence-panel rule-activity">
             <div className="section-head">
               <h2>Rule Activity</h2>
               {capabilities.viewRules ? <Link href="/questions?view=rules">View Rules <ApplicationIcon name="forward" /></Link> : null}

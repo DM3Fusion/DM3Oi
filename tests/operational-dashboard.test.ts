@@ -14,7 +14,7 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
   assert.match(shell, /className="dm3oi-wordmark-tm">™<\/span>/);
   assert.match(shell, /OPERATIONAL<br\/>INTELLIGENCE/);
   assert.match(shell, /People\.<\/span> Work\. Progress\. Intelligence\./);
-  assert.match(shell, /<>for <b>\{org\?\.name \?\? "No active organization"\}<\/b><\/>/);
+  assert.match(shell, /className="organization-context-prefix">for<\/span><b className="organization-context-name">\{org\?\.name \?\? "No active organization"\}<\/b>/);
   assert.doesNotMatch(shell, /Mimms['’] Tax Service/);
   for (const label of ["Dashboard", "Cases", "Service Desk", "Inbox", "Customers", "Tasks", "Questions & Rules", "Reports", "Users", "Settings"]) assert.match(navigation, new RegExp(`label: "${label}"`));
   assert.doesNotMatch(navigation, /label: "Administration"/);
