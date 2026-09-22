@@ -1288,3 +1288,37 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     text-shadow:0 1px 3px rgba(0,0,0,.72);
   }
 }
+
+.admin-permanent-delete {
+  margin-top: 0.75rem;
+}
+
+.admin-permanent-delete > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.admin-permanent-delete p {
+  max-width: 48rem;
+}
+
+.admin-permanent-delete ul {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.admin-permanent-delete form {
+  display: grid;
+  gap: 0.75rem;
+  max-width: 30rem;
+  margin-top: 1rem;
+}
+
+.admin-permanent-delete label {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.admin-permanent-delete label span {
+  font-weight: 600;
+}

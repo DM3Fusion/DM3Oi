@@ -5,7 +5,10 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ResendInviteButton } from "@/components/resend-invite-button";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
-import { updateOrganizationMembershipAction } from "@/lib/data/organization-user-actions";
+import {
+  updateOrganizationMembershipAction,
+  transitionOrganizationMembershipAction,
+} from "@/lib/data/organization-user-actions";
 import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
 import { ORGANIZATION_USER_ROLES } from "@/lib/data/user-provisioning";
 import { formatDate } from "@/lib/format";
@@ -33,7 +36,7 @@ export default async function Page({
   const { data: membership } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,joined_at,updated_at,profiles(id,email,display_name,avatar_path,avatar_updated_at)",
+      "id,user_id,role,is_active,status,joined_at,updated_at,profiles(id,email,display_name,title,avatar_path,avatar_updated_at)",
     )
     .eq("id", membershipId)
     .eq("organization_id", access.activeOrganization.id)
@@ -89,11 +92,17 @@ export default async function Page({
             </span>
           </span>
           <span className="user-detail-actions">
-            <Badge value={membership.is_active ? "ACTIVE" : "INACTIVE"} />
+            <Badge
+              value={
+                membership.status ??
+                (membership.is_active ? "ACTIVE" : "SUSPENDED")
+              }
+            />
             {canManage ? (
               <OrganizationUserProfileEditor
                 membershipId={membership.id}
                 displayName={profile?.display_name ?? ""}
+                title={profile?.title ?? ""}
                 email={profile?.email ?? ""}
                 hasAvatar={Boolean(profile?.avatar_path)}
               />
@@ -106,6 +115,10 @@ export default async function Page({
             <dd>{name}</dd>
           </div>
           <div>
+            <dt>Title</dt>
+            <dd>{profile?.title || "—"}</dd>
+          </div>
+          <div>
             <dt>Email</dt>
             <dd>{profile?.email ?? "—"}</dd>
           </div>
@@ -115,7 +128,11 @@ export default async function Page({
           </div>
           <div>
             <dt>Membership status</dt>
-            <dd>{membership.is_active ? "Active" : "Inactive"}</dd>
+            <dd>
+              {(membership.status ??
+                (membership.is_active ? "ACTIVE" : "SUSPENDED")
+              ).replaceAll("_", " ")}
+            </dd>
           </div>
           <div>
             <dt>Joined</dt>
@@ -167,15 +184,43 @@ export default async function Page({
                 ))}
               </select>
             </label>
-            <label>
-              <span>Status</span>
-              <select name="active" defaultValue={String(membership.is_active)}>
-                <option value="true">Active</option>
-                <option value="false">Inactive</option>
-              </select>
-            </label>
-            <button className="primary-button">Save access</button>
+            <button className="primary-button">Save role</button>
           </form>
+
+          <div className="form-actions">
+            {membership.status === "VERIFIED" ? (
+              <form action={transitionOrganizationMembershipAction}>
+                <input type="hidden" name="membershipId" value={membership.id} />
+                <input type="hidden" name="action" value="ACTIVATE" />
+                <button className="primary-button">Activate access</button>
+              </form>
+            ) : null}
+
+            {membership.status === "ACTIVE" ? (
+              <form action={transitionOrganizationMembershipAction}>
+                <input type="hidden" name="membershipId" value={membership.id} />
+                <input type="hidden" name="action" value="SUSPEND" />
+                <button className="secondary-button">Suspend access</button>
+              </form>
+            ) : null}
+
+            {membership.status === "SUSPENDED" ? (
+              <form action={transitionOrganizationMembershipAction}>
+                <input type="hidden" name="membershipId" value={membership.id} />
+                <input type="hidden" name="action" value="REACTIVATE" />
+                <button className="secondary-button">Reactivate access</button>
+              </form>
+            ) : null}
+
+            {membership.status !== "REVOKED" ? (
+              <form action={transitionOrganizationMembershipAction}>
+                <input type="hidden" name="membershipId" value={membership.id} />
+                <input type="hidden" name="action" value="REVOKE" />
+                <button className="secondary-button">Revoke access</button>
+              </form>
+            ) : null}
+          </div>
+
           {invitationEligible ? (
             <div className="form-actions">
               <ResendInviteButton

@@ -997,32 +997,50 @@ export type Database = {
       }
       organization_members: {
         Row: {
+          activated_at: string | null
           created_at: string
           id: string
+          invited_at: string | null
           is_active: boolean
           joined_at: string
           organization_id: string
+          revoked_at: string | null
+          verified_at: string | null
           role: Database["public"]["Enums"]["application_role"]
+          status: Database["public"]["Enums"]["organization_membership_status"]
+          suspended_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          activated_at?: string | null
           created_at?: string
           id?: string
+          invited_at?: string | null
           is_active?: boolean
           joined_at?: string
           organization_id: string
+          revoked_at?: string | null
+          verified_at?: string | null
           role: Database["public"]["Enums"]["application_role"]
+          status?: Database["public"]["Enums"]["organization_membership_status"]
+          suspended_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          activated_at?: string | null
           created_at?: string
           id?: string
+          invited_at?: string | null
           is_active?: boolean
           joined_at?: string
           organization_id?: string
+          revoked_at?: string | null
+          verified_at?: string | null
           role?: Database["public"]["Enums"]["application_role"]
+          status?: Database["public"]["Enums"]["organization_membership_status"]
+          suspended_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -1260,6 +1278,7 @@ export type Database = {
           is_active: boolean
           last_name: string | null
           phone: string | null
+          title: string | null
           updated_at: string
         }
         Insert: {
@@ -1273,6 +1292,7 @@ export type Database = {
           is_active?: boolean
           last_name?: string | null
           phone?: string | null
+          title?: string | null
           updated_at?: string
         }
         Update: {
@@ -1286,6 +1306,7 @@ export type Database = {
           is_active?: boolean
           last_name?: string | null
           phone?: string | null
+          title?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -2643,9 +2664,17 @@ export type Database = {
             }
             Returns: string
           }
+      record_organization_membership_invitation_event: {
+        Args: {
+          target_event_type: string
+          target_membership_id: string
+        }
+        Returns: undefined
+      }
       provision_organization_member: {
         Args: {
           target_email: string
+          target_identity_verified?: boolean
           target_organization_id: string
           target_role: Database["public"]["Enums"]["application_role"]
         }
@@ -2989,6 +3018,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      verify_my_membership_invitation: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          membership_id: string
+          organization_id: string
+          status: Database["public"]["Enums"]["organization_membership_status"]
+        }[]
+      }
+      transition_organization_membership: {
+        Args: {
+          target_action: string
+          target_membership_id: string
+        }
+        Returns: Database["public"]["Enums"]["organization_membership_status"]
+      }
       update_organization_membership: {
         Args: {
           target_active: boolean
@@ -3134,6 +3178,12 @@ export type Database = {
         | "EXPIRED"
         | "SUSPENDED"
         | "CANCELLED"
+      organization_membership_status:
+        | "INVITED"
+        | "VERIFIED"
+        | "ACTIVE"
+        | "SUSPENDED"
+        | "REVOKED"
       organization_status: "ACTIVE" | "SUSPENDED" | "ARCHIVED"
       priority_level: "LOW" | "NORMAL" | "HIGH" | "URGENT"
       question_response_type:
@@ -3342,6 +3392,13 @@ export const Constants = {
         "EXPIRED",
         "SUSPENDED",
         "CANCELLED",
+      ],
+      organization_membership_status: [
+        "INVITED",
+        "VERIFIED",
+        "ACTIVE",
+        "SUSPENDED",
+        "REVOKED",
       ],
       organization_status: ["ACTIVE", "SUSPENDED", "ARCHIVED"],
       priority_level: ["LOW", "NORMAL", "HIGH", "URGENT"],

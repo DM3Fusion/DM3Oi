@@ -139,6 +139,6 @@ test("delegated changes emit bounded server-side trace events", () => {
   assert.match(action, /occurredAt: new Date\(\)\.toISOString\(\)/);
   assert.match(action, /DISPLAY_NAME_CHANGED/);
   assert.match(action, /AVATAR_CHANGED/);
-  assert.match(action, /AVATAR_AND_DISPLAY_NAME_CHANGED/);
+  assert.match(action, /AVATAR_AND_PROFILE_CHANGED/);
   assert.match(action, /AVATAR_REMOVED/);
 });

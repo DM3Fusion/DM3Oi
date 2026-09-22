@@ -57,7 +57,7 @@ test("organization Users resolves canonical profile avatars after tenant and pla
     register.indexOf("!platformAdminIds.has(member.user_id)") <
       register.indexOf("attachAuthorizedAvatarUrls("),
   );
-  assert.match(register, /profiles\(id,email,display_name,avatar_path,avatar_updated_at\)/);
+  assert.match(register, /profiles\(id,email,display_name,title,avatar_path,avatar_updated_at\)/);
   assert.match(register, /attachAuthorizedAvatarUrls\(\s*rows\.flatMap/);
   assert.doesNotMatch(register, /createAdminClient/);
   assert.match(register, /src=\{profile\?\.avatarUrl\}/);

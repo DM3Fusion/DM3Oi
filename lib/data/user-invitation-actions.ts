@@ -50,6 +50,15 @@ async function findAuthUserByEmail(
   }
   return null;
 }
+async function authIdentityIsVerified(
+  admin: ReturnType<typeof createAdminClient>,
+  userId: string,
+) {
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error || !data.user) return false;
+  return Boolean(data.user.email_confirmed_at || data.user.last_sign_in_at);
+}
+
 async function requireActiveOrganization(
   session: Awaited<ReturnType<typeof createClient>>,
   organizationId: string,
@@ -68,6 +77,7 @@ async function requireActiveOrganization(
 export async function inviteUserAction(form: FormData) {
   await requireSuperAdmin();
   const email = value(form, "email").toLowerCase();
+  const title = value(form, "title").slice(0, 100);
   const displayName = value(form, "displayName");
   const organizationId = value(form, "organizationId");
   const role = value(form, "role") as Role;
@@ -95,10 +105,16 @@ export async function inviteUserAction(form: FormData) {
         "error",
         "A user with this email already exists. Select an organization to provision additional access.",
       );
+    const existingAdmin = adminClient("/admin/users/new");
+    const identityVerified = await authIdentityIsVerified(
+      existingAdmin,
+      existing.id,
+    );
     const { error } = await session.rpc("provision_organization_member", {
       target_organization_id: organizationId,
       target_email: email,
       target_role: role,
+      target_identity_verified: identityVerified,
     });
     if (error) go("/admin/users/new", "error", roleError(error.message));
     revalidatePath("/admin/users");
@@ -115,6 +131,7 @@ export async function inviteUserAction(form: FormData) {
       id: existingAuthUser.id,
       email,
       display_name: displayName,
+      title: title || null,
       is_active: active,
     });
     if (profileError) {
@@ -136,10 +153,14 @@ export async function inviteUserAction(form: FormData) {
         "message",
         "This user already existed; the missing application profile was prepared.",
       );
+    const identityVerified = Boolean(
+      existingAuthUser.email_confirmed_at || existingAuthUser.last_sign_in_at,
+    );
     const { error } = await session.rpc("provision_organization_member", {
       target_organization_id: organizationId,
       target_email: email,
       target_role: role,
+      target_identity_verified: identityVerified,
     });
     if (error) go("/admin/users/new", "error", roleError(error.message));
     revalidatePath("/admin/users");
@@ -154,15 +175,15 @@ export async function inviteUserAction(form: FormData) {
         redirectTo: getInvitationRedirect(),
         data: invitationOrganization
           ? organizationInvitationMetadata(
-              { display_name: displayName },
+              { display_name: displayName, title: title || null },
               invitationOrganization.name,
             )
-          : { display_name: displayName },
+          : { display_name: displayName, title: title || null },
       })
     : await admin.auth.admin.createUser({
         email,
         email_confirm: true,
-        user_metadata: { display_name: displayName },
+        user_metadata: { display_name: displayName, title: title || null },
       });
   if (inviteError || !invited.user) {
     console.error("Auth user invitation failed", {
@@ -184,6 +205,7 @@ export async function inviteUserAction(form: FormData) {
     id: userId,
     email,
     display_name: displayName,
+    title: title || null,
     is_active: active,
   });
   if (profileError) {
@@ -201,10 +223,14 @@ export async function inviteUserAction(form: FormData) {
     );
   }
   if (organizationId) {
+    const identityVerified = Boolean(
+      invitedUser.email_confirmed_at || invitedUser.last_sign_in_at,
+    );
     const { error } = await session.rpc("provision_organization_member", {
       target_organization_id: organizationId,
       target_email: email,
       target_role: role,
+      target_identity_verified: identityVerified,
     });
     if (error) {
       await admin.auth.admin.deleteUser(userId);
@@ -236,6 +262,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
   const actorUser = access!.user;
 
   const email = value(form, "email").toLowerCase();
+  const title = value(form, "title").slice(0, 100);
   const firstName = value(form, "firstName");
   const lastName = value(form, "lastName");
   const displayName = `${firstName} ${lastName}`.trim();
@@ -318,6 +345,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
         first_name: firstName,
         last_name: lastName,
         display_name: displayName,
+        title: title || null,
         is_active: true,
       });
       if (profileError)
@@ -331,6 +359,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
           first_name: firstName,
           last_name: lastName,
           display_name: displayName,
+          title: title || null,
           organization_name: activeOrganization.name,
         },
       });
@@ -349,6 +378,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
       first_name: firstName,
       last_name: lastName,
       display_name: displayName,
+      title: title || null,
       is_active: true,
     });
     if (profileError) {
@@ -365,19 +395,57 @@ export async function inviteOrganizationUserAction(form: FormData) {
   const targetUserId = userId!;
   const { data: priorMembership } = await session
     .from("organization_members")
-    .select("id,role,is_active")
+    .select("id,role,is_active,status,verified_at")
     .eq("organization_id", activeOrganization.id)
     .eq("user_id", targetUserId)
     .maybeSingle();
-  if (priorMembership?.is_active) {
+  if (priorMembership?.status === "ACTIVE") {
     if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(path, "error", "A user with this email already belongs to this organization.");
   }
 
+  if (priorMembership?.status === "SUSPENDED") {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(
+      path,
+      "error",
+      "This user's organization access is suspended. Reactivate the existing membership instead of sending a new invitation.",
+    );
+  }
+
+  if (priorMembership?.status === "REVOKED") {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(
+      path,
+      "error",
+      "This user's organization access was revoked. Only SUPER_ADMIN can reinstate the existing membership.",
+    );
+  }
+
+  if (priorMembership?.status === "VERIFIED") {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(
+      path,
+      "error",
+      "This user has already verified the invitation and is waiting for administrator activation.",
+    );
+  }
+
+  const identityVerified = Boolean(
+    existingAuthUser?.email_confirmed_at || existingAuthUser?.last_sign_in_at,
+  );
+
   const membershipResult = priorMembership
     ? await session
         .from("organization_members")
-        .update({ role, is_active: true })
+        .update({
+          role,
+          status: identityVerified ? "VERIFIED" : "INVITED",
+          is_active: false,
+          verified_at: identityVerified ? new Date().toISOString() : null,
+          suspended_at: null,
+          revoked_at: null,
+        })
         .eq("id", priorMembership.id)
         .eq("organization_id", activeOrganization.id)
         .select("id")
@@ -388,7 +456,9 @@ export async function inviteOrganizationUserAction(form: FormData) {
           organization_id: activeOrganization.id,
           user_id: targetUserId,
           role,
-          is_active: true,
+          status: identityVerified ? "VERIFIED" : "INVITED",
+          is_active: false,
+          verified_at: identityVerified ? new Date().toISOString() : null,
         })
         .select("id")
         .maybeSingle();
@@ -397,6 +467,39 @@ export async function inviteOrganizationUserAction(form: FormData) {
     go(path, "error", roleError(membershipResult.error?.message ?? ""));
   }
   const membershipId = membershipResult.data!.id;
+
+  const { error: membershipEventError } = await session.rpc(
+    "record_organization_membership_invitation_event",
+    {
+      target_membership_id: membershipId,
+      target_event_type: identityVerified ? "VERIFIED" : "INVITED",
+    },
+  );
+  if (membershipEventError) {
+    console.error("Organization membership invitation audit failed", {
+      code: membershipEventError.code,
+      message: membershipEventError.message,
+      membershipId,
+    });
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    else if (priorMembership)
+      await admin
+        .from("organization_members")
+        .update({
+          role: priorMembership.role,
+          status: priorMembership.status,
+          is_active: priorMembership.is_active,
+          verified_at: priorMembership.verified_at,
+        })
+        .eq("id", membershipId);
+    else
+      await admin
+        .from("organization_members")
+        .delete()
+        .eq("id", membershipId)
+        .eq("organization_id", activeOrganization.id);
+    go(path, "error", "The invitation could not be recorded.");
+  }
 
   if (
     existingAuthUser &&
@@ -419,7 +522,9 @@ export async function inviteOrganizationUserAction(form: FormData) {
           .from("organization_members")
           .update({
             role: priorMembership.role,
+            status: priorMembership.status,
             is_active: priorMembership.is_active,
+            verified_at: priorMembership.verified_at,
           })
           .eq("id", priorMembership.id)
           .eq("organization_id", activeOrganization.id);
@@ -454,13 +559,14 @@ export async function resendUserInviteAction(form: FormData) {
     hasPermission(access, "MANAGE_USERS");
   if (!isPlatformAdmin && !orgAdmin) return { ok: false, error: "You are not authorized to resend invitations." };
   const admin = adminClient("/admin/users");
-  if (!isPlatformAdmin) {
+  if (organizationId) {
     const session = await createClient();
     const [{ data: member }, { data: platformRole }] = await Promise.all([
-      session.from("organization_members").select("id").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle(),
+      session.from("organization_members").select("id,status").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle(),
       admin.from("platform_user_roles").select("id").eq("user_id", targetUserId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
     ]);
-    if (!member || platformRole) return { ok: false, error: "You are not authorized to resend invitations." };
+    if (!member || member.status !== "INVITED" || (!isPlatformAdmin && platformRole))
+      return { ok: false, error: "Only pending invitations can be resent." };
   }
   const { data: target, error: lookupError } = await admin.auth.admin.getUserById(targetUserId);
   const targetUser = target?.user;
@@ -474,6 +580,44 @@ export async function resendUserInviteAction(form: FormData) {
     : targetUser.user_metadata;
   const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, { redirectTo: getInvitationRedirect(), data: resendData });
   if (error) { console.error("Invitation resend failed", { code: error.code, message: error.message }); return { ok: false, error: "Unable to resend invitation." }; }
+
+  if (organizationId) {
+    const session = await createClient();
+    const { data: member, error: memberError } = await session
+      .from("organization_members")
+      .select("id")
+      .eq("organization_id", organizationId)
+      .eq("user_id", targetUserId)
+      .eq("status", "INVITED")
+      .maybeSingle();
+
+    if (memberError || !member) {
+      console.error("Invitation resend audit membership lookup failed", {
+        message: memberError?.message ?? null,
+        organizationId,
+        targetUserId,
+      });
+      return { ok: false, error: "The invitation was sent, but its audit event could not be recorded." };
+    }
+
+    const { error: eventError } = await session.rpc(
+      "record_organization_membership_invitation_event",
+      {
+        target_membership_id: member.id,
+        target_event_type: "INVITATION_RESENT",
+      },
+    );
+
+    if (eventError) {
+      console.error("Invitation resend audit failed", {
+        code: eventError.code,
+        message: eventError.message,
+        membershipId: member.id,
+      });
+      return { ok: false, error: "The invitation was sent, but its audit event could not be recorded." };
+    }
+  }
+
   return { ok: true };
 }
 export async function getInvitationEligibility(userId: string, organizationId?: string) {
@@ -484,13 +628,13 @@ export async function getInvitationEligibility(userId: string, organizationId?: 
   if (!access?.user || (!access.isSuperAdmin && !orgAdmin)) return false;
   try {
     const admin = createAdminClient();
-    if (!access.isSuperAdmin) {
+    if (organizationId) {
       const session = await createClient();
       const [{ data: member }, { data: platformRole }] = await Promise.all([
-        session.from("organization_members").select("id").eq("organization_id", organizationId!).eq("user_id", userId).maybeSingle(),
+        session.from("organization_members").select("id,status").eq("organization_id", organizationId).eq("user_id", userId).maybeSingle(),
         admin.from("platform_user_roles").select("id").eq("user_id", userId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
       ]);
-      if (!member || platformRole) return false;
+      if (!member || member.status !== "INVITED" || (!access.isSuperAdmin && platformRole)) return false;
     }
     const { data, error } = await admin.auth.admin.getUserById(userId);
     const user = data?.user;
@@ -527,6 +671,7 @@ export async function updateUserProfileAction(form: FormData) {
     .from("profiles")
     .update({
       display_name: value(form, "displayName"),
+      title: value(form, "title").slice(0, 100) || null,
       email,
       is_active: value(form, "active") === "true",
     })
@@ -562,10 +707,13 @@ export async function addUserMembershipAction(form: FormData) {
   if (profileError || !profile?.email)
     go(path, "error", "The user profile has no provisionable email.");
   const profileEmail = profile!.email!;
+  const admin = adminClient(path);
+  const identityVerified = await authIdentityIsVerified(admin, userId);
   const { error } = await session.rpc("provision_organization_member", {
     target_organization_id: organizationId,
     target_email: profileEmail,
     target_role: role,
+    target_identity_verified: identityVerified,
   });
   if (error) go(path, "error", roleError(error.message));
   revalidatePath(path);
@@ -579,14 +727,83 @@ export async function updateUserMembershipAction(form: FormData) {
   const role = value(form, "role") as Role;
   if (!isOrganizationUserRole(role))
     go(path, "error", "Select a valid organization role.");
+  const membershipId = value(form, "membershipId");
   const session = await createClient();
+  const { data: membership, error: membershipError } = await session
+    .from("organization_members")
+    .select("id,is_active")
+    .eq("id", membershipId)
+    .single();
+
+  if (membershipError || !membership)
+    go(path, "error", "Organization membership could not be found.");
+
+  const currentMembership = membership!;
+
   const { error } = await session.rpc("update_organization_membership", {
-    target_membership_id: value(form, "membershipId"),
+    target_membership_id: membershipId,
     target_role: role,
-    target_active: value(form, "active") === "true",
+    target_active: currentMembership.is_active,
   });
   if (error) go(path, "error", roleError(error.message));
   revalidatePath(path);
   revalidatePath("/admin/users");
   go(path, "message", "Membership updated.");
+}
+
+export async function transitionUserMembershipAction(form: FormData) {
+  await requireSuperAdmin();
+
+  const userId = value(form, "userId");
+  const membershipId = value(form, "membershipId");
+  const requestedAction = value(form, "action").toUpperCase();
+  const path = `/admin/users/${userId}`;
+
+  if (
+    !membershipId ||
+    !["ACTIVATE", "SUSPEND", "REACTIVATE", "REVOKE", "REINSTATE"].includes(
+      requestedAction,
+    )
+  )
+    go(path, "error", "Select a valid lifecycle action.");
+
+  const session = await createClient();
+  const { error } = await session.rpc("transition_organization_membership", {
+    target_membership_id: membershipId,
+    target_action: requestedAction,
+  });
+
+  if (error) {
+    if (error.message.includes("ACTIVE_OPERATIONAL_RESPONSIBILITY"))
+      go(
+        path,
+        "error",
+        "This user still has active operational responsibility. Reassign their open cases, tasks, case assignments, or service requests before revoking access.",
+      );
+
+    console.error("SUPER_ADMIN membership lifecycle update failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      membershipId,
+      requestedAction,
+    });
+
+    go(path, "error", "Organization membership lifecycle could not be updated.");
+  }
+
+  revalidatePath(path);
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/organizations");
+
+  const messages: Record<string, string> = {
+    ACTIVATE: "Organization access activated.",
+    SUSPEND: "Organization access suspended.",
+    REACTIVATE: "Organization access reactivated.",
+    REVOKE: "Organization access revoked.",
+    REINSTATE: "Organization access reinstated.",
+  };
+
+  go(path, "message", messages[requestedAction] ?? "Membership updated.");
 }

@@ -18,11 +18,13 @@ import { MAX_DISPLAY_NAME_LENGTH } from "@/lib/profile/identity";
 export function OrganizationUserProfileEditor({
   membershipId,
   displayName,
+  title,
   email,
   hasAvatar,
 }: {
   membershipId: string;
   displayName: string;
+  title: string;
   email: string;
   hasAvatar: boolean;
 }) {
@@ -145,6 +147,17 @@ export function OrganizationUserProfileEditor({
                 defaultValue={displayName}
                 required
                 maxLength={MAX_DISPLAY_NAME_LENGTH}
+                disabled={pending}
+              />
+            </label>
+            <label>
+              <span>Title</span>
+              <input
+                name="title"
+                defaultValue={title}
+                maxLength={100}
+                autoComplete="organization-title"
+                placeholder="e.g. President"
                 disabled={pending}
               />
             </label>

@@ -43,7 +43,9 @@ test("organization membership mutations are capability and tenant scoped", () =>
   assert.match(action, /hasPermission\(access, "MANAGE_USERS"\)/);
   assert.match(action, /\.eq\("id", membershipId\)/);
   assert.match(action, /\.eq\("organization_id", organizationId\)/);
-  assert.match(action, /\.update\(\{ role, is_active:/);
+  assert.match(action, /\.update\(\{ role \}\)/);
+  assert.match(action, /transition_organization_membership/);
+  assert.doesNotMatch(action, /\.update\(\{ role, is_active:/);
   assert.doesNotMatch(action, /requireSuperAdmin/);
 });
 

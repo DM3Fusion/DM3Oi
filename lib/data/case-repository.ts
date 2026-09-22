@@ -203,7 +203,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   }
   const profiles = await attachAuthorizedAvatarUrls((profileResult.data ?? []).map(profile=>maskPlatformProfile(profile,platformAdminIds)));
   const byProfile = new Map(profiles.map((row) => [row.id, row]));
-  const profileForOrganization=(id:string):AvatarProfileRow|null=>platformAdminIds.has(id)?{id,display_name:ORGANIZATION_SUPPORT_IDENTITY,first_name:null,last_name:null,email:null,phone:null,is_active:true,avatar_path:null,avatar_updated_at:null,avatarUrl:null,created_at:"",updated_at:""}:byProfile.get(id)??null;
+  const profileForOrganization=(id:string):AvatarProfileRow|null=>platformAdminIds.has(id)?{id,display_name:ORGANIZATION_SUPPORT_IDENTITY,first_name:null,last_name:null,email:null,phone:null,title:null,is_active:true,avatar_path:null,avatar_updated_at:null,avatarUrl:null,created_at:"",updated_at:""}:byProfile.get(id)??null;
   const customers = customerResult.data ?? [];
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
@@ -263,7 +263,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
             actor: activity.actor_user_id
               ? profileForOrganization(activity.actor_user_id)
               : activity.actor_display_name
-                ? { id: "masked-platform-actor", display_name: activity.actor_display_name, first_name: null, last_name: null, email: null, phone: null, is_active: true, avatar_path: null, avatar_updated_at: null, avatarUrl: null, created_at: "", updated_at: "" }
+                ? { id: "masked-platform-actor", display_name: activity.actor_display_name, first_name: null, last_name: null, email: null, phone: null, title: null, is_active: true, avatar_path: null, avatar_updated_at: null, avatarUrl: null, created_at: "", updated_at: "" }
                 : null,
             caseNumber,
           },

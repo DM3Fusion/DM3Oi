@@ -47,6 +47,14 @@ export default async function Page({
               />
             </label>
             <label>
+              <span>Title</span>
+              <input
+                name="title"
+                maxLength={100}
+                placeholder="e.g. President"
+              />
+            </label>
+            <label>
               <span>
                 Initial organization <small>Optional</small>
               </span>

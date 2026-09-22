@@ -31,6 +31,7 @@ export interface PlatformUserRow extends AvatarProfileRow {
     organizationId: string;
     organizationName: string;
     role: string;
+    status: Database["public"]["Enums"]["organization_membership_status"];
     active: boolean;
     joinedAt: string;
   }[];
@@ -145,6 +146,7 @@ export async function getPlatformAdministration() {
           data.organizations.find((o) => o.id === m.organization_id)?.name ??
           "Unknown organization",
         role: m.role,
+        status: m.status,
         active: m.is_active,
         joinedAt: m.joined_at,
       }));

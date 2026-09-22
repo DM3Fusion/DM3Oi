@@ -8,9 +8,12 @@ import { getPlatformUser } from "@/lib/data/platform-repository";
 import {
   addUserMembershipAction,
   updateUserMembershipAction,
+  transitionUserMembershipAction,
   getInvitationEligibility,
 } from "@/lib/data/user-invitation-actions";
 import { ApplicationIcon } from "@/components/application-icon";
+import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
+import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
 
 const roles = [
   "BUSINESS_OWNER",
@@ -32,6 +35,12 @@ export default async function Page({
     getAccessContext(),
   ]);
   const invitationEligible = await getInvitationEligibility(user.id);
+  const revokedMembership =
+    user.memberships.find((membership) => membership.status === "REVOKED") ??
+    null;
+  const deletionEligibility = revokedMembership
+    ? await getPlatformUserDeletionEligibility(user.id, revokedMembership.id)
+    : null;
 
   const isOwnProfile = access?.user.id === user.id;
   const activeOrganizations = organizations.filter(
@@ -94,7 +103,7 @@ export default async function Page({
           </div>
           <PlatformIdentityForm
             userId={user.id}
-            identity={{ displayName: user.display_name ?? "", email: user.email ?? "", active: user.is_active }}
+            identity={{ displayName: user.display_name ?? "", title: user.title ?? "", email: user.email ?? "", active: user.is_active }}
             invitationEligible={invitationEligible}
           />
         </section>
@@ -187,9 +196,7 @@ export default async function Page({
                     </td>
                     <td>{membership.role.replaceAll("_", " ")}</td>
                     <td>
-                      <Badge
-                        value={membership.active ? "ACTIVE" : "INACTIVE"}
-                      />
+                      <Badge value={membership.status} />
                     </td>
                     <td>
                       {new Date(membership.joinedAt).toLocaleDateString()}
@@ -212,15 +219,49 @@ export default async function Page({
                             </option>
                           ))}
                         </select>
-                        <select
-                          name="active"
-                          defaultValue={String(membership.active)}
-                        >
-                          <option value="true">Active</option>
-                          <option value="false">Inactive</option>
-                        </select>
-                        <button>Save</button>
+                        <button>Save role</button>
                       </form>
+                      <div className="form-actions">
+                        {membership.status === "VERIFIED" ? (
+                          <form action={transitionUserMembershipAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <input type="hidden" name="membershipId" value={membership.id} />
+                            <input type="hidden" name="action" value="ACTIVATE" />
+                            <button className="secondary-button">Activate</button>
+                          </form>
+                        ) : null}
+                        {membership.status === "ACTIVE" ? (
+                          <form action={transitionUserMembershipAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <input type="hidden" name="membershipId" value={membership.id} />
+                            <input type="hidden" name="action" value="SUSPEND" />
+                            <button className="secondary-button">Suspend</button>
+                          </form>
+                        ) : null}
+                        {membership.status === "SUSPENDED" ? (
+                          <form action={transitionUserMembershipAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <input type="hidden" name="membershipId" value={membership.id} />
+                            <input type="hidden" name="action" value="REACTIVATE" />
+                            <button className="secondary-button">Reactivate</button>
+                          </form>
+                        ) : null}
+                        {membership.status !== "REVOKED" ? (
+                          <form action={transitionUserMembershipAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <input type="hidden" name="membershipId" value={membership.id} />
+                            <input type="hidden" name="action" value="REVOKE" />
+                            <button className="secondary-button">Revoke</button>
+                          </form>
+                        ) : (
+                          <form action={transitionUserMembershipAction}>
+                            <input type="hidden" name="userId" value={user.id} />
+                            <input type="hidden" name="membershipId" value={membership.id} />
+                            <input type="hidden" name="action" value="REINSTATE" />
+                            <button className="secondary-button">Reinstate</button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </NavigableRow>
                 ))}
@@ -234,6 +275,30 @@ export default async function Page({
           </div>
         )}
       </section>
+      {revokedMembership ? (
+        <section className="panel detail-section">
+          <div className="section-head">
+            <div>
+              <h2>Permanent deletion</h2>
+              <p>
+                SUPER_ADMIN identity deletion for revoked organization access.
+              </p>
+            </div>
+          </div>
+          <SuperAdminUserDelete
+            userId={user.id}
+            membershipId={revokedMembership.id}
+            organizationId={revokedMembership.organizationId}
+            displayName={name}
+            email={user.email ?? ""}
+            blockers={
+              deletionEligibility?.blockers ?? [
+                "Dependency checks could not be completed.",
+              ]
+            }
+          />
+        </section>
+      ) : null}
       <Link className="auth-link" href="/admin/users">
         <ApplicationIcon name="back" />All users
       </Link>

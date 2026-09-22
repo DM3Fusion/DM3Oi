@@ -25,7 +25,7 @@ export default async function Page({
   const { data: members } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,joined_at,profiles(id,email,display_name,avatar_path,avatar_updated_at)",
+      "id,user_id,role,is_active,status,joined_at,profiles(id,email,display_name,title,avatar_path,avatar_updated_at)",
     )
     .eq("organization_id", org.id)
     .order("joined_at");
@@ -117,6 +117,11 @@ export default async function Page({
                             >
                               {name}
                             </Link>
+                            {profile?.title ? (
+                              <small className="table-secondary">
+                                {profile.title}
+                              </small>
+                            ) : null}
                             <small className="table-secondary">
                               {profile?.email}
                             </small>
@@ -125,7 +130,7 @@ export default async function Page({
                       </td>
                       <td>{m.role.replaceAll("_", " ")}</td>
                       <td>
-                        <Badge value={m.is_active ? "ACTIVE" : "INACTIVE"} />
+                        <Badge value={m.status ?? (m.is_active ? "ACTIVE" : "SUSPENDED")} />
                       </td>
                       <td>
                         {eligible.find(([id]) => id === m.user_id)?.[1] ? (

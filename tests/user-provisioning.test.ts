@@ -72,7 +72,7 @@ test("Admin Auth credential is server-only and actions require SUPER_ADMIN", () 
   assert.match(admin, /^import "server-only";/);
   assert.match(admin, /DM3IQCM_SUPABASE_SERVICE_ROLE_KEY/);
   assert.doesNotMatch(admin, /NEXT_PUBLIC_.*SERVICE_ROLE/);
-  assert.equal((actions.match(/await requireSuperAdmin\(\)/g) ?? []).length, 4);
+  assert.equal((actions.match(/await requireSuperAdmin\(\)/g) ?? []).length, 5);
   assert.match(actions, /inviteUserByEmail/);
   assert.match(actions, /\.ilike\("email", email\)/);
   assert.match(actions, /listUsers/);

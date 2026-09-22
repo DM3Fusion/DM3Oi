@@ -71,6 +71,15 @@ export default async function NewOrganizationUserPage({
               <input name="lastName" autoComplete="family-name" maxLength={80} required />
             </label>
             <label className="full">
+              <span>Title</span>
+              <input
+                name="title"
+                autoComplete="organization-title"
+                maxLength={100}
+                placeholder="e.g. President"
+              />
+            </label>
+            <label className="full">
               <span>Email</span>
               <input name="email" type="email" autoComplete="email" maxLength={320} required />
             </label>

@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
+import { isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -33,6 +35,7 @@ type AuthorizedTarget = {
   profile: {
     id: string;
     display_name: string | null;
+    title: string | null;
     avatar_path: string | null;
   };
 };
@@ -51,11 +54,27 @@ async function authorizeTarget(membershipId: string): Promise<AuthorizedTarget> 
   const supabase = await createClient();
   const { data: membership } = await supabase
     .from("organization_members")
-    .select("id,user_id,organization_id,profiles(id,display_name,avatar_path)")
+    .select("id,user_id,organization_id,role,profiles(id,display_name,title,avatar_path)")
     .eq("id", membershipId)
     .eq("organization_id", organizationId)
     .maybeSingle();
   if (!membership) throw new Error("UNAUTHORIZED");
+  const actorRole = access.activeOrganization?.role;
+  if (
+    !actorRole ||
+    !isOrganizationUserRole(actorRole) ||
+    !isOrganizationUserRole(membership.role)
+  )
+    throw new Error("UNAUTHORIZED");
+
+  const targetRole = membership.role as
+    | "BUSINESS_OWNER"
+    | "BUSINESS_ADMIN"
+    | "STAFF_MANAGER"
+    | "STAFF_USER";
+
+  if (!canConfigureOrganizationRole(actorRole, targetRole))
+    throw new Error("UNAUTHORIZED");
   if ((await getPlatformAdminUserIds()).has(membership.user_id))
     throw new Error("UNAUTHORIZED");
 
@@ -131,6 +150,8 @@ export async function updateOrganizationUserProfileAction(form: FormData) {
   if (!validatedName.ok)
     return { ok: false as const, error: validatedName.error };
 
+  const title = value(form, "title").slice(0, 100);
+
   const sourceReference = value(form, "sourceReference");
   let sourcePath: string | null = null;
   let uploadedPath: string | null = null;
@@ -140,6 +161,8 @@ export async function updateOrganizationUserProfileAction(form: FormData) {
     let normalized: Buffer | null = null;
     const displayNameChanged =
       target.profile.display_name !== validatedName.displayName;
+    const titleChanged =
+      (target.profile.title ?? "") !== title;
 
     if (sourceReference) {
       if (
@@ -176,10 +199,11 @@ export async function updateOrganizationUserProfileAction(form: FormData) {
         return { ok: false as const, error: "The avatar could not be stored." };
     }
 
-    if (!displayNameChanged && !uploadedPath)
+    if (!displayNameChanged && !titleChanged && !uploadedPath)
       return {
         ok: true as const,
         displayName: validatedName.displayName,
+        title,
         avatarChanged: false,
       };
 
@@ -187,6 +211,7 @@ export async function updateOrganizationUserProfileAction(form: FormData) {
       .from("profiles")
       .update({
         display_name: validatedName.displayName,
+        title: title || null,
         ...(uploadedPath
           ? {
               avatar_path: uploadedPath,
@@ -221,15 +246,20 @@ export async function updateOrganizationUserProfileAction(form: FormData) {
     audit(
       target,
       uploadedPath
-        ? displayNameChanged
-          ? "AVATAR_AND_DISPLAY_NAME_CHANGED"
+        ? displayNameChanged || titleChanged
+          ? "AVATAR_AND_PROFILE_CHANGED"
           : "AVATAR_CHANGED"
-        : "DISPLAY_NAME_CHANGED",
+        : displayNameChanged && titleChanged
+          ? "DISPLAY_NAME_AND_TITLE_CHANGED"
+          : displayNameChanged
+            ? "DISPLAY_NAME_CHANGED"
+            : "TITLE_CHANGED",
     );
     refresh(membershipId);
     return {
       ok: true as const,
       displayName: validatedName.displayName,
+      title,
       avatarChanged: Boolean(uploadedPath),
     };
   } catch {

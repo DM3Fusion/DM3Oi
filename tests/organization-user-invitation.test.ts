@@ -45,7 +45,6 @@ test("Add User is limited to organization Owners and authorized Admins", () => {
 
 test("role assignment follows the Owner and Admin hierarchy", () => {
   assert.deepEqual(assignableOrganizationUserRoles("BUSINESS_OWNER"), [
-    "BUSINESS_OWNER",
     "BUSINESS_ADMIN",
     "STAFF_MANAGER",
     "STAFF_USER",

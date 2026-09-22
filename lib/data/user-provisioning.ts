@@ -15,7 +15,7 @@ export function assignableOrganizationUserRoles(
   actorRole: OrganizationUserRole,
 ): readonly OrganizationUserRole[] {
   return actorRole === "BUSINESS_OWNER"
-    ? ORGANIZATION_USER_ROLES
+    ? ["BUSINESS_ADMIN", "STAFF_MANAGER", "STAFF_USER"]
     : actorRole === "BUSINESS_ADMIN"
       ? ["STAFF_MANAGER", "STAFF_USER"]
       : [];

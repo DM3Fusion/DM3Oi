@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { updateUserProfileAction } from "@/lib/data/user-invitation-actions";
 import { ResendInviteButton } from "@/components/resend-invite-button";
 
-type Identity = { displayName: string; email: string; active: boolean };
+type Identity = { displayName: string; title: string; email: string; active: boolean };
 
 export function PlatformIdentityForm({
   userId,
@@ -53,6 +53,7 @@ export function PlatformIdentityForm({
         <input type="hidden" name="userId" value={userId} />
         <div className="form-grid">
           <label><span>Display name</span><input name="displayName" value={values.displayName} onChange={(e) => update("displayName", e.target.value)} required /></label>
+          <label><span>Title</span><input name="title" value={values.title} onChange={(e) => update("title", e.target.value)} maxLength={100} placeholder="e.g. President" /></label>
           <label><span>Email</span><input name="email" type="email" value={values.email} onChange={(e) => update("email", e.target.value)} required /></label>
           <label><span>Profile state</span><select name="active" value={String(values.active)} onChange={(e) => update("active", e.target.value === "true")}><option value="true">Active</option><option value="false">Inactive</option></select></label>
         </div>

@@ -7,6 +7,7 @@ import { PageHeader, Badge } from "@/components/ui";
 import {
   enterOrganizationWorkspaceAction,
   provisionMemberAction,
+  transitionMembershipAction,
   updateMembershipAction,
 } from "@/lib/data/platform-actions";
 import { getOrganizationAdministration } from "@/lib/data/platform-repository";
@@ -201,7 +202,7 @@ export default async function Page({
                     </td>
                     <td>{m.role.replaceAll("_", " ")}</td>
                     <td>
-                      <Badge value={m.is_active ? "ACTIVE" : "INACTIVE"} />
+                      <Badge value={m.status} />
                     </td>
                     <td>{new Date(m.joined_at).toLocaleDateString()}</td>
                     <td>
@@ -222,15 +223,49 @@ export default async function Page({
                             </option>
                           ))}
                         </select>
-                        <select
-                          name="active"
-                          defaultValue={String(m.is_active)}
-                        >
-                          <option value="true">Active</option>
-                          <option value="false">Inactive</option>
-                        </select>
-                        <button>Save</button>
+                        <button>Save role</button>
                       </form>
+                      <div className="form-actions">
+                        {m.status === "VERIFIED" ? (
+                          <form action={transitionMembershipAction}>
+                            <input type="hidden" name="organizationId" value={organization.id} />
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="ACTIVATE" />
+                            <button className="secondary-button">Activate</button>
+                          </form>
+                        ) : null}
+                        {m.status === "ACTIVE" ? (
+                          <form action={transitionMembershipAction}>
+                            <input type="hidden" name="organizationId" value={organization.id} />
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="SUSPEND" />
+                            <button className="secondary-button">Suspend</button>
+                          </form>
+                        ) : null}
+                        {m.status === "SUSPENDED" ? (
+                          <form action={transitionMembershipAction}>
+                            <input type="hidden" name="organizationId" value={organization.id} />
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="REACTIVATE" />
+                            <button className="secondary-button">Reactivate</button>
+                          </form>
+                        ) : null}
+                        {m.status !== "REVOKED" ? (
+                          <form action={transitionMembershipAction}>
+                            <input type="hidden" name="organizationId" value={organization.id} />
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="REVOKE" />
+                            <button className="secondary-button">Revoke</button>
+                          </form>
+                        ) : (
+                          <form action={transitionMembershipAction}>
+                            <input type="hidden" name="organizationId" value={organization.id} />
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="REINSTATE" />
+                            <button className="secondary-button">Reinstate</button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </NavigableRow>
                 ))}
