@@ -35,16 +35,60 @@ test("notification destinations retain Communications context without accepting 
 
 test("mobile inbox remains one authorized dataset with touch cards and non-color unread text", () => {
   const page = source("app/communications/page.tsx");
+  const inbox = source("components/communications-inbox.tsx");
   const css = source("app/globals.css");
   assert.equal((page.match(/getNotifications\(/g) ?? []).length, 1);
   assert.match(page, /communications-view-\$\{communicationsView\}/);
-  assert.match(page, /notification-read-label/);
-  assert.match(page, /item\.read_at \? "Read" : "Unread"/);
-  assert.match(page, /item\.source_domain\.replaceAll/);
+  assert.match(page, /<CommunicationsInbox/);
+  assert.match(page, /notifications=\{notifications\}/);
+  assert.match(inbox, /notification-read-label/);
+  assert.match(inbox, /item\.read_at \? "Read" : "Unread"/);
+  assert.match(inbox, /communications-inbox-mobile/);
+  assert.match(inbox, /openNotificationAction/);
+  assert.match(inbox, /communicationsDestination\(item\.destination_path\)/);
   assert.match(css, /\.communications-view-mobile \.notification-item\{[^}]*border-radius:10px/);
   assert.match(css, /\.communications-view-mobile \.notification-open\{[^}]*min-height:112px/);
   assert.match(css, /-webkit-line-clamp:2/);
   assert.match(css, /@media\(max-width:430px\)/);
+});
+
+test("wide Communications inbox provides local master-detail preview without another repository query", () => {
+  const page = source("app/communications/page.tsx");
+  const inbox = source("components/communications-inbox.tsx");
+  const css = source("app/globals.css");
+  assert.equal((page.match(/getNotifications\(/g) ?? []).length, 1);
+  assert.match(page, /notifications=\{notifications\}/);
+  assert.match(inbox, /useState<string \| null>\(notifications\[0\]\?\.id \?\? null\)/);
+  assert.match(inbox, /setSelectedId\(item\.id\)/);
+  assert.match(inbox, /notifications\.find\(\(item\) => item\.id === selectedId\) \?\? notifications\[0\]/);
+  assert.doesNotMatch(inbox, /useEffect/);
+  assert.match(inbox, /communications-inbox-desktop/);
+  assert.match(inbox, /communications-master/);
+  assert.match(inbox, /communications-preview/);
+  assert.match(css, /\.communications-inbox-desktop\{[^}]*display:grid/);
+  assert.match(css, /grid-template-columns:minmax\(330px,40%\) minmax\(0,1fr\)/);
+  assert.match(css, /@media\(max-width:700px\)[\s\S]*\.communications-inbox-desktop\{[\s\S]*display:none/);
+});
+
+test("preview preserves personal read actions and Owner observed-row isolation", () => {
+  const inbox = source("components/communications-inbox.tsx");
+  assert.match(inbox, /item\.is_personal \? \(/);
+  assert.match(inbox, /<form action=\{openNotificationAction\}>/);
+  assert.match(inbox, /markNotificationUnreadAction : markNotificationReadAction/);
+  assert.match(inbox, /<Link className="primary-button" href=\{communicationsDestination\(item\.destination_path\)\}>/);
+  assert.match(inbox, /Recipient read status is not changed from this view/);
+  assert.match(inbox, /Recipient/);
+  assert.match(inbox, /recipient_display_name/);
+});
+
+test("Inbox presentation humanizes source labels and suppresses duplicate category metadata", () => {
+  const inbox = source("components/communications-inbox.tsx");
+  assert.match(inbox, /item\.source_domain === "SERVICE_REQUEST"\) return "Service Request"/);
+  assert.match(inbox, /item\.category === item\.source_domain/);
+  assert.match(inbox, /return null/);
+  assert.match(inbox, /Open Service Request/);
+  assert.match(inbox, /Open Case/);
+  assert.match(inbox, /Open Task/);
 });
 
 test("mobile search stays live while structured filters collapse with count and clear controls", () => {

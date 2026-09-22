@@ -122,11 +122,11 @@ test("tablet and desktop retain the existing sidebar drawer architecture", () =>
 });
 
 test("Communications controls are compact and duplicate source/category metadata is suppressed on mobile", () => {
+  const inbox = source("components/communications-inbox.tsx");
   assert.match(communications, /action=\{<div className="communications-header-actions">/);
   assert.match(communications, /communications-mark-label-compact/);
-  assert.match(communications, /item\.source_domain === item\.category \? " duplicate"/);
-  assert.match(communications, /notification-category-label">Category:/);
-  assert.match(css, /\.communications-view-mobile \.notification-category\.duplicate\{display:none\}/);
+  assert.match(inbox, /item\.category === item\.source_domain/);
+  assert.match(inbox, /if \(!item\.category \|\| item\.category === item\.source_domain\) return null/);
   assert.match(css, /\.communications-header-actions \.communications-view-toggle\{display:flex;margin:0\}/);
   assert.match(css, /\.communications-workspace>\.page-header p\{[^}]*-webkit-line-clamp:2/);
 });

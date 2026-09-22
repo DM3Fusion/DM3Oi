@@ -1,21 +1,17 @@
 import { PageHeader } from "@/components/ui";
 import {
   markAllNotificationsReadAction,
-  markNotificationReadAction,
-  markNotificationUnreadAction,
-  openNotificationAction,
 } from "@/lib/data/communications-actions";
 import { getNotifications, getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { requirePermission } from "@/lib/auth/context";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { formatOrganizationDateTime, startOfOrganizationDay } from "@/lib/organization-timezone";
+import { startOfOrganizationDay } from "@/lib/organization-timezone";
 import { CommunicationsFilters, type CommunicationsFilterValues } from "@/components/communications-filters";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { CommunicationsViewToggle } from "@/components/communications-view-toggle";
-import { communicationsDestination, communicationsViewCookie, normalizeCommunicationsView } from "@/lib/communications-view";
-import { ApplicationIcon } from "@/components/application-icon";
+import { communicationsViewCookie, normalizeCommunicationsView } from "@/lib/communications-view";
+import { CommunicationsInbox } from "@/components/communications-inbox";
 
 const statuses = new Set(["all", "unread", "read", "archived"]);
 const sources = new Set(["all", "service-request", "case", "task", "other"]);
@@ -53,42 +49,11 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         </div>}
       />
       <CommunicationsFilters values={values} recipientStatus={organizationWide} />
-      <section className="panel communications-center" aria-label="Notification inbox">
-        {notifications.length ? (
-          <div className="notification-list">
-            {notifications.map((item) => (
-              <article className={`notification-item${item.read_at ? "" : " unread"}${item.is_personal ? "" : " observed"}`} key={item.id}>
-                {item.is_personal ? <form action={openNotificationAction} className="notification-open-form">
-                  <input type="hidden" name="notificationId" value={item.id} />
-                  <input type="hidden" name="destination" value={item.destination_path} />
-                  <PendingSubmitButton className="notification-open" pendingLabel="Opening…">
-                    <span className="notification-state" aria-hidden />
-                    <span className="notification-copy">
-                      <strong>{item.title}</strong>
-                      <span>{item.message}</span>
-                      <small><span className="notification-read-label">{item.read_at ? "Read" : "Unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
-                    </span>
-                    <ApplicationIcon name="forward" />
-                  </PendingSubmitButton>
-                </form> : <Link href={communicationsDestination(item.destination_path)} className="notification-open">
-                  <span className="notification-state" aria-hidden />
-                  <span className="notification-copy">
-                    <strong>{item.title}</strong>
-                    <span>{item.message}</span>
-                    <small><span className="notification-read-label">{item.read_at ? "Recipient read" : "Recipient unread"}</span> · <span className="notification-source">{item.source_domain.replaceAll("_", " ")}</span><span className={`notification-category${item.source_domain === item.category ? " duplicate" : ""}`}> · <span className="notification-category-label">Category: </span>{item.category.replaceAll("_", " ")}</span> · {formatOrganizationDateTime(item.created_at, timezone, "medium")}</small>
-                    <small className="notification-recipient">Recipient: {item.recipient_display_name}</small>
-                  </span>
-                  <ApplicationIcon name="forward" />
-                </Link>}
-                {item.is_personal ? <form action={item.read_at ? markNotificationUnreadAction : markNotificationReadAction} className="notification-state-form">
-                  <input type="hidden" name="notificationId" value={item.id} />
-                  <PendingSubmitButton pendingLabel="Updating…">Mark as {item.read_at ? "unread" : "read"}</PendingSubmitButton>
-                </form> : null}
-              </article>
-            ))}
-          </div>
-        ) : <div className="no-results">{values.q ? (hasStructuredFilters ? "No communications match your search and filters." : "No communications match your search.") : filtered ? "No communications match these filters." : "No communications yet."}</div>}
-      </section>
+      <CommunicationsInbox
+        notifications={notifications}
+        timezone={timezone}
+        emptyMessage={values.q ? (hasStructuredFilters ? "No communications match your search and filters." : "No communications match your search.") : filtered ? "No communications match these filters." : "No communications yet."}
+      />
     </div>
   );
 }

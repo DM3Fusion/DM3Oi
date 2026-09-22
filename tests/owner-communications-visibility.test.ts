@@ -10,6 +10,7 @@ const migration = source(
 );
 const repository = source("lib/data/communications-repository.ts");
 const page = source("app/communications/page.tsx");
+const inbox = source("components/communications-inbox.tsx");
 const filters = source("components/communications-filters.tsx");
 const actions = source("lib/data/communications-actions.ts");
 const permissionMigration = source(
@@ -42,14 +43,15 @@ test("recipient names use profile display conventions without exposing email or 
   assert.match(repository, /\.select\("id,display_name,first_name,last_name"\)/);
   assert.match(repository, /profile\.display_name \|\| \[profile\.first_name, profile\.last_name\]/);
   assert.doesNotMatch(repository, /profiles[^\n]*email|recipient_email/);
-  assert.match(page, /Recipient: \{item\.recipient_display_name\}/);
+  assert.match(inbox, /Recipient: \{item\.recipient_display_name\}/);
   assert.match(migration, /not public\.is_super_admin\(recipient_user_id\)/);
 });
 
 test("observed rows navigate without mutating another recipient's read state", () => {
-  assert.match(page, /item\.is_personal \? <form action=\{openNotificationAction\}/);
-  assert.match(page, /: <Link href=\{communicationsDestination\(item\.destination_path\)\} className="notification-open">/);
-  assert.match(page, /item\.is_personal \? <form action=\{item\.read_at \? markNotificationUnreadAction : markNotificationReadAction\}/);
+  assert.match(inbox, /item\.is_personal \? \(/);
+  assert.match(inbox, /<form action=\{openNotificationAction\}>/);
+  assert.match(inbox, /<Link className="primary-button" href=\{communicationsDestination\(item\.destination_path\)\}>/);
+  assert.match(inbox, /action=\{item\.read_at \? markNotificationUnreadAction : markNotificationReadAction\}/);
   assert.match(permissionMigration, /where n\.id=target_notification_id and n\.recipient_user_id=actor/);
   assert.match(permissionMigration, /recipient_user_id=actor and read_at is null and archived_at is null/);
   assert.match(databaseRegression, /Owner changed Staff notification state/);
@@ -72,8 +74,8 @@ test("status, source, date, search, and destination behavior remain intact", () 
   assert.match(repository, /filters\.source === "service-request"/);
   assert.match(repository, /filters\.createdAfter/);
   assert.match(repository, /title\.ilike/);
-  assert.match(page, /communicationsDestination\(item\.destination_path\)/);
-  assert.match(page, /Recipient unread/);
+  assert.match(inbox, /communicationsDestination\(item\.destination_path\)/);
+  assert.match(inbox, /Recipient unread/);
 });
 
 test("other internal roles, portal users, and platform behavior remain constrained", () => {

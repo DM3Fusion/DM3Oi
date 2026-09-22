@@ -26,7 +26,7 @@ test("Today begins at midnight in the organization timezone", () => {
 });
 
 test("organization operational surfaces consume the shared timezone", () => {
-  const communications = source("app/communications/page.tsx");
+  const communications = source("components/communications-inbox.tsx");
   const staff = source("app/service-desk/[serviceRequestId]/page.tsx");
   const portal = source("app/portal/service-requests/[serviceRequestId]/page.tsx");
   const cases = source("app/cases/[caseId]/page.tsx");
