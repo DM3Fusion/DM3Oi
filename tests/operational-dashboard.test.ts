@@ -46,14 +46,25 @@ test("dashboard includes deterministic attention, progress, task status, and lin
   assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
 });
 
-test("approved dashboard panel order is preserved", () => {
+test("Dashboard DOM preserves the streamlined phone order with Recent Activity once and last", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const caseProgress = dashboard.indexOf(">Case Progress<");
   const taskStatus = dashboard.indexOf(">Task Status<");
   const needsAttention = dashboard.indexOf(">Needs Attention<");
+  const intelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
+  const casesNeedingAttention = dashboard.indexOf("<CasesNeedingAttention intelligence={intelligence}");
   const recentActivity = dashboard.indexOf(">Recent Activity<");
   assert.ok(caseProgress > -1 && caseProgress < taskStatus);
-  assert.ok(taskStatus < needsAttention && needsAttention < recentActivity);
+  assert.ok(taskStatus < needsAttention && needsAttention < intelligence);
+  assert.ok(intelligence < casesNeedingAttention && casesNeedingAttention < recentActivity);
+  assert.equal(dashboard.match(/>Recent Activity</g)?.length, 1);
+  assert.equal(dashboard.match(/<OperationalIntelligenceSection intelligence=\{intelligence\}/g)?.length, 1);
+  assert.equal(dashboard.match(/<CasesNeedingAttention intelligence=\{intelligence\}/g)?.length, 1);
+});
+
+test("desktop and tablet pair attention cards before Intelligence and place Recent Activity last", () => {
+  const css = source("app/globals.css");
+  assert.match(css, /@media\(min-width:601px\)\{\.operations-lower\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.operations-lower>\.needs-attention\{order:1\}\.operations-lower>\.cases-needing-attention\{order:2\}\.operations-lower>\.operational-intelligence\{grid-column:1\/-1;order:3\}\.operations-lower>\.recent-activity\{grid-column:1\/-1;order:4\}\}/);
 });
 
 test("case progress uses an accessible vertical bar chart with preserved categories", () => {
@@ -75,6 +86,60 @@ test("case progress and task status expose semantic drill-down links", () => {
   for (const href of ["/tasks?status=completed", "/tasks?status=open", "/tasks?status=blocked", "/tasks?due=overdue"]) assert.match(dashboard, new RegExp(`href=\"${href.replace("?", "\\?")}\"`));
   assert.match(dashboard, /<Link className="case-progress-column" href=\{item\.href\}/);
   assert.match(dashboard, /aria-label=\{`View \$\{item\.label\.toLowerCase\(\)\} cases`\}/);
+});
+
+test("phone Task Status keeps its visualization and uses a compact aligned value column", () => {
+  const dashboard = source("components/dashboard/dashboard.tsx");
+  const css = source("app/globals.css");
+  assert.match(css, /@media\(max-width:600px\)\{\.task-status-layout\{grid-template-columns:98px minmax\(0,1fr\);gap:10px\}/);
+  assert.match(css, /\.task-status-list\{justify-self:start;width:min\(100%,200px\)\}/);
+  assert.match(css, /\.task-status-list>a\{display:grid;grid-template-columns:minmax\(0,1fr\) 5ch;gap:12px\}/);
+  assert.match(css, /\.task-status-list>a>strong\{text-align:right;font-variant-numeric:tabular-nums\}/);
+  assert.match(dashboard, /className="task-ring"[\s\S]*?taskCompletion\*3\.6/);
+  assert.match(dashboard, />View tasks <ApplicationIcon name="forward"/);
+  assert.match(dashboard, /<strong>\{summary\.tasks\.(?:completed|open|blocked|overdue)\}<\/strong>/);
+  assert.match(css, /\.task-status-layout\{display:grid;grid-template-columns:135px 1fr/);
+});
+
+test("Needs Attention donut summarizes only the existing actionable row counts", () => {
+  const dashboard = source("components/dashboard/dashboard.tsx");
+  assert.match(dashboard, /function AttentionSummaryRing\(\{items\}/);
+  assert.match(dashboard, /const total=items\.reduce\(\(sum,item\)=>sum\+item\.value,0\)/);
+  assert.match(dashboard, /<AttentionSummaryRing items=\{summary\.attention\}/);
+  assert.match(dashboard, /summary\.attention\.map\(item=><Link href=\{item\.href\}/);
+  assert.match(dashboard, /aria-label=\{`\$\{total\} current attention items`\}/);
+  assert.match(dashboard, /<small>Items<\/small>/);
+  assert.doesNotMatch(dashboard, /attention-summary-ring[\s\S]{0,300}(?:Complete|Progress|Readiness)/);
+  assert.doesNotMatch(dashboard, /getLiveOrganizationData|getOperationalIntelligence/);
+});
+
+test("each Case needing attention reuses its accessible progress value in a compact ring", () => {
+  const intelligence = source("components/dashboard/operational-intelligence.tsx");
+  const css = source("app/globals.css");
+  assert.match(intelligence, /attentionCases\.slice\(0, 6\)\.map\(\(item\)/);
+  assert.match(intelligence, /className="case-attention-progress" style=\{\{ "--case-progress": `\$\{item\.progressPercent \* 3\.6\}deg`/);
+  assert.match(intelligence, /aria-label=\{`\$\{item\.progressPercent\}% case progress`\}/);
+  assert.match(intelligence, /<strong>\{item\.progressPercent\}%<\/strong>/);
+  assert.doesNotMatch(intelligence, /<b>\{item\.progressPercent\}%<\/b>/);
+  assert.match(css, /\.case-attention-progress\{[^}]*width:58px;height:58px[^}]*conic-gradient\(#2d8fa9 var\(--case-progress\),#e7edf3 0\)/);
+  assert.match(css, /\.attention-case-list>a>\.case-attention-progress,\.attention-case-list>div>\.case-attention-progress\{justify-self:end\}/);
+  assert.match(css, /@media\(max-width:600px\)[^\n]*\.attention-case-list \.case-attention-progress\{grid-column:2;justify-self:end/);
+});
+
+test("phone Top Bottlenecks contains the blocked-work message in normal flow", () => {
+  const intelligence = source("components/dashboard/operational-intelligence.tsx");
+  const css = source("app/globals.css");
+  assert.match(intelligence, /<h2>Top Bottlenecks<\/h2>[\s\S]*?<div className="blocked-work-empty">No Cases currently have blocked required work\.<\/div>/);
+  assert.match(intelligence, /className="panel intelligence-panel cases-needing-attention"[\s\S]*?<h2>Cases Needing Attention<\/h2>/);
+  const containment = css.match(/\.blocked-work-empty\{([^}]*)\}/)?.[1] ?? "";
+  assert.match(containment, /min-width:0/);
+  assert.match(containment, /margin:0/);
+  assert.match(containment, /padding:8px 16px 18px/);
+  assert.match(containment, /white-space:normal/);
+  assert.match(containment, /overflow-wrap:anywhere/);
+  assert.doesNotMatch(containment, /position:absolute|(?:^|;)(?:min-|max-)?height:/);
+  assert.match(intelligence, /intelligence\.blockedWork\.cases\.length/);
+  assert.match(intelligence, /intelligence\.blockedWork\.topTasks\.map/);
 });
 
 test("destination filters reuse authorized organization data and shared semantics", () => {

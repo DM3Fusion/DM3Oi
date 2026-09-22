@@ -35,6 +35,37 @@ function IntelligenceKpi({
   );
 }
 
+export function CasesNeedingAttention({
+  intelligence,
+}: {
+  intelligence: AuthorizedOperationalIntelligence;
+}) {
+  const { capabilities } = intelligence;
+  return (
+    <section className="panel intelligence-panel cases-needing-attention">
+      <div className="section-head">
+        <h2>Cases Needing Attention</h2>
+      </div>
+      {!capabilities.viewCases ? (
+        <div className="no-results">Case-level attention requires Case access.</div>
+      ) : intelligence.attentionCases.length ? (
+        <div className="attention-case-list">
+          {intelligence.attentionCases.slice(0, 6).map((item) => {
+            const content = <>
+              <span className={`attention-level level-${item.level.toLowerCase()}`}>{levelLabel(item.level)}</span>
+              <span><strong>{item.caseNumber} · {item.title}</strong><small>{item.customerName ?? "Unknown customer"} · {item.reasons.join(" · ")}</small></span>
+              <span className="case-attention-progress" style={{ "--case-progress": `${item.progressPercent * 3.6}deg` } as React.CSSProperties} role="img" aria-label={`${item.progressPercent}% case progress`}><strong>{item.progressPercent}%</strong></span>
+            </>;
+            return <Link href={`/cases/${item.id}`} key={item.id}>{content}</Link>;
+          })}
+        </div>
+      ) : (
+        <div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>No current Cases need completion attention</strong><p>All visible current Cases are ready for completion.</p></div></div>
+      )}
+    </section>
+  );
+}
+
 export function OperationalIntelligenceSection({
   intelligence,
 }: {
@@ -158,30 +189,8 @@ export function OperationalIntelligenceSection({
         </section>
       </div>
 
-      <div className={`intelligence-grid intelligence-lower${intelligence.ruleActivity ? "" : " single"}`}>
-        <section className="panel intelligence-panel">
-          <div className="section-head">
-            <h2>Cases Needing Attention</h2>
-          </div>
-          {!capabilities.viewCases ? (
-            <div className="no-results">Case-level attention requires Case access.</div>
-          ) : intelligence.attentionCases.length ? (
-            <div className="attention-case-list">
-              {intelligence.attentionCases.slice(0, 6).map((item) => {
-                const content = <>
-                  <span className={`attention-level level-${item.level.toLowerCase()}`}>{levelLabel(item.level)}</span>
-                  <span><strong>{item.caseNumber} · {item.title}</strong><small>{item.customerName ?? "Unknown customer"} · {item.reasons.join(" · ")}</small></span>
-                  <b>{item.progressPercent}%</b>
-                </>;
-                return capabilities.viewCases ? <Link href={`/cases/${item.id}`} key={item.id}>{content}</Link> : <div key={item.id}>{content}</div>;
-              })}
-            </div>
-          ) : (
-            <div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>No current Cases need completion attention</strong><p>All visible current Cases are ready for completion.</p></div></div>
-          )}
-        </section>
-
-        {intelligence.ruleActivity ? (
+      {intelligence.ruleActivity ? (
+        <div className="intelligence-grid intelligence-lower single">
           <section className="panel intelligence-panel rule-activity">
             <div className="section-head">
               <h2>Rule Activity</h2>
@@ -202,8 +211,8 @@ export function OperationalIntelligenceSection({
               <div className="no-results">No active Rules are currently affecting Cases.</div>
             )}
           </section>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </section>
   );
 }

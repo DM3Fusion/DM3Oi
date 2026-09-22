@@ -4,9 +4,25 @@ import { displayName } from "@/lib/data/case-repository";
 import { formatActivity } from "@/lib/activity-format";
 import { getOperationalDashboardMetrics } from "@/lib/live-dashboard-metrics";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
-import { OperationalIntelligenceSection } from "@/components/dashboard/operational-intelligence";
+import { CasesNeedingAttention, OperationalIntelligenceSection } from "@/components/dashboard/operational-intelligence";
 import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 import { ApplicationIcon } from "@/components/application-icon";
+
+function AttentionSummaryRing({items}:{items:ReadonlyArray<{value:number;tone:string}>}){
+  const total=items.reduce((sum,item)=>sum+item.value,0);
+  const segments=items.map((item,index)=>{
+    const percent=total?(item.value/total)*100:0;
+    const offset=total?items.slice(0,index).reduce((sum,preceding)=>sum+preceding.value,0)/total*100:0;
+    return {...item,percent,offset};
+  });
+  return <div className="attention-summary-ring" role="img" aria-label={`${total} current attention items`}>
+    <svg viewBox="0 0 42 42" aria-hidden="true" focusable="false">
+      <circle className="attention-ring-track" cx="21" cy="21" r="16" pathLength="100" />
+      {segments.map((segment,index)=><circle className={`attention-ring-segment tone-${segment.tone}`} cx="21" cy="21" r="16" pathLength="100" strokeDasharray={`${segment.percent} ${100-segment.percent}`} strokeDashoffset={-segment.offset} key={`${segment.tone}-${index}`} />)}
+    </svg>
+    <span><strong>{total}</strong><small>Items</small></span>
+  </div>;
+}
 
 export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrganizationData;unreadCommunications:number;intelligence:AuthorizedOperationalIntelligence|null}){
   const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers.length,unreadCommunications,data.timezone);
@@ -44,9 +60,10 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
     <div className="operations-lower">
       <section className="panel needs-attention">
         <div className="section-head attention-heading"><span className="attention-heading-icon"><ApplicationIcon name="warning" /></span><h2>Needs Attention</h2></div>
-        {summary.attention.length?<div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
+        {summary.attention.length?<div className="attention-summary-layout"><AttentionSummaryRing items={summary.attention}/><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
       </section>
       {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
+      {intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null}
       <section className="panel recent-activity">
         <div className="section-head"><h2>Recent Activity</h2><Link href="/cases">View all <ApplicationIcon name="forward" /></Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>
