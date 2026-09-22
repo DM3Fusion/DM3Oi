@@ -367,3 +367,19 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     top:calc(100% + 10px);
   }
 }
+
+@media(min-width:601px){
+  .topbar>.account-menu{
+    transform:translateY(28px);
+  }
+
+  .topbar>.account-menu>summary,
+  .topbar>.account-menu>summary .user-avatar{
+    width:83px;
+    height:83px;
+  }
+
+  .topbar>.account-menu>summary .user-avatar{
+    font-size:20px;
+  }
+}
