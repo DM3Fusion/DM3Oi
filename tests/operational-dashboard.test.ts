@@ -103,34 +103,59 @@ test("phone Task Status keeps its visualization and uses a compact aligned value
 
 test("Needs Attention donut summarizes only the existing actionable row counts", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
+  const css = source("app/globals.css");
   assert.match(dashboard, /function AttentionSummaryRing\(\{items\}/);
   assert.match(dashboard, /const total=items\.reduce\(\(sum,item\)=>sum\+item\.value,0\)/);
   assert.match(dashboard, /<AttentionSummaryRing items=\{summary\.attention\}/);
+  assert.match(dashboard, /needs-attention\$\{summary\.attention\.length \? " has-attention-summary" : ""\}/);
   assert.match(dashboard, /summary\.attention\.map\(item=><Link href=\{item\.href\}/);
   assert.match(dashboard, /aria-label=\{`\$\{total\} current attention items`\}/);
   assert.match(dashboard, /<small>Items<\/small>/);
   assert.doesNotMatch(dashboard, /attention-summary-ring[\s\S]{0,300}(?:Complete|Progress|Readiness)/);
   assert.doesNotMatch(dashboard, /getLiveOrganizationData|getOperationalIntelligence/);
+  assert.match(css, /@media\(min-width:601px\)\{\.needs-attention\.has-attention-summary\{[^}]*grid-template-areas:"attention-summary attention-heading" "attention-rows attention-rows"/);
+  assert.match(css, /\.has-attention-summary>\.attention-summary-layout\{display:contents\}/);
+  assert.match(css, /\.has-attention-summary \.attention-summary-layout \.attention-list\{grid-area:attention-rows;padding:0 18px 12px\}/);
+  assert.match(css, /\.has-attention-summary \.attention-heading-icon\{display:none\}/);
+  assert.match(css, /@media\(max-width:600px\)\{\.attention-summary-layout\{grid-template-columns:72px minmax\(0,1fr\)/);
 });
 
-test("each Case needing attention reuses its accessible progress value in a compact ring", () => {
+test("a single Case needing attention moves its existing progress ring to the wide heading", () => {
   const intelligence = source("components/dashboard/operational-intelligence.tsx");
   const css = source("app/globals.css");
-  assert.match(intelligence, /attentionCases\.slice\(0, 6\)\.map\(\(item\)/);
-  assert.match(intelligence, /className="case-attention-progress" style=\{\{ "--case-progress": `\$\{item\.progressPercent \* 3\.6\}deg`/);
-  assert.match(intelligence, /aria-label=\{`\$\{item\.progressPercent\}% case progress`\}/);
-  assert.match(intelligence, /<strong>\{item\.progressPercent\}%<\/strong>/);
-  assert.doesNotMatch(intelligence, /<b>\{item\.progressPercent\}%<\/b>/);
+  assert.match(intelligence, /const displayedCases = intelligence\.attentionCases\.slice\(0, 6\)/);
+  assert.match(intelligence, /const singleCase = capabilities\.viewCases && displayedCases\.length === 1 \? displayedCases\[0\] : null/);
+  assert.match(intelligence, /singleCase \? <CaseProgressRing progressPercent=\{singleCase\.progressPercent\} heading \/> : null/);
+  assert.match(intelligence, /style=\{\{ "--case-progress": `\$\{progressPercent \* 3\.6\}deg`/);
+  assert.match(intelligence, /aria-label=\{`\$\{progressPercent\}% case progress`\}/);
+  assert.match(intelligence, /<strong>\{progressPercent\}%<\/strong>/);
+  assert.match(intelligence, /heading \? <small>Progress<\/small> : null/);
+  assert.match(intelligence, /attention-level level-\$\{item\.level\.toLowerCase\(\)\}/);
+  assert.doesNotMatch(intelligence, /<b>\{(?:item\.)?progressPercent\}%<\/b>/);
   assert.match(css, /\.case-attention-progress\{[^}]*width:58px;height:58px[^}]*conic-gradient\(#2d8fa9 var\(--case-progress\),#e7edf3 0\)/);
-  assert.match(css, /\.attention-case-list>a>\.case-attention-progress,\.attention-case-list>div>\.case-attention-progress\{justify-self:end\}/);
+  assert.match(css, /\.case-heading-progress\{display:none\}/);
+  assert.match(css, /@media\(min-width:601px\)[^\n]*\.single-attention-case \.case-heading-progress\{display:grid;width:64px;height:64px\}/);
+  assert.match(css, /\.single-attention-case \.case-row-progress\{display:none\}/);
+  assert.match(css, /\.single-attention-case \.attention-case-list>a,\.single-attention-case \.attention-case-list>div\{grid-template-columns:64px minmax\(0,1fr\)\}/);
   assert.match(css, /@media\(max-width:600px\)[^\n]*\.attention-case-list \.case-attention-progress\{grid-column:2;justify-self:end/);
+});
+
+test("multiple Cases needing attention keep one progress ring associated with every row", () => {
+  const intelligence = source("components/dashboard/operational-intelligence.tsx");
+  const css = source("app/globals.css");
+  assert.match(intelligence, /singleCase \? <CaseProgressRing progressPercent=\{singleCase\.progressPercent\} heading \/> : null/);
+  assert.match(intelligence, /displayedCases\.map\(\(item\)/);
+  assert.match(intelligence, /<CaseProgressRing progressPercent=\{item\.progressPercent\} \/>/);
+  assert.doesNotMatch(intelligence, /displayedCases\.(?:reduce|find)|attentionCases\.(?:reduce|find)/);
+  assert.match(css, /\.attention-case-list>a,\.attention-case-list>div\{display:grid;grid-template-columns:64px minmax\(0,1fr\) auto/);
+  assert.match(css, /\.attention-case-list>a>\.case-attention-progress,\.attention-case-list>div>\.case-attention-progress\{justify-self:end\}/);
 });
 
 test("phone Top Bottlenecks contains the blocked-work message in normal flow", () => {
   const intelligence = source("components/dashboard/operational-intelligence.tsx");
   const css = source("app/globals.css");
   assert.match(intelligence, /<h2>Top Bottlenecks<\/h2>[\s\S]*?<div className="blocked-work-empty">No Cases currently have blocked required work\.<\/div>/);
-  assert.match(intelligence, /className="panel intelligence-panel cases-needing-attention"[\s\S]*?<h2>Cases Needing Attention<\/h2>/);
+  assert.match(intelligence, /className=\{`panel intelligence-panel cases-needing-attention\$\{singleCase \? " single-attention-case" : ""\}`\}[\s\S]*?<h2>Cases Needing Attention<\/h2>/);
   const containment = css.match(/\.blocked-work-empty\{([^}]*)\}/)?.[1] ?? "";
   assert.match(containment, /min-width:0/);
   assert.match(containment, /margin:0/);

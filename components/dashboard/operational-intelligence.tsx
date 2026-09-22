@@ -35,26 +35,51 @@ function IntelligenceKpi({
   );
 }
 
+function CaseProgressRing({
+  progressPercent,
+  heading = false,
+}: {
+  progressPercent: number;
+  heading?: boolean;
+}) {
+  return (
+    <span
+      className={`case-attention-progress${heading ? " case-heading-progress" : " case-row-progress"}`}
+      style={{ "--case-progress": `${progressPercent * 3.6}deg` } as React.CSSProperties}
+      role="img"
+      aria-label={`${progressPercent}% case progress`}
+    >
+      <span>
+        <strong>{progressPercent}%</strong>
+        {heading ? <small>Progress</small> : null}
+      </span>
+    </span>
+  );
+}
+
 export function CasesNeedingAttention({
   intelligence,
 }: {
   intelligence: AuthorizedOperationalIntelligence;
 }) {
   const { capabilities } = intelligence;
+  const displayedCases = intelligence.attentionCases.slice(0, 6);
+  const singleCase = capabilities.viewCases && displayedCases.length === 1 ? displayedCases[0] : null;
   return (
-    <section className="panel intelligence-panel cases-needing-attention">
-      <div className="section-head">
+    <section className={`panel intelligence-panel cases-needing-attention${singleCase ? " single-attention-case" : ""}`}>
+      <div className="section-head cases-attention-heading">
+        {singleCase ? <CaseProgressRing progressPercent={singleCase.progressPercent} heading /> : null}
         <h2>Cases Needing Attention</h2>
       </div>
       {!capabilities.viewCases ? (
         <div className="no-results">Case-level attention requires Case access.</div>
-      ) : intelligence.attentionCases.length ? (
+      ) : displayedCases.length ? (
         <div className="attention-case-list">
-          {intelligence.attentionCases.slice(0, 6).map((item) => {
+          {displayedCases.map((item) => {
             const content = <>
               <span className={`attention-level level-${item.level.toLowerCase()}`}>{levelLabel(item.level)}</span>
               <span><strong>{item.caseNumber} · {item.title}</strong><small>{item.customerName ?? "Unknown customer"} · {item.reasons.join(" · ")}</small></span>
-              <span className="case-attention-progress" style={{ "--case-progress": `${item.progressPercent * 3.6}deg` } as React.CSSProperties} role="img" aria-label={`${item.progressPercent}% case progress`}><strong>{item.progressPercent}%</strong></span>
+              <CaseProgressRing progressPercent={item.progressPercent} />
             </>;
             return <Link href={`/cases/${item.id}`} key={item.id}>{content}</Link>;
           })}
