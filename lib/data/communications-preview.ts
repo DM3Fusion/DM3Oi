@@ -4,6 +4,10 @@ import { requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/data/case-repository";
+import {
+  getPlatformAdminUserIds,
+  maskPlatformProfile,
+} from "@/lib/data/platform-privacy";
 
 export type ServiceRequestInboxPreview = {
   id: string;
@@ -52,30 +56,33 @@ export async function getServiceRequestInboxPreview(
     return null;
   }
 
-  const [customerResult, assignedResult, messagesResult] = await Promise.all([
-    supabase
-      .from("organization_customers")
-      .select("name")
-      .eq("organization_id", access.activeOrganization.id)
-      .eq("id", request.customer_id)
-      .maybeSingle(),
+  const [customerResult, assignedResult, messagesResult, platformAdminIds] =
+    await Promise.all([
+      supabase
+        .from("organization_customers")
+        .select("name")
+        .eq("organization_id", access.activeOrganization.id)
+        .eq("id", request.customer_id)
+        .maybeSingle(),
 
-    request.assigned_user_id
-      ? supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", request.assigned_user_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+      request.assigned_user_id
+        ? supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", request.assigned_user_id)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
 
-    supabase
-      .from("organization_service_request_messages")
-      .select("id,author_user_id,author_display_name,author_type,body,created_at")
-      .eq("organization_id", access.activeOrganization.id)
-      .eq("service_request_id", request.id)
-      .order("created_at", { ascending: false })
-      .order("id", { ascending: false }),
-  ]);
+      supabase
+        .from("organization_service_request_messages")
+        .select("id,author_user_id,author_display_name,author_type,body,created_at")
+        .eq("organization_id", access.activeOrganization.id)
+        .eq("service_request_id", request.id)
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false }),
+
+      getPlatformAdminUserIds(),
+    ]);
 
   if (
     customerResult.error ||
@@ -84,6 +91,10 @@ export async function getServiceRequestInboxPreview(
   ) {
     throw new Error("The service request preview could not be loaded.");
   }
+
+  const assignedProfile = assignedResult.data
+    ? maskPlatformProfile(assignedResult.data, platformAdminIds)
+    : null;
 
   const assignedToCurrentUser =
     request.assigned_user_id === access.user.id;
@@ -110,7 +121,7 @@ export async function getServiceRequestInboxPreview(
           ? customerResult.data?.name ?? "Customer"
           : message.author_display_name ??
             (message.author_user_id === request.assigned_user_id
-              ? displayName(assignedResult.data)
+              ? displayName(assignedProfile)
               : "Organization staff"),
       body: message.body,
       createdAt: message.created_at,
@@ -129,7 +140,7 @@ export async function getServiceRequestInboxPreview(
     status: request.status,
     priority: request.priority,
     customerName: customerResult.data?.name ?? "Customer",
-    assignedName: displayName(assignedResult.data),
+    assignedName: displayName(assignedProfile),
     createdAt: request.created_at,
     updatedAt: request.updated_at,
     canReply,

@@ -47,6 +47,17 @@ test("recipient names use profile display conventions without exposing email or 
   assert.match(migration, /not public\.is_super_admin\(recipient_user_id\)/);
 });
 
+test("Owner observed rows do not present recipient unread state as the Owner's unread state", () => {
+  assert.match(
+    inbox,
+    /item\.is_personal && !item\.read_at \? " unread" : ""/,
+  );
+  assert.match(
+    inbox,
+    /item\.is_personal \? \(item\.read_at \? "Read" : "Unread"\) : "Observed"/,
+  );
+});
+
 test("observed rows navigate without mutating another recipient's read state", () => {
   assert.match(inbox, /item\.is_personal \? \(/);
   assert.match(inbox, /<form action=\{openNotificationAction\}>/);

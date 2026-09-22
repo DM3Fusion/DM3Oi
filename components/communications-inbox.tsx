@@ -68,10 +68,10 @@ function NotificationRow({
   return (
     <button
       type="button"
-      className={`notification-summary${item.read_at ? "" : " unread"}${selected ? " selected" : ""}${item.is_personal ? "" : " observed"}`}
+      className={`notification-summary${item.is_personal && !item.read_at ? " unread" : ""}${selected ? " selected" : ""}${item.is_personal ? "" : " observed"}`}
       onClick={onSelect}
       aria-pressed={selected}
-      aria-label={`${item.read_at ? "Read" : "Unread"} notification: ${item.title}`}
+      aria-label={`${item.is_personal ? (item.read_at ? "Read" : "Unread") : "Observed"} notification: ${item.title}`}
     >
       <span className="notification-summary-state" aria-hidden />
       <span className="notification-summary-content">
@@ -371,7 +371,7 @@ function MobileNotification({
   );
 
   return (
-    <article className={`notification-item${item.read_at ? "" : " unread"}${item.is_personal ? "" : " observed"}`}>
+    <article className={`notification-item${item.is_personal && !item.read_at ? " unread" : ""}${item.is_personal ? "" : " observed"}`}>
       {item.is_personal ? (
         <form action={openNotificationAction} className="notification-open-form">
           <input type="hidden" name="notificationId" value={item.id} />
@@ -400,9 +400,14 @@ function MobileNotification({
 export function CommunicationsInbox({ notifications, timezone, emptyMessage }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(notifications[0]?.id ?? null);
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
-  const [serviceRequestPreview, setServiceRequestPreview] =
-    useState<ServiceRequestInboxPreview | null>(null);
-  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [serviceRequestPreview, setServiceRequestPreview] = useState<{
+    notificationId: string;
+    preview: ServiceRequestInboxPreview;
+  } | null>(null);
+  const [previewError, setPreviewError] = useState<{
+    notificationId: string;
+    message: string;
+  } | null>(null);
   const [isPreviewPending, startPreviewTransition] = useTransition();
 
   if (!notifications.length) {
@@ -442,13 +447,22 @@ export function CommunicationsInbox({ notifications, timezone, emptyMessage }: P
         if (item.source_domain === "SERVICE_REQUEST") {
           const preview = await getServiceRequestInboxPreview(item.source_entity_id);
           if (!preview) {
-            setPreviewError("The Service Request preview is unavailable.");
+            setPreviewError({
+              notificationId: item.id,
+              message: "The Service Request preview is unavailable.",
+            });
             return;
           }
-          setServiceRequestPreview(preview);
+          setServiceRequestPreview({
+            notificationId: item.id,
+            preview,
+          });
         }
       } catch {
-        setPreviewError("The selected communication could not be loaded.");
+        setPreviewError({
+          notificationId: item.id,
+          message: "The selected communication could not be loaded.",
+        });
       }
     });
   };
@@ -470,9 +484,22 @@ export function CommunicationsInbox({ notifications, timezone, emptyMessage }: P
         <NotificationPreview
           item={selected}
           timezone={timezone}
-          serviceRequestPreview={serviceRequestPreview}
-          loading={isPreviewPending && selected.source_domain === "SERVICE_REQUEST"}
-          error={previewError}
+          serviceRequestPreview={
+            serviceRequestPreview?.notificationId === selected.id
+              ? serviceRequestPreview.preview
+              : null
+          }
+          loading={
+            isPreviewPending &&
+            selected.source_domain === "SERVICE_REQUEST" &&
+            serviceRequestPreview?.notificationId !== selected.id &&
+            previewError?.notificationId !== selected.id
+          }
+          error={
+            previewError?.notificationId === selected.id
+              ? previewError.message
+              : null
+          }
         />
       </div>
 
