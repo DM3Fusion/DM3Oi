@@ -61,9 +61,9 @@ async function authorizeTarget(membershipId: string): Promise<AuthorizedTarget> 
   if (!membership) throw new Error("UNAUTHORIZED");
   const actorRole = access.activeOrganization?.role;
   if (
-    !actorRole ||
-    !isOrganizationUserRole(actorRole) ||
-    !isOrganizationUserRole(membership.role)
+    !isOrganizationUserRole(membership.role) ||
+    (!access.isSuperAdmin &&
+      (!actorRole || !isOrganizationUserRole(actorRole)))
   )
     throw new Error("UNAUTHORIZED");
 
@@ -73,9 +73,19 @@ async function authorizeTarget(membershipId: string): Promise<AuthorizedTarget> 
     | "STAFF_MANAGER"
     | "STAFF_USER";
 
-  if (!canConfigureOrganizationRole(actorRole, targetRole))
+  if (
+    !canConfigureOrganizationRole(
+      actorRole ?? "STAFF_USER",
+      targetRole,
+      access.isSuperAdmin,
+    )
+  )
     throw new Error("UNAUTHORIZED");
-  if ((await getPlatformAdminUserIds()).has(membership.user_id))
+
+  if (
+    !access.isSuperAdmin &&
+    (await getPlatformAdminUserIds()).has(membership.user_id)
+  )
     throw new Error("UNAUTHORIZED");
 
   const profile = Array.isArray(membership.profiles)
