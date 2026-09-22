@@ -46,6 +46,7 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
         <div className="section-head attention-heading"><span className="attention-heading-icon"><ApplicationIcon name="warning" /></span><h2>Needs Attention</h2></div>
         {summary.attention.length?<div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
       </section>
+      {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
       <section className="panel recent-activity">
         <div className="section-head"><h2>Recent Activity</h2><Link href="/cases">View all <ApplicationIcon name="forward" /></Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>
@@ -55,6 +56,5 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
         </Link>)}</div>:<div className="no-results">No case activity yet.</div>}
       </section>
     </div>
-    {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
   </div>;
 }

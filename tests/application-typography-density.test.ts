@@ -56,6 +56,37 @@ test("Dashboard KPI cards remain text only and three by two on phone", () => {
   assert.doesNotMatch(dashboard, /operations-kpi-icon/);
 });
 
+test("Dashboard metric-summary cards center labels values and supporting metrics only", () => {
+  assert.match(css, /Dashboard metric-summary cards share one centered label\/value\/supporting-metric treatment\./);
+  assert.match(css, /\.intelligence-kpi\{align-items:center;text-align:center\}/);
+  for (const label of ["Ready Cases", "Not Ready", "Blocked Cases", "Average Progress"]) {
+    assert.match(intelligence, new RegExp(`label="${label}"`));
+  }
+  assert.match(intelligence, /<small>\{label\}<\/small>[\s\S]*<strong>\{value\}<\/strong>[\s\S]*<span>\{detail\}<\/span>/);
+  assert.doesNotMatch(css, /\.intelligence-panel\{[^}]*text-align:center/);
+  assert.doesNotMatch(css, /\.attention-list\{[^}]*text-align:center/);
+  assert.match(css, /\.intelligence-kpis\{display:grid;grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css, /@media\(max-width:760px\)\{\.intelligence-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+});
+
+test("phone Dashboard reading order places complete Intelligence before one Recent Activity panel", () => {
+  const needsAttention = dashboard.indexOf('className="panel needs-attention"');
+  const operationalIntelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
+  const recentActivity = dashboard.indexOf('className="panel recent-activity"');
+  assert.ok(needsAttention > -1 && needsAttention < operationalIntelligence);
+  assert.ok(operationalIntelligence < recentActivity);
+  assert.equal(dashboard.match(/<OperationalIntelligenceSection intelligence=\{intelligence\}/g)?.length, 1);
+  assert.equal(dashboard.match(/className="panel recent-activity"/g)?.length, 1);
+  assert.match(dashboard, /data\.activities\.slice\(0,8\)\.map/);
+  assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
+});
+
+test("tablet and desktop visually retain Recent Activity before full-width Intelligence", () => {
+  assert.match(css, /@media\(min-width:601px\)\{\.operations-lower>\.needs-attention\{order:1\}\.operations-lower>\.recent-activity\{order:2\}\.operations-lower>\.operational-intelligence\{grid-column:1\/-1;order:3\}\}/);
+  assert.match(css, /\.operations-visuals,\.operations-lower\{display:grid;gap:16px\}/);
+  assert.match(css, /\.operations-visuals,\.operations-lower\{grid-template-columns:minmax\(0,1\.35fr\) minmax\(310px,\.8fr\)\}/);
+});
+
 test("Inbox is the shared navigation label while Communications remains the workspace", () => {
   assert.match(navigation, /href: "\/communications", label: "Inbox", icon: "communications", permission: "VIEW_COMMUNICATIONS"/);
   assert.match(navigation, /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/);
