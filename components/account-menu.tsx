@@ -9,10 +9,12 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 export function AccountMenu({
   displayName,
+  title,
   email,
   avatarUrl,
 }: {
   displayName: string;
+  title?: string | null;
   email?: string | null;
   avatarUrl?: string | null;
 }) {
@@ -45,6 +47,10 @@ export function AccountMenu({
   return (
     <details ref={detailsRef} className="account-menu">
       <summary aria-label="Open account menu">
+        <span className="account-menu-banner-identity">
+          <strong>{displayName}</strong>
+          {title ? <small>{title}</small> : null}
+        </span>
         <UserAvatar displayName={displayName} email={email} src={avatarUrl} />
       </summary>
       <div className="account-menu-popover">

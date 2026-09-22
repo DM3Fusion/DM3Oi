@@ -223,7 +223,7 @@ export function AppShell({
             <strong><span>People.</span> Work. Progress. Intelligence.</strong>
             <small>{platformContext ? "Platform Administration" : <span className="organization-context"><span className="organization-context-prefix">for</span><b className="organization-context-name">{org?.name ?? "No active organization"}</b></span>}</small>
           </div>
-          {access ? <AccountMenu displayName={access.displayName} email={access.user.email} avatarUrl={access.avatarUrl} /> : null}
+          {access ? <AccountMenu displayName={access.displayName} title={access.title} email={access.user.email} avatarUrl={access.avatarUrl} /> : null}
         </header>
         {!platformContext && access?.license && (access.license.status === "EXPIRING" || access.license.isInGrace) ? (
           <div className="license-warning" role="status">

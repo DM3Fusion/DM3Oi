@@ -1322,3 +1322,55 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .admin-permanent-delete label span {
   font-weight: 600;
 }
+
+/* Workspace banner signed-in user identity. */
+@media(min-width:601px){
+  .topbar>.account-menu>summary{
+    width:auto;
+    height:auto;
+    align-items:center;
+    gap:12px;
+    border-radius:0;
+  }
+
+  .account-menu-banner-identity{
+    display:flex;
+    min-width:0;
+    align-items:flex-end;
+    flex-direction:column;
+    justify-content:center;
+    text-align:right;
+    text-shadow:0 1px 3px rgba(255,255,255,.9);
+  }
+
+  .account-menu-banner-identity strong{
+    display:block;
+    max-width:240px;
+    overflow:hidden;
+    color:#10233f;
+    font-size:16px;
+    font-weight:750;
+    line-height:1.15;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .account-menu-banner-identity small{
+    display:block;
+    max-width:240px;
+    margin-top:3px;
+    overflow:hidden;
+    color:#52677d;
+    font-size:12px;
+    font-weight:600;
+    line-height:1.15;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+}
+
+@media(max-width:600px){
+  .account-menu-banner-identity{
+    display:none;
+  }
+}
