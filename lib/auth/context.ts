@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.generated";
@@ -42,7 +43,7 @@ export type SuperAdminContext = AccessContext & {
   isSuperAdmin: true;
   internalAccess: true;
 };
-export async function getAccessContext(): Promise<AccessContext | null> {
+async function resolveAccessContext(): Promise<AccessContext | null> {
   if (!isSupabaseConfigured()) return null;
   try {
     const supabase = await createClient();
@@ -163,6 +164,9 @@ export async function getAccessContext(): Promise<AccessContext | null> {
     return null;
   }
 }
+// React clears cache() between Server Component requests. This shares one
+// authoritative resolution within a render without persisting access state.
+export const getAccessContext = cache(resolveAccessContext);
 export async function requireInternalContext(): Promise<InternalAccessContext> {
   const context = await getAccessContext();
   if (!context?.user || !hasTenantInternalAccess(context))
