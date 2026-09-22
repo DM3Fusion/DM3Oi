@@ -46,7 +46,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
       <PageHeader
         eyebrow="Shared Communications"
         title="Communications"
-        description={organizationWide ? "Organization-wide notifications from customer conversations and DM3Oi workflows. Read status belongs to each intended recipient." : "Notifications from customer conversations and DM3Oi workflows."}
+        description={organizationWide ? "Organization-wide notifications are visible here; read status still belongs to each recipient." : undefined}
         action={<div className="communications-header-actions">
           {unread ? <form action={markAllNotificationsReadAction}><PendingSubmitButton className="secondary-button" pendingLabel="Marking…" aria-label={organizationWide ? "Mark my notifications as read" : "Mark all as read"}><span className="communications-mark-label-full">{organizationWide ? "Mark my notifications as read" : "Mark all as read"}</span><span className="communications-mark-label-compact">{organizationWide ? "Mark mine read" : "Mark all read"}</span></PendingSubmitButton></form> : null}
           <CommunicationsViewToggle view={communicationsView} />

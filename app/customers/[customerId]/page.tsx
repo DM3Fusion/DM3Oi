@@ -36,7 +36,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <PageHeader
         eyebrow="Relationships"
         title={customer.name}
-        description="Customer record and creation history."
         action={
           hasPermission(access, "EDIT_CUSTOMER") ? (
             <Link className="primary-button" href={`/customers/${customer.id}/edit`}>
@@ -98,10 +97,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       </section>
       <section className="panel detail-section portal-access-card">
         <div className="section-head">
-          <div>
-            <h2>Portal Access</h2>
-            <p>Customer-facing service request access</p>
-          </div>
+          <h2>Portal Access</h2>
           <Badge value={portal ? (portal.is_active ? "ACTIVE" : "INACTIVE") : "NOT ENABLED"} />
         </div>
         {portal ? (

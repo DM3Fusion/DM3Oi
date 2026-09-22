@@ -91,7 +91,6 @@ export function OperationalIntelligenceSection({
         <div>
           <span className="eyebrow">Operational Intelligence</span>
           <h2 id="operational-intelligence-title">Current completion readiness</h2>
-          <p>Explainable signals from authorized Cases, Questions, Tasks, and Rules.</p>
         </div>
       </div>
 
@@ -105,7 +104,7 @@ export function OperationalIntelligenceSection({
       <div className="intelligence-grid">
         <section className="panel intelligence-panel">
           <div className="section-head">
-            <div><h2>Readiness Distribution</h2><p>Current Cases by required-work completion</p></div>
+            <h2>Readiness Distribution</h2>
           </div>
           {readiness.totalCurrentCases ? (
             <div className="readiness-distribution" role="group" aria-label={readiness.buckets.map((bucket) => `${bucket.label}: ${bucket.count} Cases`).join(", ")}>
@@ -124,7 +123,7 @@ export function OperationalIntelligenceSection({
 
         <section className="panel intelligence-panel">
           <div className="section-head">
-            <div><h2>Top Bottlenecks</h2><p>Most common current completion requirements</p></div>
+            <h2>Top Bottlenecks</h2>
           </div>
           {bottlenecks.length ? (
             <div className="intelligence-list">
@@ -162,7 +161,7 @@ export function OperationalIntelligenceSection({
       <div className={`intelligence-grid intelligence-lower${intelligence.ruleActivity ? "" : " single"}`}>
         <section className="panel intelligence-panel">
           <div className="section-head">
-            <div><h2>Cases Needing Attention</h2><p>Explicit current blockers and incomplete requirements</p></div>
+            <h2>Cases Needing Attention</h2>
           </div>
           {!capabilities.viewCases ? (
             <div className="no-results">Case-level attention requires Case access.</div>
@@ -185,7 +184,7 @@ export function OperationalIntelligenceSection({
         {intelligence.ruleActivity ? (
           <section className="panel intelligence-panel">
             <div className="section-head">
-              <div><h2>Rule Activity</h2><p>Current matches versus durable generated Tasks</p></div>
+              <h2>Rule Activity</h2>
               {capabilities.viewRules ? <Link href="/questions?view=rules">View Rules <ApplicationIcon name="forward" /></Link> : null}
             </div>
             {activeRuleActivity.length ? (

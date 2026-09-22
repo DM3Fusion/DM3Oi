@@ -9,7 +9,7 @@ export default async function Page() {
   if (!hasPermission(access, "CREATE_CUSTOMER")) notFound();
   return (
     <>
-      <PageHeader eyebrow="Customers" title="Create Customer" description="Add a customer record for case and service workflows." />
+      <PageHeader eyebrow="Customers" title="Create Customer" />
       <section className="panel form-panel">
         <CustomerForm />
       </section>

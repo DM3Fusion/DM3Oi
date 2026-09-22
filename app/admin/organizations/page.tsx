@@ -27,7 +27,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Platform Administration"
         title="Organizations"
-        description="Provision and manage DM3Oi business organizations."
         action={
           <Link href="/admin/organizations/new" className="primary-button">
             <ApplicationIcon name="add" />Create Organization

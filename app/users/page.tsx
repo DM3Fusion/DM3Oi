@@ -55,7 +55,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Organization"
         title="Users"
-        description="Manage the people who serve customers and complete case work."
         action={
           canAddUser ? (
             <Link className="primary-button" href="/users/new">

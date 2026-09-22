@@ -17,12 +17,12 @@ export default async function Page(){
   const experience=resolveRootExperience({...access,hasActiveOrganization:Boolean(access.activeOrganization)});
   if(experience==="PLATFORM"){
     const summary=await getPlatformSummary();
-    return <><PageHeader eyebrow="Platform Administration" title="Back Office" description="Manage DM3Oi organizations, users, access, and platform operations."/><PlatformDashboard summary={summary}/></>;
+    return <><PageHeader eyebrow="Platform Administration" title="Back Office"/><PlatformDashboard summary={summary}/></>;
   }
   if(experience==="PORTAL")redirect("/portal");
   if(experience==="UNPROVISIONED")redirect("/account/unprovisioned");
   if(access.license && !access.license.workspaceAllowed) redirect("/account/license-expired");
   const [data,unreadCommunications]=await Promise.all([getLiveOrganizationData(),getUnreadNotificationCount({organizationId:access.activeOrganization!.id,userId:access.user.id})]);
   const intelligence=await getOperationalIntelligence(data);
-  return <><PageHeader eyebrow="Dashboard" title="Operational Dashboard" description="Here’s what needs attention today." action={<Link className="primary-button" href="/cases/new"><ApplicationIcon name="add" />New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications} intelligence={intelligence}/></>;
+  return <><PageHeader eyebrow="Dashboard" title="Operational Dashboard" action={<Link className="primary-button" href="/cases/new"><ApplicationIcon name="add" />New Case</Link>}/><Dashboard data={data} unreadCommunications={unreadCommunications} intelligence={intelligence}/></>;
 }

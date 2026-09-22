@@ -1,7 +1,7 @@
 import { humanize } from "@/lib/format";
 import { ApplicationIcon } from "@/components/application-icon";
 import type { ApplicationIconName } from "@/lib/application-icons";
-export function PageHeader({eyebrow,title,description,action}:{eyebrow?:string;title:React.ReactNode;description:string;action?:React.ReactNode}) { return <div className="page-header"><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h1>{title}</h1><p>{description}</p></div>{action}</div> }
+export function PageHeader({eyebrow,title,description,action}:{eyebrow?:string;title:React.ReactNode;description?:string;action?:React.ReactNode}) { return <div className="page-header"><div>{eyebrow&&<span className="eyebrow">{eyebrow}</span>}<h1>{title}</h1>{description?<p>{description}</p>:null}</div>{action}</div> }
 export function Badge({value}:{value:string}) { return <span className={`badge badge-${value.toLowerCase().replaceAll("_","-")}`}>{humanize(value)}</span> }
 export function ProgressBar({percentage,compact=false}:{percentage:number;compact?:boolean}) { return <div className={`progress-wrap ${compact?"compact":""}`}><div className="progress-track" role="progressbar" aria-label="Case work progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percentage}><span style={{width:`${percentage}%`}}/></div><b>{percentage}%</b></div> }
 export function EmptyFoundation({title,description,icon}:{title:string;description:string;icon:ApplicationIconName}) { return <section className="panel empty"><span className="empty-icon"><ApplicationIcon name={icon}/></span><h2>{title}</h2><p>{description}</p><span className="foundation-tag">Foundation established · Planned for a future milestone</span></section> }

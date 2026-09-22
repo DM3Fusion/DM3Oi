@@ -47,7 +47,6 @@ export default async function Page() {
       <PageHeader
         eyebrow="Workspace"
         title="Settings"
-        description="Manage workspace preferences and application defaults."
       />
       {cards.length ? (
         <div className="admin-card-grid">

@@ -29,7 +29,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       <PageHeader
         eyebrow="Operations"
         title="Cases"
-        description="Search, filter, and track live cases in the active organization."
         action={
           canCreate ? (
             <Link className="primary-button" href="/cases/new">

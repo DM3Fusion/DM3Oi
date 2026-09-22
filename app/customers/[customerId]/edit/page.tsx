@@ -15,7 +15,7 @@ export default async function Page({ params }: { params: Promise<{ customerId: s
   if (!customer) notFound();
   return (
     <>
-      <PageHeader eyebrow="Relationships" title="Edit Customer" description="Update customer contact and status information." />
+      <PageHeader eyebrow="Relationships" title="Edit Customer" />
       <section className="panel detail-section">
         <div className="section-head">
           <div>

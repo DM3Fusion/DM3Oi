@@ -17,7 +17,6 @@ export default async function Page() {
         <div>
           <span className="eyebrow">Customer Service</span>
           <h1>Service Desk</h1>
-          <p>Customer Service Dashboard</p>
         </div>
         {hasPermission(access, "CREATE_SERVICE_REQUEST") ? (
           <Link className="primary-button" href="/service-desk/new">
@@ -35,10 +34,7 @@ export default async function Page() {
       </div>
       <section className="panel">
         <div className="section-head">
-          <div>
-            <h2>Recent Service Requests</h2>
-            <p>Latest operational activity</p>
-          </div>
+          <h2>Recent Service Requests</h2>
           <Link href="/service-desk/requests">View All Service Requests <ApplicationIcon name="forward" /></Link>
         </div>
         {data.serviceRequests.length ? (

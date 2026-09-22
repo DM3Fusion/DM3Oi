@@ -116,10 +116,7 @@ export default async function Page({
           <CaseQuestions caseId={item.id} questions={questions} />
           <section className="panel detail-section">
             <div className="section-head">
-              <div>
-                <h2>Case Overview</h2>
-                <p>Live case information and lifecycle</p>
-              </div>
+              <h2>Case Overview</h2>
             </div>
             <p className="description">
               {item.description || "No description provided."}
@@ -189,10 +186,7 @@ export default async function Page({
           </section>
           <section className="panel detail-section">
             <div className="section-head">
-              <div>
-                <h2>Tasks</h2>
-                <p>Required applicable work determines live progress</p>
-              </div>
+              <h2>Tasks</h2>
               <span className="count-pill">
                 {item.progress.remainingWork.filter((work) => work.kind === "TASK").length} remaining
               </span>
@@ -401,10 +395,7 @@ export default async function Page({
           </section>
           <section className="panel detail-section">
             <div className="section-head">
-              <div>
-                <h2>Activity</h2>
-                <p>Append-oriented live case event history</p>
-              </div>
+              <h2>Activity</h2>
             </div>
             <div className="timeline">
               {activities.length ? (

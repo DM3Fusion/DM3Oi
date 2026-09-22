@@ -51,7 +51,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Platform Administration"
         title={name}
-        description="User identity and application access."
       />
       {query.message ? (
         <div className="success-alert page-notice">{query.message}</div>

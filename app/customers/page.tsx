@@ -20,7 +20,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
       <PageHeader
         eyebrow="Relationships"
         title="Customers"
-        description="Live customer records for the active organization."
         action={
           hasPermission(access, "CREATE_CUSTOMER") ? (
             <Link className="primary-button" href="/customers/new">

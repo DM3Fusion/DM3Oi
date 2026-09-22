@@ -28,7 +28,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Platform Administration"
         title="Users / Access"
-        description="Review and provision platform, organization, portal, and pending access."
         action={
           <Link className="primary-button" href="/admin/users/new">
             <ApplicationIcon name="add" />Create User

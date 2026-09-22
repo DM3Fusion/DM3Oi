@@ -46,7 +46,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Account"
         title="My Profile"
-        description="Manage your user-level identity across every DM3Oi organization."
       />
       {query.error ? (
         <div className="form-alert page-notice">{query.error}</div>
@@ -56,10 +55,7 @@ export default async function Page({
       ) : null}
       {secondaryNavigation.length ? <section className="panel detail-section mobile-account-navigation" aria-labelledby="mobile-account-navigation-heading">
         <div className="section-head">
-          <div>
-            <h2 id="mobile-account-navigation-heading">{platformContext ? "Platform" : "Organization"}</h2>
-            <p>Open the tools available to your account.</p>
-          </div>
+          <h2 id="mobile-account-navigation-heading">{platformContext ? "Platform" : "Organization"}</h2>
         </div>
         <nav aria-label={platformContext ? "Platform destinations" : "Organization destinations"}>
           {secondaryNavigation.map((item) => <Link href={item.href} key={item.href}><ApplicationIcon name={item.icon} /><span>{item.label}</span><ApplicationIcon name="forward" /></Link>)}
