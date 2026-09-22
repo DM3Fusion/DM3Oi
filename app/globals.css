@@ -1056,3 +1056,18 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   border:3px solid #9aabc0;
   border-radius:10px;
 }
+
+.service-desk-metrics .metric{
+  justify-content:flex-start;
+}
+
+.service-desk-metrics .metric span{
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  min-height:3.9em;
+}
+
+.service-desk-metrics .metric strong{
+  margin-top:6px;
+}
