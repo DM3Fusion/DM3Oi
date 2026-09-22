@@ -1212,3 +1212,47 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     gap:3px;
   }
 }
+
+/* DM3Oi organization workspace landscape banner. */
+@media(min-width:601px){
+  .topbar{
+    position:sticky;
+    isolation:isolate;
+    overflow:visible;
+    background-image:
+      linear-gradient(
+        90deg,
+        rgba(255,255,255,.94) 0%,
+        rgba(255,255,255,.82) 27%,
+        rgba(255,255,255,.34) 54%,
+        rgba(255,255,255,.08) 100%
+      ),
+      url("/images/dm3oi-header-mountains.webp");
+    background-repeat:no-repeat;
+    background-size:cover;
+    background-position:center 18%;
+    border-bottom-color:rgba(16,35,63,.18);
+  }
+
+  .topbar .product-tagline,
+  .topbar>.account-menu{
+    position:relative;
+    z-index:1;
+  }
+
+  .topbar .product-tagline strong{
+    color:#10233f;
+    text-shadow:0 1px 2px rgba(255,255,255,.8);
+  }
+
+  .topbar .organization-context-prefix{
+    color:#263b52;
+    text-shadow:0 1px 2px rgba(255,255,255,.8);
+  }
+
+  .topbar .organization-context-name{
+    text-shadow:
+      0 1px 2px rgba(255,255,255,.95),
+      0 0 8px rgba(255,255,255,.5);
+  }
+}
