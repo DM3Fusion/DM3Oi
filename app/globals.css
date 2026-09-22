@@ -383,3 +383,32 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size:20px;
   }
 }
+
+@media(max-width:600px){
+  .topbar{
+    overflow:visible;
+  }
+
+  .topbar>.account-menu{
+    position:relative;
+    z-index:12;
+    align-self:flex-end;
+    transform:translateY(28px);
+  }
+
+  .topbar>.account-menu>summary,
+  .topbar>.account-menu>summary .user-avatar{
+    width:83px;
+    height:83px;
+  }
+
+  .topbar>.account-menu>summary .user-avatar{
+    border:3px solid #fff;
+    font-size:20px;
+    box-shadow:0 4px 12px rgba(16,35,63,.18);
+  }
+
+  .topbar>.account-menu .account-menu-popover{
+    top:calc(100% + 10px);
+  }
+}
