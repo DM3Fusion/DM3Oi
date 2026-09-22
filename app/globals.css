@@ -242,3 +242,25 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     transform:rotate(-90deg) scale(1.18);
   }
 }
+
+@media(min-width:601px){
+  .topbar .organization-context{
+    display:inline-flex;
+    align-items:baseline;
+    gap:6px;
+  }
+
+  .topbar .organization-context-prefix{
+    color:#263b52;
+    font-size:18px;
+    font-weight:500;
+    line-height:1.2;
+  }
+
+  .topbar .organization-context-name{
+    color:var(--dm3oi-cyan);
+    font-size:24px;
+    font-weight:750;
+    line-height:1.15;
+  }
+}
