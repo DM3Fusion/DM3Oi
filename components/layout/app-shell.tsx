@@ -90,31 +90,33 @@ export function AppShell({
         />
       )}
       {!phoneLayout ? <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="brand-row">
-          <Link
-            href="/"
-            className="brand brand-hero"
-            aria-label="DM3Oi Operational Intelligence home"
-          >
-            <Image
-              src="/images/dm3oi-operations-hero.jpg"
-              alt=""
-              width={600}
-              height={349}
-              priority
-              sizes="240px"
-              className="brand-hero-image"
-            />
-          </Link>
-          <button
-            className="close-menu"
-            aria-label="Close navigation"
-            onClick={() => setOpen(false)}
-          >
-            <ApplicationIcon name="close" />
-          </button>
+        <div className="sidebar-brand-header">
+          <div className="brand-row">
+            <Link
+              href="/"
+              className="brand brand-hero"
+              aria-label="DM3Oi Operational Intelligence home"
+            >
+              <Image
+                src="/images/dm3oi-operations-hero.jpg"
+                alt=""
+                width={600}
+                height={349}
+                priority
+                sizes="240px"
+                className="brand-hero-image"
+              />
+            </Link>
+            <button
+              className="close-menu"
+              aria-label="Close navigation"
+              onClick={() => setOpen(false)}
+            >
+              <ApplicationIcon name="close" />
+            </button>
+          </div>
+          <div className="sidebar-brand-version">{applicationVersionLabel}</div>
         </div>
-        <div className="sidebar-brand-version">{applicationVersionLabel}</div>
         {access?.isSuperAdmin && org && !platformContext ? (
           <form action={returnToBackOfficeAction} className="back-office-link">
             <button><ApplicationIcon name="back" />Back Office</button>

@@ -316,3 +316,29 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     white-space:nowrap;
   }
 }
+
+@media(min-width:601px){
+  .sidebar .sidebar-brand-header{
+    position:sticky;
+    top:-16px;
+    z-index:5;
+    flex:none;
+    margin:-16px -14px 8px;
+    padding-top:0;
+    background:#071a2f;
+  }
+
+  .sidebar .sidebar-brand-header .brand-row{
+    margin:0;
+  }
+
+  .sidebar .sidebar-brand-header .sidebar-brand-version{
+    margin:0;
+    padding:7px 14px 8px;
+    background:#071a2f;
+  }
+
+  .sidebar .sidebar-brand-header + .back-office-link{
+    margin-top:0;
+  }
+}
