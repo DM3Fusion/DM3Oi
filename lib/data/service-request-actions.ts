@@ -200,8 +200,33 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
     if (name && message) query.set(name, message);
     return query.size ? `?${query.toString()}` : "";
   };
-  if (!serviceRequestId || !body) redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "Reply cannot be blank.")}`);
-  if (body.length > 4000) redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "Reply must be 4000 characters or fewer.")}`);
+  const replyDestination = (
+    name?: "error" | "warning",
+    message?: string,
+  ) => {
+    if (fromCommunications) {
+      const query = new URLSearchParams();
+      if (name && message) query.set(name, message);
+      return query.size
+        ? `/communications?${query.toString()}`
+        : "/communications";
+    }
+
+    return `/service-desk/${serviceRequestId}${detailQuery(name, message)}`;
+  };
+
+  if (!serviceRequestId || !body) {
+    redirect(replyDestination("error", "Reply cannot be blank."));
+  }
+
+  if (body.length > 4000) {
+    redirect(
+      replyDestination(
+        "error",
+        "Reply must be 4000 characters or fewer.",
+      ),
+    );
+  }
   const context = await requirePermission("RESPOND_SERVICE_REQUEST");
   const supabase = await createClient();
   const { data: created, error } = await supabase.rpc("create_internal_service_request_message" as never, { target_service_request_id: serviceRequestId, target_body: body } as never);
@@ -212,7 +237,7 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
       details: error?.details,
       hint: error?.hint,
     });
-    redirect(`/service-desk/${serviceRequestId}${detailQuery("error", "The reply could not be sent.")}`);
+    redirect(replyDestination("error", "The reply could not be sent."));
   }
   const message = created as unknown as { id: string; organization_id: string };
   await recordPortalCommunication({
@@ -228,6 +253,18 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
     messageId: message.id,
   });
   revalidatePath(`/service-desk/${serviceRequestId}`);
-  if (!notificationResult.ok) redirect(`/service-desk/${serviceRequestId}${detailQuery("warning", "Reply saved, but the customer email notification could not be sent.")}`);
-  redirect(`/service-desk/${serviceRequestId}${detailQuery()}`);
+  if (fromCommunications) {
+    revalidatePath("/communications");
+  }
+
+  if (!notificationResult.ok) {
+    redirect(
+      replyDestination(
+        "warning",
+        "Reply saved, but the customer email notification could not be sent.",
+      ),
+    );
+  }
+
+  redirect(replyDestination());
 }

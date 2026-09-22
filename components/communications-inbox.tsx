@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
@@ -12,6 +12,11 @@ import {
 import type { Notification } from "@/lib/data/communications-repository";
 import { communicationsDestination } from "@/lib/communications-view";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+import {
+  getServiceRequestInboxPreview,
+  type ServiceRequestInboxPreview,
+} from "@/lib/data/communications-preview";
+import { createInternalServiceRequestMessageAction } from "@/lib/data/service-request-actions";
 
 type Props = {
   notifications: Notification[];
@@ -88,14 +93,174 @@ function NotificationRow({
   );
 }
 
-function NotificationPreview({
+function ServiceRequestPreview({
   item,
+  preview,
   timezone,
 }: {
   item: Notification;
+  preview: ServiceRequestInboxPreview;
   timezone: string;
 }) {
+  return (
+    <article className="communications-preview communications-service-request-preview" aria-label="Service Request preview">
+      <header className="communications-preview-header">
+        <div>
+          <span className="communications-preview-kicker">
+            {preview.requestNumber}
+          </span>
+          <h2>{preview.subject}</h2>
+        </div>
+        <time>
+          {formatOrganizationDateTime(preview.createdAt, timezone, "medium")}
+        </time>
+      </header>
+
+      <dl className="communications-preview-meta service-request-preview-meta">
+        <div>
+          <dt>Status</dt>
+          <dd>{humanize(preview.status)}</dd>
+        </div>
+        <div>
+          <dt>Priority</dt>
+          <dd>{humanize(preview.priority)}</dd>
+        </div>
+        <div>
+          <dt>Customer</dt>
+          <dd>{preview.customerName}</dd>
+        </div>
+        <div>
+          <dt>Assigned To</dt>
+          <dd>{preview.assignedName}</dd>
+        </div>
+      </dl>
+
+      <section className="communications-preview-conversation">
+        <h3>Conversation</h3>
+        <div className="communications-preview-conversation-list">
+          {preview.messages.map((message) => (
+            <article
+              className={`communications-preview-conversation-message ${
+                message.authorType === "CUSTOMER" ? "customer" : "staff"
+              }`}
+              key={message.id}
+            >
+              <div>
+                <strong>{message.authorName}</strong>
+                <time>
+                  {formatOrganizationDateTime(
+                    message.createdAt,
+                    timezone,
+                    "medium",
+                  )}
+                </time>
+              </div>
+              <p>{message.body}</p>
+            </article>
+          ))}
+        </div>
+
+        {preview.canReply ? (
+          <form
+            action={createInternalServiceRequestMessageAction}
+            className="communications-preview-reply"
+          >
+            <input
+              type="hidden"
+              name="serviceRequestId"
+              value={preview.id}
+            />
+            <input type="hidden" name="fromCommunications" value="true" />
+            <label>
+              <span>Reply to customer</span>
+              <textarea
+                name="body"
+                rows={4}
+                required
+                maxLength={4000}
+                placeholder="Write a response to the customer…"
+              />
+            </label>
+            <PendingSubmitButton
+              className="primary-button"
+              pendingLabel="Sending…"
+            >
+              Send Reply
+            </PendingSubmitButton>
+          </form>
+        ) : null}
+      </section>
+
+      {!item.is_personal ? (
+        <p className="communications-preview-observed">
+          Organization notification · Recipient read status is not changed from this view.
+        </p>
+      ) : null}
+
+      <div className="communications-preview-actions">
+        <Link
+          className="secondary-button"
+          href={communicationsDestination(item.destination_path)}
+        >
+          Open Full Service Request
+        </Link>
+      </div>
+    </article>
+  );
+}
+
+function NotificationPreview({
+  item,
+  timezone,
+  serviceRequestPreview,
+  loading,
+  error,
+}: {
+  item: Notification;
+  timezone: string;
+  serviceRequestPreview: ServiceRequestInboxPreview | null;
+  loading: boolean;
+  error: string | null;
+}) {
   const category = categoryLabel(item);
+
+  if (item.source_domain === "SERVICE_REQUEST") {
+    if (loading) {
+      return (
+        <article className="communications-preview communications-preview-loading" aria-live="polite">
+          <p>Loading Service Request…</p>
+        </article>
+      );
+    }
+
+    if (serviceRequestPreview) {
+      return (
+        <ServiceRequestPreview
+          item={item}
+          preview={serviceRequestPreview}
+          timezone={timezone}
+        />
+      );
+    }
+
+    if (error) {
+      return (
+        <article className="communications-preview">
+          <div className="communications-preview-error" role="alert">
+            {error}
+          </div>
+          <div className="communications-preview-actions">
+            <Link
+              className="primary-button"
+              href={communicationsDestination(item.destination_path)}
+            >
+              Open Service Request
+            </Link>
+          </div>
+        </article>
+      );
+    }
+  }
 
   return (
     <article className="communications-preview" aria-label="Communication preview">
@@ -234,6 +399,11 @@ function MobileNotification({
 
 export function CommunicationsInbox({ notifications, timezone, emptyMessage }: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(notifications[0]?.id ?? null);
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [serviceRequestPreview, setServiceRequestPreview] =
+    useState<ServiceRequestInboxPreview | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPreviewPending, startPreviewTransition] = useTransition();
 
   if (!notifications.length) {
     return (
@@ -243,28 +413,71 @@ export function CommunicationsInbox({ notifications, timezone, emptyMessage }: P
     );
   }
 
+  const displayedNotifications = notifications.map((item) =>
+    readIds.has(item.id) ? { ...item, read_at: item.read_at ?? new Date().toISOString() } : item,
+  );
+
   const selected =
-    notifications.find((item) => item.id === selectedId) ?? notifications[0];
+    displayedNotifications.find((item) => item.id === selectedId) ??
+    displayedNotifications[0];
+
+  const selectNotification = (item: Notification) => {
+    setSelectedId(item.id);
+    setServiceRequestPreview(null);
+    setPreviewError(null);
+
+    startPreviewTransition(async () => {
+      try {
+        if (item.is_personal && !item.read_at) {
+          const form = new FormData();
+          form.set("notificationId", item.id);
+          await markNotificationReadAction(form);
+          setReadIds((current) => {
+            const next = new Set(current);
+            next.add(item.id);
+            return next;
+          });
+        }
+
+        if (item.source_domain === "SERVICE_REQUEST") {
+          const preview = await getServiceRequestInboxPreview(item.source_entity_id);
+          if (!preview) {
+            setPreviewError("The Service Request preview is unavailable.");
+            return;
+          }
+          setServiceRequestPreview(preview);
+        }
+      } catch {
+        setPreviewError("The selected communication could not be loaded.");
+      }
+    });
+  };
 
   return (
     <section className="panel communications-center" aria-label="Notification inbox">
       <div className="communications-inbox-desktop">
         <div className="communications-master" aria-label="Communications list">
-          {notifications.map((item) => (
+          {displayedNotifications.map((item) => (
             <NotificationRow
               key={item.id}
               item={item}
               timezone={timezone}
               selected={item.id === selected.id}
-              onSelect={() => setSelectedId(item.id)}
+              onSelect={() => selectNotification(item)}
             />
           ))}
         </div>
-        <NotificationPreview item={selected} timezone={timezone} />
+        <NotificationPreview
+          item={selected}
+          timezone={timezone}
+          serviceRequestPreview={serviceRequestPreview}
+          loading={isPreviewPending && selected.source_domain === "SERVICE_REQUEST"}
+          error={previewError}
+        />
       </div>
 
       <div className="notification-list communications-inbox-mobile">
-        {notifications.map((item) => (
+        {displayedNotifications.map((item) => (
           <MobileNotification key={item.id} item={item} timezone={timezone} />
         ))}
       </div>

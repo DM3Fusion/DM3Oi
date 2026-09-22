@@ -1093,3 +1093,122 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     overflow-y:auto;
   }
 }
+
+.communications-service-request-preview{
+  min-width:0;
+}
+
+.service-request-preview-meta{
+  border-bottom:1px solid #e5ebf1;
+}
+
+.communications-preview-conversation{
+  padding:22px 24px;
+}
+
+.communications-preview-conversation>h3{
+  margin:0 0 14px;
+  color:#10233f;
+  font-size:18px;
+}
+
+.communications-preview-conversation-list{
+  display:grid;
+  gap:10px;
+}
+
+.communications-preview-conversation-message{
+  padding:13px 14px;
+  border:1px solid #dbe3ec;
+  border-radius:8px;
+  background:#fff;
+}
+
+.communications-preview-conversation-message.staff{
+  background:#f1f5f9;
+}
+
+.communications-preview-conversation-message>div{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.communications-preview-conversation-message strong{
+  color:#10233f;
+  font-size:14px;
+}
+
+.communications-preview-conversation-message time{
+  color:#64748b;
+  font-size:11px;
+  white-space:nowrap;
+}
+
+.communications-preview-conversation-message p{
+  margin:7px 0 0;
+  color:#334155;
+  line-height:1.55;
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.communications-preview-reply{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid #dbe3ec;
+}
+
+.communications-preview-reply label{
+  display:grid;
+  gap:7px;
+}
+
+.communications-preview-reply label>span{
+  font-weight:700;
+}
+
+.communications-preview-reply textarea{
+  box-sizing:border-box;
+  width:100%;
+  min-height:110px;
+  padding:11px 12px;
+  border:1px solid #c7d1dd;
+  border-radius:6px;
+  background:#fff;
+  font:inherit;
+  resize:vertical;
+}
+
+.communications-preview-reply .primary-button{
+  margin-top:10px;
+}
+
+.communications-preview-loading{
+  display:grid;
+  place-items:center;
+  min-height:240px;
+  color:#64748b;
+}
+
+.communications-preview-error{
+  margin:24px;
+  padding:14px 16px;
+  border:1px solid #fecaca;
+  border-radius:7px;
+  background:#fef2f2;
+  color:#991b1b;
+}
+
+@media(max-width:900px) and (min-width:701px){
+  .communications-preview-conversation{
+    padding:18px;
+  }
+
+  .communications-preview-conversation-message>div{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:3px;
+  }
+}

@@ -163,7 +163,10 @@ test("internal service request conversation supports authorized staff replies", 
   assert.match(page, /canReply/);
   assert.match(action, /create_internal_service_request_message/);
   assert.match(action, /body\.length > 4000/);
-  assert.match(action, /detailQuery\("error", "Reply cannot be blank\."\)/);
+  assert.match(action, /replyDestination\("error", "Reply cannot be blank\."\)/);
+  assert.match(action, /fromCommunications/);
+  assert.match(action, /\/communications/);
+  assert.match(action, /revalidatePath\("\/communications"\)/);
   assert.doesNotMatch(action, /from\("service_request_messages"/);
   assert.match(migration, /create_internal_service_request_message/);
   assert.doesNotMatch(migration, /MESSAGE_ADDED/);

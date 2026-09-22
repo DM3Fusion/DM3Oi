@@ -60,7 +60,7 @@ test("wide Communications inbox provides local master-detail preview without ano
   assert.match(page, /notifications=\{notifications\}/);
   assert.match(inbox, /useState<string \| null>\(notifications\[0\]\?\.id \?\? null\)/);
   assert.match(inbox, /setSelectedId\(item\.id\)/);
-  assert.match(inbox, /notifications\.find\(\(item\) => item\.id === selectedId\) \?\? notifications\[0\]/);
+  assert.match(inbox, /displayedNotifications\.find\(\(item\) => item\.id === selectedId\) \?\?\s*displayedNotifications\[0\]/);
   assert.doesNotMatch(inbox, /useEffect/);
   assert.match(inbox, /communications-inbox-desktop/);
   assert.match(inbox, /communications-master/);
