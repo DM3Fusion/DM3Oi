@@ -102,10 +102,28 @@ test("dashboard queries remain authorized and recipient scoped", () => {
   assert.match(communications, /\.eq\("recipient_user_id", userId\)/);
 });
 
-test("dashboard layout has responsive six, three, and two-column KPI states", () => {
+test("dashboard KPI cards remain three columns on wide and phone layouts", () => {
   const css = source("app/globals.css");
-  assert.match(css, /\.operations-kpis\{display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
-  assert.match(css, /@media\(max-width:1300px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
-  assert.match(css, /@media\(max-width:620px\)\{\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(css, /\/\* Operational summary: intentionally compact, text-only KPI cards\. \*\/[\s\S]*\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}/);
+  assert.match(css, /@media\(max-width:850px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}\}/);
+  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css, /\.operations-kpi\{min-height:82px;gap:4px;padding:9px 5px\}/);
+  assert.match(css, /\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css, /\.operations-kpi-label\{[^}]*overflow-wrap:anywhere\}/);
+  assert.doesNotMatch(css.slice(css.lastIndexOf("/* Operational summary")), /overflow-x:(?:auto|scroll)/);
   assert.doesNotMatch(css, /route-progress|navigation-progress/);
+});
+
+test("dashboard KPIs render only the existing labels and model values", () => {
+  const dashboard = source("components/dashboard/dashboard.tsx");
+  const metrics = source("lib/live-dashboard-metrics.ts");
+  for (const label of ["Active Cases", "Open Tasks", "Due Today", "Open Service Requests", "Unread Communications", "Customers"]) {
+    assert.match(metrics, new RegExp(`label:\\"${label}\\"`));
+  }
+  assert.match(dashboard, /<span className="operations-kpi-label">\{item\.label\}<\/span>/);
+  assert.match(dashboard, /<strong>\{item\.value\}<\/strong>/);
+  assert.doesNotMatch(dashboard, /operations-kpi-icon|iconFor\(item\.label\)|item\.detail/);
+  for (const detail of ["Current authorized caseload", "Not completed or excluded", "Organization-local date", "Active Service Desk workload", "Your unread notifications", "Visible organization records"]) {
+    assert.doesNotMatch(dashboard, new RegExp(detail));
+  }
 });

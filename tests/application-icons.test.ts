@@ -41,7 +41,15 @@ test("responsive optical sizes preserve established touch targets", () => {
   assert.match(css, /\.mobile-navigation-icon \.application-icon\{width:24px;height:24px/);
   assert.match(css, /\.mobile-bottom-navigation>a\{[^}]*min-height:58px/);
   assert.match(css, /\.mobile-account-navigation nav a\{[^}]*min-height:56px/);
-  assert.match(css, /\.operations-kpi-icon \.application-icon\{width:18px;height:18px/);
+});
+
+test("navigation and action icons remain centralized when dashboard KPIs are text only", () => {
+  const shell = source("components/layout/app-shell.tsx");
+  const dashboard = source("components/dashboard/dashboard.tsx");
+  assert.match(shell, /<ApplicationIcon name=\{icon\} \/>/);
+  assert.match(dashboard, /<ApplicationIcon name="forward" \/>/);
+  assert.match(dashboard, /<ApplicationIcon name="completed"/);
+  assert.doesNotMatch(dashboard, /operations-kpi-icon/);
 });
 
 test("UI icon catalog adds no raster or icon-font implementation", () => {

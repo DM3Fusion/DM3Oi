@@ -7,17 +7,6 @@ import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { OperationalIntelligenceSection } from "@/components/dashboard/operational-intelligence";
 import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 import { ApplicationIcon } from "@/components/application-icon";
-import type { ApplicationIconName } from "@/lib/application-icons";
-
-const kpiIcons: Record<string, ApplicationIconName> = {
-  "Active Cases": "cases",
-  "Open Tasks": "tasks",
-  "Due Today": "due",
-  "Open Service Requests": "service-desk",
-  "Unread Communications": "unread",
-  Customers: "customers",
-};
-const iconFor = (label: string): ApplicationIconName => kpiIcons[label] ?? "status";
 
 export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrganizationData;unreadCommunications:number;intelligence:AuthorizedOperationalIntelligence|null}){
   const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers.length,unreadCommunications,data.timezone);
@@ -26,8 +15,8 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
   return <div className="operations-dashboard">
     <section className="operations-kpis" aria-label="Operational summary">
       {summary.kpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
-        <span className="operations-kpi-icon"><ApplicationIcon name={iconFor(item.label)} /></span>
-        <span className="operations-kpi-copy"><small>{item.label}</small><strong>{item.value}</strong><span>{item.detail}</span></span>
+        <span className="operations-kpi-label">{item.label}</span>
+        <strong>{item.value}</strong>
       </Link>)}
     </section>
     <div className="operations-visuals">
