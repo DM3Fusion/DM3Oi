@@ -441,3 +441,199 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   font-weight:400;
   line-height:1.4;
 }
+
+/* Professional Inbox presentation — behavior and notification semantics unchanged. */
+.communications-workspace .communications-center{
+  overflow:hidden;
+  border:1px solid #dbe3ec;
+  border-radius:10px;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(15,35,60,.05);
+}
+
+.communications-workspace .notification-list{
+  background:#fff;
+}
+
+.communications-workspace .notification-item{
+  position:relative;
+  border-bottom:1px solid #e5ebf1;
+  background:#fff;
+  transition:background-color .15s ease,box-shadow .15s ease;
+}
+
+.communications-workspace .notification-item:last-child{
+  border-bottom:0;
+}
+
+.communications-workspace .notification-item.unread{
+  border-left:3px solid #2d72d9;
+  background:#f8fbff;
+}
+
+.communications-workspace .notification-item.observed{
+  border-left:3px solid transparent;
+  background:#fff;
+}
+
+.communications-workspace .notification-item:hover{
+  background:#f7f9fc;
+}
+
+.communications-workspace .notification-item.unread:hover{
+  background:#f3f8ff;
+}
+
+.communications-workspace .notification-open{
+  grid-template-columns:10px minmax(0,1fr) 18px;
+  gap:14px;
+  min-height:116px;
+  align-items:start;
+  padding:20px 24px 44px;
+}
+
+.communications-workspace .notification-item.observed .notification-open{
+  min-height:94px;
+  padding-bottom:20px;
+}
+
+.communications-workspace .notification-state{
+  width:8px;
+  height:8px;
+  margin-top:8px;
+  background:#c7d0dc;
+}
+
+.communications-workspace .notification-item.unread .notification-state{
+  background:#2d72d9;
+  box-shadow:0 0 0 3px rgba(45,114,217,.09);
+}
+
+.communications-workspace .notification-copy{
+  min-width:0;
+  gap:5px;
+}
+
+.communications-workspace .notification-copy strong{
+  color:#14243a;
+  font-size:17px;
+  font-weight:750;
+  line-height:1.3;
+}
+
+.communications-workspace .notification-item.observed .notification-copy strong{
+  font-weight:650;
+}
+
+.communications-workspace .notification-copy>span{
+  color:#42536a;
+  font-size:16px;
+  line-height:1.45;
+}
+
+.communications-workspace .notification-copy small{
+  color:#718096;
+  font-size:13px;
+  font-weight:550;
+  line-height:1.4;
+  text-transform:none;
+}
+
+.communications-workspace .notification-copy .notification-recipient{
+  margin-top:2px;
+  color:#41536b;
+  font-size:13px;
+  font-weight:700;
+}
+
+.communications-workspace .notification-open>.application-icon{
+  align-self:center;
+  width:17px;
+  height:17px;
+  color:#8795a7;
+}
+
+.communications-workspace .notification-state-form{
+  left:47px;
+  bottom:12px;
+}
+
+.communications-workspace .notification-state-form button{
+  min-height:28px;
+  padding:3px 8px;
+  border-radius:5px;
+  color:#1768e5;
+  font-size:13px;
+  font-weight:650;
+}
+
+.communications-workspace .notification-state-form button:hover{
+  background:#eaf2ff;
+}
+
+@media(max-width:700px){
+  .communications-view-mobile .communications-center{
+    border:0;
+    border-radius:0;
+    background:transparent;
+    box-shadow:none;
+  }
+
+  .communications-view-mobile .notification-list{
+    gap:10px;
+    background:transparent;
+  }
+
+  .communications-view-mobile .notification-item{
+    border:1px solid #dce4ed;
+    border-left:3px solid transparent;
+    border-radius:10px;
+    background:#fff;
+    box-shadow:0 1px 3px rgba(15,35,60,.06);
+  }
+
+  .communications-view-mobile .notification-item.unread{
+    border-left:4px solid #2d72d9;
+    background:#f8fbff;
+  }
+
+  .communications-view-mobile .notification-open{
+    min-height:112px;
+    grid-template-columns:9px minmax(0,1fr) 15px;
+    gap:10px;
+    padding:16px 14px 48px;
+  }
+
+  .communications-view-mobile .notification-item.observed .notification-open{
+    min-height:auto;
+    padding-bottom:16px;
+  }
+
+  .communications-view-mobile .notification-state{
+    margin-top:6px;
+  }
+
+  .communications-view-mobile .notification-copy{
+    gap:5px;
+  }
+
+  .communications-view-mobile .notification-copy strong{
+    font-size:16px;
+    line-height:1.3;
+  }
+
+  .communications-view-mobile .notification-copy>span{
+    font-size:14px;
+    line-height:1.45;
+  }
+
+  .communications-view-mobile .notification-copy small,
+  .communications-view-mobile .notification-copy .notification-recipient{
+    font-size:12px;
+  }
+
+  .communications-view-mobile .notification-state-form{
+    left:33px;
+    bottom:8px;
+  }
+}
