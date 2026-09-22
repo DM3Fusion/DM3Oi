@@ -902,3 +902,152 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     display:flex;
   }
 }
+
+/* Communications preview workspace refinement */
+@media(min-width:901px){
+  .communications-inbox-desktop{
+    grid-template-columns:minmax(330px,37%) minmax(0,1fr);
+  }
+}
+
+.communications-master{
+  position:relative;
+  z-index:1;
+}
+
+.notification-summary{
+  transition:background-color .14s ease,box-shadow .14s ease;
+}
+
+.notification-summary.selected{
+  position:relative;
+  background:#eaf3fc;
+  box-shadow:inset 4px 0 0 #2d72d9;
+}
+
+.notification-summary.selected:hover{
+  background:#e6f0fb;
+}
+
+.communications-preview{
+  position:relative;
+  min-width:0;
+  padding:26px 30px 30px;
+  background:#f7f9fc;
+  box-shadow:inset 1px 0 0 rgba(219,227,236,.45);
+}
+
+.communications-preview-header{
+  gap:24px;
+  padding:0 2px 20px;
+  border-bottom:0;
+}
+
+.communications-preview-kicker{
+  margin-bottom:6px;
+  color:#60738b;
+  font-size:11px;
+  letter-spacing:.065em;
+}
+
+.communications-preview-header h2{
+  max-width:760px;
+  font-size:24px;
+  letter-spacing:-.25px;
+}
+
+.communications-preview-header time{
+  padding-top:2px;
+  color:#718096;
+  font-size:12px;
+}
+
+.communications-preview-message{
+  margin-top:0;
+  padding:24px 26px;
+  border:1px solid #dfe6ee;
+  border-radius:9px;
+  background:#fff;
+  box-shadow:0 1px 3px rgba(15,35,60,.045);
+}
+
+.communications-preview-message p{
+  max-width:880px;
+  color:#263b52;
+  font-size:16px;
+  line-height:1.65;
+}
+
+.communications-preview-meta{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px 24px;
+  margin:18px 0 0;
+  padding:16px 18px;
+  border:1px solid #e1e7ee;
+  border-radius:8px;
+  background:rgba(255,255,255,.72);
+}
+
+.communications-preview-meta dt{
+  margin-bottom:5px;
+  color:#718096;
+  font-size:10px;
+  letter-spacing:.045em;
+}
+
+.communications-preview-meta dd{
+  overflow-wrap:anywhere;
+  color:#263b52;
+  font-size:13px;
+  font-weight:650;
+}
+
+.communications-preview-observed{
+  margin:14px 0 0;
+}
+
+.communications-preview-actions{
+  gap:10px;
+  padding-top:18px;
+}
+
+.communications-preview-actions .primary-button,
+.communications-preview-actions .secondary-button{
+  min-height:42px;
+  align-items:center;
+  justify-content:center;
+}
+
+@media(max-width:1100px) and (min-width:901px){
+  .communications-inbox-desktop{
+    grid-template-columns:minmax(330px,40%) minmax(0,1fr);
+  }
+
+  .communications-preview{
+    padding:24px;
+  }
+
+  .communications-preview-meta{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:900px) and (min-width:701px){
+  .communications-preview{
+    padding:20px;
+    background:#f7f9fc;
+  }
+
+  .communications-preview-header{
+    padding-bottom:17px;
+  }
+
+  .communications-preview-message{
+    padding:20px;
+  }
+
+  .communications-preview-meta{
+    grid-template-columns:1fr;
+    padding:15px 16px;
+  }
+}
