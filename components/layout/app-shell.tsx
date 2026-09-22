@@ -42,12 +42,12 @@ const isPublic = (path: string) =>
 export function AppShell({
   children,
   access,
-  applicationVersion,
+  applicationVersionLabel,
   unreadNotificationCount,
 }: {
   children: React.ReactNode;
   access: AccessContext | null;
-  applicationVersion: string;
+  applicationVersionLabel: string;
   unreadNotificationCount: number;
 }) {
   const pathname = usePathname();
@@ -99,6 +99,7 @@ export function AppShell({
               <span className="dm3oi-wordmark-tm">™</span>
             </strong>
             <span className="brand-descriptor">OPERATIONAL<br/>INTELLIGENCE</span>
+            <span className="brand-version">{applicationVersionLabel}</span>
           </Link>
           <button
             className="close-menu"
@@ -199,7 +200,7 @@ export function AppShell({
           )}
         </div>
         <form action={signOutAction} className="signout"><PendingSubmitButton pendingLabel="Signing out…"><ApplicationIcon name="sign-out" />Sign Out</PendingSubmitButton></form>
-        <footer className="sidebar-product-footer"><span>DM3Oi™ | Operational Intelligence</span><small>Ver. {applicationVersion}</small></footer>
+        <footer className="sidebar-product-footer"><span>DM3Oi™ | Operational Intelligence</span></footer>
       </aside> : null}
       <div className="main-column">
         <header className="topbar">

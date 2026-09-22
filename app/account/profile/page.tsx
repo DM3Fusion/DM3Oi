@@ -13,6 +13,7 @@ import { mobileSecondaryNavigation } from "@/lib/application-navigation";
 import { signOutAction } from "@/lib/auth/actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { ApplicationIcon } from "@/components/application-icon";
+import { getApplicationVersionLabel } from "@/lib/app-version";
 
 export default async function Page({
   searchParams,
@@ -105,6 +106,7 @@ export default async function Page({
         </div>
         <form action={signOutAction}><PendingSubmitButton pendingLabel="Signing out…"><ApplicationIcon name="sign-out" />Sign Out</PendingSubmitButton></form>
       </section>
+      <small className="mobile-account-version">{getApplicationVersionLabel()}</small>
     </>
   );
 }
