@@ -832,7 +832,8 @@ export default async function LandingPageAdmin({
         </dl>
       </section>
 
-      <section className="panel landing-page-version-history">
+      <div className="landing-page-publication-grid">
+        <section className="panel landing-page-version-history">
         <div className="email-template-heading">
           <h2>Published Version History</h2>
           <p className="muted">
@@ -980,7 +981,7 @@ export default async function LandingPageAdmin({
         </div>
       </section>
 
-      <section className="panel landing-page-publication-activity">
+        <section className="panel landing-page-publication-activity">
         <div className="email-template-heading">
           <h2>Publication Activity</h2>
           <p className="muted">
@@ -1113,7 +1114,8 @@ export default async function LandingPageAdmin({
             </>
           )}
         </div>
-      </section>
+        </section>
+      </div>
 
     </div>
   );
