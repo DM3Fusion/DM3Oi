@@ -1415,3 +1415,10 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size:11px;
   }
 }
+
+/* Keep the organization name crisp over the restored mountain detail. */
+@media(min-width:601px){
+  .topbar .organization-context-name{
+    text-shadow:none;
+  }
+}
