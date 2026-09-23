@@ -3261,15 +3261,22 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   max-width: 30rem;
 }
 
-.landing-page-save-bar {
+@media (max-width: 760px) {
+  .landing-page-two-column,
+  .landing-page-feature-editor-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-page-save-bar {
     bottom: 0.65rem;
     align-items: stretch;
     flex-direction: column;
   }
 
-.landing-page-save-bar .button {
+  .landing-page-save-bar .button {
     width: 100%;
   }
+}
 
 /* SUPER_ADMIN landing-page draft preview */
 .public-home-preview-banner {
@@ -3297,6 +3304,15 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   white-space: nowrap;
   text-decoration: underline;
 }
+
+@media (max-width: 680px) {
+  .public-home-preview-banner {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
+
 
 /* SUPER_ADMIN landing-page modal preview */
 
@@ -3394,7 +3410,12 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   min-height: 100%;
 }
 
-.landing-page-preview-window {
+@media (max-width: 700px) {
+  .landing-page-preview-modal {
+    padding: 0;
+  }
+
+  .landing-page-preview-window {
     width: 100%;
     height: 100dvh;
     max-height: none;
@@ -3402,19 +3423,21 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     border-radius: 0;
   }
 
-.landing-page-preview-header {
+  .landing-page-preview-header {
     align-items: flex-start;
     gap: 0.75rem;
     padding: 0.85rem;
   }
 
-.landing-page-preview-header p {
+  .landing-page-preview-header p {
     display: none;
   }
 
-.landing-page-preview-close {
+  .landing-page-preview-close {
     min-width: auto;
   }
+}
+
 
 /* SUPER_ADMIN landing-page published version history */
 
@@ -3480,17 +3503,26 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   white-space: nowrap;
 }
 
-.landing-page-revert-form {
+@media (max-width: 800px) {
+  .landing-page-version-row,
+  .landing-page-revert-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .landing-page-revert-form {
     width: 100%;
   }
 
-.landing-page-revert-form label {
+  .landing-page-revert-form label {
     min-width: 0;
   }
 
-.landing-page-revert-form .button {
+  .landing-page-revert-form .button {
     width: 100%;
   }
+}
+
 
 /* SUPER_ADMIN landing-page publication audit */
 
@@ -3546,6 +3578,14 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   color: #695515;
 }
 
+@media (max-width: 700px) {
+  .landing-page-audit-title {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+
 /* Landing-page audit status badges — align with CURRENT badge */
 
 .landing-page-audit-action {
@@ -3553,6 +3593,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   padding: 0.16rem 0.58rem;
   border-radius: 0.4rem;
 }
+
 
 /* SUPER_ADMIN landing-page workflow artwork */
 
