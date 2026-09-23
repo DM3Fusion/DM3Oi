@@ -1403,7 +1403,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   .account-menu-banner-identity{
     padding:7px 11px;
     border-radius:6px;
-    background:rgba(7,26,47,.54);
+    background:rgba(7,26,47,.38);
   }
 
   .account-menu-banner-identity strong{
