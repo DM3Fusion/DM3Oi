@@ -28,7 +28,7 @@ test("landing sign in works while Request Trial remains non-functional", () => {
 test("desktop product navigation excludes authentication controls", () => {
   const landing = source("components/public-landing-page.tsx");
   const nav =
-    landing.match(/<nav className="landing-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
+    landing.match(/<nav className="public-home-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
 
   assert.match(nav, /Solutions/);
   assert.match(nav, /Capabilities/);

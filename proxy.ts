@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getPublicEnvironment } from "@/lib/config/env";
 import { safeInternalPath } from "@/lib/auth/redirects";
 import type { Database } from "@/types/database.generated";
-const publicRoutes=["/","/login","/auth/callback","/auth/invite","/auth/sign-out"];
+const publicRoutes=["/","/login","/terms","/privacy","/auth/callback","/auth/invite","/auth/sign-out"];
 export async function proxy(request:NextRequest){
  let response=NextResponse.next({request}); const env=getPublicEnvironment(); const pathname=request.nextUrl.pathname;
  if(pathname==="/auth/callback") return response;
