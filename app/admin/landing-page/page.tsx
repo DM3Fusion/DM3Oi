@@ -219,321 +219,6 @@ export default async function LandingPageAdmin({
         <p className="notice error">{errorMessage}</p>
       )}
 
-      <section className="panel landing-page-publication">
-        <div className="email-template-heading">
-          <h2>Publication</h2>
-          <p className="muted">
-            Visitors see only the current immutable published
-            version. Saving the working draft does not change
-            the public DM3Oi site.
-          </p>
-        </div>
-
-        <dl className="legal-document-meta">
-          <div>
-            <dt>Published Version</dt>
-            <dd>{publishedVersion?.version ?? "—"}</dd>
-          </div>
-
-          <div>
-            <dt>Published</dt>
-            <dd>
-              {formatDate(
-                publishedVersion?.published_at,
-              )}
-            </dd>
-          </div>
-
-          <div>
-            <dt>Draft Updated</dt>
-            <dd>{formatDate(draft?.updated_at)}</dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="panel landing-page-version-history">
-        <div className="email-template-heading">
-          <h2>Published Version History</h2>
-          <p className="muted">
-            Published versions are immutable. Restoring changes
-            only which version visitors see and does not modify
-            the working draft.
-          </p>
-        </div>
-
-        <div className="landing-page-version-list">
-          {(versions ?? []).slice(0, 2).map((version) => {
-            const isCurrent =
-              version.version === publishedVersion?.version;
-
-            return (
-              <div
-                className="landing-page-version-row"
-                key={version.id}
-              >
-                <div>
-                  <div className="landing-page-version-title">
-                    <strong>Version {version.version}</strong>
-
-                    {isCurrent && (
-                      <span className="landing-page-current-version">
-                        Current
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="muted">
-                    Published {formatDate(version.published_at)}
-                  </p>
-                </div>
-
-                {!isCurrent && (
-                  <form
-                    action={revertLandingPageVersion}
-                    className="landing-page-revert-form"
-                  >
-                    <input
-                      type="hidden"
-                      name="version"
-                      value={version.version}
-                    />
-
-                    <label>
-                      Type{" "}
-                      <strong>
-                        REVERT {version.version}
-                      </strong>
-                      <input
-                        name="confirmation"
-                        required
-                        autoComplete="off"
-                        placeholder={`REVERT ${version.version}`}
-                      />
-                    </label>
-
-                    <SubmitButton
-                      className="button secondary"
-                      pendingText="Reverting…"
-                    >
-                      Restore Version {version.version}
-                    </SubmitButton>
-                  </form>
-                )}
-              </div>
-            );
-          })}
-
-          {(versions ?? []).length > 2 && (
-            <details className="landing-page-history-more">
-              <summary>
-                + Show {(versions ?? []).length - 2} more versions
-              </summary>
-
-              <div className="landing-page-history-more-content">
-                {(versions ?? []).slice(2).map((version) => {
-                  const isCurrent =
-                    version.version === publishedVersion?.version;
-
-                  return (
-                    <div
-                      className="landing-page-version-row"
-                      key={version.id}
-                    >
-                      <div>
-                        <div className="landing-page-version-title">
-                          <strong>
-                            Version {version.version}
-                          </strong>
-
-                          {isCurrent && (
-                            <span className="landing-page-current-version">
-                              Current
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="muted">
-                          Published{" "}
-                          {formatDate(version.published_at)}
-                        </p>
-                      </div>
-
-                      {!isCurrent && (
-                        <form
-                          action={revertLandingPageVersion}
-                          className="landing-page-revert-form"
-                        >
-                          <input
-                            type="hidden"
-                            name="version"
-                            value={version.version}
-                          />
-
-                          <label>
-                            Type{" "}
-                            <strong>
-                              REVERT {version.version}
-                            </strong>
-                            <input
-                              name="confirmation"
-                              required
-                              autoComplete="off"
-                              placeholder={`REVERT ${version.version}`}
-                            />
-                          </label>
-
-                          <SubmitButton
-                            className="button secondary"
-                            pendingText="Reverting…"
-                          >
-                            Restore Version {version.version}
-                          </SubmitButton>
-                        </form>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-          )}
-        </div>
-      </section>
-
-      <section className="panel landing-page-publication-activity">
-        <div className="email-template-heading">
-          <h2>Publication Activity</h2>
-          <p className="muted">
-            Immutable audit history of landing-page publication
-            and restoration activity.
-          </p>
-        </div>
-
-        <div className="landing-page-audit-list">
-          {(publicationHistory ?? []).length === 0 ? (
-            <p className="muted">
-              No publication audit activity recorded yet.
-            </p>
-          ) : (
-            <>
-              {(publicationHistory ?? [])
-                .slice(0, 2)
-                .map((event) => {
-                  const fromVersion = event.from_version_id
-                    ? versionNumberById.get(
-                        event.from_version_id,
-                      )
-                    : null;
-
-                  const toVersion = versionNumberById.get(
-                    event.to_version_id,
-                  );
-
-                  const description =
-                    event.action === "BASELINE"
-                      ? `Audit baseline established at Version ${toVersion ?? "—"}.`
-                      : event.action === "PUBLISH"
-                        ? `Published Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`
-                        : `Restored Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`;
-
-                  return (
-                    <div
-                      className="landing-page-audit-row"
-                      key={event.id}
-                    >
-                      <div>
-                        <div className="landing-page-audit-title">
-                          <strong>{description}</strong>
-
-                          <span
-                            className={`landing-page-audit-action landing-page-audit-action-${event.action.toLowerCase()}`}
-                          >
-                            {event.action === "BASELINE"
-                              ? "Baseline"
-                              : event.action === "PUBLISH"
-                                ? "Published"
-                                : "Restored"}
-                          </span>
-                        </div>
-
-                        <p className="muted">
-                          {formatDate(event.acted_at)}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-
-              {(publicationHistory ?? []).length > 2 && (
-                <details className="landing-page-history-more">
-                  <summary>
-                    + Show{" "}
-                    {(publicationHistory ?? []).length - 2} more
-                  </summary>
-
-                  <div className="landing-page-history-more-content">
-                    {(publicationHistory ?? [])
-                      .slice(2)
-                      .map((event) => {
-                        const fromVersion =
-                          event.from_version_id
-                            ? versionNumberById.get(
-                                event.from_version_id,
-                              )
-                            : null;
-
-                        const toVersion =
-                          versionNumberById.get(
-                            event.to_version_id,
-                          );
-
-                        const description =
-                          event.action === "BASELINE"
-                            ? `Audit baseline established at Version ${toVersion ?? "—"}.`
-                            : event.action === "PUBLISH"
-                              ? `Published Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`
-                              : `Restored Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`;
-
-                        return (
-                          <div
-                            className="landing-page-audit-row"
-                            key={event.id}
-                          >
-                            <div>
-                              <div className="landing-page-audit-title">
-                                <strong>
-                                  {description}
-                                </strong>
-
-                                <span
-                                  className={`landing-page-audit-action landing-page-audit-action-${event.action.toLowerCase()}`}
-                                >
-                                  {event.action ===
-                                  "BASELINE"
-                                    ? "Baseline"
-                                    : event.action ===
-                                        "PUBLISH"
-                                      ? "Published"
-                                      : "Restored"}
-                                </span>
-                              </div>
-
-                              <p className="muted">
-                                {formatDate(
-                                  event.acted_at,
-                                )}
-                              </p>
-                            </div>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </details>
-              )}
-            </>
-          )}
-        </div>
-      </section>
-
       <form
         action={saveLandingPageDraft}
         className="landing-page-editor"
@@ -1117,6 +802,321 @@ export default async function LandingPageAdmin({
           </SubmitButton>
         </form>
       </section>
+      <section className="panel landing-page-publication">
+        <div className="email-template-heading">
+          <h2>Publication</h2>
+          <p className="muted">
+            Visitors see only the current immutable published
+            version. Saving the working draft does not change
+            the public DM3Oi site.
+          </p>
+        </div>
+
+        <dl className="legal-document-meta">
+          <div>
+            <dt>Published Version</dt>
+            <dd>{publishedVersion?.version ?? "—"}</dd>
+          </div>
+
+          <div>
+            <dt>Published</dt>
+            <dd>
+              {formatDate(
+                publishedVersion?.published_at,
+              )}
+            </dd>
+          </div>
+
+          <div>
+            <dt>Draft Updated</dt>
+            <dd>{formatDate(draft?.updated_at)}</dd>
+          </div>
+        </dl>
+      </section>
+
+      <section className="panel landing-page-version-history">
+        <div className="email-template-heading">
+          <h2>Published Version History</h2>
+          <p className="muted">
+            Published versions are immutable. Restoring changes
+            only which version visitors see and does not modify
+            the working draft.
+          </p>
+        </div>
+
+        <div className="landing-page-version-list">
+          {(versions ?? []).slice(0, 2).map((version) => {
+            const isCurrent =
+              version.version === publishedVersion?.version;
+
+            return (
+              <div
+                className="landing-page-version-row"
+                key={version.id}
+              >
+                <div>
+                  <div className="landing-page-version-title">
+                    <strong>Version {version.version}</strong>
+
+                    {isCurrent && (
+                      <span className="landing-page-current-version">
+                        Current
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="muted">
+                    Published {formatDate(version.published_at)}
+                  </p>
+                </div>
+
+                {!isCurrent && (
+                  <form
+                    action={revertLandingPageVersion}
+                    className="landing-page-revert-form"
+                  >
+                    <input
+                      type="hidden"
+                      name="version"
+                      value={version.version}
+                    />
+
+                    <label>
+                      Type{" "}
+                      <strong>
+                        REVERT {version.version}
+                      </strong>
+                      <input
+                        name="confirmation"
+                        required
+                        autoComplete="off"
+                        placeholder={`REVERT ${version.version}`}
+                      />
+                    </label>
+
+                    <SubmitButton
+                      className="button secondary"
+                      pendingText="Reverting…"
+                    >
+                      Restore Version {version.version}
+                    </SubmitButton>
+                  </form>
+                )}
+              </div>
+            );
+          })}
+
+          {(versions ?? []).length > 2 && (
+            <details className="landing-page-history-more">
+              <summary>
+                + Show {(versions ?? []).length - 2} more versions
+              </summary>
+
+              <div className="landing-page-history-more-content">
+                {(versions ?? []).slice(2).map((version) => {
+                  const isCurrent =
+                    version.version === publishedVersion?.version;
+
+                  return (
+                    <div
+                      className="landing-page-version-row"
+                      key={version.id}
+                    >
+                      <div>
+                        <div className="landing-page-version-title">
+                          <strong>
+                            Version {version.version}
+                          </strong>
+
+                          {isCurrent && (
+                            <span className="landing-page-current-version">
+                              Current
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="muted">
+                          Published{" "}
+                          {formatDate(version.published_at)}
+                        </p>
+                      </div>
+
+                      {!isCurrent && (
+                        <form
+                          action={revertLandingPageVersion}
+                          className="landing-page-revert-form"
+                        >
+                          <input
+                            type="hidden"
+                            name="version"
+                            value={version.version}
+                          />
+
+                          <label>
+                            Type{" "}
+                            <strong>
+                              REVERT {version.version}
+                            </strong>
+                            <input
+                              name="confirmation"
+                              required
+                              autoComplete="off"
+                              placeholder={`REVERT ${version.version}`}
+                            />
+                          </label>
+
+                          <SubmitButton
+                            className="button secondary"
+                            pendingText="Reverting…"
+                          >
+                            Restore Version {version.version}
+                          </SubmitButton>
+                        </form>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+          )}
+        </div>
+      </section>
+
+      <section className="panel landing-page-publication-activity">
+        <div className="email-template-heading">
+          <h2>Publication Activity</h2>
+          <p className="muted">
+            Immutable audit history of landing-page publication
+            and restoration activity.
+          </p>
+        </div>
+
+        <div className="landing-page-audit-list">
+          {(publicationHistory ?? []).length === 0 ? (
+            <p className="muted">
+              No publication audit activity recorded yet.
+            </p>
+          ) : (
+            <>
+              {(publicationHistory ?? [])
+                .slice(0, 2)
+                .map((event) => {
+                  const fromVersion = event.from_version_id
+                    ? versionNumberById.get(
+                        event.from_version_id,
+                      )
+                    : null;
+
+                  const toVersion = versionNumberById.get(
+                    event.to_version_id,
+                  );
+
+                  const description =
+                    event.action === "BASELINE"
+                      ? `Audit baseline established at Version ${toVersion ?? "—"}.`
+                      : event.action === "PUBLISH"
+                        ? `Published Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`
+                        : `Restored Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`;
+
+                  return (
+                    <div
+                      className="landing-page-audit-row"
+                      key={event.id}
+                    >
+                      <div>
+                        <div className="landing-page-audit-title">
+                          <strong>{description}</strong>
+
+                          <span
+                            className={`landing-page-audit-action landing-page-audit-action-${event.action.toLowerCase()}`}
+                          >
+                            {event.action === "BASELINE"
+                              ? "Baseline"
+                              : event.action === "PUBLISH"
+                                ? "Published"
+                                : "Restored"}
+                          </span>
+                        </div>
+
+                        <p className="muted">
+                          {formatDate(event.acted_at)}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+
+              {(publicationHistory ?? []).length > 2 && (
+                <details className="landing-page-history-more">
+                  <summary>
+                    + Show{" "}
+                    {(publicationHistory ?? []).length - 2} more
+                  </summary>
+
+                  <div className="landing-page-history-more-content">
+                    {(publicationHistory ?? [])
+                      .slice(2)
+                      .map((event) => {
+                        const fromVersion =
+                          event.from_version_id
+                            ? versionNumberById.get(
+                                event.from_version_id,
+                              )
+                            : null;
+
+                        const toVersion =
+                          versionNumberById.get(
+                            event.to_version_id,
+                          );
+
+                        const description =
+                          event.action === "BASELINE"
+                            ? `Audit baseline established at Version ${toVersion ?? "—"}.`
+                            : event.action === "PUBLISH"
+                              ? `Published Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`
+                              : `Restored Version ${toVersion ?? "—"}, replacing Version ${fromVersion ?? "—"}.`;
+
+                        return (
+                          <div
+                            className="landing-page-audit-row"
+                            key={event.id}
+                          >
+                            <div>
+                              <div className="landing-page-audit-title">
+                                <strong>
+                                  {description}
+                                </strong>
+
+                                <span
+                                  className={`landing-page-audit-action landing-page-audit-action-${event.action.toLowerCase()}`}
+                                >
+                                  {event.action ===
+                                  "BASELINE"
+                                    ? "Baseline"
+                                    : event.action ===
+                                        "PUBLISH"
+                                      ? "Published"
+                                      : "Restored"}
+                                </span>
+                              </div>
+
+                              <p className="muted">
+                                {formatDate(
+                                  event.acted_at,
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </details>
+              )}
+            </>
+          )}
+        </div>
+      </section>
+
     </div>
   );
 }
