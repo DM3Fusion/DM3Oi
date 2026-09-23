@@ -99,6 +99,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     activityResult,
     requestResult,
     settingsResult,
+    platformAdminIds,
   ] = await Promise.all([
     supabase
       .from("organization_cases")
@@ -141,6 +142,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       .select("timezone")
       .eq("organization_id", organizationId)
       .maybeSingle(),
+    getPlatformAdminUserIds(),
   ]);
   const error =
     caseResult.error ??
@@ -175,8 +177,9 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     });
     throw new DataAccessError();
   }
-  const platformAdminIds=await getPlatformAdminUserIds();
-  const memberships = (memberResult.data ?? []).filter(member=>!platformAdminIds.has(member.user_id));
+  const memberships = (memberResult.data ?? []).filter(
+    (member) => !platformAdminIds.has(member.user_id),
+  );
   const profileIds = [
     ...new Set([
       ...memberships.map((row) => row.user_id),
@@ -191,9 +194,23 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       ),
     ]),
   ];
-  const profileResult = profileIds.length
-    ? await supabase.from("profiles").select("*").in("id", profileIds)
-    : { data: [], error: null };
+  const customers = customerResult.data ?? [];
+  const assignments = assignmentResult.data ?? [];
+  const tasks = taskResult.data ?? [];
+  const rawCases = caseResult.data ?? [];
+
+  const profilePromise = profileIds.length
+    ? supabase.from("profiles").select("*").in("id", profileIds)
+    : Promise.resolve({ data: [], error: null });
+
+  const [profileResult, ruleEvaluationBundle] = await Promise.all([
+    profilePromise,
+    loadOrganizationCaseRuleEvaluationBundle(
+      organizationId,
+      rawCases.map((item) => item.id),
+    ),
+  ]);
+
   if (profileResult.error) {
     console.error("Profile query failed", {
       code: profileResult.error.code,
@@ -201,17 +218,31 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     });
     throw new DataAccessError();
   }
-  const profiles = await attachAuthorizedAvatarUrls((profileResult.data ?? []).map(profile=>maskPlatformProfile(profile,platformAdminIds)));
-  const byProfile = new Map(profiles.map((row) => [row.id, row]));
-  const profileForOrganization=(id:string):AvatarProfileRow|null=>platformAdminIds.has(id)?{id,display_name:ORGANIZATION_SUPPORT_IDENTITY,first_name:null,last_name:null,email:null,phone:null,title:null,is_active:true,avatar_path:null,avatar_updated_at:null,avatarUrl:null,created_at:"",updated_at:""}:byProfile.get(id)??null;
-  const customers = customerResult.data ?? [];
-  const assignments = assignmentResult.data ?? [];
-  const tasks = taskResult.data ?? [];
-  const rawCases = caseResult.data ?? [];
-  const ruleEvaluationBundle = await loadOrganizationCaseRuleEvaluationBundle(
-    organizationId,
-    rawCases.map((item) => item.id),
+
+  const profiles = await attachAuthorizedAvatarUrls(
+    (profileResult.data ?? []).map((profile) =>
+      maskPlatformProfile(profile, platformAdminIds),
+    ),
   );
+  const byProfile = new Map(profiles.map((row) => [row.id, row]));
+  const profileForOrganization = (id: string): AvatarProfileRow | null =>
+    platformAdminIds.has(id)
+      ? {
+          id,
+          display_name: ORGANIZATION_SUPPORT_IDENTITY,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null,
+          title: null,
+          is_active: true,
+          avatar_path: null,
+          avatar_updated_at: null,
+          avatarUrl: null,
+          created_at: "",
+          updated_at: "",
+        }
+      : (byProfile.get(id) ?? null);
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);
     const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;

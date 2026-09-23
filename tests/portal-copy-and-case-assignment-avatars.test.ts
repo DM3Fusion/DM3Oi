@@ -34,11 +34,11 @@ test("portal welcome copy follows the authoritative active Case count", () => {
 
 test("Case assignments use canonical profile avatars through one trusted batch", () => {
   assert.match(repository, /\.eq\("organization_id", organizationId\)/);
-  assert.match(repository, /memberships = .*\.filter\(member=>!platformAdminIds\.has\(member\.user_id\)\)/);
+  assert.match(repository, /memberships\s*=\s*\(memberResult\.data\s*\?\?\s*\[\]\)\.filter\(\s*\(member\)\s*=>\s*!platformAdminIds\.has\(member\.user_id\),?\s*\)/);
   assert.match(repository, /profileIds = \[[\s\S]*memberships\.map\(\(row\) => row\.user_id\)/);
   assert.match(
     repository,
-    /const profiles = await attachAuthorizedAvatarUrls\(\(profileResult\.data \?\? \[\]\)\.map\(profile=>maskPlatformProfile\(profile,platformAdminIds\)\)\)/,
+    /const profiles\s*=\s*await attachAuthorizedAvatarUrls\(\s*\(profileResult\.data\s*\?\?\s*\[\]\)\.map\(\s*\(profile\)\s*=>\s*maskPlatformProfile\(\s*profile,\s*platformAdminIds\s*\),?\s*\),?\s*\)/,
   );
   assert.equal(
     (repository.match(/attachAuthorizedAvatarUrls\(/g) ?? []).length,
@@ -57,7 +57,7 @@ test("canonical signing stays tenant-authorized, owner-path validated, and platf
   assert.match(resolver, /isOwnedAvatarPath\(profile\.avatar_path, profile\.id\)/);
   assert.match(resolver, /attachAvatarUrls\(createAdminClient\(\), signableProfiles\)/);
   assert.doesNotMatch(resolver, /\.list\(/);
-  assert.match(repository, /maskPlatformProfile\(profile,platformAdminIds\)/);
+  assert.match(repository, /maskPlatformProfile\(\s*profile,\s*platformAdminIds\s*\)/);
   assert.match(repository, /ORGANIZATION_SUPPORT_IDENTITY/);
 });
 

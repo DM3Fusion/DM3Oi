@@ -123,15 +123,64 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     let license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null = null;
     let effectivePermissions = new Set<Permission>();
     if (activeOrganization) {
-      const overrideResult=await supabase.from("organization_role_permissions").select("role,permission,is_allowed").eq("organization_id",activeOrganization.id).eq("role",activeOrganization.role);
-      if (overrideResult.error) throw overrideResult.error;
-      const overrideRows=overrideResult.data??[];
-      const overrides=overrideRows.filter(row=>permissions.some(permission=>permission===row.permission)).map(row=>({role:row.role,permission:row.permission,isAllowed:row.is_allowed})) as OrganizationPermissionOverride[];
-      effectivePermissions=new Set(getEffectiveOrganizationPermissions(isSuperAdmin?"SUPER_ADMIN":activeOrganization.role,overrides));
+      const overrideQuery = supabase
+        .from("organization_role_permissions")
+        .select("role,permission,is_allowed")
+        .eq("organization_id", activeOrganization.id)
+        .eq("role", activeOrganization.role);
+
       // The licensing migration extends the generated schema at deployment time.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: currentLicense } = await (supabase as any).from("organization_licenses").select("license_status,commercial_state,starts_at,expires_at,grace_ends_at,notice_days,notification_thresholds").eq("organization_id", activeOrganization.id).eq("is_current", true).maybeSingle();
-      if (currentLicense) license = { ...effectiveLicense({ status: currentLicense.license_status, commercialState: currentLicense.commercial_state, startsAt: currentLicense.starts_at, expiresAt: currentLicense.expires_at, graceEndsAt: currentLicense.grace_ends_at, noticeDays: currentLicense.notice_days }), ...currentLicense, status: currentLicense.license_status, commercialState: currentLicense.commercial_state };
+      const licenseQuery = (supabase as any)
+        .from("organization_licenses")
+        .select(
+          "license_status,commercial_state,starts_at,expires_at,grace_ends_at,notice_days,notification_thresholds",
+        )
+        .eq("organization_id", activeOrganization.id)
+        .eq("is_current", true)
+        .maybeSingle();
+
+      const [overrideResult, licenseResult] = await Promise.all([
+        overrideQuery,
+        licenseQuery,
+      ]);
+
+      if (overrideResult.error) throw overrideResult.error;
+
+      const overrideRows = overrideResult.data ?? [];
+      const overrides = overrideRows
+        .filter((row) =>
+          permissions.some((permission) => permission === row.permission),
+        )
+        .map((row) => ({
+          role: row.role,
+          permission: row.permission,
+          isAllowed: row.is_allowed,
+        })) as OrganizationPermissionOverride[];
+
+      effectivePermissions = new Set(
+        getEffectiveOrganizationPermissions(
+          isSuperAdmin ? "SUPER_ADMIN" : activeOrganization.role,
+          overrides,
+        ),
+      );
+
+      const currentLicense = licenseResult.data;
+      if (currentLicense) {
+        license = {
+          ...effectiveLicense({
+            status: currentLicense.license_status,
+            commercialState: currentLicense.commercial_state,
+            startsAt: currentLicense.starts_at,
+            expiresAt: currentLicense.expires_at,
+            graceEndsAt: currentLicense.grace_ends_at,
+            noticeDays: currentLicense.notice_days,
+          }),
+          ...currentLicense,
+          status: currentLicense.license_status,
+          commercialState: currentLicense.commercial_state,
+        };
+      }
     }
     const customerPortalIds = (portal.data ?? []).map((row) => row.customer_id);
     const displayName =

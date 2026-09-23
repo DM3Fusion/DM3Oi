@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { requireInternalContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 
@@ -86,21 +87,37 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
   ];
 }
 
-export async function getUnreadNotificationCount(scope?: { organizationId: string; userId: string }): Promise<number> {
+const getUnreadNotificationCountForScope = cache(
+  async (organizationId: string, userId: string): Promise<number> => {
+    const supabase = await createClient();
+    const { count, error } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", organizationId)
+      .eq("recipient_user_id", userId)
+      .is("read_at", null)
+      .is("archived_at", null);
+
+    if (error) {
+      console.error("Unread communications count failed", {
+        code: error.code,
+        message: error.message,
+      });
+      return 0;
+    }
+
+    return count ?? 0;
+  },
+);
+
+export async function getUnreadNotificationCount(scope?: {
+  organizationId: string;
+  userId: string;
+}): Promise<number> {
   const context = scope ? null : await requireInternalContext();
-  const organizationId = scope?.organizationId ?? context!.activeOrganization.id;
+  const organizationId =
+    scope?.organizationId ?? context!.activeOrganization.id;
   const userId = scope?.userId ?? context!.user.id;
-  const supabase = await createClient();
-  const { count, error } = await supabase
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("organization_id", organizationId)
-    .eq("recipient_user_id", userId)
-    .is("read_at", null)
-    .is("archived_at", null);
-  if (error) {
-    console.error("Unread communications count failed", { code: error.code, message: error.message });
-    return 0;
-  }
-  return count ?? 0;
+
+  return getUnreadNotificationCountForScope(organizationId, userId);
 }
