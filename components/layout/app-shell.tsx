@@ -17,6 +17,7 @@ import {
   authorizedOrganizationAdministrationNavigation,
   authorizedOrganizationNavigation,
   mobilePrimaryDestinations,
+  mobileSecondaryNavigation,
   platformNavigation,
 } from "@/lib/application-navigation";
 
@@ -78,7 +79,19 @@ export function AppShell({
         icon: item.icon,
         unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
       })),
-    ...(access ? [{ href: "/account", label: "More", icon: "account" as const }] : []),
+    ...(access
+      ? [{
+          href: "/account",
+          label: "More",
+          icon: "account" as const,
+          activePrefixes: platformContext
+            ? ["/account", "/admin/organizations", "/admin/users"]
+            : [
+                "/account",
+                ...mobileSecondaryNavigation(access, false).map((item) => item.href),
+              ],
+        }]
+      : []),
   ];
   return (
     <div className="app-frame">
