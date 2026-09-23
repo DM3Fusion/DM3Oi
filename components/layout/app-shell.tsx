@@ -78,7 +78,7 @@ export function AppShell({
         icon: item.icon,
         unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
       })),
-    ...(access ? [{ href: "/account/profile", label: "Account", icon: "account" as const }] : []),
+    ...(access ? [{ href: "/account", label: "More", icon: "account" as const }] : []),
   ];
   return (
     <div className="app-frame">

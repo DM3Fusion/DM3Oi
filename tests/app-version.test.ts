@@ -29,11 +29,11 @@ test("application version label omits the separator when deployment SHA is unava
 test("authenticated desktop tablet and phone Account surfaces reuse the version label", () => {
   const shell = readFileSync("components/layout/app-shell.tsx", "utf8");
   const layout = readFileSync("app/layout.tsx", "utf8");
-  const account = readFileSync("app/account/profile/page.tsx", "utf8");
+  const account = readFileSync("app/account/page.tsx", "utf8");
   const css = readFileSync("app/globals.css", "utf8");
   assert.match(layout, /applicationVersionLabel=\{getApplicationVersionLabel\(\)\}/);
   assert.match(shell, /className="sidebar-brand-version">\{applicationVersionLabel\}<\/div>/);
-  assert.match(account, /className="mobile-account-version">\{getApplicationVersionLabel\(\)\}<\/small>/);
+  assert.match(account, /className="mobile-account-version"[\s\S]*\{getApplicationVersionLabel\(\)\}[\s\S]*<\/small>/);
   assert.match(css, /\.sidebar-brand-version\{[^}]*font-size:7px[^}]*white-space:nowrap/);
   assert.match(css, /@media\(max-width:600px\)\{\.mobile-account-version\{display:block;[^}]*font-size:11px[^}]*white-space:nowrap\}\}/);
   assert.doesNotMatch(shell, /NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA|3693189/);

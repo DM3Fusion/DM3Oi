@@ -28,7 +28,7 @@ test("shared navigation and responsive shells consume semantic icon names", () =
   const catalog = source("lib/application-navigation.ts");
   const shell = source("components/layout/app-shell.tsx");
   const mobile = source("components/layout/mobile-bottom-navigation.tsx");
-  const account = source("app/account/profile/page.tsx");
+  const account = source("app/account/page.tsx");
   assert.match(catalog, /icon: ApplicationIconName/);
   assert.match(shell, /<ApplicationIcon name=\{icon\} \/>/);
   assert.match(mobile, /<ApplicationIcon name=\{icon\} \/>/);

@@ -43,11 +43,29 @@ export const authorizedOrganizationAdministrationNavigation = (context: Permissi
   organizationAdministrationNavigation.filter((item) => hasPermission(context, item.permission));
 
 export function mobileSecondaryNavigation(context: PermissionContext, platformContext: boolean) {
-  const navigation = platformContext
-    ? platformNavigation
-    : [
-        ...authorizedOrganizationNavigation(context),
-        ...authorizedOrganizationAdministrationNavigation(context),
-      ];
-  return navigation.filter((item) => !mobilePrimaryDestinations.has(item.href));
+  const profileNavigation = {
+    href: "/account/profile",
+    label: "Profile",
+    icon: "account" as const,
+  };
+
+  if (platformContext) {
+    return [
+      ...platformNavigation.filter((item) => !mobilePrimaryDestinations.has(item.href)),
+      profileNavigation,
+    ];
+  }
+
+  const organizationSecondary = authorizedOrganizationNavigation(context).filter(
+    (item) => !mobilePrimaryDestinations.has(item.href),
+  );
+  const administration = authorizedOrganizationAdministrationNavigation(context);
+  const usersIndex = administration.findIndex((item) => item.href === "/users");
+
+  return [
+    ...organizationSecondary,
+    ...administration.slice(0, usersIndex + 1),
+    profileNavigation,
+    ...administration.slice(usersIndex + 1),
+  ];
 }

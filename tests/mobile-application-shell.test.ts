@@ -14,7 +14,7 @@ const css = source("app/globals.css");
 
 test("phone shell exposes semantic primary navigation with the established destinations", () => {
   assert.match(applicationNavigation, /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/);
-  assert.match(shell, /href: "\/account\/profile", label: "Account"/);
+  assert.match(shell, /href: "\/account", label: "More"/);
   assert.match(shell, /<MobileBottomNavigation items=\{mobileNavigation\}/);
   assert.match(navigation, /aria-label="Primary mobile navigation"/);
   assert.match(navigation, /href === "\/" \? pathname === href : pathname\.startsWith\(href\)/);
@@ -77,12 +77,13 @@ test("dynamic phone organization names wrap safely without tenant-specific sizin
   assert.match(shell, /People\.<\/span> Work\. Progress\. Intelligence\./);
 });
 
-test("mobile Account exposes only permission-filtered secondary destinations", () => {
-  assert.match(account, /mobileSecondaryNavigation\(access, platformContext\)/);
-  assert.match(account, /className="panel detail-section mobile-account-navigation"/);
-  assert.match(account, /secondaryNavigation\.map\(\(item\) => <Link href=\{item\.href\}/);
-  assert.match(account, /mobile-account-actions/);
-  assert.match(account, /signOutAction/);
+test("mobile More exposes only permission-filtered secondary destinations", () => {
+  const more = source("app/account/page.tsx");
+  assert.match(more, /mobileSecondaryNavigation\(access, platformContext\)/);
+  assert.match(more, /mobile-account-navigation/);
+  assert.match(more, /secondaryNavigation\.map\(\(item\) =>/);
+  assert.match(more, /mobile-account-actions/);
+  assert.match(more, /signOutAction/);
   assert.match(applicationNavigation, /mobileSecondaryNavigation\(context: PermissionContext, platformContext: boolean\)/);
   assert.match(applicationNavigation, /authorizedOrganizationAdministrationNavigation\(context\)/);
   assert.match(applicationNavigation, /!mobilePrimaryDestinations\.has\(item\.href\)/);
@@ -97,14 +98,14 @@ test("mobile Account omits secondary destinations absent from effective permissi
     activeOrganization: { role: "STAFF_USER" },
     effectivePermissions: new Set<"VIEW_SERVICE_DESK" | "VIEW_TASKS">(["VIEW_SERVICE_DESK", "VIEW_TASKS"]),
   }, false);
-  assert.deepEqual(navigation.map((item) => item.href), ["/service-desk", "/tasks"]);
+  assert.deepEqual(navigation.map((item) => item.href), ["/service-desk", "/tasks", "/account/profile"]);
   assert.ok(!navigation.some((item) => ["/customers", "/questions", "/reports", "/users", "/settings"].includes(item.href)));
   const platformNavigation = mobileSecondaryNavigation({
     isSuperAdmin: true,
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/account/profile"]);
 });
 
 test("Customer Portal bypasses every internal mobile navigation surface", () => {

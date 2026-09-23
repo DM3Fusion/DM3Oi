@@ -6,12 +6,6 @@ import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
 import {
   removeOwnAvatarAction,
 } from "@/lib/data/profile-actions";
-import Link from "next/link";
-import { mobileSecondaryNavigation } from "@/lib/application-navigation";
-import { signOutAction } from "@/lib/auth/actions";
-import { PendingSubmitButton } from "@/components/pending-submit-button";
-import { ApplicationIcon } from "@/components/application-icon";
-import { getApplicationVersionLabel } from "@/lib/app-version";
 
 export default async function Page({
   searchParams,
@@ -30,8 +24,6 @@ export default async function Page({
             `${organization.name} · ${organization.role.replaceAll("_", " ")}`,
         )
         .join("; ");
-  const platformContext = access.isSuperAdmin && !access.activeOrganization;
-  const secondaryNavigation = mobileSecondaryNavigation(access, platformContext);
   return (
     <>
       <PageHeader
@@ -44,14 +36,6 @@ export default async function Page({
       {query.message ? (
         <div className="success-alert page-notice">{query.message}</div>
       ) : null}
-      {secondaryNavigation.length ? <section className="panel detail-section mobile-account-navigation" aria-labelledby="mobile-account-navigation-heading">
-        <div className="section-head">
-          <h2 id="mobile-account-navigation-heading">{platformContext ? "Platform" : "Organization"}</h2>
-        </div>
-        <nav aria-label={platformContext ? "Platform destinations" : "Organization destinations"}>
-          {secondaryNavigation.map((item) => <Link href={item.href} key={item.href}><ApplicationIcon name={item.icon} /><span>{item.label}</span><ApplicationIcon name="forward" /></Link>)}
-        </nav>
-      </section> : null}
       <div className="profile-layout">
         <section className="panel detail-section profile-avatar-panel">
           <UserAvatar
@@ -88,15 +72,6 @@ export default async function Page({
           />
         </section>
       </div>
-      <section className="panel detail-section mobile-account-actions" aria-labelledby="mobile-account-actions-heading">
-        <div className="section-head">
-          <div>
-            <h2 id="mobile-account-actions-heading">Account actions</h2>
-          </div>
-        </div>
-        <form action={signOutAction}><PendingSubmitButton pendingLabel="Signing out…"><ApplicationIcon name="sign-out" />Sign Out</PendingSubmitButton></form>
-      </section>
-      <small className="mobile-account-version">{getApplicationVersionLabel()}</small>
     </>
   );
 }
