@@ -3987,3 +3987,25 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .admin-analytics-custom-range {
   justify-content: start;
 }
+
+/* Tighten Platform Analytics heading controls. */
+.admin-analytics-heading {
+  justify-items: start;
+  gap: 10px;
+}
+
+.admin-analytics-heading > div:first-child {
+  width: 100%;
+  text-align: left;
+}
+
+.admin-analytics-heading > div:first-child p {
+  margin: 4px 0 0;
+  text-align: left;
+}
+
+.admin-analytics-range-wrap {
+  width: 100%;
+  justify-items: start;
+  margin-top: 2px;
+}
