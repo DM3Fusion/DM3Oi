@@ -3,3 +3,14 @@ test("settings is the capability-filtered organization configuration hub",()=>{c
 test("administration index redirects while its namespace remains protected",()=>{const page=readFileSync("app/administration/page.tsx","utf8");const layout=readFileSync("app/administration/layout.tsx","utf8");assert.match(page,/redirect\("\/settings"\)/);assert.match(layout,/canAccessOrganizationAdministration\(access\)/);assert.match(layout,/notFound\(\)/);});
 test("administration sidebar group retains users and settings only",()=>{const navigation=readFileSync("lib/application-navigation.ts","utf8");const shell=readFileSync("components/layout/app-shell.tsx","utf8");const group=navigation.slice(navigation.indexOf("export const organizationAdministrationNavigation"),navigation.indexOf("export const platformNavigation"));assert.match(group,/href: "\/users"/);assert.match(group,/href: "\/settings"/);assert.doesNotMatch(group,/href: "\/administration"/);assert.match(shell,/authorizedOrganizationAdministrationNavigation\(access\)/);assert.match(shell,/pathname\.startsWith\(href\)/);});
 test("global and case-specific not-found states remain correctly scoped",()=>{const globalNotFound=readFileSync("app/not-found.tsx","utf8");const caseNotFound=readFileSync("app/cases/[caseId]/not-found.tsx","utf8");const casePage=readFileSync("app/cases/[caseId]/page.tsx","utf8");assert.match(globalNotFound,/Page not found/);assert.match(globalNotFound,/Return to dashboard/);assert.doesNotMatch(globalNotFound,/Case not found|Return to cases/);assert.match(caseNotFound,/Case not found/);assert.match(caseNotFound,/Return to cases/);assert.match(casePage,/if \(!item\) notFound\(\)/);});
+
+
+test("Organization Defaults is exposed only to SUPER_ADMIN in an active organization context",()=>{
+  const settings=readFileSync("app/settings/page.tsx","utf8");
+  const defaults=readFileSync("app/administration/defaults/page.tsx","utf8");
+  const actions=readFileSync("lib/data/organization-administration-actions.ts","utf8");
+
+  assert.match(settings,/card\.href !== "\/administration\/defaults" \|\| access\?\.isSuperAdmin/);
+  assert.match(defaults,/!access\?\.isSuperAdmin\|\|!access\.activeOrganization/);
+  assert.match(actions,/if\(!id\|\|!access\?\.isSuperAdmin\) redirect/);
+});

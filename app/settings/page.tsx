@@ -39,8 +39,10 @@ const configurationCards = [
 export default async function Page() {
   const access = await getAccessContext();
   if (!hasPermission(access, "VIEW_SETTINGS")) notFound();
-  const cards = configurationCards.filter((card) =>
-    hasPermission(access, card.permission),
+  const cards = configurationCards.filter(
+    (card) =>
+      hasPermission(access, card.permission) &&
+      (card.href !== "/administration/defaults" || access?.isSuperAdmin),
   );
   return (
     <>
