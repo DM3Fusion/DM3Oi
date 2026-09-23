@@ -4,55 +4,43 @@ import {
   BriefcaseBusiness,
   CheckCircle2,
   ClipboardCheck,
-  FileText,
-  Gauge,
-  Layers3,
-  MessageSquareText,
-  Settings2,
+  Headphones,
+  Inbox,
+  ListChecks,
   ShieldCheck,
-  UsersRound,
 } from "lucide-react";
 
 const capabilities = [
   {
-    icon: BriefcaseBusiness,
-    title: "Organize",
-    text: "Bring cases, customers, service requests, and communications into one operational workspace.",
+    icon: Inbox,
+    title: "Inbox",
+    text: "Keep operational communications visible and connected to the work.",
   },
   {
-    icon: UsersRound,
-    title: "Assign",
-    text: "Make ownership, responsibility, priorities, and due dates clear across your organization.",
+    icon: Headphones,
+    title: "Service Desk",
+    text: "Receive, assign, track, and resolve customer service requests.",
+  },
+  {
+    icon: BriefcaseBusiness,
+    title: "Cases",
+    text: "Organize customer work, responsibility, progress, and history.",
   },
   {
     icon: ClipboardCheck,
-    title: "Work",
-    text: "Manage tasks, questions, rules, and repeatable workflows that move work forward.",
+    title: "Tasks",
+    text: "Turn operational requirements into clear, accountable work.",
   },
   {
-    icon: MessageSquareText,
-    title: "Serve",
-    text: "Connect customer requests and internal activity with visibility, history, and accountability.",
+    icon: ListChecks,
+    title: "Questions & Rules",
+    text: "Use structured questions and rules to guide repeatable workflows.",
   },
   {
     icon: BarChart3,
-    title: "Understand",
-    text: "See progress, workload, bottlenecks, outcomes, and the operational intelligence behind them.",
+    title: "Intelligence",
+    text: "See workload, progress, bottlenecks, and operational outcomes.",
   },
-  {
-    icon: Settings2,
-    title: "Configure",
-    text: "Adapt roles, access, workflows, and operating rules to the way your organization works.",
-  },
-];
-
-const systems = [
-  { icon: FileText, label: "Accounting" },
-  { icon: ClipboardCheck, label: "Quoting" },
-  { icon: UsersRound, label: "CRM" },
-  { icon: Gauge, label: "Payments" },
-  { icon: Layers3, label: "ERP" },
-  { icon: BriefcaseBusiness, label: "And others" },
 ];
 
 export function PublicLandingPage() {
@@ -60,17 +48,11 @@ export function PublicLandingPage() {
     <div className="public-home">
       <header className="public-home-header">
         <Link className="public-home-brand" href="/" aria-label="DM3Oi home">
-          <strong>DM3Oi™</strong>
-          <span>Business Operations Intelligence</span>
+          <strong>
+            DM3<span>O</span>i™
+          </strong>
+          <small>Operational Intelligence</small>
         </Link>
-
-        <nav className="public-home-nav" aria-label="Product navigation">
-          <a href="#capabilities">Solutions</a>
-          <a href="#capabilities">Capabilities</a>
-          <a href="#how-it-works">How It Works</a>
-          <a href="#integrations">Integrations</a>
-          <a href="#pricing">Pricing</a>
-        </nav>
       </header>
 
       <main>
@@ -81,17 +63,13 @@ export function PublicLandingPage() {
             </p>
 
             <h1 className="public-home-headline">
-              <span className="public-home-headline-dark">
-                People. Work.
-              </span>
-              <span className="public-home-headline-blue">
-                Progress. Intelligence.
-              </span>
+              <span>People. Work.</span>
+              <strong>Progress. Intelligence.</strong>
             </h1>
 
             <p className="public-home-lead">
-              DM3Oi™ gives your organization one operational layer for
-              managing the work that happens between your business systems.
+              DM3Oi™ brings customer requests, communications, cases, tasks,
+              workflows, and operational insight together in one place.
             </p>
 
             <div className="public-home-actions">
@@ -99,150 +77,199 @@ export function PublicLandingPage() {
                 Sign In to DM3Oi
               </Link>
 
-              <span
-                className="public-home-trial-button"
-                aria-disabled="true"
-              >
+              <span className="public-home-trial-button" aria-disabled="true">
                 Request Trial
                 <small>Coming Soon</small>
               </span>
             </div>
 
             <div className="public-home-hero-points">
-              <span>Organized operational work</span>
-              <span>Clear responsibility</span>
+              <span>Customer service</span>
+              <span>Operational workflow</span>
               <span>Measurable progress</span>
             </div>
           </div>
 
           <div
             className="public-home-product"
-            aria-label="Illustration of the DM3Oi operational workspace"
+            aria-label="DM3Oi Service Desk desktop and mobile Inbox illustration"
           >
-            <div className="public-home-product-window">
-              <div className="public-home-product-topbar">
-                <div className="public-home-product-mini-brand">
-                  <strong>DM3Oi</strong>
-                  <span>Operational Intelligence</span>
+            <div className="public-home-laptop">
+              <div className="public-home-laptop-screen">
+                <div className="public-home-app-rail">
+                  <div className="public-home-app-brand">
+                    <strong>
+                      DM3<span>O</span>i
+                    </strong>
+                    <small>Operational Intelligence</small>
+                  </div>
+
+                  <div className="public-home-app-nav">
+                    <span>Dashboard</span>
+                    <span>Cases</span>
+                    <span>Inbox</span>
+                    <span className="is-active">Service Desk</span>
+                    <span>Customers</span>
+                    <span>Tasks</span>
+                    <span>Questions &amp; Rules</span>
+                    <span>Reports</span>
+                  </div>
                 </div>
-                <span>Workspace</span>
-              </div>
 
-              <div className="public-home-product-body">
-                <nav aria-label="Illustrative workspace navigation">
-                  <strong>DM3Oi</strong>
-                  <span className="is-active">Dashboard</span>
-                  <span>Cases</span>
-                  <span>Inbox</span>
-                  <span>Service Desk</span>
-                  <span>Customers</span>
-                  <span>Tasks</span>
-                  <span>Reports</span>
-                </nav>
-
-                <div className="public-home-product-content">
-                  <div className="public-home-product-heading">
+                <div className="public-home-service-desk">
+                  <div className="public-home-app-banner">
                     <div>
-                      <small>Dashboard</small>
-                      <strong>Operational Dashboard</strong>
+                      <strong>People. Work. Progress. Intelligence.</strong>
+                      <span>for Your Organization</span>
                     </div>
-                    <span>+ New Case</span>
+                    <i />
                   </div>
 
-                  <div className="public-home-product-metrics">
-                    <div>
-                      <small>Open Cases</small>
-                      <strong>24</strong>
+                  <div className="public-home-service-content">
+                    <div className="public-home-service-heading">
+                      <div>
+                        <small>Customer Service</small>
+                        <strong>Service Desk</strong>
+                      </div>
+                      <span>+ New Service Request</span>
                     </div>
-                    <div>
-                      <small>Active Tasks</small>
-                      <strong>18</strong>
-                    </div>
-                    <div>
-                      <small>Progress</small>
-                      <strong>92%</strong>
-                    </div>
-                  </div>
 
-                  <div className="public-home-product-panels">
-                    <section>
-                      <header>
-                        <span>Needs Attention</span>
-                        <b>4</b>
-                      </header>
-                      <div className="public-home-attention-row">
-                        <i />
-                        <span>
-                          <strong>Customer response needed</strong>
-                          <small>Case #1048 · Today</small>
-                        </span>
+                    <div className="public-home-service-metrics">
+                      <div>
+                        <span>Urgent</span>
+                        <strong>0</strong>
                       </div>
-                      <div className="public-home-attention-row">
-                        <i />
-                        <span>
-                          <strong>Task approaching due date</strong>
-                          <small>Case #1042 · Tomorrow</small>
-                        </span>
-                      </div>
-                      <div className="public-home-attention-row">
-                        <i />
-                        <span>
-                          <strong>Service request received</strong>
-                          <small>New · 12 minutes ago</small>
-                        </span>
-                      </div>
-                    </section>
-
-                    <section>
-                      <header>
-                        <span>Work Progress</span>
-                        <b>72%</b>
-                      </header>
-                      <div className="public-home-chart">
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                        <i />
-                      </div>
-                      <div className="public-home-chart-labels">
+                      <div>
                         <span>Open</span>
-                        <span>Working</span>
-                        <span>Done</span>
+                        <strong>12</strong>
                       </div>
-                    </section>
+                      <div>
+                        <span>New</span>
+                        <strong>11</strong>
+                      </div>
+                      <div>
+                        <span>Unassigned</span>
+                        <strong>10</strong>
+                      </div>
+                      <div>
+                        <span>Resolved</span>
+                        <strong>3</strong>
+                      </div>
+                    </div>
+
+                    <div className="public-home-request-table">
+                      <div className="public-home-request-title">
+                        <strong>Recent Service Requests</strong>
+                        <span>View All Service Requests ›</span>
+                      </div>
+
+                      <div className="public-home-request-header">
+                        <span>Request</span>
+                        <span>Customer</span>
+                        <span>Subject</span>
+                        <span>Status</span>
+                      </div>
+
+                      <div className="public-home-request-row">
+                        <b>SR-2026-0015</b>
+                        <span>Johnson &amp; Sons</span>
+                        <strong>Customer account update</strong>
+                        <em>New</em>
+                      </div>
+
+                      <div className="public-home-request-row">
+                        <b>SR-2026-0014</b>
+                        <span>Northfield Group</span>
+                        <strong>Service request received</strong>
+                        <em>Open</em>
+                      </div>
+
+                      <div className="public-home-request-row">
+                        <b>SR-2026-0013</b>
+                        <span>Harbor &amp; Co.</span>
+                        <strong>Information requested</strong>
+                        <em>New</em>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              <div className="public-home-laptop-base" />
             </div>
 
-            <div className="public-home-product-caption">
-              <CheckCircle2 aria-hidden="true" />
-              <div>
-                <strong>People. Work. Progress. Intelligence.</strong>
-                <span>
-                  Operational visibility without replacing the systems you
-                  already use.
-                </span>
+            <div className="public-home-phone">
+              <div className="public-home-phone-screen">
+                <div className="public-home-phone-status">
+                  <span>9:41</span>
+                  <i />
+                </div>
+
+                <div className="public-home-phone-brand">
+                  <div>
+                    <strong>
+                      DM3<span>O</span>i
+                    </strong>
+                    <small>Operational Intelligence</small>
+                  </div>
+                  <b>DM</b>
+                </div>
+
+                <div className="public-home-phone-content">
+                  <small>Communications</small>
+                  <h3>Inbox</h3>
+
+                  <div className="public-home-phone-search">
+                    Search communications
+                  </div>
+
+                  <article className="is-unread">
+                    <div>
+                      <strong>New service request</strong>
+                      <time>Now</time>
+                    </div>
+                    <p>Customer submitted a new request.</p>
+                    <span>Service Desk</span>
+                  </article>
+
+                  <article>
+                    <div>
+                      <strong>Customer response</strong>
+                      <time>9:18</time>
+                    </div>
+                    <p>New response received for Case #1048.</p>
+                    <span>Customer Message</span>
+                  </article>
+
+                  <article>
+                    <div>
+                      <strong>Task update</strong>
+                      <time>8:42</time>
+                    </div>
+                    <p>Assigned work was updated.</p>
+                    <span>Staff Activity</span>
+                  </article>
+                </div>
+
+                <div className="public-home-phone-nav">
+                  <span>Home</span>
+                  <span>Cases</span>
+                  <span className="is-active">Inbox</span>
+                  <span>More</span>
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section
-          className="public-home-feature-section"
-          id="capabilities"
-        >
+        <section className="public-home-feature-section">
           <div className="public-home-centered-heading">
-            <p className="public-home-eyebrow">
-              Operational capabilities
-            </p>
-            <h2>Everything you need to keep work moving.</h2>
+            <p className="public-home-eyebrow">One operational workspace</p>
+            <h2>Keep customer service and operational work moving.</h2>
             <p>
-              Give operational work a consistent place across your
-              organization while keeping the specialized business systems
-              you already depend on.
+              From the first request through the work, communication, and
+              outcome, DM3Oi keeps the activity your organization depends on
+              visible and connected.
             </p>
           </div>
 
@@ -261,110 +288,28 @@ export function PublicLandingPage() {
           </div>
         </section>
 
-        <section
-          className="public-home-how"
-          id="how-it-works"
-        >
-          <div className="public-home-section-heading">
-            <p className="public-home-eyebrow">
-              One operational layer
-            </p>
-            <h2>From activity to operational intelligence.</h2>
-            <p>
-              DM3Oi connects everyday work to the information your team
-              needs to understand progress and decide what comes next.
-            </p>
-          </div>
-
-          <div className="public-home-how-grid">
-            <article>
-              <span>01</span>
-              <h3>Bring work together</h3>
-              <p>
-                Organize cases, requests, customers, communications, tasks,
-                questions, and operating rules.
-              </p>
-            </article>
-
-            <article>
-              <span>02</span>
-              <h3>Move work forward</h3>
-              <p>
-                Make ownership and next actions visible while preserving the
-                history behind operational activity.
-              </p>
-            </article>
-
-            <article>
-              <span>03</span>
-              <h3>Understand progress</h3>
-              <p>
-                Turn the work already happening across the organization into
-                useful operational intelligence.
-              </p>
-            </article>
-          </div>
-        </section>
-
-        <section className="public-home-systems" id="integrations">
-          <div className="public-home-centered-heading">
-            <p className="public-home-eyebrow">
-              Works alongside what you already use
-            </p>
+        <section className="public-home-value">
+          <div className="public-home-value-copy">
+            <p className="public-home-eyebrow">Business operations</p>
             <h2>A better operational layer. Not a replacement.</h2>
             <p>
-              DM3Oi complements specialized business systems by organizing
-              the operational work that happens across them.
-            </p>
-          </div>
-
-          <div className="public-home-system-grid">
-            {systems.map(({ icon: Icon, label }) => (
-              <div key={label}>
-                <Icon aria-hidden="true" />
-                <span>{label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section
-          className="public-home-value"
-          id="pricing"
-        >
-          <div className="public-home-value-copy">
-            <p className="public-home-eyebrow">
-              Business value
-            </p>
-            <h2>
-              Keep operational work organized from request to outcome.
-            </h2>
-            <p>
-              Give your organization a consistent place to manage
-              responsibility, customer activity, work progress, and the
-              information needed to make better operational decisions.
+              Keep the accounting, quoting, CRM, payment, and other business
+              systems you already rely on. DM3Oi manages the operational work
+              that happens between them.
             </p>
 
             <div className="public-home-value-list">
               <div>
                 <CheckCircle2 aria-hidden="true" />
-                <span>Keep customer and operational work organized</span>
+                <span>One place for customer requests and communications</span>
               </div>
               <div>
                 <CheckCircle2 aria-hidden="true" />
-                <span>Make ownership and next actions visible</span>
+                <span>Clear ownership from request through resolution</span>
               </div>
               <div>
                 <CheckCircle2 aria-hidden="true" />
-                <span>Preserve activity and communication history</span>
-              </div>
-              <div>
-                <CheckCircle2 aria-hidden="true" />
-                <span>Identify workload and operational bottlenecks</span>
-              </div>
-              <div>
-                <CheckCircle2 aria-hidden="true" />
-                <span>Control access by organization role</span>
+                <span>Operational progress your team can see</span>
               </div>
             </div>
           </div>
@@ -373,17 +318,12 @@ export function PublicLandingPage() {
             <span className="public-home-value-panel-icon">
               <ShieldCheck aria-hidden="true" />
             </span>
-            <p className="public-home-eyebrow">
-              Organization-based access
-            </p>
-            <h3>
-              Your operational information stays within the appropriate
-              workspace.
-            </h3>
+            <p className="public-home-eyebrow">Your organization</p>
+            <h3>Built around the people responsible for the work.</h3>
             <p>
-              DM3Oi combines email verification, organization-based access,
-              configurable permissions, and role-aware workflows so users
-              work within the responsibilities assigned to them.
+              Organization-based access, configurable permissions, customer
+              service workflows, and role-aware workspaces keep the right
+              information with the right people.
             </p>
           </aside>
         </section>
@@ -395,8 +335,8 @@ export function PublicLandingPage() {
             </p>
             <h2>People. Work. Progress. Intelligence.</h2>
             <p>
-              Access your organization&apos;s DM3Oi workspace to continue
-              managing the work that keeps your business moving.
+              Bring customer service and operational work into one connected
+              workspace.
             </p>
             <Link className="public-home-primary" href="/login">
               Sign In to DM3Oi
@@ -411,9 +351,7 @@ export function PublicLandingPage() {
           <small>Business Operations Intelligence</small>
         </div>
 
-        <div className="public-home-footer-detail">
-          <span>People. Work. Progress. Intelligence.</span>
-        </div>
+        <span>People. Work. Progress. Intelligence.</span>
 
         <nav className="public-home-legal-links" aria-label="Public links">
           <Link href="/login">Sign In</Link>

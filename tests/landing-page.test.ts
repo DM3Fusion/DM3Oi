@@ -25,18 +25,24 @@ test("landing sign in works while Request Trial remains non-functional", () => {
   assert.doesNotMatch(landing, /href="\/request-trial"/);
 });
 
-test("desktop product navigation excludes authentication controls", () => {
+test("public header stays compact without a horizontal product navigation", () => {
   const landing = source("components/public-landing-page.tsx");
-  const nav =
-    landing.match(/<nav className="public-home-nav"[\s\S]*?<\/nav>/)?.[0] ?? "";
 
-  assert.match(nav, /Solutions/);
-  assert.match(nav, /Capabilities/);
-  assert.match(nav, /How It Works/);
-  assert.match(nav, /Integrations/);
-  assert.match(nav, /Pricing/);
-  assert.doesNotMatch(nav, /Sign In/);
-  assert.doesNotMatch(nav, /Request Trial/);
+  assert.match(landing, /className="public-home-header"/);
+  assert.match(landing, /className="public-home-brand"/);
+  assert.doesNotMatch(landing, /className="public-home-nav"/);
+});
+
+test("landing product presentation highlights Service Desk and mobile Inbox", () => {
+  const landing = source("components/public-landing-page.tsx");
+
+  assert.match(landing, /Service Desk/);
+  assert.match(landing, /Recent Service Requests/);
+  assert.match(landing, /className="public-home-phone"/);
+  assert.match(landing, /<h3>Inbox<\/h3>/);
+  assert.match(landing, /Home/);
+  assert.match(landing, /Cases/);
+  assert.match(landing, /More/);
 });
 
 test("sign out returns to the public root", () => {
