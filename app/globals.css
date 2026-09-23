@@ -1374,3 +1374,26 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     display:none;
   }
 }
+
+/* Preview: stronger workspace user identity contrast. */
+@media(min-width:601px){
+  .account-menu-banner-identity{
+    padding:9px 13px;
+    border:1px solid rgba(255,255,255,.18);
+    border-radius:8px;
+    background:rgba(7,26,47,.62);
+    backdrop-filter:blur(5px);
+    -webkit-backdrop-filter:blur(5px);
+    text-shadow:none;
+  }
+
+  .account-menu-banner-identity strong{
+    color:#fff;
+    text-shadow:none;
+  }
+
+  .account-menu-banner-identity small{
+    color:var(--dm3oi-cyan);
+    text-shadow:none;
+  }
+}
