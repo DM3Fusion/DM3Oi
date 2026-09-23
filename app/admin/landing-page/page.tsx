@@ -182,10 +182,20 @@ export default async function LandingPageAdmin({
           </p>
         </div>
 
-        <LandingPageDraftPreview
-          content={content}
-          deploymentVersion={deploymentVersion}
-        />
+        <div className="landing-page-heading-actions">
+          <LandingPageDraftPreview
+            content={content}
+            deploymentVersion={deploymentVersion}
+          />
+
+          <SubmitButton
+            className="button"
+            pendingText="Saving Draft…"
+            form="landing-page-editor-form"
+          >
+            Save Draft
+          </SubmitButton>
+        </div>
       </div>
 
       {status.saved && (
@@ -220,23 +230,10 @@ export default async function LandingPageAdmin({
       )}
 
       <form
+        id="landing-page-editor-form"
         action={saveLandingPageDraft}
         className="landing-page-editor"
       >
-        <div className="landing-page-save-bar">
-          <p>
-            Saving updates only the working draft. Preview it
-            before publishing.
-          </p>
-
-          <SubmitButton
-            className="button"
-            pendingText="Saving Draft…"
-          >
-            Save Draft
-          </SubmitButton>
-        </div>
-
         <section className="panel">
           <div className="email-template-heading">
             <h2>Search &amp; SEO</h2>

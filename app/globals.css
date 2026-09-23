@@ -3866,3 +3866,30 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-column: auto;
   }
 }
+
+.landing-page-heading-actions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.landing-page-heading-actions .button {
+  white-space: nowrap;
+}
+
+@media (max-width: 700px) {
+  .landing-page-heading-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .landing-page-heading-actions > * {
+    width: 100%;
+  }
+
+  .landing-page-heading-actions .button {
+    width: 100%;
+  }
+}

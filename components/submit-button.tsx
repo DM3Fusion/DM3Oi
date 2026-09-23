@@ -6,13 +6,14 @@ export function SubmitButton({
   children,
   pendingText = "Saving…",
   className,
-}: {
+  ...props
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & {
   children: React.ReactNode;
   pendingText?: string;
-  className?: string;
 }) {
   return (
     <PendingSubmitButton
+      {...props}
       className={className}
       pendingLabel={pendingText}
     >
