@@ -3211,7 +3211,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 .landing-page-fieldset legend {
   padding: 0 0.4rem;
-  color: var(--brand);
+  color: var(--teal);
   font-size: 0.82rem;
   font-weight: 750;
 }
@@ -3733,7 +3733,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .landing-page-admin .eyebrow {
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: var(--brand);
+  color: var(--teal);
   font-weight: 750;
   font-size: 0.72rem;
 }
@@ -3793,7 +3793,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   max-width: 100%;
   border: 0;
   border-radius: 0.55rem;
-  background: var(--brand);
+  background: var(--teal);
   color: #fff;
   font: inherit;
   font-weight: 650;
@@ -3911,16 +3911,4 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   .landing-page-publication-grid {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-/* Landing-page administration primary action buttons. */
-.landing-page-admin button.button {
-  background: var(--brand);
-  color: #fff;
-}
-
-.landing-page-admin button.button.secondary {
-  background: #eef2f6;
-  color: var(--ink);
-  border: 1px solid var(--line);
 }
