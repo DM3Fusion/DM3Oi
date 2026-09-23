@@ -223,6 +223,20 @@ export default async function LandingPageAdmin({
         action={saveLandingPageDraft}
         className="landing-page-editor"
       >
+        <div className="landing-page-save-bar">
+          <p>
+            Saving updates only the working draft. Preview it
+            before publishing.
+          </p>
+
+          <SubmitButton
+            className="button"
+            pendingText="Saving Draft…"
+          >
+            Save Draft
+          </SubmitButton>
+        </div>
+
         <section className="panel">
           <div className="email-template-heading">
             <h2>Search &amp; SEO</h2>
@@ -709,19 +723,6 @@ export default async function LandingPageAdmin({
           </div>
         </section>
 
-        <div className="landing-page-save-bar">
-          <p>
-            Saving updates only the working draft. Preview it
-            before publishing.
-          </p>
-
-          <SubmitButton
-            className="button"
-            pendingText="Saving Draft…"
-          >
-            Save Draft
-          </SubmitButton>
-        </div>
       </form>
 
       <section className="panel landing-page-workflow-image-management">
