@@ -15,8 +15,8 @@ export type ApplicationNavigationItem = {
 export const organizationNavigation = [
   { href: "/", label: "Dashboard", icon: "dashboard", permission: "VIEW_DASHBOARD" },
   { href: "/cases", label: "Cases", icon: "cases", permission: "VIEW_CASES" },
-  { href: "/service-desk", label: "Service Desk", icon: "service-desk", permission: "VIEW_SERVICE_DESK" },
   { href: "/communications", label: "Inbox", icon: "communications", permission: "VIEW_COMMUNICATIONS" },
+  { href: "/service-desk", label: "Service Desk", icon: "service-desk", permission: "VIEW_SERVICE_DESK" },
   { href: "/customers", label: "Customers", icon: "customers", permission: "VIEW_CUSTOMERS" },
   { href: "/tasks", label: "Tasks", icon: "tasks", permission: "VIEW_TASKS" },
   { href: "/questions", label: "Questions & Rules", icon: "questions", permission: "VIEW_QUESTIONS" },

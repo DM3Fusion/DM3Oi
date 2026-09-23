@@ -117,7 +117,7 @@ test("register navigation and invitation controls remain unchanged", () => {
 test("the shared shell continues to render its canonical avatar URL", () => {
   const shell = source("components/layout/app-shell.tsx");
   const accountMenu = source("components/account-menu.tsx");
-  assert.match(shell, /<AccountMenu displayName=\{access\.displayName\} email=\{access\.user\.email\} avatarUrl=\{access\.avatarUrl\}/);
+  assert.match(shell, /<AccountMenu displayName=\{access\.displayName\} title=\{access\.title\} email=\{access\.user\.email\} avatarUrl=\{access\.avatarUrl\}/);
   assert.match(accountMenu, /<UserAvatar displayName=\{displayName\} email=\{email\} src=\{avatarUrl\}/);
   assert.match(
     shellContext,
