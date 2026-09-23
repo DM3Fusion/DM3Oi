@@ -3956,3 +3956,34 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 @media(max-width:700px){.admin-analytics-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.admin-live-activity{display:grid}.admin-live-activity p{text-align:left}.admin-analytics-composition{grid-template-columns:1fr}.admin-analytics-panel.admin-analytics-composition>.analytics-donut-block{border-right:0!important}.admin-analytics-panel.admin-analytics-composition>.analytics-donut-block{border-top:1px solid var(--line)}.admin-top-pages-heading{display:grid}.admin-top-pages-controls{width:100%}.admin-top-pages-search{flex:1}.admin-top-pages-search input{width:100%}}
 
 @media(max-width:520px){.admin-analytics{margin-top:22px}.admin-analytics-heading h2{font-size:24px}.admin-analytics-range{display:grid;width:100%;grid-template-columns:repeat(3,minmax(0,1fr))}.admin-analytics-range a{text-align:center}.admin-analytics-custom-range{display:grid;width:100%;grid-template-columns:1fr 1fr}.admin-analytics-custom-range .secondary-button{grid-column:1/-1;width:100%;justify-content:center}.admin-analytics-custom-range input{width:100%}.admin-analytics-kpis{gap:8px}.admin-analytics-kpis .management-kpi{min-height:82px;padding:10px}.admin-analytics-kpis .management-kpi strong{font-size:25px}.admin-analytics-bars{padding-inline:12px}.admin-analytics-bar-column{min-width:38px}.analytics-donut-layout{grid-template-columns:100px minmax(0,1fr);gap:12px}.analytics-donut-chart{width:96px;height:96px}.admin-analytics-panel.admin-analytics-composition>.analytics-donut-block{padding:18px 16px}.admin-analytics-panel-heading{padding-inline:16px}.admin-analytics-breakdown{padding-inline:16px}.admin-top-pages-controls{display:grid;grid-template-columns:minmax(0,1fr) auto}}
+
+/* Back Office alignment refinements. */
+.platform-metrics .metric {
+  justify-content: center;
+  text-align: center;
+}
+
+.platform-metrics .metric > div {
+  flex: 1;
+  text-align: center;
+}
+
+.platform-metrics .metric-icon {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+}
+
+.admin-analytics-heading {
+  display: grid;
+  justify-content: stretch;
+  gap: 14px;
+}
+
+.admin-analytics-range-wrap {
+  justify-items: start;
+}
+
+.admin-analytics-custom-range {
+  justify-content: start;
+}
