@@ -27,7 +27,7 @@ test("tablet keeps the existing drawer architecture with photographic branding",
 });
 
 test("phone header and Customer Portal remain outside sidebar branding", () => {
-  assert.match(shell, /if \(isPublic\(pathname\)\)\s*return <main className="public-main">/);
+  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">/);
   assert.match(shell, /\{!phoneLayout \? <aside/);
   assert.match(css, /@media\(max-width:600px\)\{\.sidebar,\.scrim,\.menu-button\{display:none!important\}/);
   assert.match(css, /\.topbar \.product-tagline strong\{color:#fff\}/);

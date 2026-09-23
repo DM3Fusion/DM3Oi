@@ -10,10 +10,11 @@ import { getPlatformSummary } from "@/lib/data/platform-repository";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 import { ApplicationIcon } from "@/components/application-icon";
+import { PublicLandingPage } from "@/components/public-landing-page";
 
 export default async function Page(){
   const access=await getAccessContext();
-  if(!access)redirect("/account/unprovisioned");
+  if(!access)return <PublicLandingPage/>;
   const experience=resolveRootExperience({...access,hasActiveOrganization:Boolean(access.activeOrganization)});
   if(experience==="PLATFORM"){
     const summary=await getPlatformSummary();

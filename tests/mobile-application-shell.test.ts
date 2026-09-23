@@ -33,7 +33,7 @@ test("More remains active for its secondary destinations while linking back to t
 test("mobile destinations derive from the existing effective-permission navigation", () => {
   assert.match(shell, /authorizedOrganizationNavigation\(access\)/);
   assert.match(shell, /\.\.\.nav\s*\.filter\(\(item\) => mobilePrimaryDestinations\.has\(item\.href\)\)/);
-  assert.match(shell, /if \(isPublic\(pathname\)\)\s*return <main className="public-main">/);
+  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">/);
   assert.match(applicationNavigation, /organizationNavigation\.filter\(\(item\) => hasPermission\(context, item\.permission\)\)/);
 });
 
@@ -147,7 +147,7 @@ test("mobile More orders authorized organization destinations without bypassing 
 
 test("Customer Portal bypasses every internal mobile navigation surface", () => {
   assert.match(shell, /path === "\/portal" \|\| path\.startsWith\("\/portal\/"\)/);
-  assert.match(shell, /if \(isPublic\(pathname\)\)\s*return <main className="public-main">/);
+  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">/);
   assert.match(account, /requireAuthenticatedInternalUser\(\)/);
   assert.doesNotMatch(source("app/portal/layout.tsx") + source("components/portal-nav.tsx"), /MobileBottomNavigation|mobile-account-navigation|mobileSecondaryNavigation/);
 });

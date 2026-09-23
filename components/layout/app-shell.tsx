@@ -37,7 +37,8 @@ function usePhoneLayout(onPhoneLayout: () => void) {
   }, [onPhoneLayout]);
   return useSyncExternalStore(subscribe, getPhoneSnapshot, getServerPhoneSnapshot);
 }
-const isPublic = (path: string) =>
+const isPublic = (path: string, access: AccessContext | null) =>
+  (path === "/" && !access) ||
   path === "/login" ||
   path === "/portal" || path.startsWith("/portal/") ||
   path.startsWith("/auth/");
@@ -56,7 +57,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const closeDrawer = useCallback(() => setOpen(false), []);
   const phoneLayout = usePhoneLayout(closeDrawer);
-  if (isPublic(pathname))
+  if (isPublic(pathname, access))
     return <main className="public-main">{children}</main>;
   const org = access?.activeOrganization;
   const platformContext = Boolean(

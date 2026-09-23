@@ -45,5 +45,5 @@ test("phone header and Customer Portal remain outside version presentation", () 
   const topbar = shell.slice(shell.indexOf('<header className="topbar">'), shell.indexOf("</header>"));
   assert.doesNotMatch(topbar, /applicationVersionLabel|brand-version|mobile-account-version/);
   assert.doesNotMatch(portal, /app-version|ApplicationVersion|applicationVersion|brand-version|mobile-account-version/);
-  assert.match(shell, /if \(isPublic\(pathname\)\)\s*return <main className="public-main">\{children\}<\/main>/);
+  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">\{children\}<\/main>/);
 });
