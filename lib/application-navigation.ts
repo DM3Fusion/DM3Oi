@@ -60,12 +60,24 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     (item) => !mobilePrimaryDestinations.has(item.href),
   );
   const administration = authorizedOrganizationAdministrationNavigation(context);
-  const usersIndex = administration.findIndex((item) => item.href === "/users");
+  const orderedHrefs = [
+    "/service-desk",
+    "/customers",
+    "/tasks",
+    "/reports",
+    "/questions",
+  ];
+
+  const orderedSecondary = orderedHrefs.flatMap((href) =>
+    organizationSecondary.filter((item) => item.href === href),
+  );
+  const users = administration.filter((item) => item.href === "/users");
+  const settings = administration.filter((item) => item.href === "/settings");
 
   return [
-    ...organizationSecondary,
-    ...administration.slice(0, usersIndex + 1),
+    ...orderedSecondary,
+    ...users,
     profileNavigation,
-    ...administration.slice(usersIndex + 1),
+    ...settings,
   ];
 }

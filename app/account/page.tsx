@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
@@ -14,16 +13,12 @@ export default async function Page() {
 
   return (
     <>
-      <PageHeader eyebrow="Account" title="More" />
-
       <section
         className="panel detail-section mobile-account-navigation mobile-more-navigation"
         aria-labelledby="mobile-more-navigation-heading"
       >
         <div className="section-head">
-          <h2 id="mobile-more-navigation-heading">
-            {platformContext ? "Platform" : "Organization"}
-          </h2>
+          <h2 id="mobile-more-navigation-heading">More Options</h2>
         </div>
         <nav
           aria-label={

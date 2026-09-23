@@ -117,6 +117,34 @@ test("mobile Account omits secondary destinations absent from effective permissi
   assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/account/profile"]);
 });
 
+test("mobile More orders authorized organization destinations without bypassing permissions", () => {
+  const navigation = mobileSecondaryNavigation({
+    isSuperAdmin: false,
+    internalAccess: true,
+    activeOrganization: { role: "BUSINESS_OWNER" },
+    effectivePermissions: new Set([
+      "VIEW_SERVICE_DESK",
+      "VIEW_CUSTOMERS",
+      "VIEW_TASKS",
+      "VIEW_QUESTIONS",
+      "VIEW_REPORTS",
+      "VIEW_USERS",
+      "VIEW_SETTINGS",
+    ]),
+  }, false);
+
+  assert.deepEqual(navigation.map((item) => item.href), [
+    "/service-desk",
+    "/customers",
+    "/tasks",
+    "/reports",
+    "/questions",
+    "/users",
+    "/account/profile",
+    "/settings",
+  ]);
+});
+
 test("Customer Portal bypasses every internal mobile navigation surface", () => {
   assert.match(shell, /path === "\/portal" \|\| path\.startsWith\("\/portal\/"\)/);
   assert.match(shell, /if \(isPublic\(pathname\)\)\s*return <main className="public-main">/);
