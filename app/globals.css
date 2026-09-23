@@ -2973,6 +2973,111 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   text-align: center;
 }
 
+/* DM3Oi public hero — approved phone presentation */
+@media (max-width: 560px) {
+  .public-home-hero.public-home-hero-showcase {
+    width: 100%;
+    margin: 0;
+    padding: 0.95rem 1.15rem 2.5rem;
+  }
+
+  .public-home-hero-showcase-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(8.6rem, 0.82fr);
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .public-home-hero-showcase-heading {
+    min-width: 0;
+    margin: 0;
+    text-align: left;
+  }
+
+  .public-home-hero-showcase-heading .public-home-eyebrow {
+    margin: 0 0 0.7rem;
+    font-size: clamp(0.66rem, 3vw, 0.78rem);
+    line-height: 1.25;
+    letter-spacing: 0.13em;
+    text-align: left;
+  }
+
+  .public-home-hero.public-home-hero-showcase
+    .public-home-hero-showcase-heading h1 {
+    margin: 0;
+    font-size: clamp(2.05rem, 10.2vw, 2.85rem);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .public-home-hero-title-dark,
+  .public-home-hero-title-muted {
+    display: block;
+  }
+
+  .public-home-hero-title-muted {
+    margin-top: 0.08em;
+  }
+
+  .public-home-showcase-header-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    align-self: center;
+    gap: 0.65rem;
+    width: 100%;
+    margin: 0;
+  }
+
+  .public-home-showcase-header-actions .public-home-primary,
+  .public-home-showcase-header-actions .public-home-trial-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 4.2rem;
+    padding: 0.75rem 0.55rem;
+    justify-content: center;
+    border-radius: 0.42rem;
+    font-size: clamp(0.94rem, 4.2vw, 1.08rem);
+    line-height: 1.15;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .public-home-showcase-header-actions .public-home-trial-button {
+    opacity: 0.62;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .public-home-hero-showcase > .public-home-workflow-artwork {
+    display: none;
+  }
+
+  .public-home-hero-showcase-content {
+    width: 100%;
+    margin: 1.65rem 0 0;
+    text-align: left;
+  }
+
+  .public-home-hero-showcase-content .public-home-lead {
+    max-width: none;
+    margin: 0;
+    text-align: left;
+  }
+
+  .public-home-showcase-actions {
+    justify-content: flex-start;
+  }
+
+  .public-home-showcase-points {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+
 /* DM3Oi public legal documents */
 .legal-page {
   min-height: 100vh;

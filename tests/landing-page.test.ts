@@ -16,12 +16,13 @@ test("root supports a public landing page while preserving authenticated root ex
   assert.match(shell, /path === "\/" && !access/);
 });
 
-test("landing sign in works while Request Trial remains non-functional", () => {
+test("landing sign in works while Request Trial remains visibly disabled", () => {
   const landing = source("components/public-landing-page.tsx");
 
   assert.match(landing, /href="\/login"/);
   assert.match(landing, /Request Trial/);
-  assert.match(landing, /Coming Soon/);
+  assert.match(landing, /aria-disabled="true"/);
+  assert.match(landing, /aria-disabled="true"/);
   assert.doesNotMatch(landing, /href="\/request-trial"/);
 });
 

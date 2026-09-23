@@ -170,7 +170,6 @@ export function PublicLandingPage() {
               aria-disabled="true"
             >
               Request Trial
-              <small>Coming Soon</small>
             </span>
           </div>
         </div>
