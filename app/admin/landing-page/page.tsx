@@ -2,6 +2,7 @@ import Image from "next/image";
 import { getDeploymentVersion } from "@/lib/app-version";
 import {
   publishLandingPage,
+  removeLandingPageWorkflowImage,
   replaceLandingPageWorkflowImage,
   revertLandingPageVersion,
   saveLandingPageDraft,
@@ -22,6 +23,7 @@ type SearchParams = Promise<{
   published?: string;
   reverted?: string;
   imageReplaced?: string;
+  imageRemoved?: string;
   error?: string;
 }>;
 
@@ -155,8 +157,12 @@ export default async function LandingPageAdmin({
               ? "Enter the required REVERT version confirmation exactly."
               : status.error === "revert"
                 ? "The published landing-page version could not be reverted."
-                : status.error === "image-required"
-                  ? "Choose a workflow image to upload."
+                : status.error === "image-remove-confirmation"
+                  ? "Enter REMOVE exactly before removing the workflow image."
+                  : status.error === "image-remove"
+                    ? "The workflow image could not be removed from the working draft."
+                    : status.error === "image-required"
+                      ? "Choose a workflow image to upload."
                   : status.error === "image-type"
                     ? "Workflow image must be a PNG, JPEG, or WebP file."
                     : status.error === "image-size"
@@ -206,6 +212,14 @@ export default async function LandingPageAdmin({
         <p className="notice success">
           Workflow image replaced in the working draft. Preview
           the draft and publish when ready.
+        </p>
+      )}
+
+      {status.imageRemoved && (
+        <p className="notice success">
+          Workflow image removed from the working draft. Existing
+          published versions and historical artwork are preserved.
+          Preview the draft and publish when ready.
         </p>
       )}
 
@@ -406,15 +420,22 @@ export default async function LandingPageAdmin({
                 </p>
               </div>
 
-              <div className="landing-page-workflow-image-preview">
-                <Image
-                  src={content.features.workflowImageUrl}
-                  alt="Current DM3Oi workflow artwork"
-                />
-              </div>
+              {content.features.workflowImageUrl ? (
+                <div className="landing-page-workflow-image-preview">
+                  <Image
+                    src={content.features.workflowImageUrl}
+                    alt="Current DM3Oi workflow artwork"
+                  />
+                </div>
+              ) : (
+                <p className="muted">
+                  No workflow image is currently included in the
+                  working draft.
+                </p>
+              )}
 
               <p className="muted">
-                Use Replace Workflow Image below the draft
+                Use Workflow Image Management below the draft
                 editor to change this artwork.
               </p>
             </div>
@@ -729,11 +750,11 @@ export default async function LandingPageAdmin({
 
       <section className="panel landing-page-workflow-image-management">
         <div className="email-template-heading">
-          <h2>Replace Workflow Image</h2>
+          <h2>Workflow Image Management</h2>
           <p className="muted">
-            Replace the workflow artwork in the working draft.
-            The public landing page remains unchanged until the
-            draft is published.
+            Replace or remove the workflow artwork in the working
+            draft. The public landing page remains unchanged until
+            the draft is published.
           </p>
         </div>
 
@@ -741,12 +762,19 @@ export default async function LandingPageAdmin({
           action={replaceLandingPageWorkflowImage}
           className="landing-page-workflow-image-form"
         >
-          <div className="landing-page-workflow-image-preview">
-            <Image
-              src={content.features.workflowImageUrl}
-              alt="Current DM3Oi workflow artwork"
-            />
-          </div>
+          {content.features.workflowImageUrl ? (
+            <div className="landing-page-workflow-image-preview">
+              <Image
+                src={content.features.workflowImageUrl}
+                alt="Current DM3Oi workflow artwork"
+              />
+            </div>
+          ) : (
+            <p className="muted">
+              No workflow image is currently included in the
+              working draft.
+            </p>
+          )}
 
           <label>
             Replacement Image
@@ -771,6 +799,35 @@ export default async function LandingPageAdmin({
             Replace Workflow Image
           </SubmitButton>
         </form>
+
+        {content.features.workflowImageUrl && (
+          <form
+            action={removeLandingPageWorkflowImage}
+            className="form-stack"
+          >
+            <label>
+              Type <strong>REMOVE</strong> to confirm removal
+              <input
+                name="confirmation"
+                required
+                autoComplete="off"
+                placeholder="REMOVE"
+              />
+            </label>
+
+            <p className="muted">
+              Removal affects only the working draft. The stored
+              asset and historical published versions are preserved.
+            </p>
+
+            <SubmitButton
+              className="secondary-button"
+              pendingText="Removing Image…"
+            >
+              Remove Workflow Image
+            </SubmitButton>
+          </form>
+        )}
       </section>
 
       <section className="panel landing-page-publish">

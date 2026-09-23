@@ -159,14 +159,16 @@ export function PublicLandingPage({
           </div>
         </div>
 
-        <div
-          className="public-home-workflow-artwork"
-          aria-label="DM3Oi operational workflow illustration"
-        >
-          <PublicWorkflowImage
-            src={content.features.workflowImageUrl}
-          />
-        </div>
+        {content.features.workflowImageUrl && (
+          <div
+            className="public-home-workflow-artwork"
+            aria-label="DM3Oi operational workflow illustration"
+          >
+            <PublicWorkflowImage
+              src={content.features.workflowImageUrl}
+            />
+          </div>
+        )}
 
         <div className="public-home-hero-showcase-content">
           <p className="public-home-lead">

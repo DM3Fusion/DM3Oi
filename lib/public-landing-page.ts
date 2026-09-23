@@ -28,7 +28,7 @@ export type PublicLandingPageContent = {
     eyebrow: string;
     heading: string;
     lead: string;
-    workflowImageUrl: string;
+    workflowImageUrl: string | null;
     items: {
       key: LandingPageFeatureKey;
       title: string;
@@ -195,7 +195,7 @@ function isString(
 }
 
 function isWorkflowImageUrl(value: unknown) {
-  if (value === undefined) return true;
+  if (value === undefined || value === null) return true;
 
   if (
     typeof value !== "string" ||
@@ -356,9 +356,10 @@ export function normalizePublicLandingPageContent(
     features: {
       ...content.features,
       workflowImageUrl:
-        content.features.workflowImageUrl ||
-        defaultPublicLandingPageContent.features
-          .workflowImageUrl,
+        content.features.workflowImageUrl === undefined
+          ? defaultPublicLandingPageContent.features
+              .workflowImageUrl
+          : content.features.workflowImageUrl,
     },
     trialRequest: {
       ...defaultPublicLandingPageContent.trialRequest!,

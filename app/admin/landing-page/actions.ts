@@ -27,7 +27,7 @@ function optionalField(
 
 function contentFromForm(
   form: FormData,
-  workflowImageUrl: string,
+  workflowImageUrl: string | null,
 ): PublicLandingPageContent | null {
   const content = {
     seo: {
@@ -161,9 +161,10 @@ export async function saveLandingPageDraft(
       : defaultPublicLandingPageContent;
 
   const workflowImageUrl =
-    existingContent.features.workflowImageUrl ||
-    defaultPublicLandingPageContent.features
-      .workflowImageUrl;
+    existingContent.features.workflowImageUrl === undefined
+      ? defaultPublicLandingPageContent.features
+          .workflowImageUrl
+      : existingContent.features.workflowImageUrl;
 
   const content = contentFromForm(
     form,
@@ -301,6 +302,78 @@ const LANDING_PAGE_IMAGE_EXTENSIONS: Record<string, string> = {
   "image/webp": "webp",
 };
 
+export async function removeLandingPageWorkflowImage(
+  form: FormData,
+) {
+  const context = await requireSuperAdmin();
+
+  if (field(form, "confirmation") !== "REMOVE") {
+    redirect(
+      "/admin/landing-page?error=image-remove-confirmation",
+    );
+  }
+
+  const admin = createAdminClient();
+
+  const { data: draft, error: draftError } = await admin
+    .from("public_landing_page_drafts")
+    .select("content")
+    .eq("page_key", "HOME")
+    .maybeSingle();
+
+  if (draftError) {
+    console.error(
+      "SUPER_ADMIN landing-page image removal draft lookup failed:",
+      draftError.code,
+      draftError.message,
+    );
+
+    redirect("/admin/landing-page?error=image-remove");
+  }
+
+  const currentContent =
+    draft && isPublicLandingPageContent(draft.content)
+      ? draft.content
+      : defaultPublicLandingPageContent;
+
+  const content: PublicLandingPageContent = {
+    ...currentContent,
+    features: {
+      ...currentContent.features,
+      workflowImageUrl: null,
+    },
+  };
+
+  const { error: updateError } = await admin
+    .from("public_landing_page_drafts")
+    .upsert(
+      {
+        page_key: "HOME",
+        content,
+        updated_at: new Date().toISOString(),
+        updated_by: context.user.id,
+      },
+      {
+        onConflict: "page_key",
+      },
+    );
+
+  if (updateError) {
+    console.error(
+      "SUPER_ADMIN landing-page image removal failed:",
+      updateError.code,
+      updateError.message,
+    );
+
+    redirect("/admin/landing-page?error=image-remove");
+  }
+
+  revalidatePath("/admin/landing-page");
+
+  redirect("/admin/landing-page?imageRemoved=1");
+}
+
+
 export async function replaceLandingPageWorkflowImage(
   form: FormData,
 ) {
@@ -347,9 +420,10 @@ export async function replaceLandingPageWorkflowImage(
           features: {
             ...draft.content.features,
             workflowImageUrl:
-              draft.content.features.workflowImageUrl ||
-              defaultPublicLandingPageContent.features
-                .workflowImageUrl,
+              draft.content.features.workflowImageUrl === undefined
+                ? defaultPublicLandingPageContent.features
+                    .workflowImageUrl
+                : draft.content.features.workflowImageUrl,
           },
         }
       : defaultPublicLandingPageContent;
