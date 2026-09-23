@@ -25,24 +25,26 @@ test("landing sign in works while Request Trial remains non-functional", () => {
   assert.doesNotMatch(landing, /href="\/request-trial"/);
 });
 
-test("public header stays compact without a horizontal product navigation", () => {
+test("public landing stays compact without horizontal product navigation", () => {
   const landing = source("components/public-landing-page.tsx");
 
-  assert.match(landing, /className="public-home-header"/);
-  assert.match(landing, /className="public-home-brand"/);
+  assert.match(landing, /public-home-hero-showcase/);
   assert.doesNotMatch(landing, /className="public-home-nav"/);
 });
 
-test("landing product presentation highlights Service Desk and mobile Inbox", () => {
+test("landing uses the DM3 product showcase and workflow artwork structure", () => {
   const landing = source("components/public-landing-page.tsx");
 
+  assert.match(landing, /public-home-hero-showcase/);
+  assert.match(landing, /PublicWorkflowImage/);
+  assert.match(landing, /Business Operations Intelligence/);
+  assert.match(landing, /People\. Work\./);
+  assert.match(landing, /Progress\. Intelligence\./);
+  assert.match(landing, /Inbox/);
   assert.match(landing, /Service Desk/);
-  assert.match(landing, /Recent Service Requests/);
-  assert.match(landing, /className="public-home-phone"/);
-  assert.match(landing, /<h3>Inbox<\/h3>/);
-  assert.match(landing, /Home/);
   assert.match(landing, /Cases/);
-  assert.match(landing, /More/);
+  assert.match(landing, /Tasks/);
+  assert.match(landing, /Questions & Rules/);
 });
 
 test("sign out returns to the public root", () => {
