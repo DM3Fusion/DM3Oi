@@ -1422,3 +1422,17 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     text-shadow:none;
   }
 }
+
+/* Keep the workspace identity plate just above the banner boundary. */
+@media(min-width:601px){
+  .account-menu-banner-identity{
+    transform:translateY(-2px);
+  }
+}
+
+/* Workspace organization name uses the selected deep navy. */
+@media(min-width:601px){
+  .topbar .organization-context-name{
+    color:#0d2242;
+  }
+}
