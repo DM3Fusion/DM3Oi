@@ -3,8 +3,6 @@ import { UserAvatar } from "@/components/user-avatar";
 import { AvatarUploadForm } from "@/components/avatar-upload-form";
 import { ProfileIdentityForm } from "@/components/profile-identity-form";
 import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
-import { createClient } from "@/lib/supabase/server";
-import { attachAvatarUrls } from "@/lib/data/avatar-urls";
 import {
   removeOwnAvatarAction,
 } from "@/lib/data/profile-actions";
@@ -24,14 +22,6 @@ export default async function Page({
     requireAuthenticatedInternalUser(),
     searchParams,
   ]);
-  const supabase = await createClient();
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", access.user.id)
-    .single();
-  if (error) throw new Error("Profile data is temporarily unavailable.");
-  const [identity] = await attachAvatarUrls(supabase, [profile]);
   const roleSummary = access.isSuperAdmin
     ? "SUPER ADMIN · Platform-level access"
     : access.organizations
@@ -65,9 +55,9 @@ export default async function Page({
       <div className="profile-layout">
         <section className="panel detail-section profile-avatar-panel">
           <UserAvatar
-            displayName={identity.display_name}
-            email={identity.email}
-            src={identity.avatarUrl}
+            displayName={access.displayName}
+            email={access.profileEmail ?? access.user.email}
+            src={access.avatarUrl}
             size="lg"
           />
           <div>
@@ -78,7 +68,7 @@ export default async function Page({
             </p>
           </div>
           <AvatarUploadForm />
-          {identity.avatar_path ? (
+          {access.avatarPath ? (
             <form action={removeOwnAvatarAction}>
               <button className="text-button">Remove avatar</button>
             </form>
@@ -92,8 +82,8 @@ export default async function Page({
             </div>
           </div>
           <ProfileIdentityForm
-            displayName={identity.display_name ?? ""}
-            email={identity.email ?? access.user.email ?? ""}
+            displayName={access.displayName}
+            email={access.profileEmail ?? access.user.email ?? ""}
             accessSummary={roleSummary || "Pending Access"}
           />
         </section>

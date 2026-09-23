@@ -21,7 +21,9 @@ export interface AuthorizedOrganization {
 export interface AccessContext {
   user: User;
   displayName: string;
+  profileEmail: string | null;
   title: string | null;
+  avatarPath: string | null;
   avatarUrl: string | null;
   isSuperAdmin: boolean;
   organizations: AuthorizedOrganization[];
@@ -55,7 +57,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     const [profile, platform, memberships, portal] = await Promise.all([
       supabase
         .from("profiles")
-        .select("display_name,first_name,last_name,title,avatar_path,avatar_updated_at")
+        .select("display_name,first_name,last_name,email,title,avatar_path,avatar_updated_at")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -146,7 +148,9 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     return {
       user,
       displayName,
+      profileEmail: profile.data?.email ?? null,
       title: profile.data?.title ?? null,
+      avatarPath: profile.data?.avatar_path ?? null,
       avatarUrl,
       isSuperAdmin,
       organizations,
