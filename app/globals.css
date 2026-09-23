@@ -3912,3 +3912,15 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Landing-page administration primary action buttons. */
+.landing-page-admin button.button {
+  background: var(--brand);
+  color: #fff;
+}
+
+.landing-page-admin button.button.secondary {
+  background: #eef2f6;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
