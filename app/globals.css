@@ -1397,3 +1397,21 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     text-shadow:none;
   }
 }
+
+/* Preview: refined workspace user identity plate. */
+@media(min-width:601px){
+  .account-menu-banner-identity{
+    padding:7px 11px;
+    border-radius:6px;
+    background:rgba(7,26,47,.54);
+  }
+
+  .account-menu-banner-identity strong{
+    font-size:15px;
+  }
+
+  .account-menu-banner-identity small{
+    margin-top:2px;
+    font-size:11px;
+  }
+}
