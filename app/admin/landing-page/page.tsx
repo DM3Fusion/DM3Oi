@@ -168,7 +168,7 @@ export default async function LandingPageAdmin({
                           : null;
 
   return (
-    <>
+    <div className="landing-page-admin">
       <div className="page-heading">
         <div>
           <p className="eyebrow">
@@ -1117,6 +1117,6 @@ export default async function LandingPageAdmin({
           </SubmitButton>
         </form>
       </section>
-    </>
+    </div>
   );
 }
