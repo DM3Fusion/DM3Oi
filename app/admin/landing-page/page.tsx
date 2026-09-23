@@ -187,6 +187,14 @@ export default async function LandingPageAdmin({
             content={content}
             deploymentVersion={deploymentVersion}
           />
+
+          <SubmitButton
+            className="button"
+            pendingText="Saving Draft…"
+            form="landing-page-editor-form"
+          >
+            Save Draft
+          </SubmitButton>
         </div>
       </div>
 
@@ -712,19 +720,6 @@ export default async function LandingPageAdmin({
           </div>
         </section>
 
-        <div className="landing-page-save-bar">
-          <p>
-            Saving updates only the working draft. Preview it
-            before publishing.
-          </p>
-
-          <SubmitButton
-            className="button"
-            pendingText="Saving Draft…"
-          >
-            Save Draft
-          </SubmitButton>
-        </div>
       </form>
 
       <section className="panel landing-page-workflow-image-management">
