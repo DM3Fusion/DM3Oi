@@ -3912,3 +3912,37 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+@media (max-width: 560px) {
+  .public-home-hero-showcase-header {
+    grid-template-rows: auto auto;
+    align-items: start;
+  }
+
+  .public-home-hero-showcase-heading {
+    display: contents;
+  }
+
+  .public-home-hero-showcase-heading .public-home-eyebrow {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin: 0 0 0.7rem;
+    font-size: clamp(0.58rem, 2.7vw, 0.7rem);
+    line-height: 1;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .public-home-hero.public-home-hero-showcase
+    .public-home-hero-showcase-heading h1 {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .public-home-showcase-header-actions {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+}
