@@ -1846,6 +1846,131 @@ export type Database = {
           },
         ]
       }
+      public_landing_page_drafts: {
+        Row: {
+          content: Json
+          id: string
+          page_key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: Json
+          id?: string
+          page_key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: Json
+          id?: string
+          page_key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      public_landing_page_publication_history: {
+        Row: {
+          acted_at: string
+          acted_by: string | null
+          action: string
+          from_version_id: string | null
+          id: string
+          page_key: string
+          to_version_id: string
+        }
+        Insert: {
+          acted_at?: string
+          acted_by?: string | null
+          action: string
+          from_version_id?: string | null
+          id?: string
+          page_key: string
+          to_version_id: string
+        }
+        Update: {
+          acted_at?: string
+          acted_by?: string | null
+          action?: string
+          from_version_id?: string | null
+          id?: string
+          page_key?: string
+          to_version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_landing_page_publication_history_from_version_id_fkey"
+            columns: ["from_version_id"]
+            isOneToOne: false
+            referencedRelation: "public_landing_page_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "public_landing_page_publication_history_to_version_id_fkey"
+            columns: ["to_version_id"]
+            isOneToOne: false
+            referencedRelation: "public_landing_page_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_landing_page_publications: {
+        Row: {
+          page_key: string
+          updated_at: string
+          updated_by: string | null
+          version_id: string
+        }
+        Insert: {
+          page_key: string
+          updated_at?: string
+          updated_by?: string | null
+          version_id: string
+        }
+        Update: {
+          page_key?: string
+          updated_at?: string
+          updated_by?: string | null
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "public_landing_page_publications_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "public_landing_page_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_landing_page_versions: {
+        Row: {
+          content: Json
+          id: string
+          page_key: string
+          published_at: string
+          published_by: string | null
+          version: number
+        }
+        Insert: {
+          content: Json
+          id?: string
+          page_key: string
+          published_at?: string
+          published_by?: string | null
+          version: number
+        }
+        Update: {
+          content?: Json
+          id?: string
+          page_key?: string
+          published_at?: string
+          published_by?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       organization_case_activity: {
@@ -3129,6 +3254,22 @@ export type Database = {
           target_organization_id: string
         }
         Returns: string
+      }
+      publish_public_landing_page: {
+        Args: never
+        Returns: {
+          version: number
+          version_id: string
+        }[]
+      }
+      revert_public_landing_page: {
+        Args: {
+          target_version: number
+        }
+        Returns: {
+          version: number
+          version_id: string
+        }[]
       }
     }
     Enums: {

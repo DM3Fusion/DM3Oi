@@ -32,6 +32,7 @@ export const platformNavigation = [
   { href: "/", label: "Back Office", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
   { href: "/admin/users", label: "Users / Access", icon: "users" },
+  { href: "/admin/landing-page", label: "Landing Page", icon: "platform" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
 export const mobilePrimaryDestinations = new Set(["/", "/cases", "/communications"]);

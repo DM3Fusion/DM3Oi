@@ -1,6 +1,10 @@
 import Link from "next/link";
 
 import { PublicWorkflowImage } from "@/components/public-workflow-image";
+import {
+  defaultPublicLandingPageContent,
+  type PublicLandingPageContent,
+} from "@/lib/public-landing-page";
 
 type CapabilityType =
   | "inbox"
@@ -97,79 +101,60 @@ function CapabilityIcon({
   );
 }
 
-const capabilities: {
-  key: CapabilityType;
-  title: string;
-  description: string;
-}[] = [
-  {
-    key: "inbox",
-    title: "Inbox",
-    description:
-      "Keep operational communications visible and connected to the work.",
-  },
-  {
-    key: "service",
-    title: "Service Desk",
-    description:
-      "Receive, assign, track, and resolve customer service requests.",
-  },
-  {
-    key: "cases",
-    title: "Cases",
-    description:
-      "Organize customer work, responsibility, progress, and history.",
-  },
-  {
-    key: "tasks",
-    title: "Tasks",
-    description:
-      "Turn operational requirements into clear, accountable work.",
-  },
-  {
-    key: "rules",
-    title: "Questions & Rules",
-    description:
-      "Use structured questions and rules to guide repeatable workflows.",
-  },
-  {
-    key: "secure",
-    title: "Secure Access",
-    description:
-      "Use email verification and organization-based workspace access.",
-  },
-];
 
-export function PublicLandingPage() {
+
+export function PublicLandingPage({
+  content = defaultPublicLandingPageContent,
+  deploymentVersion,
+  preview = false,
+}: {
+  content?: PublicLandingPageContent;
+  deploymentVersion?: string;
+  preview?: boolean;
+}) {
+  void deploymentVersion;
+
   return (
     <main className="public-home">
+      {preview && (
+        <div className="public-home-preview-banner">
+          <strong>Draft Preview</strong>
+          <span>
+            This is the SUPER_ADMIN working draft. It is not the
+            published DM3Oi landing page.
+          </span>
+          <Link href="/admin/landing-page">
+            Return to Landing Page Management
+          </Link>
+        </div>
+      )}
       <section className="public-home-hero public-home-hero-showcase">
         <div className="public-home-hero-showcase-header">
           <div className="public-home-hero-showcase-heading">
             <p className="public-home-eyebrow">
-              Business Operations Intelligence
+              {content.hero.eyebrow}
             </p>
 
             <h1>
               <span className="public-home-hero-title-dark">
-                People. Work.
+                {content.hero.headlinePrimary}
               </span>{" "}
               <span className="public-home-hero-title-muted">
-                Progress. Intelligence.
+                {content.hero.headlineSecondary}
               </span>
             </h1>
           </div>
 
           <div className="public-home-actions public-home-showcase-header-actions">
             <Link href="/login" className="public-home-primary">
-              Sign In to DM3Oi
+              {content.hero.signInLabel}
             </Link>
 
             <span
               className="public-home-trial-button"
               aria-disabled="true"
             >
-              Request Trial
+              {content.hero.trialLabel}
             </span>
           </div>
         </div>
@@ -179,21 +164,19 @@ export function PublicLandingPage() {
           aria-label="DM3Oi operational workflow illustration"
         >
           <PublicWorkflowImage
-            src="/brand/dm3oi-workflow-panels-baseline.png"
+            src={content.features.workflowImageUrl}
           />
         </div>
 
         <div className="public-home-hero-showcase-content">
           <p className="public-home-lead">
-            DM3Oi™ brings customer requests, communications, cases,
-            tasks, workflows, and operational insight together in one
-            secure web-based workspace.
+            {content.hero.lead}
           </p>
 
           <div className="public-home-hero-points public-home-showcase-points">
-            <span>Customer service</span>
-            <span>Accountable work</span>
-            <span>Operational intelligence</span>
+            {content.hero.points.map((point) => (
+              <span key={point}>{point}</span>
+            ))}
           </div>
         </div>
       </section>
@@ -204,20 +187,18 @@ export function PublicLandingPage() {
       >
         <div className="public-home-centered-heading">
           <p className="public-home-eyebrow">
-            Business workflow
+            {content.features.eyebrow}
           </p>
           <h2 id="features-heading">
-            Everything you need to keep operational work moving
+            {content.features.heading}
           </h2>
           <p>
-            Keep customer requests, communications, cases, tasks,
-            operating rules, and team access organized within one
-            business platform.
+            {content.features.lead}
           </p>
         </div>
 
         <div className="public-home-feature-grid">
-          {capabilities.map((item) => (
+          {content.features.items.map((item) => (
             <article key={item.key}>
               <div className="public-home-feature-icon">
                 <CapabilityIcon type={item.key} />
@@ -235,38 +216,22 @@ export function PublicLandingPage() {
       >
         <div className="public-home-value-copy">
           <p className="public-home-eyebrow">
-            Business value
+            {content.value.eyebrow}
           </p>
           <h2 id="value-heading">
-            Keep operational work organized from request to outcome.
+            {content.value.heading}
           </h2>
           <p>
-            Give customer service, responsibility, work progress,
-            communication, and operational visibility a consistent
-            place within your organization.
+            {content.value.lead}
           </p>
 
           <div className="public-home-value-list">
-            <div>
-              <span>✓</span>
-              Keep customer requests and communications organized
-            </div>
-            <div>
-              <span>✓</span>
-              Maintain clear ownership and responsibility
-            </div>
-            <div>
-              <span>✓</span>
-              Connect cases, tasks, and service activity
-            </div>
-            <div>
-              <span>✓</span>
-              Preserve operational history and progress
-            </div>
-            <div>
-              <span>✓</span>
-              Manage access by organization role
-            </div>
+            {content.value.points.map((point) => (
+              <div key={point}>
+                <span>✓</span>
+                {point}
+              </div>
+            ))}
           </div>
 
           <div className="public-home-value-action">
@@ -274,8 +239,7 @@ export function PublicLandingPage() {
               className="public-home-trial-button"
               aria-disabled="true"
             >
-              Request Trial
-              <small>Coming Soon</small>
+              {content.hero.trialLabel}
             </span>
           </div>
         </div>
@@ -285,16 +249,13 @@ export function PublicLandingPage() {
             <CapabilityIcon type="secure" />
           </div>
           <p className="public-home-eyebrow">
-            Organization-based access
+            {content.value.panelEyebrow}
           </p>
           <h3>
-            Business operational information stays within the
-            appropriate workspace.
+            {content.value.panelHeading}
           </h3>
           <p>
-            DM3Oi combines email verification with organization-based
-            access so users enter the workspace associated with their
-            business role.
+            {content.value.panelBody}
           </p>
         </aside>
       </section>

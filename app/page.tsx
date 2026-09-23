@@ -11,10 +11,14 @@ import { getUnreadNotificationCount } from "@/lib/data/communications-repository
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PublicLandingPage } from "@/components/public-landing-page";
+import { getPublishedLandingPageContent } from "@/lib/public-landing-page";
 
 export default async function Page(){
   const access=await getAccessContext();
-  if(!access)return <PublicLandingPage/>;
+  if(!access){
+    const landingPageContent=await getPublishedLandingPageContent();
+    return <PublicLandingPage content={landingPageContent}/>;
+  }
   const experience=resolveRootExperience({...access,hasActiveOrganization:Boolean(access.activeOrganization)});
   if(experience==="PLATFORM"){
     const summary=await getPlatformSummary();
