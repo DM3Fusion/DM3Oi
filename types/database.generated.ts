@@ -1195,6 +1195,109 @@ export type Database = {
           },
         ]
       }
+      analytics_live_sessions: {
+        Row: {
+          created_at: string
+          last_seen_at: string
+          organization_id: string | null
+          session_id: string
+          signed_out_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          session_id: string
+          signed_out_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          last_seen_at?: string
+          organization_id?: string | null
+          session_id?: string
+          signed_out_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_live_sessions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_page_views: {
+        Row: {
+          browser: string
+          city: string | null
+          country_code: string | null
+          created_at: string
+          device_model: string | null
+          device_type: string
+          id: string
+          operating_system: string
+          organization_id: string | null
+          normalized_path: string
+          path: string
+          referrer_host: string | null
+          region_code: string | null
+          session_id: string
+          traffic_signal: string
+          traffic_type: string
+          user_id: string | null
+        }
+        Insert: {
+          browser: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_type: string
+          id?: string
+          operating_system: string
+          organization_id?: string | null
+          normalized_path: string
+          path: string
+          referrer_host?: string | null
+          region_code?: string | null
+          session_id: string
+          traffic_signal?: string
+          traffic_type?: string
+          user_id?: string | null
+        }
+        Update: {
+          browser?: string
+          city?: string | null
+          country_code?: string | null
+          created_at?: string
+          device_model?: string | null
+          device_type?: string
+          id?: string
+          operating_system?: string
+          organization_id?: string | null
+          normalized_path?: string
+          path?: string
+          referrer_host?: string | null
+          region_code?: string | null
+          session_id?: string
+          traffic_signal?: string
+          traffic_type?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_page_views_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           avatar_path: string | null
