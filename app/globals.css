@@ -4854,22 +4854,3 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .public-home-feature-grid article h3 {
   text-align: center;
 }
-
-/* Public landing — mobile hero lead spans full width */
-@media (max-width: 760px) {
-  .public-home-brand-banner-copy {
-    display: contents;
-  }
-
-  .public-home-brand-banner-copy h1,
-  .public-home-brand-banner-copy h2 {
-    grid-column: 1;
-  }
-
-  .public-home-brand-banner-copy > p {
-    grid-column: 1 / -1;
-    width: 100%;
-    max-width: none;
-    margin-top: 0.75rem;
-  }
-}
