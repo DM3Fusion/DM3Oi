@@ -557,7 +557,13 @@ export default async function TrialRequestDetailPage({
                 <span>Qualification Status</span>
                 <strong>
                   {qualificationReady
-                    ? "Ready to Qualify"
+                    ? request.status === "NEW"
+                      ? "Ready After Contact"
+                      : request.status === "CONTACTED"
+                        ? "Ready to Qualify"
+                        : request.status === "QUALIFIED"
+                          ? "Qualified"
+                          : "Qualification Complete"
                     : request.qualification_reviewed_at
                       ? "Review Saved — Not Ready"
                       : "Review Required"}
