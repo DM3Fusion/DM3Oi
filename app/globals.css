@@ -4403,10 +4403,6 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
    Public landing — brand banner composition refinement
    ============================================================ */
 
-.public-home-hero.public-home-hero-showcase {
-  padding-top: clamp(1.5rem, 2.5vw, 2.25rem);
-}
-
 .public-home-brand-banner {
   padding-bottom: 0.65rem;
 }
