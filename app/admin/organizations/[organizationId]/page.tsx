@@ -16,6 +16,7 @@ import { effectiveLicense } from "@/lib/licensing";
 import { OrganizationSummaryRow } from "@/components/organization-summary-row";
 import { PlatformOrganizationDetailsForm } from "@/components/platform-organization-details-form";
 import { ApplicationIcon } from "@/components/application-icon";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -32,7 +33,7 @@ export default async function Page({
   searchParams: Promise<{ message?: string; error?: string }>;
 }) {
   const [{ organizationId }, query] = await Promise.all([params, searchParams]);
-  const { organization, members, cases, customers } =
+  const { organization, members, cases, customers, timezone } =
     await getOrganizationAdministration(organizationId);
   const license = organization.license;
   const effective = effectiveLicense(license && { status: license.license_status, commercialState: license.commercial_state, startsAt: license.starts_at, expiresAt: license.expires_at, graceEndsAt: license.grace_ends_at, noticeDays: license.notice_days });
@@ -91,7 +92,7 @@ export default async function Page({
               slug: organization.slug,
               status: organization.status,
             }}
-            createdAt={new Date(organization.created_at).toLocaleString()}
+            createdAt={formatOrganizationDateTime(organization.created_at, timezone)}
             avatarAction={
               <OrganizationAvatarUploadForm
                 organizationId={organization.id}
@@ -123,12 +124,12 @@ export default async function Page({
             </div>
             <div><dt><OrganizationSummaryRow label="Customers" count={organization.customers} target="customers" selected={drilldown === "customers"} /></dt></div>
             <div><dt><OrganizationSummaryRow label="Open cases" count={organization.openCases} target="cases" selected={drilldown === "cases"} /></dt></div>
-            <div><dt>Last activity</dt><dd>{organization.lastActivity ? new Date(organization.lastActivity).toLocaleString() : "No activity yet"}</dd></div>
+            <div><dt>Last activity</dt><dd>{organization.lastActivity ? formatOrganizationDateTime(organization.lastActivity, timezone) : "No activity yet"}</dd></div>
           </dl>
           {drilldown ? <section id="organization-drilldown" className="organization-drilldown">
             <div className="section-head"><div><h3>{drilldown === "cases" ? "Open cases" : "Customers"}</h3><p>{drilldown === "cases" ? `${displayedCases.length} matching cases` : `${filteredCustomers.length} matching customers`}</p></div><Link href={`?`}>Close</Link></div>
             <form className="filters" method="get"><input type="hidden" name="drilldown" value={drilldown}/><select name="year" defaultValue={String((query as { year?: string }).year ?? year)}><option value={String(runtimeYear())}>This year</option>{years.filter((item) => item !== runtimeYear()).map((item) => <option key={item} value={item}>{item}</option>)}<option value="all">All years</option></select><select name="activity" defaultValue={activity}><option value="all">All activity</option><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="year">This calendar year</option></select>{drilldown === "cases" ? <select name="status" defaultValue={selectedStatus}><option value="all">All open statuses</option>{openStatuses.map((item) => <option key={item} value={item}>{item.replaceAll("_", " ")}</option>)}</select> : null}<button className="filter-button">Apply</button></form>
-            <div className="table-scroll"><table><thead><tr>{drilldown === "cases" ? <><th>Case</th><th>Customer</th><th>Status</th><th>Last activity</th><th>Created</th></> : <><th>Customer</th><th>Contact</th><th>Last activity</th><th>Created</th></>}</tr></thead><tbody>{drilldown === "cases" ? displayedCases.map((item) => <tr key={item.id}><td>{item.case_number} · {item.title}</td><td>{customers.find((customer) => customer.id === item.customer_id)?.name ?? "—"}</td><td><Badge value={item.status}/></td><td>{new Date(item.updated_at).toLocaleString()}</td><td>{new Date(item.created_at).toLocaleDateString()}</td></tr>) : filteredCustomers.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.email || item.phone || "—"}</td><td>{new Date(item.updated_at).toLocaleString()}</td><td>{new Date(item.created_at).toLocaleDateString()}</td></tr>)}</tbody></table></div>
+            <div className="table-scroll"><table><thead><tr>{drilldown === "cases" ? <><th>Case</th><th>Customer</th><th>Status</th><th>Last activity</th><th>Created</th></> : <><th>Customer</th><th>Contact</th><th>Last activity</th><th>Created</th></>}</tr></thead><tbody>{drilldown === "cases" ? displayedCases.map((item) => <tr key={item.id}><td>{item.case_number} · {item.title}</td><td>{customers.find((customer) => customer.id === item.customer_id)?.name ?? "—"}</td><td><Badge value={item.status}/></td><td>{formatOrganizationDateTime(item.updated_at, timezone)}</td><td>{formatOrganizationDateTime(item.created_at, timezone)}</td></tr>) : filteredCustomers.map((item) => <tr key={item.id}><td>{item.name}</td><td>{item.email || item.phone || "—"}</td><td>{formatOrganizationDateTime(item.updated_at, timezone)}</td><td>{formatOrganizationDateTime(item.created_at, timezone)}</td></tr>)}</tbody></table></div>
             {((drilldown === "cases" && !displayedCases.length) || (drilldown !== "cases" && !filteredCustomers.length)) ? <div className="no-results">No matching {drilldown === "cases" ? "open cases" : "customers"} for this filter.</div> : null}
           </section> : null}
         </aside>

@@ -31,11 +31,21 @@ test("organization operational surfaces consume the shared timezone", () => {
   const portal = source("app/portal/service-requests/[serviceRequestId]/page.tsx");
   const cases = source("app/cases/[caseId]/page.tsx");
   const customers = source("app/customers/[customerId]/page.tsx");
+  const platformOrganization = source("app/admin/organizations/[organizationId]/page.tsx");
+  const platformRepository = source("lib/data/platform-repository.ts");
   assert.match(communications, /formatOrganizationDateTime\(item\.created_at, timezone, "medium"\)/);
   assert.match(staff, /formatOrganizationDateTime\(message\.created_at, data\.timezone\)/);
   assert.match(portal, /formatOrganizationDateTime\(message\.created_at, timezone\)/);
   assert.match(cases, /formatOrganizationDateTime\(activity\.created_at, data\.timezone\)/);
   assert.match(customers, /formatOrganizationDateTime\(\s*customer\.updated_at,\s*settings\?\.timezone,?\s*\)/);
+  assert.match(platformRepository, /from\("organization_settings"\)/);
+  assert.match(platformRepository, /select\("timezone"\)/);
+  assert.match(platformRepository, /timezone: settings\.data\?\.timezone \?\? "UTC"/);
+  assert.match(platformOrganization, /formatOrganizationDateTime\(organization\.created_at, timezone\)/);
+  assert.match(platformOrganization, /formatOrganizationDateTime\(organization\.lastActivity, timezone\)/);
+  assert.match(platformOrganization, /formatOrganizationDateTime\(item\.updated_at, timezone\)/);
+  assert.match(platformOrganization, /formatOrganizationDateTime\(item\.created_at, timezone\)/);
+  assert.doesNotMatch(platformOrganization, /new Date\(organization\.created_at\)\.toLocaleString\(\)/);
 });
 
 test("timestamps remain timestamptz and date-only formatting remains UTC anchored", () => {

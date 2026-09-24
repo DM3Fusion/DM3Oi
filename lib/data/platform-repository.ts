@@ -197,13 +197,32 @@ export async function getOrganizationAdministration(id: string) {
   const organization = data.organizations.find((o) => o.id === id);
   if (!organization) notFound();
   const base = await loadPlatformData();
+  const supabase = await createClient();
+  const settings = await supabase
+    .from("organization_settings")
+    .select("timezone")
+    .eq("organization_id", id)
+    .maybeSingle();
+  if (settings.error) {
+    console.error("Organization timezone query failed", {
+      code: settings.error.code,
+      message: settings.error.message,
+    });
+    throw new Error("Organization administration data is temporarily unavailable.");
+  }
   const members: MemberAdminRow[] = base.memberships
     .filter((m) => m.organization_id === id)
     .flatMap((m) => {
       const profile = base.profiles.find((p) => p.id === m.user_id);
       return profile ? [{ ...m, profile }] : [];
     });
-  return { organization, members, cases: base.cases.filter((c) => c.organization_id === id), customers: base.customers.filter((c) => c.organization_id === id) };
+  return {
+    organization,
+    members,
+    cases: base.cases.filter((c) => c.organization_id === id),
+    customers: base.customers.filter((c) => c.organization_id === id),
+    timezone: settings.data?.timezone ?? "UTC",
+  };
 }
 export async function getPlatformUser(id: string) {
   const data = await getPlatformAdministration();
