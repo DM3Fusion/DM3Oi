@@ -5014,3 +5014,8 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   padding-left: 1.25rem;
   padding-right: 1.25rem;
 }
+
+/* Public landing — slightly reduce hero Request Trial label only */
+.public-home-brand-banner-side .public-home-trial-button {
+  font-size: 1rem;
+}
