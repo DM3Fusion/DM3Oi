@@ -58,7 +58,12 @@ test("landing renders managed showcase content and product hero", () => {
   assert.match(landing, /Manage the work between your systems\./);
   assert.match(landing, /People\. Work\. Progress\. Intelligence\./);
   assert.match(landing, /Same people\. Greater progress\./i);
-  assert.match(landing, /content\.features\.items\.map/);
+  assert.match(landing, /\.\.\.content\.features\.items/);
+  assert.match(
+    landing,
+    /\["service", "inbox", "cases", "tasks", "rules", "secure"\]/,
+  );
+  assert.match(landing, /\.map\(\(item\) => \(/);
   assert.doesNotMatch(landing, /PublicWorkflowImage/);
 });
 

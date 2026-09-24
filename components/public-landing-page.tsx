@@ -211,7 +211,13 @@ export function PublicLandingPage({
         </div>
 
         <div className="public-home-feature-grid">
-          {content.features.items.map((item) => (
+          {[...content.features.items]
+            .sort(
+              (a, b) =>
+                ["service", "inbox", "cases", "tasks", "rules", "secure"].indexOf(a.key) -
+                ["service", "inbox", "cases", "tasks", "rules", "secure"].indexOf(b.key),
+            )
+            .map((item) => (
             <article key={item.key}>
               <div className="public-home-feature-icon">
                 <CapabilityIcon type={item.key} />
