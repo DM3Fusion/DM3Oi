@@ -119,10 +119,21 @@ const requestColumns = [
   "updated_at",
 ].join(",");
 
+const trialRequestTimeZone = "America/New_York";
+
 function formatDate(value: string | null) {
-  return value
-    ? new Date(value).toLocaleString()
-    : "—";
+  if (!value) return "—";
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: trialRequestTimeZone,
+    month: "numeric",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  }).format(new Date(value));
 }
 
 function operationalNeed(request: TrialRequestDetail) {

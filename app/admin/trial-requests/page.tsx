@@ -689,9 +689,24 @@ export default async function TrialRequestsPage({
                       </td>
 
                       <td>
-                        {new Date(
-                          request.created_at,
-                        ).toLocaleString()}
+                        {new Intl.DateTimeFormat(
+                          "en-US",
+                          {
+                            timeZone:
+                              "America/New_York",
+                            month: "numeric",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                            second: "2-digit",
+                            hour12: true,
+                          },
+                        ).format(
+                          new Date(
+                            request.created_at,
+                          ),
+                        )}
                       </td>
 
                       <td>
