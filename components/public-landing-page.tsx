@@ -145,9 +145,15 @@ export function PublicLandingPage({
                 className="public-home-brand-mobile"
                 aria-label="DM3Oi Business Operations Intelligence"
               >
-                <div className="public-home-brand-mobile-mark">
-                  <span>DM</span><strong>3</strong><span>Oi</span><sup>™</sup>
-                </div>
+                <Image
+                  className="public-home-brand-mobile-mark"
+                  src="/brand/DM3Oi_Land_Page_TopLeft2.webp"
+                  alt=""
+                  width={562}
+                  height={142}
+                  priority
+                  sizes="(max-width: 760px) 72vw, 0px"
+                />
                 <div className="public-home-brand-mobile-subtitle">
                   Business Operations Intelligence
                 </div>

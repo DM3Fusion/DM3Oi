@@ -4978,3 +4978,14 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     white-space: nowrap;
   }
 }
+
+/* Public landing — authentic mobile DM3Oi mark */
+@media (max-width: 760px) {
+  .public-home-brand-mobile img.public-home-brand-mobile-mark {
+    display: block;
+    width: min(72%, 22rem);
+    height: auto;
+    object-fit: contain;
+    letter-spacing: normal;
+  }
+}
