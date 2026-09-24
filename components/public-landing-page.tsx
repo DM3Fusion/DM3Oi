@@ -155,31 +155,33 @@ export function PublicLandingPage({
               </p>
             </div>
 
-            <div
-              className="public-home-brand-banner-promise"
-              aria-label="Same people. Greater progress."
-            >
-              <span>Same</span>
-              <span>People.</span>
-              <strong>Greater</strong>
-              <strong>Progress.</strong>
+            <div className="public-home-brand-banner-side">
+              <div
+                className="public-home-brand-banner-promise"
+                aria-label="Same people. Greater progress."
+              >
+                <span>Same</span>
+                <span>People.</span>
+                <strong>Greater</strong>
+                <strong>Progress.</strong>
+              </div>
+
+              <div className="public-home-actions public-home-showcase-actions">
+                <Link href="/login" className="public-home-primary">
+                  {content.hero.signInLabel}
+                </Link>
+
+                <span
+                  className="public-home-trial-button"
+                  aria-disabled="true"
+                >
+                  {content.hero.trialLabel}
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="public-home-product-showcase">
-            <div className="public-home-actions public-home-showcase-actions">
-              <Link href="/login" className="public-home-primary">
-                {content.hero.signInLabel}
-              </Link>
-
-              <span
-                className="public-home-trial-button"
-                aria-disabled="true"
-              >
-                {content.hero.trialLabel}
-              </span>
-            </div>
-
             <div className="public-home-product-hero">
               <Image
                 src="/brand/DM3Oi_laptop_iPhone.png"

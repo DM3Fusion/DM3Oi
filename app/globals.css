@@ -4665,3 +4665,88 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size: 1rem;
   }
 }
+
+/* ============================================================
+   Public landing — hero right-side actions
+   ============================================================ */
+
+.public-home-brand-banner-side {
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+  max-width: 10rem;
+}
+
+.public-home-brand-banner-side .public-home-brand-banner-promise {
+  justify-self: auto;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.public-home-brand-banner-side .public-home-showcase-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  width: 100%;
+  margin: 0;
+}
+
+.public-home-brand-banner-side .public-home-primary,
+.public-home-brand-banner-side .public-home-trial-button {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+}
+
+/* With the centered action row removed, bring the product image upward. */
+.public-home-product-showcase {
+  padding-top: 0;
+}
+
+@media (max-width: 1000px) {
+  .public-home-brand-banner-side {
+    grid-column: 1 / -1;
+    justify-self: end;
+    flex-direction: row;
+    align-items: center;
+    width: auto;
+    max-width: none;
+  }
+
+  .public-home-brand-banner-side .public-home-brand-banner-promise {
+    width: auto;
+  }
+
+  .public-home-brand-banner-side .public-home-showcase-actions {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .public-home-brand-banner-side {
+    grid-column: auto;
+    justify-self: stretch;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .public-home-brand-banner-side .public-home-brand-banner-promise {
+    width: max-content;
+    max-width: 100%;
+  }
+
+  .public-home-brand-banner-side .public-home-showcase-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+}
