@@ -4567,3 +4567,40 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     white-space: normal;
   }
 }
+
+/* ============================================================
+   Public landing — Business Workflow typography refinement
+   ============================================================ */
+
+.public-home-feature-section
+  .public-home-centered-heading
+  > p:last-child {
+  font-size: 1.05rem;
+  line-height: 1.55;
+}
+
+.public-home-feature-grid article h3 {
+  font-size: 1.08rem;
+  line-height: 1.3;
+}
+
+.public-home-feature-grid article p {
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+@media (max-width: 760px) {
+  .public-home-feature-section
+    .public-home-centered-heading
+    > p:last-child {
+    font-size: 1rem;
+  }
+
+  .public-home-feature-grid article h3 {
+    font-size: 1.05rem;
+  }
+
+  .public-home-feature-grid article p {
+    font-size: 0.9rem;
+  }
+}
