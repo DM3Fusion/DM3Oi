@@ -202,14 +202,20 @@ export function PublicLandingPage({
 
           <div className="public-home-product-showcase">
             <div className="public-home-product-hero">
-              <Image
-                src="/brand/DM3Oi_laptop_iPhone.png"
-                alt="DM3Oi dashboard on a laptop with the Cases workspace on a mobile phone"
-                width={1774}
-                height={887}
-                priority
-                sizes="(max-width: 760px) 100vw, 72vw"
-              />
+              <picture>
+                <source
+                  media="(min-width: 761px)"
+                  srcSet="/brand/DM3Oi_laptop_iPhone_ServiceDesk.webp"
+                />
+                <Image
+                  src="/brand/DM3Oi_laptop_iPhone.png"
+                  alt="DM3Oi dashboard with Service Desk and operational workspaces shown across desktop and mobile"
+                  width={1774}
+                  height={887}
+                  priority
+                  sizes="(max-width: 760px) 100vw, 72vw"
+                />
+              </picture>
             </div>
           </div>
         </section>
