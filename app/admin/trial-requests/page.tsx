@@ -145,8 +145,7 @@ function countBy(values: string[]) {
 }
 
 function userRange(value: number) {
-  if (value <= 5) return "1–5";
-  if (value <= 10) return "6–10";
+  if (value <= 10) return "1–10";
   if (value <= 15) return "11–15";
   if (value <= 25) return "16–25";
   if (value <= 50) return "26–50";
@@ -427,8 +426,7 @@ export default async function TrialRequestsPage({
     }));
 
   const userOrder = [
-    "1–5",
-    "6–10",
+    "1–10",
     "11–15",
     "16–25",
     "26–50",

@@ -5287,7 +5287,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 /* SUPER_ADMIN Trial Requests */
 .trial-request-admin-analytics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin: 24px 0 18px;
 }
@@ -5326,7 +5326,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 .trial-request-trend-panel {
-  grid-column: span 2;
+  grid-column: 1 / -1;
 }
 
 .trial-request-admin-filters {
