@@ -132,13 +132,26 @@ export function PublicLandingPage({
           <div className="public-home-brand-banner">
             <div className="public-home-brand-banner-logo">
               <Image
+                className="public-home-brand-desktop"
                 src="/brand/DM3Oi_landing_page_top_left.webp"
                 alt="DM3Oi Business Operations Intelligence"
                 width={602}
                 height={198}
                 priority
-                sizes="(max-width: 760px) 100vw, 34vw"
+                sizes="34vw"
               />
+
+              <div
+                className="public-home-brand-mobile"
+                aria-label="DM3Oi Business Operations Intelligence"
+              >
+                <div className="public-home-brand-mobile-mark">
+                  <span>DM</span><strong>3</strong><span>Oi</span><sup>™</sup>
+                </div>
+                <div className="public-home-brand-mobile-subtitle">
+                  Business Operations Intelligence
+                </div>
+              </div>
             </div>
 
             <div className="public-home-brand-banner-copy">

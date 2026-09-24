@@ -4919,3 +4919,62 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-template-columns: minmax(0, 1fr) 8.75rem;
   }
 }
+
+/* ============================================================
+   Public landing — independently sized mobile brand
+   ============================================================ */
+
+.public-home-brand-mobile {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .public-home-brand-banner-logo .public-home-brand-desktop {
+    display: none;
+  }
+
+  .public-home-brand-mobile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .public-home-brand-mobile-mark {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    color: #08294c;
+    font-size: clamp(4rem, 18vw, 6.25rem);
+    font-weight: 800;
+    line-height: 0.9;
+    letter-spacing: -0.065em;
+    white-space: nowrap;
+  }
+
+  .public-home-brand-mobile-mark strong {
+    color: #087fc0;
+    font-weight: 800;
+  }
+
+  .public-home-brand-mobile-mark sup {
+    margin: 0.04em 0 0 0.14em;
+    color: #08294c;
+    font-size: 0.22em;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+
+  .public-home-brand-mobile-subtitle {
+    margin-top: 0.45rem;
+    color: #08294c;
+    font-size: clamp(0.82rem, 3.55vw, 1.05rem);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 0.075em;
+    text-align: center;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
