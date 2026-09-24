@@ -230,7 +230,10 @@ test("dashboard queries remain authorized and recipient scoped", () => {
   const repository = source("lib/data/case-repository.ts");
   const communications = source("lib/data/communications-repository.ts");
   assert.match(page, /getLiveOrganizationData\(\)/);
-  assert.match(page, /getUnreadNotificationCount\(\{organizationId:access\.activeOrganization!/);
+  assert.match(
+    page,
+    /getUnreadNotificationCount\(\{[\s\S]*?organizationId:\s*[\s\S]*?access\.activeOrganization!\.id,[\s\S]*?userId:\s*access\.user\.id,[\s\S]*?\}\)/,
+  );
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.eq\("organization_id", organizationId\)/);
   assert.match(communications, /\.eq\("recipient_user_id", userId\)/);
@@ -244,7 +247,24 @@ test("dashboard KPI cards remain three columns on wide and phone layouts", () =>
   assert.match(css, /\.operations-kpi\{min-height:82px;gap:4px;padding:9px 5px\}/);
   assert.match(css, /\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
   assert.match(css, /\.operations-kpi-label\{[^}]*overflow-wrap:anywhere\}/);
-  assert.doesNotMatch(css.slice(css.lastIndexOf("/* Operational summary")), /overflow-x:(?:auto|scroll)/);
+  const operationalSummaryStart = css.indexOf(
+      "/* Operational summary: intentionally compact, text-only KPI cards. */",
+    );
+    const operationalSummaryEnd = css.indexOf(
+      "/* Desktop and tablet product identity; the phone header remains independent. */",
+      operationalSummaryStart,
+    );
+    const operationalSummary = css.slice(
+      operationalSummaryStart,
+      operationalSummaryEnd,
+    );
+
+    assert.ok(operationalSummaryStart >= 0);
+    assert.ok(operationalSummaryEnd > operationalSummaryStart);
+    assert.doesNotMatch(
+      operationalSummary,
+      /overflow-x:(?:auto|scroll)/,
+    );
   assert.doesNotMatch(css, /route-progress|navigation-progress/);
 });
 

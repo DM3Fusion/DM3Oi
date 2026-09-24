@@ -1,6 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
 
-import { PublicWorkflowImage } from "@/components/public-workflow-image";
 import {
   defaultPublicLandingPageContent,
   type PublicLandingPageContent,
@@ -128,60 +128,59 @@ export function PublicLandingPage({
           </Link>
         </div>
       )}
-      <section className="public-home-hero public-home-hero-showcase">
-        <div className="public-home-hero-showcase-header">
-          <div className="public-home-hero-showcase-heading">
-            <p className="public-home-eyebrow">
-              {content.hero.eyebrow}
-            </p>
+        <section className="public-home-hero public-home-hero-showcase">
+          <div className="public-home-hero-redesign">
+            <div className="public-home-hero-redesign-copy">
+              <p className="public-home-eyebrow">
+                {content.hero.eyebrow}
+              </p>
 
-            <h1>
-              <span className="public-home-hero-title-dark">
-                {content.hero.headlinePrimary}
-              </span>{" "}
-              <span className="public-home-hero-title-muted">
-                {content.hero.headlineSecondary}
-              </span>
-            </h1>
+              <h1>
+                <span className="public-home-hero-title-dark">
+                  {content.hero.headlinePrimary}
+                </span>{" "}
+                <span className="public-home-hero-title-muted">
+                  {content.hero.headlineSecondary}
+                </span>
+              </h1>
+
+              <div className="public-home-actions public-home-showcase-header-actions">
+                <Link href="/login" className="public-home-primary">
+                  {content.hero.signInLabel}
+                </Link>
+
+                <span
+                  className="public-home-trial-button"
+                  aria-disabled="true"
+                >
+                  {content.hero.trialLabel}
+                </span>
+              </div>
+
+              <div className="public-home-hero-message">
+                <h2>
+                  Manage the work between your systems.
+                </h2>
+                <p>
+                  Turn everyday operational activity into measurable
+                  progress—without replacing the business systems you
+                  already rely on.
+                </p>
+              </div>
+            </div>
+
+            <div className="public-home-product-hero">
+              <Image
+                src="/images/dm3oi-product-dashboard.png"
+                alt="DM3Oi dashboard on a laptop with the Cases workspace on a mobile phone"
+                width={1292}
+                height={752}
+                priority
+                sizes="(max-width: 760px) 100vw, 58vw"
+              />
+            </div>
           </div>
-
-          <div className="public-home-actions public-home-showcase-header-actions">
-            <Link href="/login" className="public-home-primary">
-              {content.hero.signInLabel}
-            </Link>
-
-            <span
-              className="public-home-trial-button"
-              aria-disabled="true"
-            >
-              {content.hero.trialLabel}
-            </span>
-          </div>
-        </div>
-
-        {content.features.workflowImageUrl && (
-          <div
-            className="public-home-workflow-artwork"
-            aria-label="DM3Oi operational workflow illustration"
-          >
-            <PublicWorkflowImage
-              src={content.features.workflowImageUrl}
-            />
-          </div>
-        )}
-
-        <div className="public-home-hero-showcase-content">
-          <p className="public-home-lead">
-            {content.hero.lead}
-          </p>
-
-          <div className="public-home-hero-points public-home-showcase-points">
-            {content.hero.points.map((point) => (
-              <span key={point}>{point}</span>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
 
       <section
         className="public-home-feature-section"
@@ -216,35 +215,25 @@ export function PublicLandingPage({
         className="public-home-value"
         aria-labelledby="value-heading"
       >
-        <div className="public-home-value-copy">
-          <p className="public-home-eyebrow">
-            {content.value.eyebrow}
-          </p>
-          <h2 id="value-heading">
-            {content.value.heading}
-          </h2>
-          <p>
-            {content.value.lead}
-          </p>
+          <div className="public-home-value-copy">
+            <h2 id="value-heading">
+              A smarter way to manage what matters.
+            </h2>
 
-          <div className="public-home-value-list">
-            {content.value.points.map((point) => (
-              <div key={point}>
-                <span>✓</span>
-                {point}
-              </div>
-            ))}
+            <div className="public-home-value-list">
+              {[
+                "Connect people, work and customers",
+                "Increase accountability",
+                "Improve response times",
+                "Gain real operational insight",
+              ].map((point) => (
+                <div key={point}>
+                  <span>✓</span>
+                  {point}
+                </div>
+              ))}
+            </div>
           </div>
-
-          <div className="public-home-value-action">
-            <span
-              className="public-home-trial-button"
-              aria-disabled="true"
-            >
-              {content.hero.trialLabel}
-            </span>
-          </div>
-        </div>
 
         <aside className="public-home-value-panel">
           <div className="public-home-value-panel-icon">

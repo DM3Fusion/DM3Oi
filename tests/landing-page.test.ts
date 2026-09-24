@@ -12,7 +12,7 @@ test("root supports managed public landing content while preserving authenticate
   assert.match(proxy, /publicRoutes=\["\/","\/login"/);
   assert.match(root, /getPublishedLandingPageContent/);
   assert.match(root, /PublicLandingPage/);
-  assert.match(root, /experience==="PLATFORM"/);
+  assert.match(root, /experience\s*===\s*"PLATFORM"/);
   assert.match(root, /getLiveOrganizationData\(\)/);
   assert.match(shell, /path === "\/" && !access/);
 });
@@ -50,14 +50,15 @@ test("public landing stays compact without horizontal product navigation", () =>
   assert.doesNotMatch(landing, /className="public-home-nav"/);
 });
 
-test("landing renders managed showcase content and workflow artwork", () => {
+test("landing renders managed showcase content and product hero", () => {
   const landing = source("components/public-landing-page.tsx");
 
-  assert.match(landing, /PublicWorkflowImage/);
-  assert.match(landing, /content\.features\.workflowImageUrl/);
+  assert.match(landing, /dm3oi-product-dashboard\.png/);
+  assert.match(landing, /Manage the work between your systems\./);
   assert.match(landing, /content\.hero\.headlinePrimary/);
   assert.match(landing, /content\.hero\.headlineSecondary/);
   assert.match(landing, /content\.features\.items\.map/);
+  assert.doesNotMatch(landing, /PublicWorkflowImage/);
 });
 
 test("SUPER_ADMIN landing-page management is available in platform navigation", () => {

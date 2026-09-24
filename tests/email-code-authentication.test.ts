@@ -54,11 +54,11 @@ test("post-auth access routing preserves internal, portal, platform, and unprovi
   const context = source("lib/auth/context.ts");
 
   assert.match(rootPage, /resolveRootExperience/);
-  assert.match(rootPage, /experience==="PLATFORM"/);
-  assert.match(rootPage, /experience==="PORTAL"\)redirect\("\/portal"\)/);
+  assert.match(rootPage, /experience\s*===\s*"PLATFORM"/);
+  assert.match(rootPage, /experience\s*===\s*"PORTAL"[\s\S]*?redirect\("\/portal"\)/);
   assert.match(
     rootPage,
-    /experience==="UNPROVISIONED"\)redirect\("\/account\/unprovisioned"\)/,
+    /experience\s*===\s*"UNPROVISIONED"[\s\S]*?redirect\("\/account\/unprovisioned"\)/,
   );
   assert.match(
     accessRouting,
