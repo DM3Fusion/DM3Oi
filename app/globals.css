@@ -5285,48 +5285,144 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 /* SUPER_ADMIN Trial Requests */
-.trial-request-admin-analytics {
+.trial-request-dashboard {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin: 24px 0 18px;
 }
 
-.trial-request-admin-analytics
-  > .admin-analytics-panel {
+.trial-request-analytics-card {
   min-width: 0;
+  min-height: 150px;
+  margin: 0;
+  padding: 20px;
 }
 
-.trial-request-total {
-  display: grid;
-  gap: 7px;
-  padding: 8px 20px 22px;
+.trial-request-analytics-heading {
+  margin-bottom: 16px;
 }
 
-.trial-request-total strong {
+.trial-request-analytics-heading h2 {
+  margin: 0;
   color: #10233f;
-  font-size: 34px;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.trial-request-analytics-heading p {
+  margin: 4px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.trial-request-kpi {
+  display: flex;
+  min-height: 62px;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.trial-request-kpi strong {
+  color: #10233f;
+  font-size: 28px;
   line-height: 1;
 }
 
-.trial-request-total span {
+.trial-request-kpi span {
   color: #667085;
   font-size: 11px;
   font-weight: 700;
 }
 
-.trial-request-donut-panel {
-  display: block;
+.trial-request-kpi-breakdown {
+  display: grid;
+  gap: 7px;
 }
 
-.admin-analytics-panel.trial-request-donut-panel
-  > .analytics-donut-block {
-  padding: 18px 20px 22px;
-  border: 0;
+.trial-request-kpi-breakdown > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.trial-request-trend-panel {
-  grid-column: 1 / -1;
+.trial-request-kpi-breakdown > div > span {
+  min-width: 0;
+  overflow: hidden;
+  color: #667085;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.trial-request-kpi-breakdown > div > strong {
+  flex: 0 0 auto;
+  color: #10233f;
+  font-size: 13px;
+}
+
+.trial-request-kpi-breakdown > .muted {
+  margin: 12px 0 0;
+}
+
+.trial-request-trend-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.trial-request-trend {
+  display: flex;
+  min-height: 72px;
+  flex: 1 1 auto;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.trial-request-trend-column {
+  display: grid;
+  min-width: 0;
+  height: 72px;
+  flex: 1 1 0;
+  grid-template-rows: 14px minmax(0, 1fr) 16px;
+  align-items: end;
+  gap: 3px;
+  text-align: center;
+}
+
+.trial-request-trend-value {
+  color: #667085;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.trial-request-trend-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border-bottom: 1px solid #d8dee6;
+}
+
+.trial-request-trend-track span {
+  position: absolute;
+  right: 24%;
+  bottom: 0;
+  left: 24%;
+  border-radius: 3px 3px 0 0;
+  background: #7f9aaa;
+}
+
+.trial-request-trend-column small {
+  min-width: 0;
+  overflow: hidden;
+  color: #667085;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .trial-request-admin-filters {
@@ -5345,8 +5441,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   align-items: end;
 }
 
-.trial-request-admin-list
-  .table-secondary {
+.trial-request-admin-list .table-secondary {
   display: block;
   margin-top: 3px;
 }
@@ -5356,28 +5451,18 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 @media (max-width: 1100px) {
-  .trial-request-admin-analytics {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
-  }
-
-  .trial-request-trend-panel {
-    grid-column: 1 / -1;
+  .trial-request-dashboard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .trial-request-admin-filters .form-grid {
-    grid-template-columns:
-      repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
-  .trial-request-admin-analytics {
+  .trial-request-dashboard {
     grid-template-columns: 1fr;
-  }
-
-  .trial-request-trend-panel {
-    grid-column: auto;
   }
 
   .trial-request-admin-filters .form-grid {

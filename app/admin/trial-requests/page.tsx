@@ -1,4 +1,3 @@
-import { AnalyticsDonut } from "@/components/analytics-donut";
 import { TrialRequestFilters } from "@/components/trial-request-filters";
 import { Badge, PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
@@ -478,23 +477,17 @@ export default async function TrialRequestsPage({
         </div>
       ) : null}
 
-      <section className="trial-request-admin-analytics">
-        <article className="admin-analytics-panel">
-          <div className="admin-analytics-panel-heading">
-            <div>
-              <h3>Total Requests</h3>
-              <p className="muted">
-                All trial requests received
-                in the selected period
-              </p>
-            </div>
+      <section className="trial-request-dashboard">
+        <article className="panel trial-request-analytics-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Total Requests</h2>
+            <p>
+              All trial requests received in the selected period
+            </p>
           </div>
 
-          <div className="trial-request-total">
-            <strong>
-              {rows.length}
-            </strong>
-
+          <div className="trial-request-kpi">
+            <strong>{rows.length}</strong>
             <span>
               {change === null
                 ? "New activity vs. previous period"
@@ -503,75 +496,143 @@ export default async function TrialRequestsPage({
           </div>
         </article>
 
-        <article className="admin-analytics-panel admin-analytics-composition trial-request-donut-panel">
-          <AnalyticsDonut
-            title="Request Status"
-            centerLabel="Requests"
-            data={statusData}
-          />
+        <article className="panel trial-request-analytics-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Request Status</h2>
+            <p>Current status breakdown</p>
+          </div>
+
+          <div className="trial-request-kpi-breakdown">
+            {statusData
+              .filter((item) => item.value > 0)
+              .map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+
+            {rows.length === 0 ? (
+              <p className="muted">No activity yet.</p>
+            ) : null}
+          </div>
         </article>
 
-        <article className="admin-analytics-panel admin-analytics-composition trial-request-donut-panel">
-          <AnalyticsDonut
-            title="Primary Operational Need"
-            centerLabel="Requests"
-            data={useCaseData}
-          />
+        <article className="panel trial-request-analytics-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Primary Operational Need</h2>
+            <p>What organizations plan to use DM3Oi for</p>
+          </div>
+
+          <div className="trial-request-kpi-breakdown">
+            {useCaseData
+              .filter((item) => item.value > 0)
+              .map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+
+            {rows.length === 0 ? (
+              <p className="muted">No activity yet.</p>
+            ) : null}
+          </div>
         </article>
 
-        <article className="admin-analytics-panel admin-analytics-composition trial-request-donut-panel">
-          <AnalyticsDonut
-            title="Estimated Users"
-            centerLabel="Requests"
-            data={userData}
-          />
+        <article className="panel trial-request-analytics-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Estimated Users</h2>
+            <p>Anticipated team size</p>
+          </div>
+
+          <div className="trial-request-kpi-breakdown">
+            {userData
+              .filter((item) => item.value > 0)
+              .map((item) => (
+                <div key={item.label}>
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+
+            {rows.length === 0 ? (
+              <p className="muted">No activity yet.</p>
+            ) : null}
+          </div>
         </article>
 
-        <article className="admin-analytics-panel trial-request-trend-panel">
-          <div className="admin-analytics-panel-heading">
+        <article className="panel trial-request-analytics-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Conversion Outcomes</h2>
+            <p>Current Trial Request disposition</p>
+          </div>
+
+          <div className="trial-request-kpi-breakdown">
             <div>
-              <h3>
-                Submission Trend
-              </h3>
-              <p className="muted">
-                Requests received over
-                time
-              </p>
+              <span>Active</span>
+              <strong>
+                {(statusCounts.NEW ?? 0) +
+                  (statusCounts.CONTACTED ?? 0) +
+                  (statusCounts.QUALIFIED ?? 0)}
+              </strong>
+            </div>
+
+            <div>
+              <span>Converted</span>
+              <strong>{statusCounts.CONVERTED ?? 0}</strong>
+            </div>
+
+            <div>
+              <span>Declined</span>
+              <strong>{statusCounts.DECLINED ?? 0}</strong>
             </div>
           </div>
+        </article>
 
-          <div className="admin-analytics-bars">
-            {trend.map((item) => (
-              <div
-                className="admin-analytics-bar-column"
-                key={item.label}
-              >
-                <div className="admin-analytics-bar-plot">
-                  <strong>
-                    {item.value}
-                  </strong>
-                  <i
-                    style={{
-                      height:
-                        item.value === 0
-                          ? 0
-                          : `${Math.max(
-                              8,
-                              Math.round(
-                                (item.value /
-                                  maxTrend) *
-                                  100,
-                              ),
-                            )}%`,
-                    }}
-                  />
-                </div>
-                <span>
-                  {item.label}
-                </span>
-              </div>
-            ))}
+        <article className="panel trial-request-analytics-card trial-request-trend-card">
+          <div className="trial-request-analytics-heading">
+            <h2>Submission Trend</h2>
+            <p>Requests received over time</p>
           </div>
+
+          {rows.length === 0 ? (
+            <p className="muted">No activity yet.</p>
+          ) : (
+            <div
+              className="trial-request-trend"
+              aria-label="Trial request submission trend"
+            >
+              {trend.map((item) => (
+                <div
+                  className="trial-request-trend-column"
+                  key={item.label}
+                >
+                  <span className="trial-request-trend-value">
+                    {item.value}
+                  </span>
+
+                  <div className="trial-request-trend-track">
+                    <span
+                      style={{
+                        height:
+                          item.value === 0
+                            ? 0
+                            : `${Math.max(
+                                8,
+                                Math.round(
+                                  (item.value / maxTrend) * 100,
+                                ),
+                              )}%`,
+                      }}
+                    />
+                  </div>
+
+                  <small>{item.label}</small>
+                </div>
+              ))}
+            </div>
+          )}
         </article>
       </section>
 
