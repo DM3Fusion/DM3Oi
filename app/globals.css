@@ -4778,3 +4778,74 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     width: 100%;
   }
 }
+
+/* ============================================================
+   Public landing — mobile two-column hero composition
+   ============================================================ */
+
+@media (max-width: 760px) {
+  .public-home-brand-banner {
+    grid-template-columns: minmax(0, 1fr) 10rem;
+    align-items: start;
+    column-gap: 1rem;
+    row-gap: 1.25rem;
+  }
+
+  /* Logo remains full-width above the copy + action columns. */
+  .public-home-brand-banner-logo {
+    grid-column: 1 / -1;
+    width: min(100%, 28rem);
+  }
+
+  .public-home-brand-banner-copy {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  /* Promise and buttons become the true right-hand column. */
+  .public-home-brand-banner-side {
+    grid-column: 2;
+    justify-self: stretch;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    width: 100%;
+    max-width: none;
+  }
+
+  .public-home-brand-banner-side .public-home-brand-banner-promise {
+    width: 100%;
+    max-width: none;
+    padding-left: 0.75rem;
+    white-space: normal;
+  }
+
+  .public-home-brand-banner-side .public-home-showcase-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: 100%;
+    max-width: none;
+  }
+}
+
+/*
+ * Very narrow phones need a little more room for the main message while
+ * retaining the right-side action stack.
+ */
+@media (max-width: 430px) {
+  .public-home-brand-banner {
+    grid-template-columns: minmax(0, 1fr) 8.75rem;
+    column-gap: 0.8rem;
+  }
+
+  .public-home-brand-banner-side .public-home-primary,
+  .public-home-brand-banner-side .public-home-trial-button {
+    padding-left: 0.45rem;
+    padding-right: 0.45rem;
+    font-size: 1rem;
+  }
+}
