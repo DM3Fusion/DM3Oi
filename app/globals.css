@@ -5470,3 +5470,97 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-template-columns: 1fr;
   }
 }
+
+/* Trial Requests — compact filter controls */
+.trial-request-admin-filters {
+  padding: 16px 18px;
+}
+
+.trial-request-admin-filters .form-grid {
+  align-items: end;
+  gap: 14px 16px;
+}
+
+.trial-request-admin-filters .form-grid > label {
+  display: grid;
+  min-width: 0;
+  gap: 6px;
+  margin: 0;
+  color: #34445a;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.trial-request-admin-filters
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.trial-request-admin-filters select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 40px;
+  min-height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #10233f;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.trial-request-admin-filters input::placeholder {
+  color: #98a2b3;
+  opacity: 1;
+}
+
+.trial-request-admin-filters input:focus,
+.trial-request-admin-filters select:focus {
+  border-color: #8290a5;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(64, 80, 106, 0.1);
+}
+
+.trial-request-admin-filters .actions {
+  min-height: 40px;
+  align-items: stretch;
+}
+
+.trial-request-admin-filters .actions .secondary-button {
+  min-height: 40px;
+  margin: 0;
+  padding: 0 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+@media (max-width: 1100px) {
+  .trial-request-admin-filters .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .trial-request-admin-filters {
+    padding: 14px;
+  }
+
+  .trial-request-admin-filters .form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .trial-request-admin-filters .actions,
+  .trial-request-admin-filters .actions .secondary-button {
+    width: 100%;
+  }
+
+  .trial-request-admin-filters .actions .secondary-button {
+    justify-content: center;
+  }
+}
