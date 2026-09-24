@@ -4223,3 +4223,178 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     padding-bottom: 2.8rem;
   }
 }
+
+/* ============================================================
+   Public landing — responsive DM3Oi brand banner
+   ============================================================ */
+
+.public-home-brand-banner {
+  display: grid;
+  grid-template-columns:
+    minmax(17rem, 0.82fr)
+    minmax(28rem, 1.35fr)
+    minmax(8rem, 0.28fr);
+  align-items: center;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  width: 100%;
+  padding: clamp(1.15rem, 2vw, 1.8rem) 0;
+}
+
+.public-home-brand-banner-logo {
+  min-width: 0;
+  padding-right: clamp(1.25rem, 2.5vw, 2.4rem);
+  border-right: 1px solid #8ca0b5;
+}
+
+.public-home-brand-banner-logo img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+.public-home-brand-banner-copy {
+  min-width: 0;
+}
+
+.public-home-hero.public-home-hero-showcase
+  .public-home-brand-banner-copy h1 {
+  max-width: none;
+  margin: 0;
+  color: #102b51;
+  text-align: left;
+  font-size: clamp(1.85rem, 3vw, 3.15rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+}
+
+.public-home-brand-banner-copy h2 {
+  margin: 0.4rem 0 0;
+  color: #087fc0;
+  font-size: clamp(1.35rem, 2.15vw, 2.15rem);
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+}
+
+.public-home-brand-banner-copy p {
+  max-width: 49rem;
+  margin: 0.55rem 0 0;
+  color: #435d78;
+  font-size: clamp(0.94rem, 1.25vw, 1.08rem);
+  line-height: 1.48;
+}
+
+.public-home-brand-banner-promise {
+  justify-self: end;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  padding: 0.4rem 0 0.75rem 1.35rem;
+  border-left: 1px solid #d7e1ea;
+  border-bottom: 3px solid #159bd3;
+  color: #15335e;
+  font-size: clamp(0.72rem, 0.9vw, 0.9rem);
+  line-height: 1.35;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.public-home-brand-banner-promise strong {
+  font-weight: 700;
+}
+
+.public-home-product-showcase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: clamp(0.5rem, 1.5vw, 1.25rem);
+}
+
+.public-home-showcase-actions {
+  justify-content: center;
+  margin: 0 0 clamp(0.75rem, 1.5vw, 1.25rem);
+}
+
+.public-home-product-showcase .public-home-product-hero {
+  width: min(100%, 68rem);
+  justify-content: center;
+}
+
+.public-home-product-showcase .public-home-product-hero img {
+  width: 100%;
+  height: auto;
+}
+
+/* Tablet brand banner */
+
+@media (max-width: 1000px) {
+  .public-home-brand-banner {
+    grid-template-columns: minmax(15rem, 0.8fr) minmax(24rem, 1.2fr);
+  }
+
+  .public-home-brand-banner-promise {
+    grid-column: 1 / -1;
+    justify-self: end;
+    flex-direction: row;
+    gap: 0.45rem;
+    padding: 0 0 0.4rem;
+    border-left: 0;
+  }
+}
+
+/* Phone brand banner */
+
+@media (max-width: 760px) {
+  .public-home-brand-banner {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding-top: 0.5rem;
+  }
+
+  .public-home-brand-banner-logo {
+    width: min(100%, 28rem);
+    padding: 0 0 1rem;
+    border-right: 0;
+    border-bottom: 1px solid #d7e1ea;
+  }
+
+  .public-home-hero.public-home-hero-showcase
+    .public-home-brand-banner-copy h1 {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+  .public-home-brand-banner-copy h2 {
+    font-size: clamp(1.35rem, 6vw, 1.8rem);
+  }
+
+  .public-home-brand-banner-promise {
+    grid-column: auto;
+    justify-self: start;
+  }
+
+  .public-home-product-showcase {
+    padding-top: 0.25rem;
+  }
+}
+
+@media (max-width: 560px) {
+  .public-home-showcase-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    width: 100%;
+  }
+
+  .public-home-showcase-actions .public-home-primary,
+  .public-home-showcase-actions .public-home-trial-button {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .public-home-brand-banner-promise {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+}

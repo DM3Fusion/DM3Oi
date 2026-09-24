@@ -129,44 +129,55 @@ export function PublicLandingPage({
         </div>
       )}
         <section className="public-home-hero public-home-hero-showcase">
-          <div className="public-home-hero-redesign">
-            <div className="public-home-hero-redesign-copy">
-              <p className="public-home-eyebrow">
-                {content.hero.eyebrow}
+          <div className="public-home-brand-banner">
+            <div className="public-home-brand-banner-logo">
+              <Image
+                src="/brand/DM3Oi_landing_page_top_left.webp"
+                alt="DM3Oi Business Operations Intelligence"
+                width={602}
+                height={198}
+                priority
+                sizes="(max-width: 760px) 100vw, 34vw"
+              />
+            </div>
+
+            <div className="public-home-brand-banner-copy">
+              <h1>People. Work. Progress. Intelligence.</h1>
+
+              <h2>
+                Manage the work between your systems.
+              </h2>
+
+              <p>
+                Turn everyday operational activity into measurable
+                progress—without replacing the business systems you
+                already rely on.
               </p>
+            </div>
 
-              <h1>
-                <span className="public-home-hero-title-dark">
-                  {content.hero.headlinePrimary}
-                </span>{" "}
-                <span className="public-home-hero-title-muted">
-                  {content.hero.headlineSecondary}
-                </span>
-              </h1>
+            <div
+              className="public-home-brand-banner-promise"
+              aria-label="Same people. Greater progress."
+            >
+              <span>Same</span>
+              <span>People.</span>
+              <strong>Greater</strong>
+              <strong>Progress.</strong>
+            </div>
+          </div>
 
-              <div className="public-home-actions public-home-showcase-header-actions">
-                <Link href="/login" className="public-home-primary">
-                  {content.hero.signInLabel}
-                </Link>
+          <div className="public-home-product-showcase">
+            <div className="public-home-actions public-home-showcase-actions">
+              <Link href="/login" className="public-home-primary">
+                {content.hero.signInLabel}
+              </Link>
 
-                <span
-                  className="public-home-trial-button"
-                  aria-disabled="true"
-                >
-                  {content.hero.trialLabel}
-                </span>
-              </div>
-
-              <div className="public-home-hero-message">
-                <h2>
-                  Manage the work between your systems.
-                </h2>
-                <p>
-                  Turn everyday operational activity into measurable
-                  progress—without replacing the business systems you
-                  already rely on.
-                </p>
-              </div>
+              <span
+                className="public-home-trial-button"
+                aria-disabled="true"
+              >
+                {content.hero.trialLabel}
+              </span>
             </div>
 
             <div className="public-home-product-hero">
@@ -176,11 +187,12 @@ export function PublicLandingPage({
                 width={1774}
                 height={887}
                 priority
-                sizes="(max-width: 760px) 100vw, 58vw"
+                sizes="(max-width: 760px) 100vw, 72vw"
               />
             </div>
           </div>
         </section>
+
 
       <section
         className="public-home-feature-section"
