@@ -5921,3 +5921,109 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     flex-direction: column;
   }
 }
+
+/* Trial Requests — qualification review */
+.trial-request-qualification-panel {
+  margin-top: 18px;
+}
+
+.trial-request-qualification-form {
+  display: grid;
+  gap: 18px;
+}
+
+.trial-request-qualification-fields {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.75fr) minmax(260px, 1.25fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.trial-request-qualification-form label {
+  display: grid;
+  gap: 7px;
+}
+
+.trial-request-qualification-form label > span,
+.trial-request-qualification-state > span {
+  color: #52677d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.trial-request-qualification-form select,
+.trial-request-qualification-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #10233f;
+}
+
+.trial-request-qualification-form select {
+  min-height: 44px;
+  padding: 9px 11px;
+}
+
+.trial-request-qualification-form textarea {
+  min-height: 112px;
+  padding: 11px 12px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.trial-request-qualification-form select:focus,
+.trial-request-qualification-form textarea:focus {
+  border-color: #8290a5;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(64, 80, 106, 0.1);
+}
+
+.trial-request-qualification-state {
+  display: grid;
+  gap: 5px;
+  min-height: 44px;
+  padding: 12px 14px;
+  border: 1px solid #d9e1ea;
+  border-radius: 6px;
+  background: #f7f9fb;
+}
+
+.trial-request-qualification-state strong {
+  color: #10233f;
+  font-size: 14px;
+}
+
+.trial-request-qualification-state small {
+  color: #667085;
+  font-size: 12px;
+}
+
+.trial-request-qualification-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.trial-request-qualification-actions > span {
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+@media (max-width: 700px) {
+  .trial-request-qualification-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .trial-request-qualification-actions,
+  .trial-request-qualification-actions .secondary-button {
+    width: 100%;
+  }
+
+  .trial-request-qualification-actions .secondary-button {
+    justify-content: center;
+  }
+}

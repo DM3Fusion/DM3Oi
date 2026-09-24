@@ -9,7 +9,7 @@ import {
   type TrialRequestUseCase,
 } from "@/lib/trial-requests";
 import {
-  convertTrialRequestAction,
+  reviewTrialRequestQualificationAction,
   transitionTrialRequestAction,
 } from "./actions";
 
@@ -19,6 +19,11 @@ type TrialRequestStatus =
   | "QUALIFIED"
   | "DECLINED"
   | "CONVERTED";
+
+type WorkflowFit =
+  | "FIT"
+  | "NEEDS_REVIEW"
+  | "NOT_FIT";
 
 type TrialRequestDetail = {
   id: string;
@@ -33,6 +38,10 @@ type TrialRequestDetail = {
   estimated_users: number;
   workflow_notes: string | null;
   privacy_acknowledged_at: string;
+  workflow_fit: WorkflowFit | null;
+  qualification_notes: string | null;
+  qualification_reviewed_at: string | null;
+  qualification_reviewed_by: string | null;
   contacted_at: string | null;
   qualified_at: string | null;
   declined_at: string | null;
@@ -96,6 +105,10 @@ const requestColumns = [
   "estimated_users",
   "workflow_notes",
   "privacy_acknowledged_at",
+  "workflow_fit",
+  "qualification_notes",
+  "qualification_reviewed_at",
+  "qualification_reviewed_by",
   "contacted_at",
   "qualified_at",
   "declined_at",
@@ -109,14 +122,6 @@ function formatDate(value: string | null) {
   return value
     ? new Date(value).toLocaleString()
     : "—";
-}
-
-function suggestedOrganizationSlug(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
 }
 
 function operationalNeed(request: TrialRequestDetail) {
@@ -298,7 +303,16 @@ export default async function TrialRequestDetailPage({
     ]),
   );
 
-  const actions = allowedActions(request.status);
+  const qualificationReady =
+    request.workflow_fit === "FIT" &&
+    Boolean(request.qualification_reviewed_at) &&
+    Boolean(request.qualification_reviewed_by);
+
+  const actions = allowedActions(request.status).filter(
+    (action) =>
+      action.status !== "QUALIFIED" ||
+      qualificationReady,
+  );
 
   return (
     <>
@@ -496,22 +510,21 @@ export default async function TrialRequestDetailPage({
         </aside>
       </div>
 
-      {request.status === "QUALIFIED" ? (
-        <section className="panel detail-section trial-request-conversion-panel">
+      {request.status !== "CONVERTED" ? (
+        <section className="panel detail-section trial-request-qualification-panel">
           <div className="section-head">
             <div>
-              <h2>Organization Conversion</h2>
+              <h2>Qualification Review</h2>
               <p>
-                Create the organization after qualification is complete.
-                Conversion permanently links this Trial Request to the new
-                organization.
+                Assess whether this prospect is an appropriate operational
+                fit before qualifying the Trial Request.
               </p>
             </div>
           </div>
 
           <form
-            action={convertTrialRequestAction}
-            className="trial-request-conversion-form"
+            action={reviewTrialRequestQualificationAction}
+            className="trial-request-qualification-form"
           >
             <input
               type="hidden"
@@ -519,58 +532,97 @@ export default async function TrialRequestDetailPage({
               value={request.id}
             />
 
-            <div className="trial-request-conversion-fields">
+            <div className="trial-request-qualification-fields">
               <label>
-                <span>Organization Name</span>
-                <input
-                  name="organizationName"
+                <span>Workflow Fit</span>
+                <select
+                  name="workflowFit"
                   required
-                  maxLength={160}
-                  defaultValue={request.business_name}
-                />
+                  defaultValue={request.workflow_fit ?? ""}
+                >
+                  <option value="" disabled>
+                    Select workflow fit
+                  </option>
+                  <option value="FIT">Fit</option>
+                  <option value="NEEDS_REVIEW">
+                    Needs Review
+                  </option>
+                  <option value="NOT_FIT">
+                    Not Fit
+                  </option>
+                </select>
               </label>
 
-              <label>
-                <span>Organization Slug</span>
-                <input
-                  name="organizationSlug"
-                  required
-                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
-                  defaultValue={suggestedOrganizationSlug(
-                    request.business_name,
-                  )}
-                />
-                <small>
-                  Lowercase letters, numbers, and hyphens.
-                </small>
-              </label>
+              <div className="trial-request-qualification-state">
+                <span>Qualification Status</span>
+                <strong>
+                  {qualificationReady
+                    ? "Ready to Qualify"
+                    : request.qualification_reviewed_at
+                      ? "Review Saved — Not Ready"
+                      : "Review Required"}
+                </strong>
+                {request.qualification_reviewed_at ? (
+                  <small>
+                    Last reviewed{" "}
+                    {formatDate(
+                      request.qualification_reviewed_at,
+                    )}
+                  </small>
+                ) : null}
+              </div>
             </div>
 
-            <label className="trial-request-conversion-note">
-              <span>Conversion Note</span>
+            <label className="trial-request-qualification-notes">
+              <span>Qualification Notes</span>
               <textarea
-                name="conversionNote"
-                rows={4}
-                required
-                maxLength={1000}
-                placeholder="Document the approval or reason for creating this organization."
+                name="qualificationNotes"
+                rows={5}
+                maxLength={2000}
+                defaultValue={
+                  request.qualification_notes ?? ""
+                }
+                placeholder="Document the operational fit assessment and any qualification considerations."
               />
             </label>
 
-            <div className="trial-request-conversion-actions">
+            <div className="trial-request-qualification-actions">
               <button
                 type="submit"
-                className="primary-button"
+                className="secondary-button"
               >
-                Create Organization
+                Save Qualification Review
               </button>
 
-              <span>
-                This action creates an ACTIVE organization and marks
-                Trial Request #{request.request_number} as CONVERTED.
-              </span>
+              {!qualificationReady ? (
+                <span>
+                  Workflow Fit must be saved as Fit before this
+                  request can be qualified.
+                </span>
+              ) : null}
             </div>
           </form>
+        </section>
+      ) : null}
+
+      {request.status === "QUALIFIED" ? (
+        <section className="panel detail-section trial-request-conversion-panel">
+          <div className="section-head">
+            <div>
+              <h2>Organization Setup</h2>
+              <p>
+                Qualification is complete. Configure the organization
+                before converting this Trial Request.
+              </p>
+            </div>
+
+            <Link
+              href={`/admin/organizations/new?trialRequestId=${request.id}`}
+              className="primary-button"
+            >
+              Configure Organization
+            </Link>
+          </div>
         </section>
       ) : null}
 

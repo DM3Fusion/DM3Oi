@@ -315,3 +315,130 @@ export async function convertTrialRequestAction(
     ),
   );
 }
+
+type WorkflowFit =
+  | "FIT"
+  | "NEEDS_REVIEW"
+  | "NOT_FIT";
+
+const workflowFits: WorkflowFit[] = [
+  "FIT",
+  "NEEDS_REVIEW",
+  "NOT_FIT",
+];
+
+type QualificationReviewDatabase = Database & {
+  public: Database["public"] & {
+    Functions: Database["public"]["Functions"] & {
+      review_trial_request_qualification: {
+        Args: {
+          target_trial_request_id: string;
+          target_workflow_fit: WorkflowFit;
+          target_notes?: string | null;
+        };
+        Returns: {
+          id: string;
+        };
+      };
+    };
+  };
+};
+
+export async function reviewTrialRequestQualificationAction(
+  form: FormData,
+) {
+  await requireSuperAdmin();
+
+  const requestId = value(form, "requestId");
+  const workflowFit = value(
+    form,
+    "workflowFit",
+  ) as WorkflowFit;
+  const qualificationNotes = value(
+    form,
+    "qualificationNotes",
+  );
+
+  const path = requestId
+    ? `/admin/trial-requests/${requestId}`
+    : "/admin/trial-requests";
+
+  if (!requestId) {
+    redirect(
+      destination(
+        "/admin/trial-requests",
+        "error",
+        "Trial request was not specified.",
+      ),
+    );
+  }
+
+  if (!workflowFits.includes(workflowFit)) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "Select a valid workflow fit assessment.",
+      ),
+    );
+  }
+
+  if (qualificationNotes.length > 2000) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "Qualification notes cannot exceed 2,000 characters.",
+      ),
+    );
+  }
+
+  const supabase = (await createClient()) as ReturnType<
+    typeof import("@supabase/ssr").createServerClient<QualificationReviewDatabase>
+  >;
+
+  const result = await supabase.rpc(
+    "review_trial_request_qualification",
+    {
+      target_trial_request_id: requestId,
+      target_workflow_fit: workflowFit,
+      target_notes: qualificationNotes || null,
+    },
+  );
+
+  if (result.error) {
+    console.error(
+      "Trial request qualification review failed",
+      {
+        code: result.error.code,
+        message: result.error.message,
+        requestId,
+        workflowFit,
+      },
+    );
+
+    const message =
+      result.error.message?.includes(
+        "converted trial requests cannot be reviewed",
+      )
+        ? "Converted Trial Requests cannot be reviewed."
+        : result.error.message?.includes(
+              "qualification notes too long",
+            )
+          ? "Qualification notes cannot exceed 2,000 characters."
+          : "The qualification review could not be saved.";
+
+    redirect(destination(path, "error", message));
+  }
+
+  revalidatePath("/admin/trial-requests");
+  revalidatePath(path);
+
+  redirect(
+    destination(
+      path,
+      "message",
+      "Qualification review saved.",
+    ),
+  );
+}
