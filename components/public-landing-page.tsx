@@ -171,10 +171,10 @@ export function PublicLandingPage({
 
             <div className="public-home-product-hero">
               <Image
-                src="/images/dm3oi-product-dashboard.png"
+                src="/brand/DM3Oi_laptop_iPhone.png"
                 alt="DM3Oi dashboard on a laptop with the Cases workspace on a mobile phone"
-                width={1292}
-                height={752}
+                width={1774}
+                height={887}
                 priority
                 sizes="(max-width: 760px) 100vw, 58vw"
               />
