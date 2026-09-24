@@ -98,3 +98,63 @@ test("duplicate Trial Request email receives a specific public error", () => {
     /A trial request or account already exists for this email address/,
   );
 });
+
+test("qualification notes are required for Needs Review and Not Fit", () => {
+  const migration = readFileSync(
+    "supabase/migrations/20260925120000_dm3oi_trial_qualification_notes_requirement.sql",
+    "utf8",
+  );
+  const action = readFileSync(
+    "app/admin/trial-requests/[requestId]/actions.ts",
+    "utf8",
+  );
+
+  assert.match(
+    migration,
+    /target_workflow_fit in \([\s\S]*'NEEDS_REVIEW'[\s\S]*'NOT_FIT'[\s\S]*\)[\s\S]*and normalized_notes is null/,
+  );
+  assert.match(
+    migration,
+    /qualification notes required for workflow fit/,
+  );
+
+  assert.match(
+    action,
+    /workflowFit === "NEEDS_REVIEW"[\s\S]*workflowFit === "NOT_FIT"[\s\S]*!qualificationNotes\.trim\(\)/,
+  );
+  assert.match(
+    action,
+    /Qualification notes are required when Workflow Fit is Needs Review or Not Fit\./,
+  );
+});
+
+test("Fit qualification does not require Qualification Notes", () => {
+  const migration = readFileSync(
+    "supabase/migrations/20260925120000_dm3oi_trial_qualification_notes_requirement.sql",
+    "utf8",
+  );
+
+  assert.doesNotMatch(
+    migration,
+    /target_workflow_fit\s*=\s*'FIT'[\s\S]{0,200}normalized_notes is null/,
+  );
+  assert.match(
+    migration,
+    /workflow_fit = target_workflow_fit/,
+  );
+});
+
+test("Qualification Review explains when notes are required", () => {
+  const page = readFileSync(
+    "app/admin/trial-requests/[requestId]/page.tsx",
+    "utf8",
+  );
+
+  assert.match(page, /Qualification Notes/);
+  assert.match(
+    page,
+    /Required for Needs Review or Not Fit/,
+  );
+  assert.match(page, /name="qualificationNotes"/);
+  assert.match(page, /maxLength=\{2000\}/);
+});

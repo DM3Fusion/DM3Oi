@@ -393,6 +393,20 @@ export async function reviewTrialRequestQualificationAction(
     );
   }
 
+  if (
+    (workflowFit === "NEEDS_REVIEW" ||
+      workflowFit === "NOT_FIT") &&
+    !qualificationNotes.trim()
+  ) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "Qualification notes are required when Workflow Fit is Needs Review or Not Fit.",
+      ),
+    );
+  }
+
   const supabase = (await createClient()) as ReturnType<
     typeof import("@supabase/ssr").createServerClient<QualificationReviewDatabase>
   >;
@@ -426,7 +440,11 @@ export async function reviewTrialRequestQualificationAction(
               "qualification notes too long",
             )
           ? "Qualification notes cannot exceed 2,000 characters."
-          : "The qualification review could not be saved.";
+          : result.error.message?.includes(
+                "qualification notes required for workflow fit",
+              )
+            ? "Qualification notes are required when Workflow Fit is Needs Review or Not Fit."
+            : "The qualification review could not be saved.";
 
     redirect(destination(path, "error", message));
   }

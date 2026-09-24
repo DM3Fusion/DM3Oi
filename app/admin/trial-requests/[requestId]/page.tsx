@@ -558,7 +558,12 @@ export default async function TrialRequestDetailPage({
             </div>
 
             <label className="trial-request-qualification-notes">
-              <span>Qualification Notes</span>
+              <span>
+                Qualification Notes{" "}
+                <small>
+                  Required for Needs Review or Not Fit
+                </small>
+              </span>
               <textarea
                 name="qualificationNotes"
                 rows={5}
