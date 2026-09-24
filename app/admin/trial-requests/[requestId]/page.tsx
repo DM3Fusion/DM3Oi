@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Badge, PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
@@ -468,44 +469,10 @@ export default async function TrialRequestDetailPage({
               organization and its review status is locked.
             </div>
           ) : (
-            <form
-              action={transitionTrialRequestAction}
-              className="trial-request-review-form"
-            >
-              <input
-                type="hidden"
-                name="requestId"
-                value={request.id}
-              />
-
-              <label>
-                <span>Review Note</span>
-                <textarea
-                  name="reviewNote"
-                  rows={4}
-                  maxLength={1000}
-                  placeholder="Optional note about this review action"
-                />
-              </label>
-
-              <div className="trial-request-review-actions">
-                {actions.map((action) => (
-                  <button
-                    key={action.status}
-                    type="submit"
-                    name="targetStatus"
-                    value={action.status}
-                    className={
-                      action.primary
-                        ? "primary-button"
-                        : "secondary-button"
-                    }
-                  >
-                    {action.label}
-                  </button>
-                ))}
-              </div>
-            </form>
+            <div className="trial-request-review-guidance">
+              Lifecycle actions are available after the
+              qualification assessment below.
+            </div>
           )}
         </aside>
       </div>
@@ -593,12 +560,12 @@ export default async function TrialRequestDetailPage({
             </label>
 
             <div className="trial-request-qualification-actions">
-              <button
-                type="submit"
+              <PendingSubmitButton
                 className="secondary-button"
+                pendingLabel="Saving…"
               >
                 Save Qualification Review
-              </button>
+              </PendingSubmitButton>
 
               {!qualificationReady ? (
                 <span>
@@ -606,6 +573,60 @@ export default async function TrialRequestDetailPage({
                   request can be qualified.
                 </span>
               ) : null}
+            </div>
+          </form>
+        </section>
+      ) : null}
+
+      {request.status !== "CONVERTED" && actions.length ? (
+        <section className="panel detail-section trial-request-decision-panel">
+          <div className="section-head">
+            <div>
+              <h2>Review Decision</h2>
+              <p>
+                Advance or decline this Trial Request based on
+                the completed review.
+              </p>
+            </div>
+          </div>
+
+          <form
+            action={transitionTrialRequestAction}
+            className="trial-request-review-form"
+          >
+            <input
+              type="hidden"
+              name="requestId"
+              value={request.id}
+            />
+
+            <label>
+              <span>Review Note</span>
+              <textarea
+                name="reviewNote"
+                rows={4}
+                maxLength={1000}
+                placeholder="Optional note about this review action"
+              />
+            </label>
+
+            <div className="trial-request-review-actions">
+              {actions.map((action) => (
+                <PendingSubmitButton
+                  key={action.status}
+                  type="submit"
+                  name="targetStatus"
+                  value={action.status}
+                  className={
+                    action.primary
+                      ? "primary-button"
+                      : "secondary-button"
+                  }
+                  pendingLabel="Updating…"
+                >
+                  {action.label}
+                </PendingSubmitButton>
+              ))}
             </div>
           </form>
         </section>

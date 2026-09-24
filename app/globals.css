@@ -6027,3 +6027,30 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     justify-content: center;
   }
 }
+
+/* Trial Requests — staged review workflow */
+.trial-request-review-guidance {
+  padding: 12px 14px;
+  border: 1px solid #e1e7ee;
+  border-radius: 7px;
+  background: #f7f9fb;
+  color: #52647b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trial-request-decision-panel {
+  margin-top: 18px;
+}
+
+.trial-request-decision-panel .section-head {
+  margin-bottom: 20px;
+}
+
+.trial-request-decision-panel .trial-request-review-form {
+  max-width: 760px;
+}
+
+.trial-request-decision-panel .trial-request-review-actions {
+  margin-top: 2px;
+}
