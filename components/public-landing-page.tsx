@@ -290,6 +290,15 @@ export function PublicLandingPage({
         </aside>
       </section>
 
+      <div className="public-home-bottom-trial">
+        <span
+          className="public-home-trial-button"
+          aria-disabled="true"
+        >
+          {content.hero.trialLabel}
+        </span>
+      </div>
+
       <footer className="public-home-footer">
         <div className="public-home-footer-brand">
           <strong>DM3Oi™</strong>

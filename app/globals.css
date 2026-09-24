@@ -4989,3 +4989,22 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     letter-spacing: normal;
   }
 }
+
+/* ============================================================
+   Public landing — closing Request Trial CTA
+   ============================================================ */
+
+.public-home-bottom-trial {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: clamp(2rem, 4vw, 3.25rem) 0;
+}
+
+.public-home-bottom-trial .public-home-trial-button {
+  min-width: 11rem;
+  justify-content: center;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 750;
+}
