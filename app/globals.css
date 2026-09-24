@@ -5564,3 +5564,253 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     justify-content: center;
   }
 }
+
+/* Trial Requests — detail and review */
+.trial-request-number-link {
+  color: #315f8f;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.trial-request-number-link:hover {
+  text-decoration: underline;
+}
+
+.trial-request-detail-back {
+  margin: -4px 0 18px;
+}
+
+.trial-request-detail-back a {
+  color: #52647b;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.trial-request-detail-back a:hover {
+  text-decoration: underline;
+}
+
+.trial-request-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.85fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.trial-request-detail-grid .detail-section,
+.trial-request-history {
+  margin: 0;
+}
+
+.trial-request-detail-grid .section-head,
+.trial-request-history .section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.trial-request-detail-grid .section-head h2,
+.trial-request-history .section-head h2 {
+  margin: 0;
+  color: #10233f;
+  font-size: 18px;
+}
+
+.trial-request-detail-grid .section-head p,
+.trial-request-history .section-head p {
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 12px;
+}
+
+.trial-request-detail-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  border-top: 1px solid #e7ebf0;
+}
+
+.trial-request-detail-list > div {
+  min-width: 0;
+  padding: 14px 0;
+  border-bottom: 1px solid #e7ebf0;
+}
+
+.trial-request-detail-list > div:nth-child(odd) {
+  padding-right: 18px;
+}
+
+.trial-request-detail-list > div:nth-child(even) {
+  padding-left: 18px;
+  border-left: 1px solid #e7ebf0;
+}
+
+.trial-request-detail-list dt,
+.trial-request-review-dates dt {
+  margin-bottom: 5px;
+  color: #667085;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.trial-request-detail-list dd,
+.trial-request-review-dates dd {
+  margin: 0;
+  color: #10233f;
+  font-size: 13px;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+
+.trial-request-detail-list dd a {
+  color: #315f8f;
+}
+
+.trial-request-notes {
+  margin-top: 20px;
+}
+
+.trial-request-notes h3 {
+  margin: 0 0 8px;
+  color: #10233f;
+  font-size: 13px;
+}
+
+.trial-request-notes p {
+  margin: 0;
+  color: #44546a;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.trial-request-review-dates {
+  display: grid;
+  gap: 0;
+  margin: 0 0 20px;
+}
+
+.trial-request-review-dates > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid #e7ebf0;
+}
+
+.trial-request-review-dates dt {
+  margin: 0;
+}
+
+.trial-request-review-dates dd {
+  text-align: right;
+}
+
+.trial-request-review-form {
+  display: grid;
+  gap: 14px;
+}
+
+.trial-request-review-form label {
+  display: grid;
+  gap: 6px;
+  color: #34445a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trial-request-review-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 92px;
+  resize: vertical;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #10233f;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.trial-request-review-form textarea:focus {
+  border-color: #8290a5;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(64, 80, 106, 0.1);
+}
+
+.trial-request-review-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trial-request-review-actions button {
+  min-height: 38px;
+  padding: 0 13px;
+  font-size: 11px;
+}
+
+.trial-request-converted-note {
+  padding: 12px 14px;
+  border: 1px solid #d9e1ea;
+  border-radius: 6px;
+  background: #f7f9fb;
+  color: #52647b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trial-request-history {
+  margin-top: 18px;
+}
+
+.trial-request-history td {
+  vertical-align: top;
+}
+
+@media (max-width: 1000px) {
+  .trial-request-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .trial-request-detail-list {
+    grid-template-columns: 1fr;
+  }
+
+  .trial-request-detail-list > div:nth-child(odd),
+  .trial-request-detail-list > div:nth-child(even) {
+    padding-right: 0;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  .trial-request-review-dates > div {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .trial-request-review-dates dd {
+    text-align: left;
+  }
+
+  .trial-request-review-actions,
+  .trial-request-review-actions button {
+    width: 100%;
+  }
+
+  .trial-request-review-actions button {
+    justify-content: center;
+  }
+}

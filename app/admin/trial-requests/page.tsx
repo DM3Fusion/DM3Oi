@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TrialRequestFilters } from "@/components/trial-request-filters";
 import { Badge, PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
@@ -639,10 +640,12 @@ export default async function TrialRequestsPage({
                   (request) => (
                     <tr key={request.id}>
                       <td>
-                        #
-                        {
-                          request.request_number
-                        }
+                        <Link
+                          href={`/admin/trial-requests/${request.id}`}
+                          className="trial-request-number-link"
+                        >
+                          #{request.request_number}
+                        </Link>
                       </td>
 
                       <td>
