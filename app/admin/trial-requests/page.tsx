@@ -562,34 +562,6 @@ export default async function TrialRequestsPage({
           </div>
         </article>
 
-        <article className="panel trial-request-analytics-card">
-          <div className="trial-request-analytics-heading">
-            <h2>Conversion Outcomes</h2>
-            <p>Current Trial Request disposition</p>
-          </div>
-
-          <div className="trial-request-kpi-breakdown">
-            <div>
-              <span>Active</span>
-              <strong>
-                {(statusCounts.NEW ?? 0) +
-                  (statusCounts.CONTACTED ?? 0) +
-                  (statusCounts.QUALIFIED ?? 0)}
-              </strong>
-            </div>
-
-            <div>
-              <span>Converted</span>
-              <strong>{statusCounts.CONVERTED ?? 0}</strong>
-            </div>
-
-            <div>
-              <span>Declined</span>
-              <strong>{statusCounts.DECLINED ?? 0}</strong>
-            </div>
-          </div>
-        </article>
-
         <article className="panel trial-request-analytics-card trial-request-trend-card">
           <div className="trial-request-analytics-heading">
             <h2>Submission Trend</h2>
