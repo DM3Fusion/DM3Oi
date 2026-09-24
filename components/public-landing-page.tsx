@@ -190,12 +190,12 @@ export function PublicLandingPage({
                   {content.hero.signInLabel}
                 </Link>
 
-                <span
+                <Link
+                  href="/request-trial"
                   className="public-home-trial-button"
-                  aria-disabled="true"
                 >
                   {content.hero.trialLabel}
-                </span>
+                </Link>
               </div>
             </div>
           </div>
@@ -297,12 +297,12 @@ export function PublicLandingPage({
       </section>
 
       <div className="public-home-bottom-trial">
-        <span
+        <Link
+          href="/request-trial"
           className="public-home-trial-button"
-          aria-disabled="true"
         >
           {content.hero.trialLabel}
-        </span>
+        </Link>
       </div>
 
       <footer className="public-home-footer">

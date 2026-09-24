@@ -17,14 +17,16 @@ test("root supports managed public landing content while preserving authenticate
   assert.match(shell, /path === "\/" && !access/);
 });
 
-test("landing sign in works while Request Trial remains disabled", () => {
+test("landing sign in and Request Trial routes are enabled", () => {
   const landing = source("components/public-landing-page.tsx");
   const content = source("lib/public-landing-page.ts");
+  const proxy = source("proxy.ts");
 
   assert.match(landing, /href="\/login"/);
   assert.match(landing, /content\.hero\.trialLabel/);
-  assert.match(landing, /aria-disabled="true"/);
-  assert.doesNotMatch(landing, /href="\/request-trial"/);
+  assert.match(landing, /href="\/request-trial"/);
+  assert.doesNotMatch(landing, /aria-disabled="true"/);
+  assert.match(proxy, /"\/request-trial"/);
 
   assert.match(content, /trialLabel:\s*"Request Trial"/);
 });
@@ -82,12 +84,16 @@ test("SUPER_ADMIN landing-page management is available in platform navigation", 
   assert.match(actions, /revert_public_landing_page/);
 });
 
-test("landing management keeps Request Trial content staged without enabling the route", () => {
+test("landing management supplies content to the enabled Request Trial route", () => {
   const landing = source("components/public-landing-page.tsx");
   const content = source("lib/public-landing-page.ts");
+  const page = source("app/request-trial/page.tsx");
 
   assert.match(content, /trialRequest/);
-  assert.doesNotMatch(landing, /href="\/request-trial"/);
+  assert.match(landing, /href="\/request-trial"/);
+  assert.match(page, /getPublishedLandingPageContent/);
+  assert.match(page, /content\.formHeading/);
+  assert.match(page, /content\.successHeading/);
 });
 
 test("sign out returns to the public root", () => {
