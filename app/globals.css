@@ -4026,3 +4026,12 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     white-space: nowrap;
   }
 }
+
+/* Public landing hero — separate desktop/tablet Sign In and Request Trial actions. */
+@media (min-width: 561px) {
+  .public-home-showcase-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+}
