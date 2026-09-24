@@ -4757,3 +4757,24 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   font-size: 1.15rem;
   font-weight: 750;
 }
+
+/* Public landing — mobile hero actions match desktop stack */
+@media (max-width: 760px) {
+  .public-home-brand-banner-side {
+    align-items: flex-end;
+  }
+
+  .public-home-brand-banner-side .public-home-showcase-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.65rem;
+    width: 10rem;
+    max-width: 100%;
+  }
+
+  .public-home-brand-banner-side .public-home-primary,
+  .public-home-brand-banner-side .public-home-trial-button {
+    width: 100%;
+  }
+}
