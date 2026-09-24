@@ -8,7 +8,10 @@ import {
   trialRequestUseCaseLabels,
   type TrialRequestUseCase,
 } from "@/lib/trial-requests";
-import { transitionTrialRequestAction } from "./actions";
+import {
+  convertTrialRequestAction,
+  transitionTrialRequestAction,
+} from "./actions";
 
 type TrialRequestStatus =
   | "NEW"
@@ -106,6 +109,14 @@ function formatDate(value: string | null) {
   return value
     ? new Date(value).toLocaleString()
     : "—";
+}
+
+function suggestedOrganizationSlug(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 function operationalNeed(request: TrialRequestDetail) {
@@ -484,6 +495,106 @@ export default async function TrialRequestDetailPage({
           )}
         </aside>
       </div>
+
+      {request.status === "QUALIFIED" ? (
+        <section className="panel detail-section trial-request-conversion-panel">
+          <div className="section-head">
+            <div>
+              <h2>Organization Conversion</h2>
+              <p>
+                Create the organization after qualification is complete.
+                Conversion permanently links this Trial Request to the new
+                organization.
+              </p>
+            </div>
+          </div>
+
+          <form
+            action={convertTrialRequestAction}
+            className="trial-request-conversion-form"
+          >
+            <input
+              type="hidden"
+              name="requestId"
+              value={request.id}
+            />
+
+            <div className="trial-request-conversion-fields">
+              <label>
+                <span>Organization Name</span>
+                <input
+                  name="organizationName"
+                  required
+                  maxLength={160}
+                  defaultValue={request.business_name}
+                />
+              </label>
+
+              <label>
+                <span>Organization Slug</span>
+                <input
+                  name="organizationSlug"
+                  required
+                  pattern="[a-z0-9]+(?:-[a-z0-9]+)*"
+                  defaultValue={suggestedOrganizationSlug(
+                    request.business_name,
+                  )}
+                />
+                <small>
+                  Lowercase letters, numbers, and hyphens.
+                </small>
+              </label>
+            </div>
+
+            <label className="trial-request-conversion-note">
+              <span>Conversion Note</span>
+              <textarea
+                name="conversionNote"
+                rows={4}
+                required
+                maxLength={1000}
+                placeholder="Document the approval or reason for creating this organization."
+              />
+            </label>
+
+            <div className="trial-request-conversion-actions">
+              <button
+                type="submit"
+                className="primary-button"
+              >
+                Create Organization
+              </button>
+
+              <span>
+                This action creates an ACTIVE organization and marks
+                Trial Request #{request.request_number} as CONVERTED.
+              </span>
+            </div>
+          </form>
+        </section>
+      ) : null}
+
+      {request.status === "CONVERTED" &&
+      request.converted_organization_id ? (
+        <section className="panel detail-section trial-request-conversion-panel">
+          <div className="section-head">
+            <div>
+              <h2>Organization Conversion</h2>
+              <p>
+                This Trial Request has been converted and permanently
+                linked to its organization.
+              </p>
+            </div>
+
+            <Link
+              href={`/admin/organizations/${request.converted_organization_id}`}
+              className="primary-button"
+            >
+              View Organization
+            </Link>
+          </div>
+        </section>
+      ) : null}
 
       <section className="panel detail-section trial-request-history">
         <div className="section-head">

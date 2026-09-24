@@ -5814,3 +5814,110 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     justify-content: center;
   }
 }
+
+/* Trial Requests — organization conversion */
+.trial-request-conversion-panel {
+  margin-top: 18px;
+}
+
+.trial-request-conversion-panel .section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.trial-request-conversion-panel .section-head h2 {
+  margin: 0;
+  color: #10233f;
+  font-size: 18px;
+}
+
+.trial-request-conversion-panel .section-head p {
+  max-width: 720px;
+  margin: 5px 0 0;
+  color: #667085;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.trial-request-conversion-form {
+  display: grid;
+  gap: 16px;
+}
+
+.trial-request-conversion-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.trial-request-conversion-form label {
+  display: grid;
+  gap: 6px;
+  color: #34445a;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.trial-request-conversion-form input,
+.trial-request-conversion-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #10233f;
+  font: inherit;
+  font-size: 12px;
+}
+
+.trial-request-conversion-form input {
+  min-height: 40px;
+}
+
+.trial-request-conversion-form textarea {
+  min-height: 92px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.trial-request-conversion-form input:focus,
+.trial-request-conversion-form textarea:focus {
+  border-color: #8290a5;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(64, 80, 106, 0.1);
+}
+
+.trial-request-conversion-form small {
+  color: #667085;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.trial-request-conversion-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.trial-request-conversion-actions span {
+  color: #667085;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .trial-request-conversion-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .trial-request-conversion-panel .section-head,
+  .trial-request-conversion-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}

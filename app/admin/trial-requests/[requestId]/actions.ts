@@ -152,3 +152,166 @@ export async function transitionTrialRequestAction(
     ),
   );
 }
+
+type OrganizationConversionDatabase = Database & {
+  public: Database["public"] & {
+    Functions: Database["public"]["Functions"] & {
+      convert_trial_request_to_organization: {
+        Args: {
+          target_trial_request_id: string;
+          target_organization_name: string;
+          target_organization_slug: string;
+          target_conversion_note: string;
+        };
+        Returns: {
+          id: string;
+          name: string;
+          slug: string;
+          status: string;
+        };
+      };
+    };
+  };
+};
+
+function slugify(input: string) {
+  return input
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+export async function convertTrialRequestAction(
+  form: FormData,
+) {
+  await requireSuperAdmin();
+
+  const requestId = value(form, "requestId");
+  const organizationName = value(form, "organizationName");
+  const organizationSlug = slugify(
+    value(form, "organizationSlug"),
+  );
+  const conversionNote = value(form, "conversionNote");
+
+  const path = requestId
+    ? `/admin/trial-requests/${requestId}`
+    : "/admin/trial-requests";
+
+  if (!requestId) {
+    redirect(
+      destination(
+        "/admin/trial-requests",
+        "error",
+        "Trial request was not specified.",
+      ),
+    );
+  }
+
+  if (!organizationName || organizationName.length > 160) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "Enter a valid organization name.",
+      ),
+    );
+  }
+
+  if (
+    !organizationSlug ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(
+      organizationSlug,
+    )
+  ) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "Enter a valid organization slug.",
+      ),
+    );
+  }
+
+  if (
+    !conversionNote ||
+    conversionNote.length > 1000
+  ) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "A conversion note is required and cannot exceed 1,000 characters.",
+      ),
+    );
+  }
+
+  const supabase = (await createClient()) as ReturnType<
+    typeof import("@supabase/ssr").createServerClient<OrganizationConversionDatabase>
+  >;
+
+  const result = await supabase.rpc(
+    "convert_trial_request_to_organization",
+    {
+      target_trial_request_id: requestId,
+      target_organization_name: organizationName,
+      target_organization_slug: organizationSlug,
+      target_conversion_note: conversionNote,
+    },
+  );
+
+  if (result.error) {
+    console.error(
+      "Trial request organization conversion failed",
+      {
+        code: result.error.code,
+        message: result.error.message,
+        requestId,
+      },
+    );
+
+    const message =
+      result.error.message?.includes(
+        "organization slug already exists",
+      )
+        ? "That organization slug is already in use."
+        : result.error.message?.includes(
+              "trial request must be qualified",
+            )
+          ? "Only a qualified Trial Request can be converted."
+          : result.error.message?.includes(
+                "trial request already converted",
+              )
+            ? "This Trial Request has already been converted."
+            : result.error.message?.includes(
+                  "conversion note required",
+                )
+              ? "A conversion note is required."
+              : "The Trial Request could not be converted to an organization.";
+
+    redirect(destination(path, "error", message));
+  }
+
+  if (!result.data?.id) {
+    redirect(
+      destination(
+        path,
+        "error",
+        "The organization could not be confirmed after conversion.",
+      ),
+    );
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/organizations");
+  revalidatePath("/admin/trial-requests");
+  revalidatePath(path);
+
+  redirect(
+    destination(
+      `/admin/organizations/${result.data.id}`,
+      "message",
+      "Organization created from Trial Request.",
+    ),
+  );
+}
