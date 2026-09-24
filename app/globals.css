@@ -4849,3 +4849,8 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size: 1rem;
   }
 }
+
+/* Public landing — center Business Workflow card titles only */
+.public-home-feature-grid article h3 {
+  text-align: center;
+}
