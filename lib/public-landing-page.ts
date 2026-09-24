@@ -95,16 +95,16 @@ export const defaultPublicLandingPageContent: PublicLandingPageContent = {
       "/brand/dm3oi-workflow-panels-baseline.png",
     items: [
       {
-        key: "inbox",
-        title: "Inbox",
-        description:
-          "Keep operational communications visible and connected to the work.",
-      },
-      {
         key: "service",
         title: "Service Desk",
         description:
           "Receive, assign, track, and resolve customer service requests.",
+      },
+      {
+        key: "inbox",
+        title: "Inbox",
+        description:
+          "Keep operational communications visible and connected to the work.",
       },
       {
         key: "cases",
