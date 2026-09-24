@@ -5,11 +5,15 @@ import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
 import { signOutAction } from "@/lib/auth/actions";
 import { getApplicationVersionLabel } from "@/lib/app-version";
 import { mobileSecondaryNavigation } from "@/lib/application-navigation";
+import { getNewTrialRequestCount } from "@/lib/data/trial-request-repository";
 
 export default async function Page() {
   const access = await requireAuthenticatedInternalUser();
   const platformContext = access.isSuperAdmin && !access.activeOrganization;
   const secondaryNavigation = mobileSecondaryNavigation(access, platformContext);
+  const newTrialRequestCount = platformContext
+    ? await getNewTrialRequestCount()
+    : 0;
 
   return (
     <>
@@ -29,6 +33,14 @@ export default async function Page() {
             <Link href={item.href} key={item.href}>
               <ApplicationIcon name={item.icon} />
               <span>{item.label}</span>
+              {item.href === "/admin/trial-requests" && newTrialRequestCount > 0 ? (
+                <span
+                  className="nav-unread-count"
+                  aria-label={`${newTrialRequestCount} new Trial Requests`}
+                >
+                  {newTrialRequestCount > 99 ? "99+" : newTrialRequestCount}
+                </span>
+              ) : null}
               <ApplicationIcon name="forward" />
             </Link>
           ))}

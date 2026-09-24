@@ -47,11 +47,13 @@ export function AppShell({
   access,
   applicationVersionLabel,
   unreadNotificationCount,
+  newTrialRequestCount,
 }: {
   children: React.ReactNode;
   access: AccessContext | null;
   applicationVersionLabel: string;
   unreadNotificationCount: number;
+  newTrialRequestCount: number;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -85,6 +87,7 @@ export function AppShell({
           href: "/account",
           label: "More",
           icon: "account" as const,
+          unreadCount: platformContext ? newTrialRequestCount : undefined,
           activePrefixes: platformContext
             ? ["/account", "/admin/organizations", "/admin/users"]
             : [
@@ -152,6 +155,11 @@ export function AppShell({
                 {href === "/communications" && unreadNotificationCount > 0 ? (
                   <span className="nav-unread-count" aria-label={`${unreadNotificationCount} unread notifications`}>
                     {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </span>
+                ) : null}
+                {href === "/admin/trial-requests" && newTrialRequestCount > 0 ? (
+                  <span className="nav-unread-count" aria-label={`${newTrialRequestCount} new Trial Requests`}>
+                    {newTrialRequestCount > 99 ? "99+" : newTrialRequestCount}
                   </span>
                 ) : null}
               </Link>
