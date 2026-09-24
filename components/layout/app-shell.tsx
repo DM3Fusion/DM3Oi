@@ -2,8 +2,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { signOutAction } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import { selectActiveOrganizationAction } from "@/lib/auth/organization-actions";
 import { returnToBackOfficeAction } from "@/lib/data/platform-actions";
 import type { AccessContext } from "@/lib/auth/context";
@@ -57,7 +58,68 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [liveNewTrialRequestCount, setLiveNewTrialRequestCount] =
+    useState(newTrialRequestCount);
   const closeDrawer = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    if (!access?.isSuperAdmin) {
+      return;
+    }
+
+    const supabase = createClient();
+    let active = true;
+
+    const refreshTrialRequestCount = async () => {
+      const trialRequests = supabase.from.bind(supabase) as unknown as (
+        relation: "trial_requests",
+      ) => ReturnType<typeof supabase.from>;
+
+      const { count, error } = await trialRequests("trial_requests")
+        .select("id", { count: "exact", head: true })
+        .eq("status" as never, "NEW" as never);
+
+      if (active && !error) {
+        setLiveNewTrialRequestCount(count ?? 0);
+      }
+    };
+
+    const reconciliationInterval = window.setInterval(() => {
+      void refreshTrialRequestCount();
+    }, 30_000);
+
+    const trialRequestChannel = supabase
+      .channel("platform-trial-request-attention")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "trial_requests",
+        },
+        () => {
+          void refreshTrialRequestCount();
+        },
+      )
+      .subscribe();
+
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void refreshTrialRequestCount();
+      }
+    };
+
+    window.addEventListener("focus", refreshTrialRequestCount);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(reconciliationInterval);
+      window.removeEventListener("focus", refreshTrialRequestCount);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
+      void supabase.removeChannel(trialRequestChannel);
+    };
+  }, [access?.isSuperAdmin, newTrialRequestCount]);
   const phoneLayout = usePhoneLayout(closeDrawer);
   if (isPublic(pathname, access))
     return <main className="public-main">{children}</main>;
@@ -87,9 +149,14 @@ export function AppShell({
           href: "/account",
           label: "More",
           icon: "account" as const,
-          unreadCount: platformContext ? newTrialRequestCount : undefined,
+          unreadCount: platformContext ? liveNewTrialRequestCount : undefined,
           activePrefixes: platformContext
-            ? ["/account", "/admin/organizations", "/admin/users"]
+            ? [
+                "/account",
+                ...mobileSecondaryNavigation(access, true).map(
+                  (item) => item.href,
+                ),
+              ]
             : [
                 "/account",
                 ...mobileSecondaryNavigation(access, false).map((item) => item.href),
@@ -157,9 +224,9 @@ export function AppShell({
                     {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
                   </span>
                 ) : null}
-                {href === "/admin/trial-requests" && newTrialRequestCount > 0 ? (
-                  <span className="nav-unread-count" aria-label={`${newTrialRequestCount} new Trial Requests`}>
-                    {newTrialRequestCount > 99 ? "99+" : newTrialRequestCount}
+                {href === "/admin/trial-requests" && liveNewTrialRequestCount > 0 ? (
+                  <span className="nav-unread-count" aria-label={`${liveNewTrialRequestCount} new Trial Requests`}>
+                    {liveNewTrialRequestCount > 99 ? "99+" : liveNewTrialRequestCount}
                   </span>
                 ) : null}
               </Link>
