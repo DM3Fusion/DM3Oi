@@ -20,6 +20,8 @@ type TrialRequestForOrganization = {
     | "DECLINED"
     | "CONVERTED";
   business_name: string;
+  contact_name: string;
+  business_email: string;
   workflow_fit: WorkflowFit | null;
   qualification_reviewed_at: string | null;
   qualification_reviewed_by: string | null;
@@ -73,7 +75,7 @@ export default async function Page({
     const result = await supabase
       .from("trial_requests")
       .select(
-        "id,request_number,status,business_name,workflow_fit,qualification_reviewed_at,qualification_reviewed_by,converted_organization_id",
+        "id,request_number,status,business_name,contact_name,business_email,workflow_fit,qualification_reviewed_at,qualification_reviewed_by,converted_organization_id",
       )
       .eq("id", trialRequestId)
       .maybeSingle();
@@ -194,20 +196,52 @@ export default async function Page({
               </label>
 
               {trialRequest ? (
-                <label className="full">
-                  <span>Conversion Note</span>
-                  <textarea
-                    name="conversionNote"
-                    rows={4}
-                    required
-                    maxLength={1000}
-                    placeholder="Document the approval or reason for creating this organization."
-                  />
-                  <small>
-                    This note becomes part of the Trial Request
-                    status history.
-                  </small>
-                </label>
+                <>
+                  <div className="full">
+                    <h2>Initial Business Owner</h2>
+                    <small>
+                      The Trial Request contact will receive Business Owner access to this organization.
+                    </small>
+                  </div>
+
+                  <label>
+                    <span>Owner name</span>
+                    <input
+                      name="ownerDisplayName"
+                      required
+                      maxLength={100}
+                      defaultValue={trialRequest.contact_name}
+                    />
+                  </label>
+
+                  <label>
+                    <span>Owner email</span>
+                    <input
+                      name="ownerEmail"
+                      type="email"
+                      inputMode="email"
+                      autoComplete="email"
+                      required
+                      maxLength={254}
+                      defaultValue={trialRequest.business_email}
+                    />
+                  </label>
+
+                  <label className="full">
+                    <span>Conversion Note</span>
+                    <textarea
+                      name="conversionNote"
+                      rows={4}
+                      required
+                      maxLength={1000}
+                      placeholder="Document the approval or reason for creating this organization."
+                    />
+                    <small>
+                      This note becomes part of the Trial Request
+                      status history.
+                    </small>
+                  </label>
+                </>
               ) : null}
             </div>
 
@@ -215,9 +249,7 @@ export default async function Page({
               <Link href={cancelHref}>Cancel</Link>
 
               <button className="primary-button">
-                {trialRequest
-                  ? "Create Organization"
-                  : "Create Organization"}
+                Create Organization
               </button>
             </div>
           </form>
