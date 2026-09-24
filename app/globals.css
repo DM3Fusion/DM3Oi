@@ -4750,3 +4750,10 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     width: 100%;
   }
 }
+
+/* Public landing — hero action label refinement */
+.public-home-brand-banner-side .public-home-primary,
+.public-home-brand-banner-side .public-home-trial-button {
+  font-size: 1.15rem;
+  font-weight: 750;
+}
