@@ -6054,3 +6054,17 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .trial-request-decision-panel .trial-request-review-actions {
   margin-top: 2px;
 }
+
+/* Trial Requests — organization setup primary action */
+.trial-request-conversion-panel a.primary-button {
+  color: #fff;
+  text-decoration: none;
+}
+
+.trial-request-conversion-panel a.primary-button:visited {
+  color: #fff;
+}
+
+.trial-request-conversion-panel a.primary-button:hover {
+  color: #fff;
+}
