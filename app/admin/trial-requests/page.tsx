@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NavigableRow } from "@/components/navigable-row";
 import { TrialRequestFilters } from "@/components/trial-request-filters";
 import { Badge, PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
@@ -638,7 +639,11 @@ export default async function TrialRequestsPage({
               <tbody>
                 {filteredRows.map(
                   (request) => (
-                    <tr key={request.id}>
+                    <NavigableRow
+                      key={request.id}
+                      href={`/admin/trial-requests/${request.id}`}
+                      label={`Open trial request #${request.request_number} for ${request.business_name}`}
+                    >
                       <td>
                         <Link
                           href={`/admin/trial-requests/${request.id}`}
@@ -696,7 +701,7 @@ export default async function TrialRequestsPage({
                           }
                         />
                       </td>
-                    </tr>
+                    </NavigableRow>
                   ),
                 )}
               </tbody>
