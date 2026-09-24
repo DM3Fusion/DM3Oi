@@ -4,7 +4,7 @@ import type { OrganizationDetailsValues } from "@/lib/platform-organization-deta
 type AppRole=Database["public"]["Enums"]["application_role"];type OrgStatus=Database["public"]["Enums"]["organization_status"];const internalRoles:AppRole[]=["BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER","STAFF_USER"];
 const value=(form:FormData,key:string)=>String(form.get(key)??"").trim();const slugify=(input:string)=>input.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");const destination=(path:string,key:string,message:string)=>`${path}?${key}=${encodeURIComponent(message)}`;
 async function findAuthUserByEmail(admin:ReturnType<typeof createAdminClient>,email:string){for(let page=1;page<=20;page+=1){const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=data.users.find(user=>user.email?.toLowerCase()===email.toLowerCase());if(found)return found;if(data.users.length<100)break;}return null}
-const friendly=(message:string)=>{if(message.includes("slug already"))return "That organization slug is already in use.";if(message.includes("maximum active BUSINESS_OWNER"))return "This organization already has the maximum of 2 active Business Owners.";if(message.includes("maximum active BUSINESS_ADMIN"))return "This organization already has the maximum of 2 active Business Administrators.";if(message.includes("profile not found"))return "No registered DM3Oi user was found with that email. Ask the user to register first, then provision access here.";if(message.includes("invalid organization role"))return "Select a valid organization role.";if(message.includes("not authorized"))return "You are not authorized to perform this platform action.";return "The platform change could not be completed."};
+const friendly=(message:string)=>{if(message.includes("user identity already belongs to another organization"))return "This email address is already associated with another organization and cannot be added to this organization.";if(message.includes("slug already"))return "That organization slug is already in use.";if(message.includes("maximum active BUSINESS_OWNER"))return "This organization already has the maximum of 2 active Business Owners.";if(message.includes("maximum active BUSINESS_ADMIN"))return "This organization already has the maximum of 2 active Business Administrators.";if(message.includes("profile not found"))return "No registered DM3Oi user was found with that email. Ask the user to register first, then provision access here.";if(message.includes("invalid organization role"))return "Select a valid organization role.";if(message.includes("not authorized"))return "You are not authorized to perform this platform action.";return "The platform change could not be completed."};
 async function rpcError<T>(operation:PromiseLike<{data:T;error:{message:string;code:string}|null}>,path:string){const result=await operation;if(result.error){console.error("Platform mutation failed",{code:result.error.code,message:result.error.message});redirect(destination(path,"error",friendly(result.error.message)))}return result.data}
 type TrialOrganizationConversionDatabase=Database&{public:Database["public"]&{Functions:Database["public"]["Functions"]&{convert_trial_request_to_organization:{Args:{target_trial_request_id:string;target_organization_name:string;target_organization_slug:string;target_conversion_note:string;target_owner_user_id:string;target_owner_email:string;target_owner_identity_verified:boolean};Returns:{id:string;name:string;slug:string;status:string}}}}};
 
@@ -40,10 +40,20 @@ export async function createOrganizationAction(form:FormData){
   let createdOwnerIdentity=false;
 
   if(ownerAuthUser){
-   const [{data:platformRole,error:platformRoleError},{data:profile,error:profileLookupError}]=await Promise.all([
+   const [{data:platformRole,error:platformRoleError},{data:profile,error:profileLookupError},{data:existingMembership,error:membershipLookupError}]=await Promise.all([
     admin.from("platform_user_roles").select("id").eq("user_id",ownerAuthUser.id).eq("role","SUPER_ADMIN").eq("is_active",true).maybeSingle(),
     admin.from("profiles").select("id,is_active").eq("id",ownerAuthUser.id).maybeSingle(),
+    admin.from("organization_members").select("id,organization_id").eq("user_id",ownerAuthUser.id).maybeSingle(),
    ]);
+
+   if(membershipLookupError){
+    console.error("Initial Business Owner membership lookup failed",{message:membershipLookupError.message,trialRequestId,ownerEmail});
+    redirect(destination(newPath,"error","The initial Business Owner identity could not be checked."));
+   }
+
+   if(existingMembership){
+    redirect(destination(newPath,"error","This email address is already associated with another organization and cannot be used as the initial Business Owner."));
+   }
 
    if(platformRoleError||profileLookupError||platformRole||profile?.is_active===false){
     redirect(destination(newPath,"error","The selected Business Owner identity cannot be provisioned."));

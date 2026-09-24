@@ -40,9 +40,11 @@ export default async function RequestTrialPage({
   const errorMessage =
     query.error === "invalid"
       ? "Please review the required information and try again."
-      : query.error === "submit"
-        ? "We could not submit your trial request. Please try again."
-        : null;
+      : query.error === "email-exists"
+        ? "A trial request or account already exists for this email address. Please use a different email address."
+        : query.error === "submit"
+          ? "We could not submit your trial request. Please try again."
+          : null;
 
   return (
     <main className="trial-request-page">

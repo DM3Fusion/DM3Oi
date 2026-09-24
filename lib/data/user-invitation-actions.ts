@@ -393,12 +393,33 @@ export async function inviteOrganizationUserAction(form: FormData) {
 
   if (!userId) go(path, "error", "The invitation could not be completed.");
   const targetUserId = userId!;
-  const { data: priorMembership } = await session
+  const { data: memberships, error: membershipLookupError } = await admin
     .from("organization_members")
-    .select("id,role,is_active,status,verified_at")
-    .eq("organization_id", activeOrganization.id)
-    .eq("user_id", targetUserId)
-    .maybeSingle();
+    .select("id,organization_id,role,is_active,status,verified_at")
+    .eq("user_id", targetUserId);
+
+  if (membershipLookupError) {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(path, "error", "The user's existing organization access could not be checked.");
+  }
+
+  const crossOrganizationMembership = memberships?.find(
+    (membership) => membership.organization_id !== activeOrganization.id,
+  );
+
+  if (crossOrganizationMembership) {
+    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+    go(
+      path,
+      "error",
+      "This email address is already associated with another organization and cannot be added to this organization.",
+    );
+  }
+
+  const priorMembership =
+    memberships?.find(
+      (membership) => membership.organization_id === activeOrganization.id,
+    ) ?? null;
   if (priorMembership?.status === "ACTIVE") {
     if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(path, "error", "A user with this email already belongs to this organization.");
