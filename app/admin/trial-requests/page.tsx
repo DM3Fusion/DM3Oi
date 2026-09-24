@@ -7,6 +7,7 @@ import {
   trialRequestUseCaseLabels,
   type TrialRequestUseCase,
 } from "@/lib/trial-requests";
+import type { Database } from "@/types/database.generated";
 
 const statuses = [
   "NEW",
@@ -37,6 +38,19 @@ type TrialRequestRow = {
   estimated_users: number;
   status: TrialRequestStatus;
   created_at: string;
+};
+
+type TrialRequestDatabase = Database & {
+  public: Database["public"] & {
+    Tables: Database["public"]["Tables"] & {
+      trial_requests: {
+        Row: TrialRequestRow;
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+    };
+  };
 };
 
 function validDate(value?: string) {
@@ -276,7 +290,9 @@ export default async function TrialRequestsPage({
       bounds.end,
     );
 
-  const supabase = await createClient();
+  const supabase = (await createClient()) as ReturnType<
+    typeof import("@supabase/ssr").createServerClient<TrialRequestDatabase>
+  >;
 
   const {
     data: periodRequests,
