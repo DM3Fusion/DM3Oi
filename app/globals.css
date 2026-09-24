@@ -5008,3 +5008,13 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   font-size: 1.15rem;
   font-weight: 750;
 }
+
+/* Public landing — keep closing Request Trial at normal button size */
+.public-home-bottom-trial .public-home-trial-button {
+  width: auto;
+  min-width: 10rem;
+  max-width: none;
+  flex: 0 0 auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
