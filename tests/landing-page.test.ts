@@ -53,10 +53,11 @@ test("public landing stays compact without horizontal product navigation", () =>
 test("landing renders managed showcase content and product hero", () => {
   const landing = source("components/public-landing-page.tsx");
 
-  assert.match(landing, /dm3oi-product-dashboard\.png/);
+  assert.match(landing, /DM3Oi_landing_page_top_left\.webp/);
+  assert.match(landing, /DM3Oi_laptop_iPhone\.png/);
   assert.match(landing, /Manage the work between your systems\./);
-  assert.match(landing, /content\.hero\.headlinePrimary/);
-  assert.match(landing, /content\.hero\.headlineSecondary/);
+  assert.match(landing, /People\. Work\. Progress\. Intelligence\./);
+  assert.match(landing, /Same people\. Greater progress\./i);
   assert.match(landing, /content\.features\.items\.map/);
   assert.doesNotMatch(landing, /PublicWorkflowImage/);
 });

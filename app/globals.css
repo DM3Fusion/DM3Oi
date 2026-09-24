@@ -4398,3 +4398,43 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     white-space: normal;
   }
 }
+
+/* ============================================================
+   Public landing — brand banner composition refinement
+   ============================================================ */
+
+.public-home-hero.public-home-hero-showcase {
+  padding-top: clamp(1.5rem, 2.5vw, 2.25rem);
+}
+
+.public-home-brand-banner {
+  padding-bottom: 0.65rem;
+}
+
+.public-home-product-showcase {
+  padding-top: 0.35rem;
+}
+
+.public-home-showcase-actions {
+  margin-bottom: 0.55rem;
+}
+
+.public-home-product-showcase .public-home-product-hero {
+  width: min(90%, 60rem);
+}
+
+@media (max-width: 1000px) {
+  .public-home-product-showcase .public-home-product-hero {
+    width: min(96%, 56rem);
+  }
+}
+
+@media (max-width: 760px) {
+  .public-home-hero.public-home-hero-showcase {
+    padding-top: 1rem;
+  }
+
+  .public-home-product-showcase .public-home-product-hero {
+    width: 100%;
+  }
+}
