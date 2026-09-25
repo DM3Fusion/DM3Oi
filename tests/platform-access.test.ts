@@ -46,3 +46,20 @@ test("summary drilldown rows preserve full-width button layout",()=>{
   assert.match(css, /summary-drilldown-row:hover/);
 });
 test("portal-only sessions pass middleware access gating",()=>{const source=readFileSync("proxy.ts","utf8");assert.match(source,/from\("customer_portal_users"\)/);assert.match(source,/!portal\.data\?\.length/);});
+
+test("SUPER_ADMIN organization context requires an explicit valid organization selection", () => {
+  const context = readFileSync("lib/auth/context.ts", "utf8");
+
+  assert.match(
+    context,
+    /const selectedOrganization =[\s\S]*?organizations\.find\(\(org\) => org\.id === selected\) \?\? null;/,
+  );
+  assert.match(
+    context,
+    /const activeOrganization = isSuperAdmin[\s\S]*?\? selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE[\s\S]*?\? selectedOrganization[\s\S]*?: null/,
+  );
+  assert.match(
+    context,
+    /: selectedOrganization \?\? organizations\[0\] \?\? null;/,
+  );
+});

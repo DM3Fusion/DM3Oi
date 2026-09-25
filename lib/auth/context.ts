@@ -114,12 +114,13 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
           "STAFF_USER"),
     }));
     const selected = (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value;
-    const activeOrganization =
-      isSuperAdmin && selected === PLATFORM_CONTEXT_COOKIE_VALUE
-        ? null
-        : (organizations.find((org) => org.id === selected) ??
-          organizations[0] ??
-          null);
+    const selectedOrganization =
+      organizations.find((org) => org.id === selected) ?? null;
+    const activeOrganization = isSuperAdmin
+      ? selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE
+        ? selectedOrganization
+        : null
+      : selectedOrganization ?? organizations[0] ?? null;
     let license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null = null;
     let effectivePermissions = new Set<Permission>();
     if (activeOrganization) {
