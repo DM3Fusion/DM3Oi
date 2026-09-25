@@ -793,6 +793,705 @@ export async function retryOrganizationResetIdentityCleanupAction(form:FormData)
  ));
 }
 
+
+export type PermanentOrganizationDeletionPreview = {
+ organizationId:string;
+ organizationName:string;
+ organizationSlug:string;
+ identityCleanupCandidates:number;
+ organizationUsers:number;
+ customerPortalUsers:number;
+ customers:number;
+ cases:number;
+ caseTasks:number;
+ caseActivity:number;
+ caseAssignments:number;
+ caseQuestions:number;
+ caseQuestionResponses:number;
+ serviceRequests:number;
+ serviceRequestMessages:number;
+ serviceRequestActivity:number;
+ serviceRequestCommunications:number;
+ notifications:number;
+ membershipEvents:number;
+ questionDefinitions:number;
+ questionOptions:number;
+ ruleDefinitions:number;
+ ruleActions:number;
+ caseTypes:number;
+ lifecycleStatuses:number;
+ rolePermissions:number;
+ organizationSettings:number;
+ licenses:number;
+ licenseEvents:number;
+ caseNumberCounters:number;
+ customerAnnualNumberCounters:number;
+ customerNumberCounters:number;
+ serviceRequestAnnualNumberCounters:number;
+ analyticsLiveSessions:number;
+ analyticsPageViews:number;
+ resetAuditRows:number;
+ trialRequestLinks:number;
+};
+
+type PermanentOrganizationDeletionResult = Record<string,unknown> & {
+ deletionAuditId:string;
+ identityCleanupCandidateUserIds:string[];
+ organizationAvatarPath:string|null;
+};
+
+type PermanentOrganizationDeletionDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   preview_permanent_organization_deletion:{
+    Args:{target_organization_id:string};
+    Returns:PermanentOrganizationDeletionPreview;
+   };
+   permanently_delete_organization:{
+    Args:{target_organization_id:string;confirmation:string};
+    Returns:PermanentOrganizationDeletionResult;
+   };
+  };
+ };
+};
+
+export type PermanentOrganizationDeletionPreviewState =
+ | {ok:false;error:string|null;preview:null}
+ | {ok:true;error:null;preview:PermanentOrganizationDeletionPreview};
+
+type PermanentOrganizationIdentityCleanup = {
+ status:string;
+ candidateUserIds:string[];
+ deletedUserIds:string[];
+ retainedUserIds:string[];
+ failedUserIds:string[];
+};
+
+type PermanentOrganizationStorageCleanup = {
+ status:string;
+ organizationAvatarPath?:string|null;
+ organizationAvatarSourcePrefix?:string|null;
+ deletedPaths:string[];
+ failedPaths:string[];
+};
+
+type PermanentOrganizationDeletionAuditRow = {
+ id:string;
+ deleted_organization_id:string;
+ organization_name:string;
+ organization_slug:string;
+ identity_cleanup:PermanentOrganizationIdentityCleanup|null;
+ storage_cleanup:PermanentOrganizationStorageCleanup|null;
+};
+
+async function finalizePermanentOrganizationDeletionCleanup(
+ admin:ReturnType<typeof createAdminClient>,
+ deletionAuditId:string,
+ deletedUserIds:string[],
+ retainedUserIds:string[],
+ failedUserIds:string[],
+ storageStatus:string,
+ storageDeletedPaths:string[],
+ storageFailedPaths:string[],
+){
+ const cleanupClient=admin as unknown as {
+  rpc(
+   fn:"complete_permanent_organization_deletion_cleanup",
+   args:{
+    target_deletion_audit_id:string;
+    deleted_user_ids:string[];
+    retained_user_ids:string[];
+    failed_user_ids:string[];
+    storage_status:string;
+    storage_deleted_paths:string[];
+    storage_failed_paths:string[];
+   },
+  ):PromiseLike<{
+   data:unknown;
+   error:{message:string;code?:string}|null;
+  }>;
+ };
+
+ return cleanupClient.rpc(
+  "complete_permanent_organization_deletion_cleanup",
+  {
+   target_deletion_audit_id:deletionAuditId,
+   deleted_user_ids:deletedUserIds,
+   retained_user_ids:retainedUserIds,
+   failed_user_ids:failedUserIds,
+   storage_status:storageStatus,
+   storage_deleted_paths:storageDeletedPaths,
+   storage_failed_paths:storageFailedPaths,
+  },
+ );
+}
+
+async function reconcilePermanentOrganizationDeletionIdentities({
+ admin,
+ deletionAuditId,
+ organizationId,
+ candidateUserIds,
+ actingUserId,
+ previouslyDeletedUserIds=[],
+ previouslyRetainedUserIds=[],
+}:{
+ admin:ReturnType<typeof createAdminClient>;
+ deletionAuditId:string;
+ organizationId:string;
+ candidateUserIds:string[];
+ actingUserId:string;
+ previouslyDeletedUserIds?:string[];
+ previouslyRetainedUserIds?:string[];
+}){
+ const {
+  getGlobalUserDeletionEligibility,
+ }=await import("@/lib/data/platform-user-global-deletion");
+
+ const deletedUserIds:string[]=[];
+ const retainedUserIds:string[]=[];
+ const failedUserIds:string[]=[];
+ const previouslyDeleted=new Set(previouslyDeletedUserIds);
+ const previouslyRetained=new Set(previouslyRetainedUserIds);
+
+ for(const userId of candidateUserIds){
+  if(userId===actingUserId){
+   retainedUserIds.push(userId);
+   continue;
+  }
+
+  if(previouslyDeleted.has(userId)){
+   deletedUserIds.push(userId);
+   continue;
+  }
+
+  if(previouslyRetained.has(userId)){
+   retainedUserIds.push(userId);
+   continue;
+  }
+
+  const authLookup=await admin.auth.admin.getUserById(userId);
+
+  if(authLookup.error||!authLookup.data.user){
+   const profile=await admin
+    .from("profiles")
+    .select("id")
+    .eq("id",userId)
+    .maybeSingle();
+
+   if(profile.error){
+    console.error("Permanent organization deletion identity existence reconciliation failed",{
+     deletionAuditId,
+     organizationId,
+     userId,
+     authMessage:authLookup.error?.message??null,
+     profileMessage:profile.error.message,
+    });
+    failedUserIds.push(userId);
+    continue;
+   }
+
+   if(!profile.data){
+    deletedUserIds.push(userId);
+    continue;
+   }
+
+   console.error("Permanent organization deletion Auth identity lookup failed",{
+    deletionAuditId,
+    organizationId,
+    userId,
+    message:authLookup.error?.message??"Auth identity missing while profile remains.",
+   });
+   failedUserIds.push(userId);
+   continue;
+  }
+
+  let eligibility;
+
+  try{
+   eligibility=await getGlobalUserDeletionEligibility(userId);
+  }catch(error){
+   console.error("Permanent organization deletion identity eligibility check failed",{
+    deletionAuditId,
+    organizationId,
+    userId,
+    message:error instanceof Error?error.message:"Unknown error",
+   });
+   failedUserIds.push(userId);
+   continue;
+  }
+
+  if(!eligibility.eligible){
+   retainedUserIds.push(userId);
+   continue;
+  }
+
+  const deletion=await admin.auth.admin.deleteUser(userId);
+
+  if(deletion.error){
+   console.error("Permanent organization deletion Auth identity deletion failed",{
+    deletionAuditId,
+    organizationId,
+    userId,
+    message:deletion.error.message,
+   });
+   failedUserIds.push(userId);
+   continue;
+  }
+
+  deletedUserIds.push(userId);
+ }
+
+ return {
+  deletedUserIds:[...new Set(deletedUserIds)],
+  retainedUserIds:[...new Set(retainedUserIds)],
+  failedUserIds:[...new Set(failedUserIds)],
+ };
+}
+
+async function removeOrganizationStoragePrefix({
+ admin,
+ organizationId,
+}:{
+ admin:ReturnType<typeof createAdminClient>;
+ organizationId:string;
+}){
+ const {
+  ORGANIZATION_AVATAR_BUCKET,
+  ORGANIZATION_AVATAR_SOURCE_BUCKET,
+ }=await import("@/lib/profile/avatar");
+
+ const deletedPaths:string[]=[];
+ const failedPaths:string[]=[];
+ const prefix=`${organizationId}/`;
+
+ for(const bucket of [
+  ORGANIZATION_AVATAR_BUCKET,
+  ORGANIZATION_AVATAR_SOURCE_BUCKET,
+ ]){
+  const limit=100;
+
+  while(true){
+   const listed=await admin.storage
+    .from(bucket)
+    .list(organizationId,{limit,offset:0});
+
+   if(listed.error){
+    console.error("Permanent organization deletion storage listing failed",{
+     organizationId,
+     bucket,
+     message:listed.error.message,
+    });
+    failedPaths.push(`${bucket}:${prefix}*`);
+    break;
+   }
+
+   const names=(listed.data??[])
+    .filter((item)=>item.name&&item.name!==".emptyFolderPlaceholder")
+    .map((item)=>`${prefix}${item.name}`);
+
+   if(!names.length)break;
+
+   const removed=await admin.storage.from(bucket).remove(names);
+
+   if(removed.error){
+    console.error("Permanent organization deletion storage removal failed",{
+     organizationId,
+     bucket,
+     message:removed.error.message,
+    });
+    failedPaths.push(...names.map((path)=>`${bucket}:${path}`));
+    break;
+    }
+
+    deletedPaths.push(...names.map((path)=>`${bucket}:${path}`));
+
+   if(names.length<limit)break;
+  }
+ }
+
+ return {
+  status:failedPaths.length?"PARTIAL":"COMPLETE",
+  deletedPaths:[...new Set(deletedPaths)],
+  failedPaths:[...new Set(failedPaths)],
+ };
+}
+
+export type PendingPermanentOrganizationDeletionCleanup = {
+ id:string;
+ deletedOrganizationId:string;
+ organizationName:string;
+ organizationSlug:string;
+ identityStatus:string;
+ storageStatus:string;
+ createdAt:string;
+ cleanupUpdatedAt:string;
+};
+
+export async function getPendingPermanentOrganizationDeletionCleanups():
+ Promise<PendingPermanentOrganizationDeletionCleanup[]>{
+ await requireSuperAdmin();
+
+ const admin=createAdminClient();
+ const auditClient=admin as unknown as {
+  from(table:"platform_organization_deletion_audit"):{
+   select(columns:string):{
+    order(column:string,options:{ascending:boolean}):PromiseLike<{
+     data:Array<{
+      id:string;
+      deleted_organization_id:string;
+      organization_name:string;
+      organization_slug:string;
+      identity_cleanup:PermanentOrganizationIdentityCleanup|null;
+      storage_cleanup:PermanentOrganizationStorageCleanup|null;
+      created_at:string;
+      cleanup_updated_at:string;
+     }>|null;
+     error:{message:string;code?:string}|null;
+    }>;
+   };
+  };
+ };
+
+ const result=await auditClient
+  .from("platform_organization_deletion_audit")
+  .select(
+   "id,deleted_organization_id,organization_name,organization_slug,identity_cleanup,storage_cleanup,created_at,cleanup_updated_at",
+  )
+  .order("created_at",{ascending:false});
+
+ if(result.error){
+  console.error(
+   "Permanent organization deletion cleanup audit listing failed",
+   {
+    code:result.error.code??null,
+    message:result.error.message,
+   },
+  );
+  throw new Error(
+   "Permanent organization deletion cleanup status is temporarily unavailable.",
+  );
+ }
+
+ return (result.data??[])
+  .filter((row)=>{
+   const identityStatus=row.identity_cleanup?.status??"PENDING";
+   const storageStatus=row.storage_cleanup?.status??"PENDING";
+
+   return (
+    ["PENDING","PARTIAL"].includes(identityStatus) ||
+    ["PENDING","PARTIAL"].includes(storageStatus)
+   );
+  })
+  .map((row)=>({
+   id:row.id,
+   deletedOrganizationId:row.deleted_organization_id,
+   organizationName:row.organization_name,
+   organizationSlug:row.organization_slug,
+   identityStatus:row.identity_cleanup?.status??"PENDING",
+   storageStatus:row.storage_cleanup?.status??"PENDING",
+   createdAt:row.created_at,
+   cleanupUpdatedAt:row.cleanup_updated_at,
+  }));
+}
+
+async function getPermanentOrganizationDeletionAudit(
+ admin:ReturnType<typeof createAdminClient>,
+ deletionAuditId:string,
+){
+ const auditClient=admin as unknown as {
+  from(table:"platform_organization_deletion_audit"):{
+   select(columns:string):{
+    eq(column:string,value:string):{
+     maybeSingle():PromiseLike<{
+      data:PermanentOrganizationDeletionAuditRow|null;
+      error:{message:string;code?:string}|null;
+     }>;
+    };
+   };
+  };
+ };
+
+ return auditClient
+  .from("platform_organization_deletion_audit")
+  .select("id,deleted_organization_id,organization_name,organization_slug,identity_cleanup,storage_cleanup")
+  .eq("id",deletionAuditId)
+  .maybeSingle();
+}
+
+export async function previewPermanentOrganizationDeletionAction(
+ _previousState:PermanentOrganizationDeletionPreviewState,
+ form:FormData,
+):Promise<PermanentOrganizationDeletionPreviewState>{
+ await requireSuperAdmin();
+
+ const organizationId=value(form,"organizationId");
+
+ if(!organizationId){
+  return {
+   ok:false,
+   error:"The organization could not be identified.",
+   preview:null,
+  };
+ }
+
+ const supabase=await createClient();
+ const deletionClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<PermanentOrganizationDeletionDatabase>
+ >;
+
+ const result=await deletionClient.rpc(
+  "preview_permanent_organization_deletion",
+  {target_organization_id:organizationId},
+ );
+
+ if(result.error||!result.data){
+  console.error("Permanent organization deletion preview failed",{
+   code:result.error?.code??null,
+   message:result.error?.message??null,
+   organizationId,
+  });
+
+  return {
+   ok:false,
+   error:"The permanent deletion preview could not be prepared.",
+   preview:null,
+  };
+ }
+
+ return {ok:true,error:null,preview:result.data};
+}
+
+export async function permanentlyDeleteOrganizationAction(form:FormData){
+ const access=await requireSuperAdmin();
+ const organizationId=value(form,"organizationId");
+ const confirmation=value(form,"confirmation");
+ const path=`/admin/organizations/${organizationId}`;
+
+ if(!organizationId){
+  redirect(destination("/admin/organizations","error","The organization could not be identified."));
+ }
+
+ const supabase=await createClient();
+ const organization=await supabase
+  .from("organizations")
+  .select("id,name")
+  .eq("id",organizationId)
+  .maybeSingle();
+
+ if(organization.error||!organization.data){
+  redirect(destination("/admin/organizations","error","The organization could not be verified."));
+ }
+
+ const expectedConfirmation=`DELETE ${organization.data.name}`;
+
+ if(confirmation!==expectedConfirmation){
+  redirect(destination(path,"error",`Type ${expectedConfirmation} exactly to confirm permanent deletion.`));
+ }
+
+ const deletionClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<PermanentOrganizationDeletionDatabase>
+ >;
+
+ const result=await deletionClient.rpc(
+  "permanently_delete_organization",
+  {
+   target_organization_id:organizationId,
+   confirmation,
+  },
+ );
+
+ if(result.error||!result.data?.deletionAuditId){
+  console.error("Permanent organization deletion failed",{
+   code:result.error?.code??null,
+   message:result.error?.message??null,
+   organizationId,
+  });
+  redirect(destination(path,"error","The organization could not be permanently deleted."));
+ }
+
+ const deletionAuditId=result.data.deletionAuditId;
+ const candidateUserIds=uniqueStrings(
+  result.data.identityCleanupCandidateUserIds,
+ );
+ const admin=createAdminClient();
+
+ const identities=await reconcilePermanentOrganizationDeletionIdentities({
+  admin,
+  deletionAuditId,
+  organizationId,
+  candidateUserIds,
+  actingUserId:access.user.id,
+ });
+
+ const storage=await removeOrganizationStoragePrefix({
+  admin,
+  organizationId,
+ });
+
+ const finalized=await finalizePermanentOrganizationDeletionCleanup(
+  admin,
+  deletionAuditId,
+  identities.deletedUserIds,
+  identities.retainedUserIds,
+  identities.failedUserIds,
+  storage.status,
+  storage.deletedPaths,
+  storage.failedPaths,
+ );
+
+ revalidatePath("/");
+ revalidatePath("/admin/organizations");
+ revalidatePath("/admin/users");
+ revalidatePath("/admin/trial-requests");
+
+ if(finalized.error){
+  console.error("Permanent organization deletion cleanup finalization failed",{
+   deletionAuditId,
+   organizationId,
+   message:finalized.error.message,
+  });
+
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   `${organization.data.name} was permanently deleted, but cleanup reconciliation still requires attention.`,
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ const cleanupRequired=
+  identities.failedUserIds.length>0||
+  storage.failedPaths.length>0;
+
+ if(cleanupRequired){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   `${organization.data.name} was permanently deleted, but post-deletion cleanup requires retry.`,
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ redirect(destination(
+  "/admin/organizations",
+  "message",
+  `${organization.data.name} was permanently deleted. ${identities.deletedUserIds.length} exclusive ${identities.deletedUserIds.length===1?"identity was":"identities were"} permanently removed; ${identities.retainedUserIds.length} shared or retained ${identities.retainedUserIds.length===1?"identity was":"identities were"} preserved.`,
+ ));
+}
+
+export async function retryPermanentOrganizationDeletionCleanupAction(form:FormData){
+ const access=await requireSuperAdmin();
+ const deletionAuditId=value(form,"deletionAuditId");
+
+ if(!deletionAuditId){
+  redirect(destination("/admin/organizations","error","The deletion cleanup audit could not be identified."));
+ }
+
+ const admin=createAdminClient();
+ const audit=await getPermanentOrganizationDeletionAudit(admin,deletionAuditId);
+
+ if(audit.error||!audit.data){
+  console.error("Permanent organization deletion retry audit lookup failed",{
+   deletionAuditId,
+   message:audit.error?.message??null,
+  });
+  redirect(destination("/admin/organizations","error","The deletion cleanup audit could not be verified."));
+ }
+
+ const identityCleanup=audit.data.identity_cleanup;
+ const storageCleanup=audit.data.storage_cleanup;
+ const candidateUserIds=uniqueStrings(identityCleanup?.candidateUserIds);
+
+ let identities={
+  deletedUserIds:uniqueStrings(identityCleanup?.deletedUserIds),
+  retainedUserIds:uniqueStrings(identityCleanup?.retainedUserIds),
+  failedUserIds:uniqueStrings(identityCleanup?.failedUserIds),
+ };
+
+ if(identityCleanup&&["PENDING","PARTIAL"].includes(identityCleanup.status)){
+  identities=await reconcilePermanentOrganizationDeletionIdentities({
+   admin,
+   deletionAuditId,
+   organizationId:audit.data.deleted_organization_id,
+   candidateUserIds,
+   actingUserId:access.user.id,
+   previouslyDeletedUserIds:uniqueStrings(identityCleanup.deletedUserIds),
+   previouslyRetainedUserIds:uniqueStrings(identityCleanup.retainedUserIds),
+  });
+ }
+
+ let storage={
+  status:storageCleanup?.status??"PENDING",
+  deletedPaths:uniqueStrings(storageCleanup?.deletedPaths),
+  failedPaths:uniqueStrings(storageCleanup?.failedPaths),
+ };
+
+ if(["PENDING","PARTIAL"].includes(storage.status)){
+  const retried=await removeOrganizationStoragePrefix({
+   admin,
+   organizationId:audit.data.deleted_organization_id,
+  });
+
+  storage={
+   status:retried.status,
+   deletedPaths:[
+    ...new Set([
+     ...storage.deletedPaths,
+     ...retried.deletedPaths,
+    ]),
+   ],
+   failedPaths:retried.failedPaths,
+  };
+ }
+
+ const finalized=await finalizePermanentOrganizationDeletionCleanup(
+  admin,
+  deletionAuditId,
+  identities.deletedUserIds,
+  identities.retainedUserIds,
+  identities.failedUserIds,
+  storage.status,
+  storage.deletedPaths,
+  storage.failedPaths,
+ );
+
+ revalidatePath("/");
+ revalidatePath("/admin/organizations");
+ revalidatePath("/admin/users");
+
+ if(finalized.error){
+  console.error("Permanent organization deletion retry finalization failed",{
+   deletionAuditId,
+   message:finalized.error.message,
+  });
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "Deletion cleanup was reconciled, but its audit could not be finalized. Retry the cleanup.",
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ if(identities.failedUserIds.length||storage.failedPaths.length){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   `Cleanup for ${audit.data.organization_name} still has unresolved items.`,
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ redirect(destination(
+  "/admin/organizations",
+  "message",
+  `Post-deletion cleanup for ${audit.data.organization_name} is complete.`,
+ ));
+}
+
 export async function enterOrganizationWorkspaceAction(form:FormData){const access=await requireSuperAdmin();const id=value(form,"organizationId");if(!access.organizations.some(o=>o.id===id))redirect(destination(`/admin/organizations/${id}`,"error","Only active organizations can be entered."));(await cookies()).set(ACTIVE_ORGANIZATION_COOKIE,id,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/"});redirect("/")}
 export async function returnToBackOfficeAction(){await requireSuperAdmin();(await cookies()).set(ACTIVE_ORGANIZATION_COOKIE,PLATFORM_CONTEXT_COOKIE_VALUE,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/"});redirect("/")}
 

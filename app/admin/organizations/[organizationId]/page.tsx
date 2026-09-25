@@ -18,6 +18,7 @@ import { PlatformOrganizationDetailsForm } from "@/components/platform-organizat
 import { ApplicationIcon } from "@/components/application-icon";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { SuperAdminOrganizationReset } from "@/components/super-admin-organization-reset";
+import { SuperAdminOrganizationDelete } from "@/components/super-admin-organization-delete";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -319,6 +320,21 @@ export default async function Page({
           owners={resetOwners}
           retryResetAuditId={query.resetAuditId}
         />
+
+        <div className="admin-permanent-delete-divider">
+          <div>
+            <strong>Permanent organization deletion</strong>
+            <p>
+              Unlike Reset Company &amp; Users, this removes the organization
+              itself and cannot be reversed.
+            </p>
+          </div>
+
+          <SuperAdminOrganizationDelete
+            organizationId={organization.id}
+            organizationName={organization.name}
+          />
+        </div>
       </section>
 
       <Link className="auth-link" href="/admin/organizations">

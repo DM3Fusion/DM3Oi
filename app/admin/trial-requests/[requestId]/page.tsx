@@ -48,6 +48,9 @@ type TrialRequestDetail = {
   declined_at: string | null;
   converted_at: string | null;
   converted_organization_id: string | null;
+  converted_organization_deleted_id: string | null;
+  converted_organization_deleted_name: string | null;
+  converted_organization_deleted_slug: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -115,6 +118,9 @@ const requestColumns = [
   "declined_at",
   "converted_at",
   "converted_organization_id",
+  "converted_organization_deleted_id",
+  "converted_organization_deleted_name",
+  "converted_organization_deleted_slug",
   "created_at",
   "updated_at",
 ].join(",");
@@ -669,24 +675,46 @@ export default async function TrialRequestDetailPage({
         </section>
       ) : null}
 
-      {request.status === "CONVERTED" &&
-      request.converted_organization_id ? (
+      {request.status === "CONVERTED" ? (
         <section className="panel detail-section trial-request-conversion-panel">
           <div className="section-head">
             <div>
               <h2>Organization Conversion</h2>
-              <p>
-                This Trial Request has been converted and permanently
-                linked to its organization.
-              </p>
+
+              {request.converted_organization_id ? (
+                <p>
+                  This Trial Request has been converted and permanently
+                  linked to its organization.
+                </p>
+              ) : request.converted_organization_deleted_id ? (
+                <p>
+                  This Trial Request was converted to{" "}
+                  <strong>
+                    {request.converted_organization_deleted_name ??
+                      request.converted_organization_deleted_id}
+                  </strong>
+                  {request.converted_organization_deleted_slug
+                    ? ` (${request.converted_organization_deleted_slug})`
+                    : ""}
+                  . That organization was later permanently deleted. This
+                  conversion record is retained as platform history.
+                </p>
+              ) : (
+                <p>
+                  This Trial Request is recorded as converted. Its original
+                  organization is no longer available.
+                </p>
+              )}
             </div>
 
-            <Link
-              href={`/admin/organizations/${request.converted_organization_id}`}
-              className="primary-button"
-            >
-              View Organization
-            </Link>
+            {request.converted_organization_id ? (
+              <Link
+                href={`/admin/organizations/${request.converted_organization_id}`}
+                className="primary-button"
+              >
+                View Organization
+              </Link>
+            ) : null}
           </div>
         </section>
       ) : null}
