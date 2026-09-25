@@ -6553,8 +6553,8 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   }
 
   .sidebar .brand-hero-image{
-    transform:scale(1.12);
-    transform-origin:28% 52%;
+    transform:translateX(12px) scale(1.12);
+    transform-origin:38% 52%;
   }
 
   .sidebar .sidebar-brand-header .sidebar-brand-version{
@@ -6569,7 +6569,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 @media(min-width:601px) and (max-width:850px){
   .sidebar .brand-hero-image{
-    transform:scale(1.09);
+    transform:translateX(10px) scale(1.09);
   }
 
   .sidebar .sidebar-brand-header .sidebar-brand-version{
