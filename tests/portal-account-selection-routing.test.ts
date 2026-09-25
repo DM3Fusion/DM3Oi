@@ -9,9 +9,9 @@ const selectionPage = source("app/portal/select-account/page.tsx");
 const actions = source("lib/data/customer-portal-actions.ts");
 
 test("missing or stale multi-account selection reaches a stable selection render", () => {
-  assert.match(context, /activeLinks\.find\(\(link\) => link\.id === selected\)/);
-  assert.match(context, /activeLinks\.length === 1 \? activeLinks\[0\] : null/);
-  assert.match(context, /reason: "ACCOUNT_SELECTION_REQUIRED"/);
+  assert.match(context, /effectiveAccesses\.find\(\(item\) => item\.link\.id === selected\)/);
+  assert.match(context, /effectiveAccesses\.length === 1 \? effectiveAccesses\[0\] : null/);
+  assert.match(context, /effectiveAccesses\.length[\s\S]*\? "ACCOUNT_SELECTION_REQUIRED"/);
   const selectionBranch =
     layout.match(
       /if \(context\.reason === "ACCOUNT_SELECTION_REQUIRED"\)([^;]+;)/,

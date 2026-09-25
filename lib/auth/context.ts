@@ -7,6 +7,8 @@ import { hasTenantInternalAccess } from "./access-routing";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
 import { getEffectiveOrganizationPermissions, hasPermission, permissions, type OrganizationPermissionOverride, type Permission } from "@/lib/auth/permissions";
+import { resolveCustomerPortalAccesses } from "@/lib/auth/customer-portal-effectiveness";
+import { createAdminClient } from "@/lib/supabase/admin";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
 type Role = Database["public"]["Enums"]["application_role"];
@@ -74,11 +76,12 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         .eq("is_active", true),
       supabase
         .from("customer_portal_users")
-        .select("customer_id")
+        .select("*")
         .eq("user_id", user.id)
         .eq("is_active", true),
     ]);
     if (profile.data?.is_active === false) return null;
+    if (portal.error) throw portal.error;
     const isSuperAdmin = Boolean(platform.data?.length);
     const membershipRows = memberships.data ?? [];
     const allowedIds = membershipRows.map((row) => row.organization_id);
@@ -184,7 +187,19 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         };
       }
     }
-    const customerPortalIds = (portal.data ?? []).map((row) => row.customer_id);
+    const resolvedPortalAccesses = portal.data?.length
+      ? await resolveCustomerPortalAccesses(
+          createAdminClient(),
+          portal.data,
+          {
+            authAccountExists: true,
+            profileActive: profile.data?.is_active === true,
+          },
+        )
+      : [];
+    const customerPortalIds = resolvedPortalAccesses
+      .filter((access) => access.effective)
+      .map((access) => access.link.customer_id);
     const displayName =
       profile.data?.display_name ||
       user.email ||

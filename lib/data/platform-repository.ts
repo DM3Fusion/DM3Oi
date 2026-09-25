@@ -7,6 +7,7 @@ import { attachAvatarUrls, type ProfileWithAvatar } from "@/lib/data/avatar-urls
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
+import { isEffectiveCustomerPortalAccess } from "@/lib/auth/customer-portal-effectiveness";
 import type { Database } from "@/types/database.generated";
 import type { User } from "@supabase/supabase-js";
 type Tables = Database["public"]["Tables"];
@@ -233,14 +234,16 @@ export async function getPlatformAdministration() {
           id: portal.id,
           organizationName: organization?.name ?? "Unknown organization",
           customerName: customer?.name ?? "Unknown customer",
-          effective: Boolean(
-            authUser &&
-            profile?.is_active === true &&
-            portal.is_active &&
-            organization?.status === "ACTIVE" &&
-            customer?.status === "ACTIVE" &&
-            settings?.portal_enabled !== false,
-          ),
+          effective: isEffectiveCustomerPortalAccess({
+            authAccountExists: Boolean(authUser),
+            profileActive: profile?.is_active === true,
+            linkActive: portal.is_active,
+            organizationFound: Boolean(organization),
+            organizationStatus: organization?.status ?? null,
+            customerFound: Boolean(customer),
+            customerStatus: customer?.status ?? null,
+            portalEnabled: settings?.portal_enabled,
+          }),
         };
       });
     const portalAccess = portalAccesses.filter((portal) => portal.effective).length;

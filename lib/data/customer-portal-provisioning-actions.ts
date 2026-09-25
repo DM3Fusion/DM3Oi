@@ -54,6 +54,19 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
   try { admin = createAdminClient(); } catch { redirect(destination(customerId, "error", "User administration is not configured.")); }
   let authUser = linked.data?.user_id ? (await admin!.auth.admin.getUserById(linked.data.user_id)).data.user : null;
   if (!authUser) authUser = await authUserByEmail(admin!, email);
+  const existingProfile = authUser
+    ? await admin!
+        .from("profiles")
+        .select("id,is_active")
+        .eq("id", authUser.id)
+        .maybeSingle()
+    : null;
+  if (existingProfile?.error) {
+    redirect(destination(customerId, "error", "The customer identity could not be checked."));
+  }
+  if (existingProfile?.data?.is_active === false) {
+    redirect(destination(customerId, "error", "This identity is globally inactive. A platform administrator must reactivate it before Portal Access can be enabled."));
+  }
   if (authUser && authUser.id !== linked.data?.user_id) {
     if (await getIdentityCategory(authUser.id) === "INTERNAL") redirect(destination(customerId, "error", "This email belongs to an internal DM3Oi user and cannot be used for Customer Portal access."));
     const collision = await supabase.from("organization_members").select("id").eq("organization_id", org.id).eq("is_active", true).eq("user_id", authUser.id).maybeSingle();
@@ -96,7 +109,9 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
     authUser = generated.data.user ?? authUser;
     invitationUrl = generated.data.properties.action_link;
   }
-  const profile = await admin!.from("profiles").upsert({ id: authUser.id, email, display_name: authUser.user_metadata?.display_name ?? email, is_active: true });
+  // Omitting is_active preserves a concurrent or previously established global
+  // deactivation on conflict; the column default activates only a new profile.
+  const profile = await admin!.from("profiles").upsert({ id: authUser.id, email, display_name: authUser.user_metadata?.display_name ?? email });
   if (profile.error) { console.error("Customer portal profile provisioning failed", { code: profile.error.code, message: profile.error.message }); redirect(destination(customerId, "error", "The customer identity could not be prepared.")); }
   const existing = linked.data?.user_id === authUser.id ? linked : await supabase.from("customer_portal_users").select("id").eq("organization_id", org.id).eq("customer_id", customerId).eq("user_id", authUser.id).maybeSingle();
   if (existing.error) redirect(destination(customerId, "error", "Portal access could not be checked."));
