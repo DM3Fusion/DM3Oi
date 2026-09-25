@@ -116,14 +116,29 @@ export async function POST(request: NextRequest) {
   let organizationId: string | null = null;
 
   if (userId) {
-    const { data: memberships } = await supabase
+    const {
+      data: memberships,
+      error: membershipError,
+    } = await supabase
       .from("organization_members")
       .select(
-        "organization_id,organization:organizations(id,is_active)",
+        "organization_id,organization:organizations(id,status)",
       )
       .eq("user_id", userId)
       .eq("is_active", true)
       .eq("status", "ACTIVE");
+
+    if (membershipError) {
+      console.error(
+        "Analytics organization membership lookup failed",
+        membershipError.message,
+      );
+
+      return NextResponse.json(
+        { ok: false },
+        { status: 500 },
+      );
+    }
 
     for (const membership of memberships ?? []) {
       const value = membership.organization;
@@ -131,7 +146,7 @@ export async function POST(request: NextRequest) {
         ? value[0]
         : value;
 
-      if (organization?.is_active) {
+      if (organization?.status === "ACTIVE") {
         organizationId = membership.organization_id;
         break;
       }

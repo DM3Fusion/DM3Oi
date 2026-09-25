@@ -28,15 +28,26 @@ async function activeOrganizationId(
 ) {
   const supabase = await createClient();
 
-  const { data: memberships } =
-    await supabase
-      .from("organization_members")
-      .select(
-        "organization_id,organization:organizations(id,is_active)",
-      )
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .eq("status", "ACTIVE");
+  const {
+    data: memberships,
+    error: membershipError,
+  } = await supabase
+    .from("organization_members")
+    .select(
+      "organization_id,organization:organizations(id,status)",
+    )
+    .eq("user_id", userId)
+    .eq("is_active", true)
+    .eq("status", "ACTIVE");
+
+  if (membershipError) {
+    console.error(
+      "Analytics presence organization membership lookup failed",
+      membershipError.message,
+    );
+
+    return null;
+  }
 
   for (const membership of memberships ?? []) {
     const value = membership.organization;
@@ -45,7 +56,7 @@ async function activeOrganizationId(
       ? value[0]
       : value;
 
-    if (organization?.is_active) {
+    if (organization?.status === "ACTIVE") {
       return membership.organization_id;
     }
   }
