@@ -339,16 +339,17 @@ export async function getPlatformSummary() {
   return (await getPlatformAdministration()).summary;
 }
 export async function getOrganizationAdministration(id: string) {
-  const data = await getPlatformAdministration();
-  const organization = data.organizations.find((o) => o.id === id);
-  if (!organization) notFound();
-  const base = await loadPlatformData();
   const supabase = await createClient();
-  const settings = await supabase
-    .from("organization_settings")
-    .select("timezone")
-    .eq("organization_id", id)
-    .maybeSingle();
+
+  const [base, settings] = await Promise.all([
+    loadPlatformData(),
+    supabase
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", id)
+      .maybeSingle(),
+  ]);
+
   if (settings.error) {
     console.error("Organization timezone query failed", {
       code: settings.error.code,
@@ -356,17 +357,58 @@ export async function getOrganizationAdministration(id: string) {
     });
     throw new Error("Organization administration data is temporarily unavailable.");
   }
+
+  const baseOrganization = base.organizations.find((o) => o.id === id);
+  if (!baseOrganization) notFound();
+
+  const organizationMembers = base.memberships.filter(
+    (membership) =>
+      membership.organization_id === id &&
+      membership.is_active,
+  );
+  const organizationCases = base.cases.filter(
+    (item) => item.organization_id === id,
+  );
+  const organizationCustomers = base.customers.filter(
+    (item) => item.organization_id === id,
+  );
+
+  const organization: OrganizationAdminRow = {
+    ...baseOrganization,
+    activeUsers: organizationMembers.length,
+    businessOwners: organizationMembers.filter(
+      (membership) => membership.role === "BUSINESS_OWNER",
+    ).length,
+    businessAdmins: organizationMembers.filter(
+      (membership) => membership.role === "BUSINESS_ADMIN",
+    ).length,
+    openCases: organizationCases.filter(
+      (item) =>
+        !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status),
+    ).length,
+    customers: organizationCustomers.length,
+    lastActivity:
+      [...organizationCases, ...organizationCustomers]
+        .map((item) => item.updated_at ?? item.created_at)
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null,
+  };
+
   const members: MemberAdminRow[] = base.memberships
-    .filter((m) => m.organization_id === id)
-    .flatMap((m) => {
-      const profile = base.profiles.find((p) => p.id === m.user_id);
-      return profile ? [{ ...m, profile }] : [];
+    .filter((membership) => membership.organization_id === id)
+    .flatMap((membership) => {
+      const profile = base.profiles.find(
+        (item) => item.id === membership.user_id,
+      );
+      return profile ? [{ ...membership, profile }] : [];
     });
+
   return {
     organization,
     members,
-    cases: base.cases.filter((c) => c.organization_id === id),
-    customers: base.customers.filter((c) => c.organization_id === id),
+    cases: organizationCases,
+    customers: organizationCustomers,
     timezone: settings.data?.timezone ?? "UTC",
   };
 }
