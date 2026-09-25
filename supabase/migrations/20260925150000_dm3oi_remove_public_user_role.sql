@@ -43,6 +43,34 @@ drop policy "organization_avatar_sources_select" on "storage"."objects";
 drop policy "organization_avatars_delete" on "storage"."objects";
 drop policy "organization_avatars_insert" on "storage"."objects";
 
+-- Drop policies that depend on role-sensitive helper functions.
+drop policy "activity_append" on "public"."case_activity";
+drop policy "activity_select" on "public"."case_activity";
+drop policy "assignments_select" on "public"."case_assignments";
+drop policy "case_responses_select" on "public"."case_question_responses";
+drop policy "case_questions_select" on "public"."case_questions";
+drop policy "tasks_operational_write" on "public"."case_tasks";
+drop policy "tasks_select" on "public"."case_tasks";
+drop policy "cases_operational_update" on "public"."cases";
+drop policy "cases_select" on "public"."cases";
+drop policy "customers_effective_update" on "public"."customers";
+drop policy "rule_actions_effective_delete" on "public"."rule_actions";
+drop policy "rule_actions_effective_insert" on "public"."rule_actions";
+drop policy "rule_actions_effective_read" on "public"."rule_actions";
+drop policy "rule_actions_effective_update" on "public"."rule_actions";
+drop policy "rule_definitions_effective_delete" on "public"."rule_definitions";
+drop policy "rule_definitions_effective_insert" on "public"."rule_definitions";
+drop policy "rule_definitions_effective_read" on "public"."rule_definitions";
+drop policy "rule_definitions_effective_update" on "public"."rule_definitions";
+
+-- Drop security-barrier views that depend on role-sensitive helpers.
+-- They are recreated after the canonical helper functions are restored.
+drop view public.organization_case_activity;
+drop view public.organization_case_tasks;
+drop view public.organization_cases;
+drop view public.organization_rule_actions;
+drop view public.organization_rule_definitions;
+
 -- Drop enum-dependent partial index.
 drop index public."one_active_super_admin_uidx";
 
@@ -955,6 +983,266 @@ grant execute on function public.update_organization_membership(uuid, public.app
 
 -- Restore the single-active-SUPER_ADMIN invariant.
 CREATE UNIQUE INDEX one_active_super_admin_uidx ON public.platform_user_roles USING btree (role) WHERE (is_active AND (role = 'SUPER_ADMIN'::public.application_role));
+
+-- Restore helper-dependent RLS policies and projections.
+
+create policy "activity_append"
+on "public"."case_activity"
+as permissive
+for INSERT
+to "authenticated"
+with check (public.can_access_case(case_id, organization_id));
+
+create policy "activity_select"
+on "public"."case_activity"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(case_id, organization_id));
+
+create policy "assignments_select"
+on "public"."case_assignments"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(case_id, organization_id));
+
+create policy "case_responses_select"
+on "public"."case_question_responses"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(case_id, organization_id));
+
+create policy "case_questions_select"
+on "public"."case_questions"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(case_id, organization_id));
+
+create policy "tasks_operational_write"
+on "public"."case_tasks"
+as permissive
+for ALL
+to "authenticated"
+using (public.can_access_case(case_id, organization_id))
+with check (public.can_access_case(case_id, organization_id));
+
+create policy "tasks_select"
+on "public"."case_tasks"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(case_id, organization_id));
+
+create policy "cases_operational_update"
+on "public"."cases"
+as permissive
+for UPDATE
+to "authenticated"
+using (public.can_access_case(id, organization_id))
+with check (public.can_access_case(id, organization_id));
+
+create policy "cases_select"
+on "public"."cases"
+as permissive
+for SELECT
+to "authenticated"
+using (public.can_access_case(id, organization_id));
+
+create policy "customers_effective_update"
+on "public"."customers"
+as permissive
+for UPDATE
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'EDIT_CUSTOMER'::text))
+with check (public.has_effective_organization_permission(organization_id, 'EDIT_CUSTOMER'::text));
+
+create policy "rule_actions_effective_delete"
+on "public"."rule_actions"
+as permissive
+for DELETE
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+create policy "rule_actions_effective_insert"
+on "public"."rule_actions"
+as permissive
+for INSERT
+to "authenticated"
+with check (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+create policy "rule_actions_effective_read"
+on "public"."rule_actions"
+as permissive
+for SELECT
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'VIEW_RULES'::text));
+
+create policy "rule_actions_effective_update"
+on "public"."rule_actions"
+as permissive
+for UPDATE
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text))
+with check (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+create policy "rule_definitions_effective_delete"
+on "public"."rule_definitions"
+as permissive
+for DELETE
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+create policy "rule_definitions_effective_insert"
+on "public"."rule_definitions"
+as permissive
+for INSERT
+to "authenticated"
+with check (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+create policy "rule_definitions_effective_read"
+on "public"."rule_definitions"
+as permissive
+for SELECT
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'VIEW_RULES'::text));
+
+create policy "rule_definitions_effective_update"
+on "public"."rule_definitions"
+as permissive
+for UPDATE
+to "authenticated"
+using (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text))
+with check (public.has_effective_organization_permission(organization_id, 'MANAGE_RULES'::text));
+
+-- Recreate the five security-barrier organization projections.
+
+create view public.organization_cases with (security_barrier=true) as
+select
+  c.id,
+  c.organization_id,
+  c.case_number,
+  c.customer_id,
+  c.title,
+  c.description,
+  c.case_type,
+  c.priority,
+  c.status,
+  c.due_at,
+  c.opened_at,
+  c.completed_at,
+  c.closed_at,
+  c.manager_user_id,
+  public.organization_actor_id(c.created_by_user_id) as created_by_user_id,
+  public.organization_actor_label(c.created_by_user_id) as created_by_display_name,
+  c.created_at,
+  c.updated_at
+from public.cases c
+where public.can_access_case(c.id, c.organization_id, auth.uid());
+
+create view public.organization_case_activity with (security_barrier=true) as
+select
+  a.id,
+  a.organization_id,
+  a.case_id,
+  public.organization_actor_id(a.actor_user_id) as actor_user_id,
+  public.organization_actor_label(a.actor_user_id) as actor_display_name,
+  a.event_type,
+  a.event_data,
+  a.created_at
+from public.case_activity a
+where public.can_access_case(a.case_id, a.organization_id, auth.uid());
+
+create view public.organization_case_tasks with (security_barrier=true) as
+select
+  t.id,
+  t.organization_id,
+  t.case_id,
+  t.title,
+  t.description,
+  t.assigned_user_id,
+  t.status,
+  t.required,
+  t.due_at,
+  t.completed_at,
+  public.organization_actor_id(t.completed_by_user_id) as completed_by_user_id,
+  public.organization_actor_label(t.completed_by_user_id) as completed_by_display_name,
+  t.sequence,
+  public.organization_actor_id(t.created_by_user_id) as created_by_user_id,
+  public.organization_actor_label(t.created_by_user_id) as created_by_display_name,
+  t.created_at,
+  t.updated_at,
+  t.priority,
+  t.blocking,
+  (t.source_rule_action_id is not null) as generated_by_rule
+from public.case_tasks t
+where public.can_access_case(t.case_id, t.organization_id, auth.uid());
+
+create view public.organization_rule_definitions with (security_barrier=true) as
+select
+  r.id,
+  r.organization_id,
+  r.name,
+  r.description,
+  r.source_question_id,
+  r.condition_operator,
+  r.condition_option_id,
+  r.active,
+  r.display_order,
+  public.organization_actor_id(r.created_by_user_id) as created_by_user_id,
+  public.organization_actor_label(r.created_by_user_id) as created_by_display_name,
+  public.organization_actor_id(r.updated_by_user_id) as updated_by_user_id,
+  public.organization_actor_label(r.updated_by_user_id) as updated_by_display_name,
+  r.created_at,
+  r.updated_at
+from public.rule_definitions r
+where public.has_effective_organization_permission(
+  r.organization_id,
+  'VIEW_RULES'::text
+);
+
+create view public.organization_rule_actions with (security_barrier=true) as
+select
+  a.id,
+  a.organization_id,
+  a.rule_definition_id,
+  a.action_type,
+  a.target_question_id,
+  a.task_title,
+  a.task_description,
+  a.task_priority,
+  a.task_required,
+  a.task_blocking,
+  a.display_order,
+  public.organization_actor_id(a.created_by_user_id) as created_by_user_id,
+  public.organization_actor_label(a.created_by_user_id) as created_by_display_name,
+  public.organization_actor_id(a.updated_by_user_id) as updated_by_user_id,
+  public.organization_actor_label(a.updated_by_user_id) as updated_by_display_name,
+  a.created_at,
+  a.updated_at
+from public.rule_actions a
+where a.retired_at is null
+  and public.has_effective_organization_permission(
+    a.organization_id,
+    'VIEW_RULES'::text
+  );
+
+-- Restore the exact current view privilege posture.
+revoke all on public.organization_cases,
+  public.organization_case_activity,
+  public.organization_case_tasks,
+  public.organization_rule_definitions,
+  public.organization_rule_actions
+from public, anon, authenticated, service_role;
+
+grant select on public.organization_cases,
+  public.organization_case_activity,
+  public.organization_case_tasks,
+  public.organization_rule_definitions,
+  public.organization_rule_actions
+to authenticated;
 
 -- Restore enum-dependent RLS policies.
 create policy "assignments_manager_write"
