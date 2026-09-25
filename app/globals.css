@@ -6088,3 +6088,161 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .trial-request-conversion-panel a.primary-button:hover {
   color: #fff;
 }
+
+/* DM3Oi Trial Request — DM3SR-style split landing layout */
+.trial-request-page {
+  min-height: 100vh;
+  background: #f4f7fa;
+}
+
+.trial-request-shell {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: minmax(20rem, 27.5rem) minmax(0, 1fr);
+  gap: 0;
+  align-items: stretch;
+}
+
+.trial-request-rail {
+  min-height: 100vh;
+  padding: 0;
+  background: #132b45;
+  color: #fff;
+}
+
+.trial-request-hero {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  background: #0d2742;
+  text-decoration: none;
+}
+
+.trial-request-hero img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.trial-request-intro {
+  margin: 0;
+  padding: clamp(3rem, 6vw, 4.25rem) clamp(2rem, 4vw, 2.75rem);
+}
+
+.trial-request-intro .public-home-eyebrow {
+  margin: 0 0 1.4rem;
+  color: #c6d7e8;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.trial-request-intro h1 {
+  margin: 0;
+  max-width: 8.5em;
+  color: #fff;
+  font-size: clamp(2.25rem, 4vw, 3rem);
+  line-height: 1.08;
+}
+
+.trial-request-intro > p:not(.public-home-eyebrow) {
+  margin: 1.5rem 0 0;
+  max-width: 22rem;
+  color: #d6e0ea;
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+.trial-request-intro-points {
+  margin: 2rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.9rem;
+  list-style: none;
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.trial-request-intro-points li {
+  position: relative;
+  padding-left: 1.15rem;
+}
+
+.trial-request-intro-points li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: #fff;
+  font-weight: 800;
+}
+
+.trial-request-card {
+  align-self: stretch;
+  min-width: 0;
+  padding: clamp(2.5rem, 5vw, 4.5rem)
+    clamp(2rem, 7vw, 7rem);
+  border: 0;
+  border-radius: 0;
+  background: #f8fafc;
+  box-shadow: none;
+}
+
+.trial-request-card-heading {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid #d6dee7;
+}
+
+.trial-request-card-heading h2 {
+  color: #17243a;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  line-height: 1.1;
+}
+
+.trial-request-card-heading p {
+  max-width: 48rem;
+  color: #65758a;
+  font-size: 1rem;
+}
+
+@media (max-width: 760px) {
+  .trial-request-shell {
+    width: 100%;
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0;
+  }
+
+  .trial-request-rail {
+    min-height: auto;
+  }
+
+  .trial-request-hero img {
+    width: 100%;
+  }
+
+  .trial-request-intro {
+    margin: 0;
+    padding: 2rem;
+  }
+
+  .trial-request-intro h1 {
+    max-width: 12em;
+  }
+
+  .trial-request-card {
+    padding: 2rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .trial-request-intro,
+  .trial-request-card {
+    padding: 1.5rem;
+  }
+}

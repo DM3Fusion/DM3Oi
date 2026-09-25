@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 
 import { TrialRequestForm } from "@/components/trial-request-form";
@@ -52,19 +53,17 @@ export default async function RequestTrialPage({
         <div className="trial-request-rail">
           <Link
             href="/"
-            className="trial-request-product-brand"
+            className="trial-request-hero"
             aria-label="DM3Oi Business Operations Intelligence home"
           >
-            <span className="trial-request-product-wordmark">
-              <span>DM</span>
-              <span className="trial-request-product-three">3</span>
-              <span>Oi</span>
-              <sup>™</sup>
-            </span>
-
-            <span className="trial-request-product-descriptor">
-              Business Operations Intelligence
-            </span>
+            <Image
+              src="/images/dm3oi-operations-hero.jpg"
+              alt="DM3Oi Operational Intelligence"
+              width={600}
+              height={349}
+              priority
+              sizes="(max-width: 760px) 100vw, 440px"
+            />
           </Link>
 
           <div className="trial-request-intro">
