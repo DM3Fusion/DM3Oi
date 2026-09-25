@@ -339,47 +339,125 @@ export async function getPlatformSummary() {
   return (await getPlatformAdministration()).summary;
 }
 export async function getOrganizationAdministration(id: string) {
+  await requireSuperAdmin();
+
   const supabase = await createClient();
 
-  const [base, settings] = await Promise.all([
-    loadPlatformData(),
+  const [
+    organizationResult,
+    membershipsResult,
+    casesResult,
+    customersResult,
+    settingsResult,
+    licenseResult,
+  ] = await Promise.all([
+    supabase
+      .from("organizations")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("organization_members")
+      .select("*")
+      .eq("organization_id", id),
+    supabase
+      .from("organization_cases")
+      .select("*")
+      .eq("organization_id", id),
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", id),
     supabase
       .from("organization_settings")
       .select("timezone")
       .eq("organization_id", id)
       .maybeSingle(),
+    (supabase as any)
+      .from("organization_licenses")
+      .select("*")
+      .eq("organization_id", id)
+      .eq("is_current", true)
+      .maybeSingle(),
   ]);
 
-  if (settings.error) {
-    console.error("Organization timezone query failed", {
-      code: settings.error.code,
-      message: settings.error.message,
+  const error =
+    organizationResult.error ??
+    membershipsResult.error ??
+    casesResult.error ??
+    customersResult.error ??
+    settingsResult.error ??
+    licenseResult.error;
+
+  if (error) {
+    console.error("Organization administration query failed", {
+      organizationId: id,
+      code: error.code,
+      message: error.message,
     });
-    throw new Error("Organization administration data is temporarily unavailable.");
+    throw new Error(
+      "Organization administration data is temporarily unavailable.",
+    );
   }
 
-  const baseOrganization = base.organizations.find((o) => o.id === id);
-  if (!baseOrganization) notFound();
+  if (!organizationResult.data) notFound();
 
-  const organizationMembers = base.memberships.filter(
-    (membership) =>
-      membership.organization_id === id &&
-      membership.is_active,
-  );
-  const organizationCases = base.cases.filter(
-    (item) => item.organization_id === id,
-  );
-  const organizationCustomers = base.customers.filter(
-    (item) => item.organization_id === id,
+  const membershipRows = membershipsResult.data ?? [];
+  const organizationCases = casesResult.data ?? [];
+  const organizationCustomers = customersResult.data ?? [];
+
+  const memberUserIds = [
+    ...new Set(membershipRows.map((membership) => membership.user_id)),
+  ];
+
+  let profiles: AvatarProfileRow[] = [];
+
+  if (memberUserIds.length) {
+    const profileResult = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", memberUserIds);
+
+    if (profileResult.error) {
+      console.error("Organization member profile query failed", {
+        organizationId: id,
+        code: profileResult.error.code,
+        message: profileResult.error.message,
+      });
+      throw new Error(
+        "Organization administration data is temporarily unavailable.",
+      );
+    }
+
+    profiles = await attachAvatarUrls(
+      supabase,
+      profileResult.data ?? [],
+    );
+  }
+
+  const baseOrganization = organizationResult.data;
+
+  const organizationAvatarUrl = baseOrganization.avatar_path
+    ? (
+        await supabase.storage
+          .from(ORGANIZATION_AVATAR_BUCKET)
+          .createSignedUrl(baseOrganization.avatar_path, 3600)
+      ).data?.signedUrl ?? null
+    : null;
+
+  const activeMemberships = membershipRows.filter(
+    (membership) => membership.is_active,
   );
 
   const organization: OrganizationAdminRow = {
     ...baseOrganization,
-    activeUsers: organizationMembers.length,
-    businessOwners: organizationMembers.filter(
+    avatarUrl: organizationAvatarUrl,
+    license: licenseResult.data ?? null,
+    activeUsers: activeMemberships.length,
+    businessOwners: activeMemberships.filter(
       (membership) => membership.role === "BUSINESS_OWNER",
     ).length,
-    businessAdmins: organizationMembers.filter(
+    businessAdmins: activeMemberships.filter(
       (membership) => membership.role === "BUSINESS_ADMIN",
     ).length,
     openCases: organizationCases.filter(
@@ -395,21 +473,23 @@ export async function getOrganizationAdministration(id: string) {
         .at(-1) ?? null,
   };
 
-  const members: MemberAdminRow[] = base.memberships
-    .filter((membership) => membership.organization_id === id)
-    .flatMap((membership) => {
-      const profile = base.profiles.find(
-        (item) => item.id === membership.user_id,
-      );
+  const profileById = new Map(
+    profiles.map((profile) => [profile.id, profile]),
+  );
+
+  const members: MemberAdminRow[] = membershipRows.flatMap(
+    (membership) => {
+      const profile = profileById.get(membership.user_id);
       return profile ? [{ ...membership, profile }] : [];
-    });
+    },
+  );
 
   return {
     organization,
     members,
     cases: organizationCases,
     customers: organizationCustomers,
-    timezone: settings.data?.timezone ?? "UTC",
+    timezone: settingsResult.data?.timezone ?? "UTC",
   };
 }
 export async function getPlatformUser(id: string) {

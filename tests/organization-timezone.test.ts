@@ -40,7 +40,7 @@ test("organization operational surfaces consume the shared timezone", () => {
   assert.match(customers, /formatOrganizationDateTime\(\s*customer\.updated_at,\s*settings\?\.timezone,?\s*\)/);
   assert.match(platformRepository, /from\("organization_settings"\)/);
   assert.match(platformRepository, /select\("timezone"\)/);
-  assert.match(platformRepository, /timezone: settings\.data\?\.timezone \?\? "UTC"/);
+  assert.match(platformRepository, /timezone: settingsResult\.data\?\.timezone \?\? "UTC"/);
   assert.match(platformOrganization, /formatOrganizationDateTime\(organization\.created_at, timezone\)/);
   assert.match(platformOrganization, /formatOrganizationDateTime\(organization\.lastActivity, timezone\)/);
   assert.match(platformOrganization, /formatOrganizationDateTime\(item\.updated_at, timezone\)/);
