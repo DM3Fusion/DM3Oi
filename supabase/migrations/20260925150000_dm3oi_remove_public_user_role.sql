@@ -167,51 +167,6 @@ alter table public.platform_user_roles
   check (role = 'SUPER_ADMIN'::public.application_role);
 
 -- Restore enum-dependent functions.
--- can_access_case(check_case_id uuid, check_organization_id uuid, check_user_id uuid)
-CREATE OR REPLACE FUNCTION public.can_access_case(check_case_id uuid, check_organization_id uuid, check_user_id uuid DEFAULT auth.uid())
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$ select public.is_super_admin(check_user_id) or (public.is_internal_member(check_organization_id,check_user_id) and (public.has_organization_role(check_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],check_user_id) or exists(select 1 from public.case_assignments a where a.case_id=check_case_id and a.organization_id=check_organization_id and a.user_id=check_user_id and a.is_active) or exists(select 1 from public.case_tasks t where t.case_id=check_case_id and t.organization_id=check_organization_id and t.assigned_user_id=check_user_id))) $function$;
-
--- can_administer_questions(target_organization_id uuid, target_user_id uuid)
-CREATE OR REPLACE FUNCTION public.can_administer_questions(target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$ select public.is_super_admin(target_user_id) or public.has_organization_role(target_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],target_user_id) $function$;
-
--- can_manage_case(target_organization_id uuid, target_user_id uuid)
-CREATE OR REPLACE FUNCTION public.can_manage_case(target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
- select public.is_super_admin(target_user_id) or public.has_organization_role(target_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],target_user_id)
-$function$;
-
--- can_manage_service_request(target_service_request_id uuid, target_organization_id uuid, target_user_id uuid)
-CREATE OR REPLACE FUNCTION public.can_manage_service_request(target_service_request_id uuid, target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
- RETURNS boolean
- LANGUAGE sql
- STABLE SECURITY DEFINER
- SET search_path TO ''
-AS $function$
-  select public.is_super_admin(target_user_id)
-    or public.has_organization_role(target_organization_id,
-      array['BUSINESS_OWNER','BUSINESS_ADMIN','STAFF_MANAGER']::public.application_role[], target_user_id)
-    or exists (
-      select 1 from public.service_requests r
-      join public.organization_members m on m.organization_id=r.organization_id
-        and m.user_id=target_user_id and m.is_active and m.role='STAFF_USER'
-      where r.id=target_service_request_id and r.organization_id=target_organization_id
-        and r.assigned_user_id=target_user_id
-    )
-$function$;
-
 -- default_organization_role_permission(target_role application_role, target_permission text)
 CREATE OR REPLACE FUNCTION public.default_organization_role_permission(target_role public.application_role, target_permission text)
  RETURNS boolean
@@ -288,6 +243,51 @@ CREATE OR REPLACE FUNCTION public.has_organization_role(check_organization_id uu
  SET search_path TO ''
 AS $function$
  select exists(select 1 from public.organization_members m join public.profiles p on p.id=m.user_id join public.organizations o on o.id=m.organization_id where m.organization_id=check_organization_id and m.user_id=check_user_id and m.role=any(allowed_roles) and m.is_active and p.is_active and o.status='ACTIVE')
+$function$;
+
+-- can_access_case(check_case_id uuid, check_organization_id uuid, check_user_id uuid)
+CREATE OR REPLACE FUNCTION public.can_access_case(check_case_id uuid, check_organization_id uuid, check_user_id uuid DEFAULT auth.uid())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$ select public.is_super_admin(check_user_id) or (public.is_internal_member(check_organization_id,check_user_id) and (public.has_organization_role(check_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],check_user_id) or exists(select 1 from public.case_assignments a where a.case_id=check_case_id and a.organization_id=check_organization_id and a.user_id=check_user_id and a.is_active) or exists(select 1 from public.case_tasks t where t.case_id=check_case_id and t.organization_id=check_organization_id and t.assigned_user_id=check_user_id))) $function$;
+
+-- can_administer_questions(target_organization_id uuid, target_user_id uuid)
+CREATE OR REPLACE FUNCTION public.can_administer_questions(target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$ select public.is_super_admin(target_user_id) or public.has_organization_role(target_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],target_user_id) $function$;
+
+-- can_manage_case(target_organization_id uuid, target_user_id uuid)
+CREATE OR REPLACE FUNCTION public.can_manage_case(target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+ select public.is_super_admin(target_user_id) or public.has_organization_role(target_organization_id,array['BUSINESS_ADMIN','BUSINESS_OWNER','STAFF_MANAGER']::public.application_role[],target_user_id)
+$function$;
+
+-- can_manage_service_request(target_service_request_id uuid, target_organization_id uuid, target_user_id uuid)
+CREATE OR REPLACE FUNCTION public.can_manage_service_request(target_service_request_id uuid, target_organization_id uuid, target_user_id uuid DEFAULT auth.uid())
+ RETURNS boolean
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+  select public.is_super_admin(target_user_id)
+    or public.has_organization_role(target_organization_id,
+      array['BUSINESS_OWNER','BUSINESS_ADMIN','STAFF_MANAGER']::public.application_role[], target_user_id)
+    or exists (
+      select 1 from public.service_requests r
+      join public.organization_members m on m.organization_id=r.organization_id
+        and m.user_id=target_user_id and m.is_active and m.role='STAFF_USER'
+      where r.id=target_service_request_id and r.organization_id=target_organization_id
+        and r.assigned_user_id=target_user_id
+    )
 $function$;
 
 -- provision_organization_member(target_organization_id uuid, target_email text, target_role application_role)
@@ -1269,18 +1269,26 @@ where a.retired_at is null
     'VIEW_RULES'::text
   );
 
--- Restore the exact current view privilege posture.
+-- Restore the established view privilege posture.
+-- Case views: public/anon remain excluded; authenticated retains SELECT.
+-- Do not revoke service_role's existing table/view privileges.
 revoke all on public.organization_cases,
   public.organization_case_activity,
-  public.organization_case_tasks,
-  public.organization_rule_definitions,
-  public.organization_rule_actions
-from public, anon, authenticated, service_role;
+  public.organization_case_tasks
+from public, anon;
 
 grant select on public.organization_cases,
   public.organization_case_activity,
-  public.organization_case_tasks,
-  public.organization_rule_definitions,
+  public.organization_case_tasks
+to authenticated;
+
+-- Rule views: authenticated receives SELECT only; public/anon remain excluded.
+-- Do not revoke service_role's existing table/view privileges.
+revoke all on public.organization_rule_definitions,
+  public.organization_rule_actions
+from public, anon, authenticated;
+
+grant select on public.organization_rule_definitions,
   public.organization_rule_actions
 to authenticated;
 
