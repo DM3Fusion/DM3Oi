@@ -15,3 +15,44 @@ test("successful save requires authoritative read-back", () => { const action=re
 test("licensing read permissions grant SELECT only to authenticated and retain RLS", () => { const sql=readFileSync("supabase/migrations/20260904090000_dm3iqcm_fix_licensing_read_permissions.sql", "utf8"); assert.match(sql,/grant select.*to authenticated/); assert.match(sql,/revoke insert, update, delete/); const base=readFileSync("supabase/migrations/20260904070000_dm3iqcm_licensing.sql","utf8"); assert.match(base,/is_super_admin\(\) or public\.is_internal_member\(organization_id\)/); });
 test("license plan is a controlled select with approved values", () => { const form = readFileSync("components/license-form.tsx", "utf8"); assert.match(form, /name=\"planCode\"/); for (const plan of ["STANDARD","ENTERPRISE","INTERNAL"]) assert.match(form, new RegExp(plan)); });
 test("organization avatar upload is exposed once in the top action row", () => { const page = readFileSync("app/admin/organizations/[organizationId]/page.tsx", "utf8"); assert.match(page, /showRemove=\{false\}/); assert.match(page, /showUpload=\{false\}/); });
+
+test("Trial Request conversion atomically creates a 30-day Standard trial", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20260925130000_dm3oi_trial_conversion_license.sql",
+    "utf8",
+  );
+
+  assert.match(
+    sql,
+    /trial_started_at timestamptz := now\(\)/,
+  );
+  assert.match(
+    sql,
+    /'TRIAL',[\s\S]*?'TRIAL',[\s\S]*?'STANDARD',[\s\S]*?trial_started_at,[\s\S]*?trial_started_at \+ interval '30 days'/,
+  );
+  assert.match(sql, /'TRIAL_STARTED'/);
+  assert.match(
+    sql,
+    /create or replace function public\.convert_trial_request_to_organization/,
+  );
+});
+
+test("converted Trial organizations without a current license receive historical 30-day trials", () => {
+  const sql = readFileSync(
+    "supabase/migrations/20260925130000_dm3oi_trial_conversion_license.sql",
+    "utf8",
+  );
+
+  assert.match(
+    sql,
+    /trial\.converted_at \+ interval '30 days'/,
+  );
+  assert.match(
+    sql,
+    /trial\.status = 'CONVERTED'/,
+  );
+  assert.match(
+    sql,
+    /not exists \([\s\S]*?select 1[\s\S]*?from public\.organization_licenses existing[\s\S]*?where existing\.organization_id = organization\.id[\s\S]*?and existing\.is_current/,
+  );
+});
