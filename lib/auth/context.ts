@@ -50,12 +50,30 @@ export type SuperAdminContext = AccessContext & {
 };
 async function resolveAccessContext(): Promise<AccessContext | null> {
   if (!isSupabaseConfigured()) return null;
+
+  const accessStartedAt = performance.now();
+  const timing = (stage: string, startedAt: number) => {
+    console.info("Access context timing", {
+      stage,
+      durationMs: Math.round(performance.now() - startedAt),
+    });
+  };
+
   try {
     const supabase = await createClient();
+
+    const authStartedAt = performance.now();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return null;
+    timing("auth.getUser", authStartedAt);
+
+    if (!user) {
+      timing("total", accessStartedAt);
+      return null;
+    }
+
+    const identityStartedAt = performance.now();
     const [profile, platform, memberships, portal] = await Promise.all([
       supabase
         .from("profiles")
@@ -80,7 +98,12 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         .eq("user_id", user.id)
         .eq("is_active", true),
     ]);
-    if (profile.data?.is_active === false) return null;
+    timing("identity-and-access-lookups", identityStartedAt);
+
+    if (profile.data?.is_active === false) {
+      timing("total", accessStartedAt);
+      return null;
+    }
     if (portal.error) throw portal.error;
     const isSuperAdmin = Boolean(platform.data?.length);
     const membershipRows = memberships.data ?? [];
@@ -97,13 +120,19 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
           ? allowedIds
           : ["00000000-0000-0000-0000-000000000000"],
       );
+    const organizationsStartedAt = performance.now();
     const { data: organizationRows } = await organizationQuery;
+    timing("organizations-query", organizationsStartedAt);
+
+    const organizationAvatarsStartedAt = performance.now();
     const organizationAvatarUrls = await Promise.all((organizationRows ?? []).map(async (org) => ({
       id: org.id,
       url: org.avatar_path
         ? (await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(org.avatar_path, 3600)).data?.signedUrl ?? null
         : null,
     })));
+    timing("organization-avatar-signing", organizationAvatarsStartedAt);
+
     const organizations: AuthorizedOrganization[] = (
       organizationRows ?? []
     ).map((org) => ({
@@ -145,10 +174,12 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         .eq("is_current", true)
         .maybeSingle();
 
+      const organizationAccessStartedAt = performance.now();
       const [overrideResult, licenseResult] = await Promise.all([
         overrideQuery,
         licenseQuery,
       ]);
+      timing("permission-and-license-lookups", organizationAccessStartedAt);
 
       if (overrideResult.error) throw overrideResult.error;
 
@@ -187,6 +218,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         };
       }
     }
+    const portalStartedAt = performance.now();
     const resolvedPortalAccesses = portal.data?.length
       ? await resolveCustomerPortalAccesses(
           createAdminClient(),
@@ -197,6 +229,8 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
           },
         )
       : [];
+    timing("portal-resolution", portalStartedAt);
+
     const customerPortalIds = resolvedPortalAccesses
       .filter((access) => access.effective)
       .map((access) => access.link.customer_id);
@@ -204,6 +238,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       profile.data?.display_name ||
       user.email ||
       "User";
+    const userAvatarStartedAt = performance.now();
     const avatarUrl = profile.data?.avatar_path
       ? (
           await supabase.storage
@@ -211,6 +246,9 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
             .createSignedUrl(profile.data.avatar_path, 3600)
         ).data?.signedUrl ?? null
       : null;
+    timing("user-avatar-signing", userAvatarStartedAt);
+    timing("total", accessStartedAt);
+
     return {
       user,
       displayName,

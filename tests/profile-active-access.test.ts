@@ -16,9 +16,9 @@ test("inactive profiles are rejected by proxy and request-scoped access resoluti
   assert.match(proxy, /from\("profiles"\)\.select\("is_active"\)\.eq\("id",user\.id\)\.maybeSingle\(\)/);
   assert.match(proxy, /profile\.data\?\.is_active===false/);
   assert.match(context, /avatar_updated_at,is_active/);
-  assert.match(context, /if \(profile\.data\?\.is_active === false\) return null/);
+  assert.match(context, /if \(profile\.data\?\.is_active === false\)\s*\{[\s\S]*?return null;[\s\S]*?\}/);
   assert.ok(
-    context.indexOf("if (profile.data?.is_active === false) return null") <
+    context.indexOf("if (profile.data?.is_active === false)") <
       context.indexOf("const isSuperAdmin"),
   );
 });
