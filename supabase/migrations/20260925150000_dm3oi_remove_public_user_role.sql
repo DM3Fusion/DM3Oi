@@ -71,8 +71,22 @@ drop view public.organization_cases;
 drop view public.organization_rule_actions;
 drop view public.organization_rule_definitions;
 
+-- Drop triggers whose UPDATE OF definitions depend on enum-typed role columns.
+drop trigger organization_member_role_limit on public.organization_members;
+drop trigger platform_roles_identity_category_trigger on public.platform_user_roles;
+
 -- Drop enum-dependent partial index.
 drop index public."one_active_super_admin_uidx";
+
+-- Drop UNIQUE constraints backed by indexes containing enum-typed role columns.
+alter table public.organization_members
+  drop constraint organization_members_organization_id_user_id_role_key;
+
+alter table public.organization_role_permissions
+  drop constraint organization_role_permissions_organization_id_role_permissi_key;
+
+alter table public.platform_user_roles
+  drop constraint platform_user_roles_user_id_role_key;
 
 -- Drop enum-dependent role constraints.
 alter table public.organization_members
@@ -980,6 +994,32 @@ revoke all on function public.update_organization_membership(uuid, public.applic
   from public, anon, authenticated, service_role;
 grant execute on function public.update_organization_membership(uuid, public.application_role, boolean)
   to authenticated;
+
+-- Restore UNIQUE constraints against the canonical role columns.
+alter table public.organization_members
+  add constraint organization_members_organization_id_user_id_role_key
+  unique (organization_id, user_id, role);
+
+alter table public.organization_role_permissions
+  add constraint organization_role_permissions_organization_id_role_permissi_key
+  unique (organization_id, role, permission);
+
+alter table public.platform_user_roles
+  add constraint platform_user_roles_user_id_role_key
+  unique (user_id, role);
+
+-- Restore triggers whose definitions depend on canonical role columns.
+create trigger organization_member_role_limit
+before insert or update of organization_id, role, is_active
+on public.organization_members
+for each row
+execute function public.enforce_constrained_role_limit();
+
+create trigger platform_roles_identity_category_trigger
+before insert or update of user_id, role, is_active
+on public.platform_user_roles
+for each row
+execute function public.enforce_exclusive_identity_category();
 
 -- Restore the single-active-SUPER_ADMIN invariant.
 CREATE UNIQUE INDEX one_active_super_admin_uidx ON public.platform_user_roles USING btree (role) WHERE (is_active AND (role = 'SUPER_ADMIN'::public.application_role));
