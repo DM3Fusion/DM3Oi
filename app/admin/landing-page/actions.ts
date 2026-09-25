@@ -7,6 +7,7 @@ import { requireSuperAdmin } from "@/lib/auth/context";
 import {
   defaultPublicLandingPageContent,
   isPublicLandingPageContent,
+  normalizePublicLandingPageContent,
   landingPageFeatureKeys,
   type PublicLandingPageContent,
 } from "@/lib/public-landing-page";
