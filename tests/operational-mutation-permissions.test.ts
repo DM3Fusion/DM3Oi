@@ -12,8 +12,9 @@ const functionSql=(name:string)=>{
  const next=permissionMigration.indexOf("create or replace function public.",start+marker.length);
  return permissionMigration.slice(start,next===-1?undefined:next);
 };
-const roles:ApplicationRole[]=["SUPER_ADMIN","BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER","STAFF_USER","PUBLIC_USER"];
-const access=(role:ApplicationRole,active=true)=>({isSuperAdmin:role==="SUPER_ADMIN",internalAccess:role!=="PUBLIC_USER",activeOrganization:active&&role!=="PUBLIC_USER"?{role}:null});
+const roles:ApplicationRole[]=["SUPER_ADMIN","BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER","STAFF_USER"];
+const access=(role:ApplicationRole,active=true)=>({isSuperAdmin:role==="SUPER_ADMIN",internalAccess:true,activeOrganization:active?{role}:null,customerPortalCount:0});
+const portalAccess={isSuperAdmin:false,internalAccess:false,activeOrganization:null,customerPortalCount:1};
 const allowed=(permission:Permission,expected:ApplicationRole[])=>{for(const role of roles)assert.equal(hasPermission(access(role),permission),expected.includes(role),`${role} ${permission}`)};
 const managers:ApplicationRole[]=["SUPER_ADMIN","BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER"];
 const internal:ApplicationRole[]=[...managers,"STAFF_USER"];
@@ -25,8 +26,8 @@ test("operational capabilities preserve manager and worker distinctions",()=>{
  allowed("CREATE_CUSTOMER",internal);allowed("EDIT_CUSTOMER",internal);allowed("VIEW_COMMUNICATIONS",internal);
 });
 
-test("SUPER_ADMIN needs active organization context and PUBLIC_USER has no internal mutation",()=>{
- for(const permission of ["CREATE_CASE","REASSIGN_CASE_CUSTOMER","WORK_TASKS","CREATE_SERVICE_REQUEST","EDIT_CUSTOMER","VIEW_COMMUNICATIONS"] as Permission[]){assert.equal(hasPermission(access("SUPER_ADMIN",false),permission),false);assert.equal(hasPermission(access("PUBLIC_USER"),permission),false);}
+test("SUPER_ADMIN needs active organization context and Customer Portal has no internal mutation",()=>{
+ for(const permission of ["CREATE_CASE","REASSIGN_CASE_CUSTOMER","WORK_TASKS","CREATE_SERVICE_REQUEST","EDIT_CUSTOMER","VIEW_COMMUNICATIONS"] as Permission[]){assert.equal(hasPermission(access("SUPER_ADMIN",false),permission),false);assert.equal(hasPermission(portalAccess,permission),false);}
 });
 
 test("case task and customer actions enforce centralized capabilities before writes",()=>{
@@ -123,9 +124,7 @@ test("all internal operational RPCs enforce the same effective capabilities as s
  }
 });
 
-test("PUBLIC_USER portal authorization stays separate from internal capabilities",()=>{
- const helper=functionSql("has_effective_organization_permission");
- assert.doesNotMatch(helper,/PUBLIC_USER/);
+test("Customer Portal authorization stays separate from internal capabilities",()=>{
  assert.doesNotMatch(permissionMigration,/create or replace function public\.create_customer_service_request\(/);
  assert.doesNotMatch(permissionMigration,/create or replace function public\.create_customer_service_request_message\(/);
  const portal=source("lib/data/customer-portal-actions.ts");

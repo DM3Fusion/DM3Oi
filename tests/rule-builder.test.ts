@@ -20,7 +20,6 @@ test("combined workspace is URL-driven and enforces distinct server permissions"
   assert.equal(getEffectiveOrganizationPermissions("STAFF_MANAGER").has("VIEW_RULES"),true);
   assert.equal(getEffectiveOrganizationPermissions("STAFF_MANAGER").has("MANAGE_RULES"),false);
   assert.equal(getEffectiveOrganizationPermissions("STAFF_USER").has("VIEW_RULES"),false);
-  assert.equal(getEffectiveOrganizationPermissions("PUBLIC_USER").has("VIEW_RULES"),false);
 });
 
 test("Rule search is trimmed, status-aware, partial, and case-insensitive",()=>{

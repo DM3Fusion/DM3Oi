@@ -34,7 +34,7 @@ select pg_temp.assert_true((select count(*) from public.notifications where sour
 set local role authenticated;
 select set_config('request.jwt.claim.sub','70000000-0000-0000-0000-000000000004',true);
 do $$begin perform public.create_customer_service_request_message('73000000-0000-0000-0000-000000000001','');raise exception 'invalid message accepted';exception when invalid_parameter_value then null;end$$;
-select pg_temp.assert_true(not exists(select 1 from public.notifications),'PUBLIC_USER cannot query staff notifications');
+select pg_temp.assert_true(not exists(select 1 from public.notifications),'Customer Portal user cannot query staff notifications');
 reset role;
 select pg_temp.assert_true((select count(*) from public.notifications)=1,'failed submission creates no additional notification');
 

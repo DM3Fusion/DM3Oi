@@ -3382,7 +3382,6 @@ export type Database = {
         | "BUSINESS_OWNER"
         | "STAFF_MANAGER"
         | "STAFF_USER"
-        | "PUBLIC_USER"
       assignment_role: "MANAGER" | "STAFF"
       case_status:
         | "NEW"
@@ -3592,7 +3591,6 @@ export const Constants = {
         "BUSINESS_OWNER",
         "STAFF_MANAGER",
         "STAFF_USER",
-        "PUBLIC_USER",
       ],
       assignment_role: ["MANAGER", "STAFF"],
       case_status: [

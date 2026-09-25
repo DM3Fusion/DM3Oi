@@ -105,7 +105,9 @@ test("role and status filters normalize safely and match all supported access re
   assert.equal(platformUserMatchesFilters(user, "", "BUSINESS_OWNER", "ACTIVE"), true);
   assert.equal(platformUserMatchesFilters(user, "", "STAFF_USER", "ACTIVE"), false);
   assert.equal(platformUserMatchesFilters({ ...user, platformRoleAssigned: true }, "", "SUPER_ADMIN", "ALL"), true);
-  assert.equal(platformUserMatchesFilters({ ...user, portalAccesses: [{ organizationName: "Portal Org", customerName: "Customer" }] }, "", "PUBLIC_USER", "ALL"), true);
+  const portalUser = { ...user, portalAccesses: [{ organizationName: "Portal Org", customerName: "Customer" }] };
+  assert.equal(platformUserMatchesSearch(portalUser, "Customer Portal"), true);
+  assert.equal(normalizePlatformUserRole("PUBLIC_USER"), "ALL");
   assert.equal(platformUserMatchesFilters(user, "", "ALL", "SUSPENDED"), false);
   assert.equal(normalizePlatformUserRole("staff_manager"), "STAFF_MANAGER");
   assert.equal(normalizePlatformUserRole("unsupported"), "ALL");

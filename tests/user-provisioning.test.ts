@@ -16,7 +16,7 @@ test("only tenant-internal roles can be selected for organization provisioning",
     "STAFF_USER",
   ]);
   assert.equal(isOrganizationUserRole("SUPER_ADMIN"), false);
-  assert.equal(isOrganizationUserRole("PUBLIC_USER"), false);
+  assert.equal(isOrganizationUserRole("CUSTOMER_PORTAL"), false);
 });
 
 test("an invited profile without assigned access remains Pending Access", () => {

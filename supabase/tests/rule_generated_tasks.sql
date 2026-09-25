@@ -201,12 +201,12 @@ do $$begin
 exception when check_violation then null;end$$;
 do $$begin
   perform public.synchronize_case_rule_tasks('96100000-0000-0000-0000-000000000001','96400000-0000-0000-0000-000000000001','{}','96000000-0000-0000-0000-000000000003');
-  raise exception 'PUBLIC_USER synchronization actor accepted';
+  raise exception 'Customer Portal synchronization actor accepted';
 exception when insufficient_privilege then null;end$$;
 reset role;
 
 set local role authenticated;select set_config('request.jwt.claim.sub','96000000-0000-0000-0000-000000000003',true);
-select pg_temp.assert_true(not exists(select 1 from public.organization_case_tasks where organization_id='96100000-0000-0000-0000-000000000001'),'PUBLIC_USER cannot read generated internal Tasks');
+select pg_temp.assert_true(not exists(select 1 from public.organization_case_tasks where organization_id='96100000-0000-0000-0000-000000000001'),'Customer Portal user cannot read generated internal Tasks');
 reset role;
 
 select pg_temp.assert_true(not exists(

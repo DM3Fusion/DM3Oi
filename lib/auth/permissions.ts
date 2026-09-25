@@ -32,7 +32,6 @@ export const rolePermissionMatrix: Readonly<Record<ApplicationRole, ReadonlySet<
   BUSINESS_ADMIN: new Set(organizationAdmin),
   STAFF_MANAGER: new Set(manager),
   STAFF_USER: new Set(staffRead),
-  PUBLIC_USER: new Set(["ACCESS_CUSTOMER_PORTAL"]),
 };
 
 export type PermissionContext = {

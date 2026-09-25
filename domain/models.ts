@@ -1,6 +1,6 @@
 export type ISODateString = string;
-export type RoleKey = "SUPER_ADMIN" | "BUSINESS_ADMIN" | "BUSINESS_OWNER" | "STAFF_MANAGER" | "STAFF_USER" | "PUBLIC_USER";
-export type RoleScope = "PLATFORM" | "ORGANIZATION" | "PUBLIC";
+export type RoleKey = "SUPER_ADMIN" | "BUSINESS_ADMIN" | "BUSINESS_OWNER" | "STAFF_MANAGER" | "STAFF_USER";
+export type RoleScope = "PLATFORM" | "ORGANIZATION";
 export interface RoleConfiguration { key: RoleKey; displayName: string; scope: RoleScope; maximumAllowed?: number; description: string }
 export interface Organization { id: string; name: string; slug: string; createdAt: ISODateString; updatedAt: ISODateString }
 export interface User { id: string; organizationId?: string; firstName: string; lastName: string; email: string; role: RoleKey; title?: string; active: boolean; createdAt: ISODateString; updatedAt: ISODateString }

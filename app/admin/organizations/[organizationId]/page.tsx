@@ -143,7 +143,7 @@ export default async function Page({
           <div>
             <h2>Users / Access</h2>
             <p>
-              Internal organization memberships. Public portal access is managed
+              Internal organization memberships. Customer Portal access is managed
               separately.
             </p>
           </div>

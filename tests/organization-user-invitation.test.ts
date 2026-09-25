@@ -24,8 +24,8 @@ const foundation = source(
 );
 const access = (role: ApplicationRole) => ({
   isSuperAdmin: role === "SUPER_ADMIN",
-  internalAccess: role !== "PUBLIC_USER",
-  activeOrganization: role === "PUBLIC_USER" ? null : { role },
+  internalAccess: true,
+  activeOrganization: { role },
 });
 
 test("Add User is limited to organization Owners and authorized Admins", () => {

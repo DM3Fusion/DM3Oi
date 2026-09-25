@@ -9,7 +9,7 @@ import {
 const source = (path: string) => readFileSync(path, "utf8");
 const access = (role: ApplicationRole, isSuperAdmin = false) => ({
   isSuperAdmin,
-  internalAccess: role !== "PUBLIC_USER",
+  internalAccess: true,
   activeOrganization: { role },
 });
 
@@ -35,7 +35,7 @@ test("read and management behavior follows the centralized role matrix", () => {
   }
   assert.equal(hasPermission(access("SUPER_ADMIN", true), "VIEW_USERS"), true);
   assert.equal(hasPermission(access("SUPER_ADMIN", true), "MANAGE_USERS"), true);
-  assert.equal(hasPermission(access("PUBLIC_USER"), "VIEW_USERS"), false);
+  assert.equal(hasPermission({ isSuperAdmin: false, internalAccess: false, activeOrganization: null, customerPortalCount: 1 }, "VIEW_USERS"), false);
 });
 
 test("organization membership mutations are capability and tenant scoped", () => {

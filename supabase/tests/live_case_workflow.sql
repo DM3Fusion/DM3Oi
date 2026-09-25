@@ -57,7 +57,7 @@ select pg_temp.assert_true((select count(*)=2 from public.cases),'STAFF_USER see
 select pg_temp.assert_true(not exists(select 1 from public.cases where id=(select id from test_ids where name='unauthorized')),'STAFF_USER cannot see unauthorized case');
 reset role;
 set local role authenticated;select set_config('request.jwt.claim.sub','40000000-0000-0000-0000-000000000004',true);
-select pg_temp.assert_true((select count(*)=0 from public.cases),'PUBLIC_USER cannot access internal cases');
+select pg_temp.assert_true((select count(*)=0 from public.cases),'Customer Portal user cannot access internal cases');
 reset role;
 select 'DM3iQCM live case workflow regression tests passed' result;
 rollback;

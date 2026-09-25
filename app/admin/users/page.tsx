@@ -86,7 +86,7 @@ export default async function Page({
                           ))}
                           {user.portalAccesses.map((portal) => (
                             <span className="access-line" key={portal.id}>
-                              <b>{portal.organizationName}</b> · {platformRoleLabels.PUBLIC_USER} · {portal.effective ? "Active" : "Inactive"}
+                              <b>{portal.organizationName}</b> · Customer Portal · {portal.effective ? "Active" : "Inactive"}
                             </span>
                           ))}
                           {!user.platformRoleAssigned && !user.memberships.length && !user.portalAccesses.length ? "—" : null}

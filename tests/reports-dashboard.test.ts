@@ -200,7 +200,7 @@ test("reports repository enforces authorization scope and bounded safe-view quer
   assert.doesNotMatch(repository, /for\s*\([^)]*\)\s*\{[^}]*await/);
   assert.doesNotMatch(repository, /\.select\("\*"\)/);
   assert.match(repository, /if \(!access\?\.activeOrganization \|\| !hasPermission/);
-  assert.equal(hasPermission({ isSuperAdmin: false, internalAccess: false, activeOrganization: { role: "PUBLIC_USER" }, customerPortalCount: 1 }, "VIEW_REPORTS"), false);
+  assert.equal(hasPermission({ isSuperAdmin: false, internalAccess: false, activeOrganization: null, customerPortalCount: 1 }, "VIEW_REPORTS"), false);
 });
 
 test("reports UI exposes accessible responsive charts, truthful limitations, and supported drilldowns", () => {

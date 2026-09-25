@@ -21,10 +21,8 @@ test("Rules permissions use the centralized configurable permission model", () =
   }
   assert.equal(roleHasDefaultPermission("STAFF_MANAGER", "VIEW_RULES"), true);
   assert.equal(roleHasDefaultPermission("STAFF_MANAGER", "MANAGE_RULES"), false);
-  for (const role of ["STAFF_USER", "PUBLIC_USER"] as const) {
-    assert.equal(roleHasDefaultPermission(role, "VIEW_RULES"), false);
-    assert.equal(roleHasDefaultPermission(role, "MANAGE_RULES"), false);
-  }
+  assert.equal(roleHasDefaultPermission("STAFF_USER", "VIEW_RULES"), false);
+  assert.equal(roleHasDefaultPermission("STAFF_USER", "MANAGE_RULES"), false);
 
   const managerGrant: OrganizationPermissionOverride[] = [
     { role: "STAFF_MANAGER", permission: "MANAGE_RULES", isAllowed: true },
@@ -71,10 +69,15 @@ test("Rules permissions use the centralized configurable permission model", () =
 test("Rules access still requires internal active-organization context", () => {
   const context = (role: ApplicationRole) => ({
     isSuperAdmin: role === "SUPER_ADMIN",
-    internalAccess: role !== "PUBLIC_USER",
-    activeOrganization:
-      role === "PUBLIC_USER" ? null : { role },
+    internalAccess: true,
+    activeOrganization: { role },
   });
+  const portalContext = {
+    isSuperAdmin: false,
+    internalAccess: false,
+    activeOrganization: null,
+    customerPortalCount: 1,
+  };
   assert.equal(hasPermission(context("SUPER_ADMIN"), "VIEW_RULES"), true);
   assert.equal(
     hasPermission(
@@ -83,7 +86,7 @@ test("Rules access still requires internal active-organization context", () => {
     ),
     false,
   );
-  assert.equal(hasPermission(context("PUBLIC_USER"), "VIEW_RULES"), false);
+  assert.equal(hasPermission(portalContext, "VIEW_RULES"), false);
 });
 
 test("Rule condition grammar is closed and response-type compatible", () => {

@@ -4,7 +4,6 @@ export const platformUserRoles = [
   "BUSINESS_ADMIN",
   "STAFF_MANAGER",
   "STAFF_USER",
-  "PUBLIC_USER",
 ] as const;
 
 export type PlatformUserRoleFilter = "ALL" | (typeof platformUserRoles)[number];
@@ -29,7 +28,6 @@ export const platformRoleLabels: Record<(typeof platformUserRoles)[number], stri
   BUSINESS_ADMIN: "Business Admin",
   STAFF_MANAGER: "Staff Manager",
   STAFF_USER: "Staff User",
-  PUBLIC_USER: "Public User",
 };
 
 export const platformStatusLabels: Record<PlatformUserStatus, string> = {
@@ -123,8 +121,7 @@ export function platformUserMatchesSearch(
   const portalFields = user.portalAccesses.flatMap((access) => [
     access.organizationName,
     access.customerName,
-    "PUBLIC_USER",
-    "Public User",
+    "Customer Portal",
   ]);
   const fields = [
     user.display_name,
@@ -166,11 +163,9 @@ export function platformUserMatchesFilters(
 ) {
   if (status !== "ALL" && user.status !== status) return false;
   if (role === "SUPER_ADMIN" && !user.platformRoleAssigned) return false;
-  if (role === "PUBLIC_USER" && !user.portalAccesses.length) return false;
   if (
     role !== "ALL" &&
     role !== "SUPER_ADMIN" &&
-    role !== "PUBLIC_USER" &&
     !user.memberships.some((membership) => membership.role === role)
   ) {
     return false;
