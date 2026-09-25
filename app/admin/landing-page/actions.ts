@@ -28,6 +28,7 @@ function optionalField(
 function contentFromForm(
   form: FormData,
   workflowImageUrl: string | null,
+  trialRequestHeroImageUrl: string | undefined,
 ): PublicLandingPageContent | null {
   const content = {
     seo: {
@@ -89,6 +90,7 @@ function contentFromForm(
         field(form, "trialRequestPoint1"),
         field(form, "trialRequestPoint2"),
       ] as [string, string, string],
+      heroImageUrl: trialRequestHeroImageUrl,
       formHeading: optionalField(
         form,
         "trialFormHeading",
@@ -166,9 +168,15 @@ export async function saveLandingPageDraft(
           .workflowImageUrl
       : existingContent.features.workflowImageUrl;
 
+  const trialRequestHeroImageUrl =
+    existingContent.trialRequest?.heroImageUrl ??
+    defaultPublicLandingPageContent.trialRequest!
+      .heroImageUrl;
+
   const content = contentFromForm(
     form,
     workflowImageUrl,
+    trialRequestHeroImageUrl,
   );
 
   if (!content) {
@@ -301,6 +309,125 @@ const LANDING_PAGE_IMAGE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/webp": "webp",
 };
+
+export async function replaceTrialRequestHeroImage(
+  form: FormData,
+) {
+  const context = await requireSuperAdmin();
+  const image = form.get("trialRequestHeroImage");
+
+  if (!(image instanceof File) || image.size === 0) {
+    redirect("/admin/landing-page?error=trial-image-required");
+  }
+
+  const extension =
+    LANDING_PAGE_IMAGE_EXTENSIONS[image.type];
+
+  if (!extension) {
+    redirect("/admin/landing-page?error=trial-image-type");
+  }
+
+  if (image.size > LANDING_PAGE_IMAGE_MAX_BYTES) {
+    redirect("/admin/landing-page?error=trial-image-size");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: draft, error: draftError } = await admin
+    .from("public_landing_page_drafts")
+    .select("content")
+    .eq("page_key", "HOME")
+    .maybeSingle();
+
+  if (draftError) {
+    console.error(
+      "SUPER_ADMIN Trial Request hero draft lookup failed:",
+      draftError.code,
+      draftError.message,
+    );
+
+    redirect("/admin/landing-page?error=trial-image");
+  }
+
+  const currentContent =
+    draft && isPublicLandingPageContent(draft.content)
+      ? normalizePublicLandingPageContent(draft.content)
+      : defaultPublicLandingPageContent;
+
+  const objectName =
+    `home/trial-request-hero-${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+  const bytes = await image.arrayBuffer();
+
+  const { error: uploadError } = await admin.storage
+    .from(LANDING_PAGE_ASSET_BUCKET)
+    .upload(objectName, bytes, {
+      contentType: image.type,
+      cacheControl: "31536000",
+      upsert: false,
+    });
+
+  if (uploadError) {
+    console.error(
+      "SUPER_ADMIN Trial Request hero upload failed:",
+      uploadError.message,
+    );
+
+    redirect("/admin/landing-page?error=trial-image-upload");
+  }
+
+  const { data: publicUrlData } = admin.storage
+    .from(LANDING_PAGE_ASSET_BUCKET)
+    .getPublicUrl(objectName);
+
+  const heroImageUrl = publicUrlData.publicUrl;
+
+  if (!heroImageUrl) {
+    console.error(
+      "SUPER_ADMIN Trial Request hero public URL unavailable",
+    );
+
+    redirect("/admin/landing-page?error=trial-image");
+  }
+
+  const content: PublicLandingPageContent = {
+    ...currentContent,
+    trialRequest: {
+      ...defaultPublicLandingPageContent.trialRequest!,
+      ...(currentContent.trialRequest ?? {}),
+      heroImageUrl,
+    },
+  };
+
+  const { error: updateError } = await admin
+    .from("public_landing_page_drafts")
+    .upsert(
+      {
+        page_key: "HOME",
+        content,
+        updated_at: new Date().toISOString(),
+        updated_by: context.user.id,
+      },
+      {
+        onConflict: "page_key",
+      },
+    );
+
+  if (updateError) {
+    console.error(
+      "SUPER_ADMIN Trial Request hero draft update failed:",
+      updateError.code,
+      updateError.message,
+    );
+
+    redirect("/admin/landing-page?error=trial-image");
+  }
+
+  revalidatePath("/admin/landing-page");
+
+  redirect("/admin/landing-page?trialImageReplaced=1");
+}
+
 
 export async function removeLandingPageWorkflowImage(
   form: FormData,

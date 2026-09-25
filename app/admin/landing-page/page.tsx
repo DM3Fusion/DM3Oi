@@ -4,6 +4,7 @@ import {
   publishLandingPage,
   removeLandingPageWorkflowImage,
   replaceLandingPageWorkflowImage,
+  replaceTrialRequestHeroImage,
   revertLandingPageVersion,
   saveLandingPageDraft,
 } from "./actions";
@@ -24,6 +25,7 @@ type SearchParams = Promise<{
   reverted?: string;
   imageReplaced?: string;
   imageRemoved?: string;
+  trialImageReplaced?: string;
   error?: string;
 }>;
 
@@ -483,6 +485,36 @@ export default async function LandingPageAdmin({
           </div>
 
           <div className="form-stack">
+            <div className="landing-page-workflow-image-editor">
+              <div className="landing-page-workflow-image-copy">
+                <strong>Trial Request Hero Image</strong>
+                <p className="muted">
+                  Current working-draft artwork displayed at the
+                  top of the Request Trial left panel. Replacing
+                  this image does not change the public page until
+                  the draft is published.
+                </p>
+              </div>
+
+              <div className="landing-page-workflow-image-preview">
+                <Image
+                  src={
+                    content.trialRequest?.heroImageUrl ??
+                    defaultPublicLandingPageContent.trialRequest!
+                      .heroImageUrl!
+                  }
+                  alt="Current DM3Oi Trial Request hero artwork"
+                  width={600}
+                  height={349}
+                />
+              </div>
+
+              <p className="muted">
+                Use Trial Request Hero Image Management below the
+                draft editor to change this artwork.
+              </p>
+            </div>
+
             <label>
               Eyebrow
               <input
@@ -747,6 +779,58 @@ export default async function LandingPageAdmin({
           </SubmitButton>
         </div>
       </form>
+
+      <section className="panel landing-page-workflow-image-management">
+        <div className="email-template-heading">
+          <h2>Trial Request Hero Image Management</h2>
+          <p className="muted">
+            Replace the hero artwork in the working draft. The
+            public Request Trial page remains unchanged until the
+            draft is published.
+          </p>
+        </div>
+
+        <form
+          action={replaceTrialRequestHeroImage}
+          className="landing-page-workflow-image-form"
+        >
+          <div className="landing-page-workflow-image-preview">
+            <Image
+              src={
+                content.trialRequest?.heroImageUrl ??
+                defaultPublicLandingPageContent.trialRequest!
+                  .heroImageUrl!
+              }
+              alt="Current DM3Oi Trial Request hero artwork"
+              width={600}
+              height={349}
+            />
+          </div>
+
+          <label>
+            Replacement Image
+            <input
+              type="file"
+              name="trialRequestHeroImage"
+              accept="image/png,image/jpeg,image/webp"
+              required
+            />
+          </label>
+
+          <p className="muted">
+            PNG, JPEG, or WebP. Maximum 5 MB. Replacements are
+            stored as unique immutable assets so historical
+            published versions retain their original artwork.
+          </p>
+
+          <SubmitButton
+            className="secondary-button"
+            pendingText="Replacing Hero Image…"
+          >
+            Replace Trial Request Hero Image
+          </SubmitButton>
+        </form>
+      </section>
 
       <section className="panel landing-page-workflow-image-management">
         <div className="email-template-heading">

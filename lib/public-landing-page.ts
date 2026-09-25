@@ -49,6 +49,7 @@ export type PublicLandingPageContent = {
     heading: string;
     body: string;
     points: [string, string, string];
+    heroImageUrl?: string;
     formHeading?: string;
     formBody?: string;
     successEyebrow?: string;
@@ -163,6 +164,7 @@ export const defaultPublicLandingPageContent: PublicLandingPageContent = {
       "Customer service and operational workflow",
       "Cases, tasks, communications, and intelligence",
     ],
+    heroImageUrl: "/images/dm3oi-operations-hero.jpg",
     formHeading: "Trial Request",
     formBody:
       "Required fields help us understand the appropriate starting configuration for your organization.",
@@ -194,7 +196,7 @@ function isString(
   );
 }
 
-function isWorkflowImageUrl(value: unknown) {
+function isLandingPageImageUrl(value: unknown) {
   if (value === undefined || value === null) return true;
 
   if (
@@ -207,6 +209,7 @@ function isWorkflowImageUrl(value: unknown) {
 
   return (
     value.startsWith("/brand/") ||
+    value.startsWith("/images/") ||
     value.startsWith("https://")
   );
 }
@@ -262,7 +265,7 @@ export function isPublicLandingPageContent(
     !isString(content.features.eyebrow, 80) ||
     !isString(content.features.heading, 180) ||
     !isString(content.features.lead, 600) ||
-    !isWorkflowImageUrl(
+    !isLandingPageImageUrl(
       content.features.workflowImageUrl,
     ) ||
     !Array.isArray(content.features.items) ||
@@ -285,6 +288,9 @@ export function isPublicLandingPageContent(
           content.trialRequest.points,
           3,
           220,
+        ) ||
+        !isLandingPageImageUrl(
+          content.trialRequest.heroImageUrl,
         ) ||
         (content.trialRequest.formHeading !== undefined &&
           !isString(
@@ -364,6 +370,11 @@ export function normalizePublicLandingPageContent(
     trialRequest: {
       ...defaultPublicLandingPageContent.trialRequest!,
       ...(content.trialRequest ?? {}),
+      heroImageUrl:
+        content.trialRequest?.heroImageUrl === undefined
+          ? defaultPublicLandingPageContent.trialRequest!
+              .heroImageUrl
+          : content.trialRequest.heroImageUrl,
     },
   };
 }

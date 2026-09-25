@@ -57,7 +57,10 @@ export default async function RequestTrialPage({
             aria-label="DM3Oi Business Operations Intelligence home"
           >
             <Image
-              src="/images/dm3oi-operations-hero.jpg"
+              src={
+                content.heroImageUrl ??
+                "/images/dm3oi-operations-hero.jpg"
+              }
               alt="DM3Oi Operational Intelligence"
               width={600}
               height={349}
