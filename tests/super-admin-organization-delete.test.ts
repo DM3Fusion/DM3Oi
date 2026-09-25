@@ -396,6 +396,50 @@ test("durable deletion audit grants server cleanup the required table privileges
   );
 });
 
+test("global identity deletion guard can read every dependency table through service role", () => {
+  const privilegeMigration = read(
+    "supabase/migrations/20260925182000_dm3oi_global_identity_guard_service_role_select.sql",
+  );
+
+  const requiredTables = [
+    "case_activity",
+    "case_assignments",
+    "case_question_responses",
+    "case_tasks",
+    "cases",
+    "notifications",
+    "organization_license_events",
+    "organization_licenses",
+    "organization_lifecycle_statuses",
+    "organization_role_permissions",
+    "platform_user_roles",
+    "question_definitions",
+    "rule_actions",
+    "rule_definitions",
+    "service_request_activity",
+    "service_request_messages",
+    "trial_request_status_history",
+    "trial_requests",
+  ];
+
+  for (const table of requiredTables) {
+    assert.match(
+      privilegeMigration,
+      new RegExp(`public\\.${table}`),
+      `${table} must be readable by the server-side deletion guard`,
+    );
+  }
+
+  assert.match(
+    privilegeMigration,
+    /grant select on table[\s\S]*to service_role;/,
+  );
+  assert.doesNotMatch(
+    privilegeMigration,
+    /\b(insert|update|delete|truncate)\b/i,
+  );
+});
+
 test("unresolved post-deletion cleanup is discoverable after organization route disappears", () => {
   assert.match(
     actions,
