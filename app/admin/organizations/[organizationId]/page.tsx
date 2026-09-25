@@ -31,7 +31,11 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ organizationId: string }>;
-  searchParams: Promise<{ message?: string; error?: string }>;
+  searchParams: Promise<{
+    message?: string;
+    error?: string;
+    resetAuditId?: string;
+  }>;
 }) {
   const [{ organizationId }, query] = await Promise.all([params, searchParams]);
   const { organization, members, cases, customers, timezone } =
@@ -303,7 +307,8 @@ export default async function Page({
             <h2>Reset Company & Users</h2>
             <p>
               SUPER_ADMIN-only recovery tool for removing organization test
-              activity while preserving company setup and one Business Owner.
+              activity and eligible test-only identities while preserving
+              company setup and one Business Owner.
             </p>
           </div>
         </div>
@@ -312,6 +317,7 @@ export default async function Page({
           organizationId={organization.id}
           organizationName={organization.name}
           owners={resetOwners}
+          retryResetAuditId={query.resetAuditId}
         />
       </section>
 

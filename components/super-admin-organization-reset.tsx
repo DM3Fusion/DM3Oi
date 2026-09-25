@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import {
   previewOrganizationResetAction,
   resetOrganizationCompanyAndUsersAction,
+  retryOrganizationResetIdentityCleanupAction,
   type OrganizationResetPreviewState,
 } from "@/lib/data/platform-actions";
 
@@ -21,6 +22,7 @@ const initialPreviewState: OrganizationResetPreviewState = {
 };
 
 const previewRows = [
+  ["Test identities evaluated for permanent cleanup", "identityCleanupCandidates"],
   ["Organization users removed", "organizationUsersRemoved"],
   ["Customer Portal users", "customerPortalUsers"],
   ["Customers", "customers"],
@@ -72,10 +74,12 @@ export function SuperAdminOrganizationReset({
   organizationId,
   organizationName,
   owners,
+  retryResetAuditId,
 }: {
   organizationId: string;
   organizationName: string;
   owners: Owner[];
+  retryResetAuditId?: string;
 }) {
   const defaultOwnerId = owners.length === 1 ? owners[0].userId : "";
   const [ownerId, setOwnerId] = useState(defaultOwnerId);
@@ -114,6 +118,25 @@ export function SuperAdminOrganizationReset({
       <div className="admin-organization-reset-body">
         <strong>Reset organization test data</strong>
 
+        {retryResetAuditId ? (
+          <div className="form-alert">
+            <p>
+              The company reset completed, but identity cleanup still requires
+              reconciliation. Retry only the identity cleanup; the company
+              reset itself will not run again.
+            </p>
+            <form action={retryOrganizationResetIdentityCleanupAction}>
+              <input type="hidden" name="organizationId" value={organizationId} />
+              <input type="hidden" name="resetAuditId" value={retryResetAuditId} />
+              <div className="form-actions">
+                <button type="submit" className="secondary-button danger-button">
+                  Retry Identity Cleanup
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
+
         <p>
           This permanently removes organization users other than the selected
           Business Owner, Customer Portal access, customers, cases, service
@@ -129,8 +152,10 @@ export function SuperAdminOrganizationReset({
         </p>
 
         <p>
-          Removed organization users are not automatically deleted from
-          Supabase Auth or from their global DM3Oi profile.
+          Test identities used only by this organization are also evaluated for
+          permanent removal from DM3Oi and Supabase Auth. An identity is
+          preserved if it still has access, configuration history, or other
+          retained dependencies elsewhere in the platform.
         </p>
 
         {owners.length ? (
@@ -185,8 +210,10 @@ export function SuperAdminOrganizationReset({
               <div className="admin-organization-reset-preview">
                 <strong>Reset Preview</strong>
                 <p>
-                  These records will be removed from {organizationName}. Review
-                  the counts before enabling the permanent reset.
+                  These records will be removed from {organizationName}. Test
+                  identities shown below will also be evaluated for permanent
+                  cleanup. Review the counts before enabling the permanent
+                  reset.
                 </p>
 
                 <dl>

@@ -8,6 +8,15 @@ const migration = source(
   "supabase/migrations/20260925160000_dm3oi_super_admin_organization_reset.sql",
 );
 
+const cleanupMigration = source(
+  "supabase/migrations/20260925170000_dm3oi_complete_organization_reset_identity_cleanup.sql",
+);
+
+const resetAction = source("lib/data/platform-actions.ts");
+const globalDeletion = source(
+  "lib/data/platform-user-global-deletion.ts",
+);
+
 test("organization reset RPCs are active-SUPER_ADMIN gated and narrowly executable", () => {
   assert.match(
     migration,
@@ -251,5 +260,154 @@ test("SUPER_ADMIN reset UI uses preview, explicit owner selection, and typed con
   assert.match(
     page,
     /SuperAdminOrganizationReset/,
+  );
+});
+
+
+test("complete reset captures identity candidates without deleting Auth or profiles in SQL", () => {
+  assert.match(
+    cleanupMigration,
+    /'identityCleanupCandidates'/,
+  );
+  assert.match(
+    cleanupMigration,
+    /'identityCleanupCandidateUserIds'/,
+  );
+  assert.match(
+    cleanupMigration,
+    /'resetAuditId'/,
+  );
+
+  assert.doesNotMatch(cleanupMigration, /delete\s+from\s+auth\./i);
+  assert.doesNotMatch(
+    cleanupMigration,
+    /delete\s+from\s+public\.profiles/i,
+  );
+});
+
+test("identity cleanup audit can only be finalized by the service role", () => {
+  assert.match(
+    cleanupMigration,
+    /create or replace function public\.complete_organization_reset_identity_cleanup/,
+  );
+  assert.match(
+    cleanupMigration,
+    /if auth\.role\(\) <> 'service_role' then/,
+  );
+  assert.match(
+    cleanupMigration,
+    /grant execute on function public\.complete_organization_reset_identity_cleanup\([\s\S]*?\) to service_role;/,
+  );
+  assert.doesNotMatch(
+    cleanupMigration,
+    /grant execute on function public\.complete_organization_reset_identity_cleanup\([\s\S]*?\) to authenticated;/,
+  );
+});
+
+test("complete reset performs fail-closed global eligibility before Auth deletion", () => {
+  assert.match(
+    resetAction,
+    /getGlobalUserDeletionEligibility/,
+  );
+  assert.match(
+    resetAction,
+    /admin\.auth\.admin\.deleteUser\(userId\)/,
+  );
+  assert.match(
+    resetAction,
+    /complete_organization_reset_identity_cleanup/,
+  );
+
+  assert.match(
+    globalDeletion,
+    /Another organization membership exists\./,
+  );
+  assert.match(
+    globalDeletion,
+    /A platform administrator role exists\./,
+  );
+  assert.match(
+    globalDeletion,
+    /A Customer Portal identity exists\./,
+  );
+  assert.match(
+    globalDeletion,
+    /Dependency checks could not be completed\./,
+  );
+});
+
+test("reset UI describes complete test-identity cleanup and previews candidate count", () => {
+  const component = source(
+    "components/super-admin-organization-reset.tsx",
+  );
+
+  assert.match(component, /identityCleanupCandidates/);
+  assert.match(
+    component,
+    /Test identities evaluated for permanent cleanup/,
+  );
+  assert.match(
+    component,
+    /permanent removal from DM3Oi and Supabase Auth/,
+  );
+  assert.doesNotMatch(
+    component,
+    /not automatically deleted from\s+Supabase Auth/,
+  );
+});
+
+
+test("reset identity cleanup has a durable retry and reconciliation path", () => {
+  const component = source(
+    "components/super-admin-organization-reset.tsx",
+  );
+  const page = source(
+    "app/admin/organizations/[organizationId]/page.tsx",
+  );
+
+  assert.match(
+    resetAction,
+    /retryOrganizationResetIdentityCleanupAction/,
+  );
+  assert.match(
+    resetAction,
+    /admin\.auth\.admin\.getUserById\(userId\)/,
+  );
+  assert.match(
+    resetAction,
+    /from\("profiles"\)[\s\S]*?\.eq\("id",userId\)[\s\S]*?\.maybeSingle\(\)/,
+  );
+  assert.match(
+    resetAction,
+    /previouslyDeletedUserIds/,
+  );
+  assert.match(
+    resetAction,
+    /previouslyRetainedUserIds/,
+  );
+  assert.match(
+    resetAction,
+    /if\(previouslyRetained\.has\(userId\)\)[\s\S]*?retainedUserIds\.push\(userId\)[\s\S]*?continue/,
+  );
+  assert.match(
+    resetAction,
+    /\["PENDING","PARTIAL"\]/,
+  );
+  assert.match(
+    resetAction,
+    /finalizeOrganizationResetIdentityCleanup/,
+  );
+
+  assert.match(
+    component,
+    /Retry Identity Cleanup/,
+  );
+  assert.match(
+    component,
+    /retryOrganizationResetIdentityCleanupAction/,
+  );
+  assert.match(
+    page,
+    /retryResetAuditId=\{query\.resetAuditId\}/,
   );
 });
