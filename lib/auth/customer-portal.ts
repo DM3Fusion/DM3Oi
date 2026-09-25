@@ -26,13 +26,20 @@ export async function getCustomerPortalContext(): Promise<CustomerPortalContext 
   } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: links, error } = await supabase
-    .from("customer_portal_users")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("is_active", true);
+  const [{ data: profile }, { data: links, error }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("is_active")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("customer_portal_users")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("is_active", true),
+  ]);
   const activeLinks = links ?? [];
-  if (error || !activeLinks.length) {
+  if (profile?.is_active === false || error || !activeLinks.length) {
     return { user, access: null, organization: null, customer: null, links: [], settings: null, reason: "NO_ACTIVE_PORTAL_ACCESS" };
   }
 

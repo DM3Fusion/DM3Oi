@@ -57,7 +57,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     const [profile, platform, memberships, portal] = await Promise.all([
       supabase
         .from("profiles")
-        .select("display_name,first_name,last_name,email,title,avatar_path,avatar_updated_at")
+        .select("display_name,first_name,last_name,email,title,avatar_path,avatar_updated_at,is_active")
         .eq("id", user.id)
         .maybeSingle(),
       supabase
@@ -78,6 +78,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         .eq("user_id", user.id)
         .eq("is_active", true),
     ]);
+    if (profile.data?.is_active === false) return null;
     const isSuperAdmin = Boolean(platform.data?.length);
     const membershipRows = memberships.data ?? [];
     const allowedIds = membershipRows.map((row) => row.organization_id);

@@ -1,57 +1,65 @@
 import Link from "next/link";
 import { Badge, PageHeader } from "@/components/ui";
 import { NavigableRow } from "@/components/navigable-row";
-import { UrlSearch } from "@/components/question-search";
+import { PlatformUserFilters } from "@/components/platform-user-filters";
 import { UserAvatar } from "@/components/user-avatar";
 import { getPlatformAdministration } from "@/lib/data/platform-repository";
 import {
   normalizePlatformUserQuery,
-  platformUserMatchesSearch,
+  normalizePlatformUserRole,
+  normalizePlatformUserStatus,
+  platformRoleLabels,
+  platformUserMatchesFilters,
 } from "@/lib/platform-user-filters";
 import { ApplicationIcon } from "@/components/application-icon";
+import { formatPlatformDateTime } from "@/lib/format";
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; role?: string; status?: string }>;
 }) {
   const [{ users }, query] = await Promise.all([
     getPlatformAdministration(),
     searchParams,
   ]);
   const q = normalizePlatformUserQuery(query.q);
+  const role = normalizePlatformUserRole(query.role);
+  const status = normalizePlatformUserStatus(query.status);
   const visibleUsers = users.filter((user) =>
-    platformUserMatchesSearch(user, q),
+    platformUserMatchesFilters(user, q, role, status),
   );
   return (
     <>
       <PageHeader
         eyebrow="Platform Administration"
-        title="Users / Access"
+        title="Platform Users"
         action={
           <Link className="primary-button" href="/admin/users/new">
             <ApplicationIcon name="add" />Create User
           </Link>
         }
       />
-      <UrlSearch
-        q={q}
-        label="Search platform users"
-        placeholder="Search users..."
-        clearLabel="Clear platform user search"
+      <div className="platform-user-count">
+        <b>{visibleUsers.length}</b> of <b>{users.length}</b> user{users.length === 1 ? "" : "s"}
+      </div>
+      <PlatformUserFilters
+        query={q}
+        role={role}
+        status={status}
       />
       <section className="panel">
         {users.length ? (
           visibleUsers.length ? (
-            <div className="table-scroll">
-              <table>
+            <div className="table-scroll platform-users-table-scroll">
+              <table className="platform-users-table">
                 <thead>
                   <tr>
                     <th>User</th>
-                    <th>Access state</th>
-                    <th>Organizations / roles</th>
-                    <th>Portal access</th>
-                    <th>Profile</th>
+                    <th>Organization / Role</th>
+                    <th>Status</th>
+                    <th>Last Sign In</th>
+                    <th>User Since</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -62,37 +70,47 @@ export default async function Page({
                       label={`Open user ${user.display_name || user.email || "record"}`}
                     >
                       <td>
-                        <span className="user-identity-cell"><UserAvatar displayName={user.display_name} email={user.email} src={user.avatarUrl} size="sm"/><span><Link className="entity-row-link" href={`/admin/users/${user.id}`}>{user.display_name || [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email || "Unnamed user"}</Link><small className="table-secondary">{user.email ?? "No email"}</small></span></span>
+                        <span className="user-identity-cell"><UserAvatar displayName={user.display_name} email={user.email} src={user.avatarUrl} size="sm"/><span><Link className="entity-row-link" href={`/admin/users/${user.id}`}>{user.display_name || [user.first_name, user.last_name].filter(Boolean).join(" ") || user.email || "Unnamed user"}</Link><small className="table-secondary">{user.email ?? "Email unavailable"}</small></span></span>
                       </td>
                       <td>
-                        <Badge value={user.accessState} />
+                        <span className="platform-user-access-list">
+                          {user.platformRoleAssigned ? (
+                            <span className="access-line">
+                              <b>DM3Oi Platform</b> · {platformRoleLabels.SUPER_ADMIN} · {user.platformAdmin ? "Active" : "Inactive"}
+                            </span>
+                          ) : null}
+                          {user.memberships.map((membership) => (
+                            <span className="access-line" key={membership.id}>
+                              <b>{membership.organizationName}</b> · {platformRoleLabels[membership.role as keyof typeof platformRoleLabels] ?? membership.role.replaceAll("_", " ")} · {membership.status.charAt(0) + membership.status.slice(1).toLowerCase()}
+                            </span>
+                          ))}
+                          {user.portalAccesses.map((portal) => (
+                            <span className="access-line" key={portal.id}>
+                              <b>{portal.organizationName}</b> · {platformRoleLabels.PUBLIC_USER} · {portal.effective ? "Active" : "Inactive"}
+                            </span>
+                          ))}
+                          {!user.platformRoleAssigned && !user.memberships.length && !user.portalAccesses.length ? "—" : null}
+                        </span>
                       </td>
                       <td>
-                        {user.memberships.length
-                          ? user.memberships.map((membership) => (
-                              <span className="access-line" key={membership.id}>
-                                {membership.organizationName} ·{" "}
-                                {membership.role.replaceAll("_", " ")} ·{" "}
-                                {membership.active ? "Active" : "Inactive"}
-                              </span>
-                            ))
-                          : "—"}
+                        <Badge value={user.status} />
+                        {user.accessState.replaceAll("_", " ").toUpperCase() !== user.status.replaceAll("_", " ") ? (
+                          <small className="table-secondary platform-user-access-state">{user.accessState}</small>
+                        ) : null}
                       </td>
-                      <td>{user.portalAccess}</td>
-                      <td>
-                        <Badge value={user.is_active ? "ACTIVE" : "INACTIVE"} />
-                      </td>
+                      <td><time dateTime={user.lastSignInAt ?? undefined}>{user.lastSignInAt ? formatPlatformDateTime(user.lastSignInAt) : "Never"}</time></td>
+                      <td><time dateTime={user.userSinceAt ?? undefined}>{formatPlatformDateTime(user.userSinceAt)}</time></td>
                     </NavigableRow>
                   ))}
                 </tbody>
               </table>
             </div>
           ) : (
-            <div className="no-results">No users match this search.</div>
+            <div className="no-results">No users match the current filters.</div>
           )
         ) : (
           <div className="empty compact-empty">
-            <h2>No user profiles yet</h2>
+            <h2>No platform users yet</h2>
             <p>
               Invite the first user and optionally provision organization
               access.

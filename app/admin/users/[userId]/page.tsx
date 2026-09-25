@@ -99,7 +99,7 @@ export default async function Page({
                 </span>
               </span>
             </div>
-            <Badge value={user.is_active ? "ACTIVE" : "INACTIVE"} />
+            <Badge value={user.status} />
           </div>
           <PlatformIdentityForm
             userId={user.id}

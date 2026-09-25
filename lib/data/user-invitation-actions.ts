@@ -690,13 +690,13 @@ export async function updateUserProfileAction(form: FormData) {
   }
   const { error: profileError } = await admin
     .from("profiles")
-    .update({
+    .upsert({
+      id: userId,
       display_name: value(form, "displayName"),
       title: value(form, "title").slice(0, 100) || null,
       email,
       is_active: value(form, "active") === "true",
-    })
-    .eq("id", userId);
+    });
   if (profileError) {
     console.error("Auth email updated but profile synchronization failed", {
       code: profileError.code,

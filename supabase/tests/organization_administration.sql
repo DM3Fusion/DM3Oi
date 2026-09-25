@@ -16,6 +16,15 @@ insert into auth.users(id,email) values
  ('50000000-0000-0000-0000-000000000012','staff2@example.test');
 insert into public.platform_user_roles(user_id,role) values('50000000-0000-0000-0000-000000000001','SUPER_ADMIN');
 
+select pg_temp.assert_true(public.is_super_admin('50000000-0000-0000-0000-000000000001'),'active profile and active super admin role grant platform access');
+update public.profiles set is_active=false where id='50000000-0000-0000-0000-000000000001';
+select pg_temp.assert_true(not public.is_super_admin('50000000-0000-0000-0000-000000000001'),'inactive profile and active super admin role deny platform access');
+update public.profiles set is_active=true where id='50000000-0000-0000-0000-000000000001';
+update public.platform_user_roles set is_active=false where user_id='50000000-0000-0000-0000-000000000001' and role='SUPER_ADMIN';
+select pg_temp.assert_true(not public.is_super_admin('50000000-0000-0000-0000-000000000001'),'active profile and inactive super admin role deny platform access');
+select pg_temp.assert_true(not public.is_super_admin('50000000-0000-0000-0000-000000000002'),'profile without a super admin role denies platform access');
+update public.platform_user_roles set is_active=true where user_id='50000000-0000-0000-0000-000000000001' and role='SUPER_ADMIN';
+
 set local role authenticated;
 select set_config('request.jwt.claim.sub','50000000-0000-0000-0000-000000000001',true);
 select (public.create_organization('First Business','first-business')).id organization_id \gset

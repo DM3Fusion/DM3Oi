@@ -5,7 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { classifyAccess } from "@/lib/data/user-provisioning";
 import { attachAvatarUrls, type ProfileWithAvatar } from "@/lib/data/avatar-urls";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
 import type { Database } from "@/types/database.generated";
+import type { User } from "@supabase/supabase-js";
 type Tables = Database["public"]["Tables"];
 export type OrganizationRow = Tables["organizations"]["Row"];
 export type MembershipRow = Tables["organization_members"]["Row"];
@@ -24,8 +27,27 @@ export interface OrganizationAdminRow extends OrganizationRow {
 export interface MemberAdminRow extends MembershipRow {
   profile: AvatarProfileRow;
 }
-export interface PlatformUserRow extends AvatarProfileRow {
+export interface PlatformUserRow {
+  id: string;
+  email: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  display_name: string | null;
+  phone: string | null;
+  title: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  avatar_path: string | null;
+  avatar_updated_at: string | null;
+  avatarUrl: string | null;
+  profileExists: boolean;
+  authAccountExists: boolean;
+  lastSignInAt: string | null;
+  userSinceAt: string | null;
+  status: PlatformUserStatus;
   platformAdmin: boolean;
+  platformRoleAssigned: boolean;
   memberships: {
     id: string;
     organizationId: string;
@@ -33,9 +55,16 @@ export interface PlatformUserRow extends AvatarProfileRow {
     role: string;
     status: Database["public"]["Enums"]["organization_membership_status"];
     active: boolean;
+    organizationActive: boolean;
     joinedAt: string;
   }[];
   portalAccess: number;
+  portalAccesses: {
+    id: string;
+    organizationName: string;
+    customerName: string;
+    effective: boolean;
+  }[];
   accessState:
     | "Platform Admin"
     | "Organization User"
@@ -50,9 +79,29 @@ export interface PlatformSummary {
   organizationUsers: number;
   pendingProvisioning: number;
 }
+async function listAllAuthUsers(admin: ReturnType<typeof createAdminClient>) {
+  const users: User[] = [];
+  const perPage = 1000;
+  for (let page = 1; ; page += 1) {
+    const result = await admin.auth.admin.listUsers({ page, perPage });
+    if (result.error) {
+      console.error("Platform Auth user enumeration failed", {
+        code: result.error.code,
+        message: result.error.message,
+        page,
+      });
+      throw new Error("Platform authentication data is temporarily unavailable.");
+    }
+    users.push(...result.data.users);
+    if (result.data.users.length < perPage) break;
+  }
+  return users;
+}
+
 async function loadPlatformData() {
   await requireSuperAdmin();
   const supabase = await createClient();
+  const admin = createAdminClient();
   const [
     organizations,
     memberships,
@@ -61,6 +110,8 @@ async function loadPlatformData() {
     portalUsers,
     cases,
     customers,
+    organizationSettings,
+    authUsers,
   ] = await Promise.all([
     supabase.from("organizations").select("*").order("name"),
     supabase.from("organization_members").select("*"),
@@ -69,6 +120,8 @@ async function loadPlatformData() {
     supabase.from("customer_portal_users").select("*"),
     supabase.from("organization_cases").select("*"),
     supabase.from("organization_customers").select("*"),
+    supabase.from("organization_settings").select("organization_id,portal_enabled"),
+    listAllAuthUsers(admin),
   ]);
   const licenseQuery = await (supabase as any).from("organization_licenses").select("*").eq("is_current", true).order("created_at", { ascending: false });
   if (licenseQuery.error) {
@@ -83,7 +136,8 @@ async function loadPlatformData() {
     platformRoles.error ??
     portalUsers.error ??
     cases.error ??
-    customers.error;
+    customers.error ??
+    organizationSettings.error;
   if (error) {
     console.error("Platform administration query failed", {
       code: error.code,
@@ -105,6 +159,8 @@ async function loadPlatformData() {
     portalUsers: portalUsers.data ?? [],
     cases: cases.data ?? [],
     customers: customers.data ?? [],
+    organizationSettings: organizationSettings.data ?? [],
+    authUsers,
   };
 }
 export async function getPlatformAdministration() {
@@ -136,9 +192,20 @@ export async function getPlatformAdministration() {
       };
     },
   );
-  const users: PlatformUserRow[] = data.profiles.map((profile) => {
+  const profileById = new Map(data.profiles.map((profile) => [profile.id, profile]));
+  const authById = new Map(data.authUsers.map((user) => [user.id, user]));
+  const userIds = new Set<string>([
+    ...data.authUsers.map((user) => user.id),
+    ...data.profiles.map((profile) => profile.id),
+    ...data.platformRoles.map((role) => role.user_id),
+    ...data.memberships.map((membership) => membership.user_id),
+    ...data.portalUsers.map((portal) => portal.user_id),
+  ]);
+  const users: PlatformUserRow[] = Array.from(userIds).map((userId) => {
+    const profile = profileById.get(userId);
+    const authUser = authById.get(userId);
     const memberships = data.memberships
-      .filter((m) => m.user_id === profile.id)
+      .filter((m) => m.user_id === userId)
       .map((m) => ({
         id: m.id,
         organizationId: m.organization_id,
@@ -148,26 +215,102 @@ export async function getPlatformAdministration() {
         role: m.role,
         status: m.status,
         active: m.is_active,
+        organizationActive:
+          data.organizations.find((o) => o.id === m.organization_id)?.status === "ACTIVE",
         joinedAt: m.joined_at,
       }));
-    const platformAdmin = data.platformRoles.some(
-      (r) => r.user_id === profile.id && r.is_active,
+    const assignedPlatformRoles = data.platformRoles.filter((r) => r.user_id === userId);
+    const platformAdmin = assignedPlatformRoles.some(
+      (r) => r.role === "SUPER_ADMIN" && r.is_active,
     );
-    const portalAccess = data.portalUsers.filter(
-      (p) => p.user_id === profile.id && p.is_active,
-    ).length;
+    const portalAccesses = data.portalUsers
+      .filter((p) => p.user_id === userId)
+      .map((portal) => {
+        const organization = data.organizations.find((item) => item.id === portal.organization_id);
+        const customer = data.customers.find((item) => item.id === portal.customer_id && item.organization_id === portal.organization_id);
+        const settings = data.organizationSettings.find((item) => item.organization_id === portal.organization_id);
+        return {
+          id: portal.id,
+          organizationName: organization?.name ?? "Unknown organization",
+          customerName: customer?.name ?? "Unknown customer",
+          effective: Boolean(
+            authUser &&
+            profile?.is_active === true &&
+            portal.is_active &&
+            organization?.status === "ACTIVE" &&
+            customer?.status === "ACTIVE" &&
+            settings?.portal_enabled !== false,
+          ),
+        };
+      });
+    const portalAccess = portalAccesses.filter((portal) => portal.effective).length;
+    const effectivePlatformAccess = Boolean(
+      authUser && profile?.is_active === true && platformAdmin,
+    );
+    const effectiveOrganizationAccess = Boolean(
+      authUser &&
+      profile?.is_active === true &&
+      memberships.some((membership) =>
+        membership.status === "ACTIVE" && membership.active && membership.organizationActive,
+      ),
+    );
+    const status = derivePlatformUserStatus({
+      authAccountExists: Boolean(authUser),
+      profileExists: Boolean(profile),
+      profileActive: profile?.is_active ?? null,
+      hasApplicationAssignment: Boolean(
+        profile || assignedPlatformRoles.length || memberships.length || portalAccesses.length,
+      ),
+      effectivePlatformAccess,
+      effectiveOrganizationAccess,
+      effectivePortalAccess: portalAccess > 0,
+      membershipStatuses: memberships.map((membership) => membership.status),
+    });
+    const metadataName =
+      typeof authUser?.user_metadata?.display_name === "string"
+        ? authUser.user_metadata.display_name
+        : typeof authUser?.user_metadata?.full_name === "string"
+          ? authUser.user_metadata.full_name
+          : null;
+    const createdAt = profile?.created_at ?? authUser?.created_at ?? new Date(0).toISOString();
     return {
-      ...profile,
+      id: userId,
+      email: authUser?.email ?? profile?.email ?? null,
+      first_name: profile?.first_name ?? null,
+      last_name: profile?.last_name ?? null,
+      display_name:
+        profile?.display_name ??
+        metadataName ??
+        authUser?.email ??
+        profile?.email ??
+        "Unnamed user",
+      phone: profile?.phone ?? null,
+      title: profile?.title ?? null,
+      is_active: profile?.is_active ?? true,
+      created_at: createdAt,
+      updated_at: profile?.updated_at ?? createdAt,
+      avatar_path: profile?.avatar_path ?? null,
+      avatar_updated_at: profile?.avatar_updated_at ?? null,
+      avatarUrl: profile?.avatarUrl ?? null,
+      profileExists: Boolean(profile),
+      authAccountExists: Boolean(authUser),
+      lastSignInAt: authUser?.last_sign_in_at ?? null,
+      userSinceAt: authUser?.created_at ?? profile?.created_at ?? null,
+      status,
       platformAdmin,
+      platformRoleAssigned: assignedPlatformRoles.some((role) => role.role === "SUPER_ADMIN"),
       memberships,
       portalAccess,
+      portalAccesses,
       accessState: classifyAccess({
-        platformAdmin,
-        activeOrganizationMembership: memberships.some((m) => m.active),
+        platformAdmin: effectivePlatformAccess,
+        activeOrganizationMembership: effectiveOrganizationAccess,
         activePortalAccess: portalAccess > 0,
       }),
     };
-  });
+  }).sort((a, b) =>
+    (a.display_name ?? a.email ?? "").localeCompare(b.display_name ?? b.email ?? ""),
+  );
   return {
     organizations,
     users,
