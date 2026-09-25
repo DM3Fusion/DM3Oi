@@ -8,6 +8,108 @@ const friendly=(message:string)=>{if(message.includes("user identity already bel
 async function rpcError<T>(operation:PromiseLike<{data:T;error:{message:string;code:string}|null}>,path:string){const result=await operation;if(result.error){console.error("Platform mutation failed",{code:result.error.code,message:result.error.message});redirect(destination(path,"error",friendly(result.error.message)))}return result.data}
 type TrialOrganizationConversionDatabase=Database&{public:Database["public"]&{Functions:Database["public"]["Functions"]&{convert_trial_request_to_organization:{Args:{target_trial_request_id:string;target_organization_name:string;target_organization_slug:string;target_conversion_note:string;target_owner_user_id:string;target_owner_email:string;target_owner_identity_verified:boolean};Returns:{id:string;name:string;slug:string;status:string}}}}};
 
+export type OrganizationResetPreview = {
+ organizationId:string;
+ organizationName:string;
+ preservedOwnerUserId:string;
+ customers:number;
+ customerPortalUsers:number;
+ cases:number;
+ caseTasks:number;
+ caseActivity:number;
+ caseAssignments:number;
+ caseQuestions:number;
+ caseQuestionResponses:number;
+ serviceRequests:number;
+ serviceRequestMessages:number;
+ serviceRequestActivity:number;
+ serviceRequestCommunications:number;
+ notifications:number;
+ organizationUsersRemoved:number;
+ membershipEvents:number;
+ caseNumberCounters:number;
+ customerAnnualNumberCounters:number;
+ customerNumberCounters:number;
+ serviceRequestAnnualNumberCounters:number;
+ analyticsLiveSessions:number;
+ analyticsPageViews:number;
+};
+
+type OrganizationResetDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   preview_organization_reset:{
+    Args:{
+     target_organization_id:string;
+     preserved_owner_user_id:string;
+    };
+    Returns:OrganizationResetPreview;
+   };
+   reset_organization_company_and_users:{
+    Args:{
+     target_organization_id:string;
+     preserved_owner_user_id:string;
+     confirmation_text:string;
+    };
+    Returns:Record<string,unknown>;
+   };
+  };
+ };
+};
+
+export type OrganizationResetPreviewState =
+ | {ok:false;error:string;preview:null}
+ | {ok:true;error:null;preview:OrganizationResetPreview};
+
+export async function previewOrganizationResetAction(
+ _previousState:OrganizationResetPreviewState,
+ form:FormData,
+):Promise<OrganizationResetPreviewState>{
+ await requireSuperAdmin();
+
+ const organizationId=value(form,"organizationId");
+ const preservedOwnerUserId=value(form,"preservedOwnerUserId");
+
+ if(!organizationId||!preservedOwnerUserId){
+  return {
+   ok:false,
+   error:"Select the Business Owner to preserve before previewing the reset.",
+   preview:null,
+  };
+ }
+
+ const supabase=await createClient();
+ const resetClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<OrganizationResetDatabase>
+ >;
+
+ const result=await resetClient.rpc("preview_organization_reset",{
+  target_organization_id:organizationId,
+  preserved_owner_user_id:preservedOwnerUserId,
+ });
+
+ if(result.error||!result.data){
+  console.error("Organization reset preview failed",{
+   code:result.error?.code??null,
+   message:result.error?.message??null,
+   organizationId,
+   preservedOwnerUserId,
+  });
+
+  return {
+   ok:false,
+   error:"The organization reset preview could not be prepared.",
+   preview:null,
+  };
+ }
+
+ return {
+  ok:true,
+  error:null,
+  preview:result.data,
+ };
+}
+
 export async function createOrganizationAction(form:FormData){
  await requireSuperAdmin();
  const name=value(form,"name");
@@ -168,6 +270,92 @@ export async function updateOrganizationAction(form:FormData):Promise<{ok:true;v
 export async function provisionMemberAction(form:FormData){await requireSuperAdmin();const id=value(form,"organizationId");const path=`/admin/organizations/${id}`;const role=value(form,"role") as AppRole;if(!internalRoles.includes(role))redirect(destination(path,"error","Select a valid organization role."));const email=value(form,"email").toLowerCase();const supabase=await createClient();const admin=createAdminClient();const existingAuthUser=await findAuthUserByEmail(admin,email);const identityVerified=Boolean(existingAuthUser?.email_confirmed_at||existingAuthUser?.last_sign_in_at);await rpcError(supabase.rpc("provision_organization_member",{target_organization_id:id,target_email:email,target_role:role,target_identity_verified:identityVerified}),path);revalidatePath(path);revalidatePath("/admin/users");redirect(destination(path,"message","User access provisioned."))}
 export async function updateMembershipAction(form:FormData){await requireSuperAdmin();const id=value(form,"organizationId");const path=`/admin/organizations/${id}`;const role=value(form,"role") as AppRole;if(!internalRoles.includes(role))redirect(destination(path,"error","Select a valid organization role."));const membershipId=value(form,"membershipId");const supabase=await createClient();const current=await supabase.from("organization_members").select("id,organization_id,is_active").eq("id",membershipId).eq("organization_id",id).maybeSingle();if(current.error||!current.data)redirect(destination(path,"error","Organization membership was not found."));await rpcError(supabase.rpc("update_organization_membership",{target_membership_id:membershipId,target_role:role,target_active:current.data.is_active}),path);revalidatePath(path);revalidatePath("/admin/users");redirect(destination(path,"message","Membership role updated."))}
 export async function transitionMembershipAction(form:FormData){await requireSuperAdmin();const id=value(form,"organizationId");const path=`/admin/organizations/${id}`;const membershipId=value(form,"membershipId");const action=value(form,"action").toUpperCase();if(!["ACTIVATE","SUSPEND","REACTIVATE","REVOKE","REINSTATE"].includes(action))redirect(destination(path,"error","Select a valid membership lifecycle action."));const supabase=await createClient();const current=await supabase.from("organization_members").select("id").eq("id",membershipId).eq("organization_id",id).maybeSingle();if(current.error||!current.data)redirect(destination(path,"error","Organization membership was not found."));const result=await supabase.rpc("transition_organization_membership",{target_membership_id:membershipId,target_action:action});if(result.error){console.error("Platform membership lifecycle mutation failed",{code:result.error.code,message:result.error.message});if(result.error.message.includes("ACTIVE_OPERATIONAL_RESPONSIBILITY"))redirect(destination(path,"error","This user still has active operational responsibility. Reassign their open cases, tasks, case assignments, or service requests before revoking access."));redirect(destination(path,"error",friendly(result.error.message)))}revalidatePath(path);revalidatePath("/admin/users");const messages:Record<string,string>={ACTIVATE:"Organization access activated.",SUSPEND:"Organization access suspended.",REACTIVATE:"Organization access reactivated.",REVOKE:"Organization access revoked.",REINSTATE:"Organization access reinstated."};redirect(destination(path,"message",messages[action]??"Membership updated."))}
+export async function resetOrganizationCompanyAndUsersAction(form:FormData){
+ await requireSuperAdmin();
+
+ const organizationId=value(form,"organizationId");
+ const preservedOwnerUserId=value(form,"preservedOwnerUserId");
+ const confirmation=value(form,"confirmation");
+ const path=`/admin/organizations/${organizationId}`;
+
+ if(!organizationId||!preservedOwnerUserId){
+  redirect(destination(path,"error","Select the Business Owner to preserve."));
+ }
+
+ const supabase=await createClient();
+
+ const organization=await supabase
+  .from("organizations")
+  .select("id,name")
+  .eq("id",organizationId)
+  .maybeSingle();
+
+ if(organization.error||!organization.data){
+  console.error("Organization reset lookup failed",{
+   code:organization.error?.code??null,
+   message:organization.error?.message??null,
+   organizationId,
+  });
+  redirect(destination(path,"error","The organization could not be verified."));
+ }
+
+ const expectedConfirmation=`RESET ${organization.data.name}`;
+
+ if(confirmation!==expectedConfirmation){
+  redirect(destination(path,"error",`Type ${expectedConfirmation} exactly to confirm the reset.`));
+ }
+
+ const owner=await supabase
+  .from("organization_members")
+  .select("id,user_id,role,status,is_active")
+  .eq("organization_id",organizationId)
+  .eq("user_id",preservedOwnerUserId)
+  .eq("role","BUSINESS_OWNER")
+  .eq("status","ACTIVE")
+  .eq("is_active",true)
+  .maybeSingle();
+
+ if(owner.error||!owner.data){
+  console.error("Organization reset owner verification failed",{
+   code:owner.error?.code??null,
+   message:owner.error?.message??null,
+   organizationId,
+   preservedOwnerUserId,
+  });
+  redirect(destination(path,"error","The preserved user must be an active Business Owner of this organization."));
+ }
+
+ const resetClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<OrganizationResetDatabase>
+ >;
+
+ const result=await resetClient.rpc("reset_organization_company_and_users",{
+  target_organization_id:organizationId,
+  preserved_owner_user_id:preservedOwnerUserId,
+  confirmation_text:confirmation,
+ });
+
+ if(result.error){
+  console.error("Organization reset failed",{
+   code:result.error.code,
+   message:result.error.message,
+   organizationId,
+   preservedOwnerUserId,
+  });
+  redirect(destination(path,"error","The organization reset could not be completed."));
+ }
+
+ revalidatePath("/");
+ revalidatePath("/admin/organizations");
+ revalidatePath(path);
+ revalidatePath("/admin/users");
+
+ redirect(destination(
+  path,
+  "message",
+  `Company and user test data reset completed. ${organization.data.name} and the selected Business Owner were preserved.`,
+ ));
+}
 export async function enterOrganizationWorkspaceAction(form:FormData){const access=await requireSuperAdmin();const id=value(form,"organizationId");if(!access.organizations.some(o=>o.id===id))redirect(destination(`/admin/organizations/${id}`,"error","Only active organizations can be entered."));(await cookies()).set(ACTIVE_ORGANIZATION_COOKIE,id,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/"});redirect("/")}
 export async function returnToBackOfficeAction(){await requireSuperAdmin();(await cookies()).set(ACTIVE_ORGANIZATION_COOKIE,PLATFORM_CONTEXT_COOKIE_VALUE,{httpOnly:true,sameSite:"lax",secure:process.env.NODE_ENV==="production",path:"/"});redirect("/")}
 

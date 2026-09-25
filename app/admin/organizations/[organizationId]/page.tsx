@@ -17,6 +17,7 @@ import { OrganizationSummaryRow } from "@/components/organization-summary-row";
 import { PlatformOrganizationDetailsForm } from "@/components/platform-organization-details-form";
 import { ApplicationIcon } from "@/components/application-icon";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
+import { SuperAdminOrganizationReset } from "@/components/super-admin-organization-reset";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -35,6 +36,22 @@ export default async function Page({
   const [{ organizationId }, query] = await Promise.all([params, searchParams]);
   const { organization, members, cases, customers, timezone } =
     await getOrganizationAdministration(organizationId);
+  const resetOwners = members
+    .filter(
+      (member) =>
+        member.role === "BUSINESS_OWNER" &&
+        member.status === "ACTIVE" &&
+        member.is_active,
+    )
+    .map((member) => ({
+      userId: member.user_id,
+      displayName:
+        member.profile.display_name ||
+        member.profile.email ||
+        "Unnamed Business Owner",
+      email: member.profile.email || "",
+    }));
+
   const license = organization.license;
   const effective = effectiveLicense(license && { status: license.license_status, commercialState: license.commercial_state, startsAt: license.starts_at, expiresAt: license.expires_at, graceEndsAt: license.grace_ends_at, noticeDays: license.notice_days });
   const drilldown = (query as { drilldown?: string }).drilldown;
@@ -279,6 +296,25 @@ export default async function Page({
           </div>
         )}
       </section>
+      <section className="panel admin-danger-zone">
+        <div className="section-head">
+          <div>
+            <span className="admin-danger-zone-label">Danger Zone</span>
+            <h2>Reset Company & Users</h2>
+            <p>
+              SUPER_ADMIN-only recovery tool for removing organization test
+              activity while preserving company setup and one Business Owner.
+            </p>
+          </div>
+        </div>
+
+        <SuperAdminOrganizationReset
+          organizationId={organization.id}
+          organizationName={organization.name}
+          owners={resetOwners}
+        />
+      </section>
+
       <Link className="auth-link" href="/admin/organizations">
         <ApplicationIcon name="back" />All organizations
       </Link>
