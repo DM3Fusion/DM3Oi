@@ -258,6 +258,30 @@ export async function getGlobalUserDeletionEligibility(
             .eq("actor_user_id", userId),
         ]);
 
+        const organizationConfigurationResults = [
+          ["organization_settings", settings],
+          ["organization_lifecycle_statuses", lifecycleStatuses],
+          ["organization_role_permissions", rolePermissions],
+          ["organization_licenses", licenses],
+          ["organization_license_events", licenseEvents],
+        ] as const;
+
+        for (const [source, result] of organizationConfigurationResults) {
+          if (result.error) {
+            console.error(
+              "Global identity deletion organization configuration lookup failed",
+              {
+                source,
+                userId,
+                code: "code" in result.error ? result.error.code : null,
+                message: result.error.message,
+                details: "details" in result.error ? result.error.details : null,
+                hint: "hint" in result.error ? result.error.hint : null,
+              },
+            );
+          }
+        }
+
         return {
           count:
             (settings.count ?? 0) +
