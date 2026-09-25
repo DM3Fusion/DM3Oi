@@ -21,6 +21,6 @@ export function getInvitationRedirect() {
   const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL?.trim();
   const origin =
     configured ||
-    (vercel ? `https://${vercel}` : "https://dm-3i-qcm.vercel.app");
+    (vercel ? `https://${vercel}` : "https://dm3oi.com");
   return `${origin.replace(/\/$/, "")}/auth/invite`;
 }

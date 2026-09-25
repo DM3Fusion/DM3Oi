@@ -20,7 +20,7 @@ Auth identity and application profile remain separate concepts. `auth.users` own
 
 ## Invitations and access states
 
-Invitation email delivery uses the Supabase Auth email configuration and redirects through the existing `/auth/callback` route. `DM3IQCM_SITE_URL` defines the canonical application origin; production defaults to `https://dm-3i-qcm.vercel.app` when it is not explicitly set.
+Invitation email delivery uses the Supabase Auth email configuration and redirects through the existing `/auth/callback` route. `DM3IQCM_SITE_URL` defines the canonical application origin; production defaults to `https://dm3oi.com` when it is not explicitly set.
 
 A profile with no platform role, active organization membership, or active portal assignment is shown as **Pending Access**. An active internal membership changes that state to **Organization User**. Authentication alone never grants tenant access.
 
@@ -44,7 +44,7 @@ The database RPC and triggers remain authoritative for membership policy. In par
 Set these server deployment values:
 
 - `DM3IQCM_SUPABASE_SERVICE_ROLE_KEY` — required Supabase Admin Auth credential; server-only and secret.
-- `DM3IQCM_SITE_URL` — canonical invitation origin, normally `https://dm-3i-qcm.vercel.app`.
+- `DM3IQCM_SITE_URL` — canonical invitation origin, normally `https://dm3oi.com`.
 
 Never prefix the service-role variable with `NEXT_PUBLIC_`, expose it to browser code, print it in logs, or commit its value. Configure the secret for Vercel Production and Preview environments. The public URL and anonymous/publishable key continue to use their existing `NEXT_PUBLIC_` variables.
 
