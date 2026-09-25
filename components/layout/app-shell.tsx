@@ -41,6 +41,7 @@ function usePhoneLayout(onPhoneLayout: () => void) {
 const isPublic = (path: string, access: AccessContext | null) =>
   (path === "/" && !access) ||
   path === "/login" ||
+  path === "/request-trial" ||
   path === "/portal" || path.startsWith("/portal/") ||
   path.startsWith("/auth/");
 export function AppShell({
