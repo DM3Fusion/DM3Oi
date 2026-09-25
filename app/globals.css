@@ -5234,14 +5234,34 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 .trial-request-cancel {
-  color: #536579;
-  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid #245f84;
+  border-radius: 6px;
+  background: #fff;
+  color: #173f68;
+  font-size: 16px;
   font-weight: 700;
   text-decoration: none;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease;
 }
 
 .trial-request-cancel:hover {
-  text-decoration: underline;
+  background: #e8f3fb;
+  border-color: #1688c7;
+  color: #173f68;
+  text-decoration: none;
+}
+
+.trial-request-cancel:focus-visible {
+  outline: 2px solid #1688c7;
+  outline-offset: 2px;
 }
 
 @media (max-width: 760px) {
