@@ -934,6 +934,7 @@ async function reconcilePermanentOrganizationDeletionIdentities({
  actingUserId,
  previouslyDeletedUserIds=[],
  previouslyRetainedUserIds=[],
+ recheckRetainedUserIds=false,
 }:{
  admin:ReturnType<typeof createAdminClient>;
  deletionAuditId:string;
@@ -942,6 +943,7 @@ async function reconcilePermanentOrganizationDeletionIdentities({
  actingUserId:string;
  previouslyDeletedUserIds?:string[];
  previouslyRetainedUserIds?:string[];
+ recheckRetainedUserIds?:boolean;
 }){
  const {
   getGlobalUserDeletionEligibility,
@@ -964,7 +966,7 @@ async function reconcilePermanentOrganizationDeletionIdentities({
    continue;
   }
 
-  if(previouslyRetained.has(userId)){
+  if(previouslyRetained.has(userId)&&!recheckRetainedUserIds){
    retainedUserIds.push(userId);
    continue;
   }
@@ -1189,6 +1191,80 @@ export async function getPendingPermanentOrganizationDeletionCleanups():
    organizationSlug:row.organization_slug,
    identityStatus:row.identity_cleanup?.status??"PENDING",
    storageStatus:row.storage_cleanup?.status??"PENDING",
+   createdAt:row.created_at,
+   cleanupUpdatedAt:row.cleanup_updated_at,
+  }));
+}
+
+
+export type RetainedPermanentOrganizationDeletionIdentityReview = {
+ id:string;
+ deletedOrganizationId:string;
+ organizationName:string;
+ organizationSlug:string;
+ retainedIdentityCount:number;
+ createdAt:string;
+ cleanupUpdatedAt:string;
+};
+
+export async function getRetainedPermanentOrganizationDeletionIdentityReviews():
+ Promise<RetainedPermanentOrganizationDeletionIdentityReview[]>{
+ await requireSuperAdmin();
+
+ const admin=createAdminClient();
+ const auditClient=admin as unknown as {
+  from(table:"platform_organization_deletion_audit"):{
+   select(columns:string):{
+    order(column:string,options:{ascending:boolean}):PromiseLike<{
+     data:Array<{
+      id:string;
+      deleted_organization_id:string;
+      organization_name:string;
+      organization_slug:string;
+      identity_cleanup:PermanentOrganizationIdentityCleanup|null;
+      created_at:string;
+      cleanup_updated_at:string;
+     }>|null;
+     error:{message:string;code?:string}|null;
+    }>;
+   };
+  };
+ };
+
+ const result=await auditClient
+  .from("platform_organization_deletion_audit")
+  .select(
+   "id,deleted_organization_id,organization_name,organization_slug,identity_cleanup,created_at,cleanup_updated_at",
+  )
+  .order("created_at",{ascending:false});
+
+ if(result.error){
+  console.error(
+   "Permanent organization retained identity audit listing failed",
+   {
+    code:result.error.code??null,
+    message:result.error.message,
+   },
+  );
+  throw new Error(
+   "Retained identity review status is temporarily unavailable.",
+  );
+ }
+
+ return (result.data??[])
+  .map((row)=>({
+   row,
+   retainedUserIds:uniqueStrings(
+    row.identity_cleanup?.retainedUserIds,
+   ),
+  }))
+  .filter(({retainedUserIds})=>retainedUserIds.length>0)
+  .map(({row,retainedUserIds})=>({
+   id:row.id,
+   deletedOrganizationId:row.deleted_organization_id,
+   organizationName:row.organization_name,
+   organizationSlug:row.organization_slug,
+   retainedIdentityCount:retainedUserIds.length,
    createdAt:row.created_at,
    cleanupUpdatedAt:row.cleanup_updated_at,
   }));
@@ -1489,6 +1565,140 @@ export async function retryPermanentOrganizationDeletionCleanupAction(form:FormD
   "/admin/organizations",
   "message",
   `Post-deletion cleanup for ${audit.data.organization_name} is complete.`,
+ ));
+}
+
+
+export async function recheckPermanentOrganizationDeletionRetainedIdentitiesAction(
+ form:FormData,
+){
+ const access=await requireSuperAdmin();
+ const deletionAuditId=value(form,"deletionAuditId");
+
+ if(!deletionAuditId){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "The deletion audit could not be identified.",
+  ));
+ }
+
+ const admin=createAdminClient();
+ const audit=await getPermanentOrganizationDeletionAudit(
+  admin,
+  deletionAuditId,
+ );
+
+ if(audit.error||!audit.data){
+  console.error(
+   "Permanent organization deletion retained identity audit lookup failed",
+   {
+    deletionAuditId,
+    message:audit.error?.message??null,
+   },
+  );
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "The deletion audit could not be verified.",
+  ));
+ }
+
+ const identityCleanup=audit.data.identity_cleanup;
+ const storageCleanup=audit.data.storage_cleanup;
+
+ if(!identityCleanup){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "The deletion audit has no identity cleanup record.",
+  ));
+ }
+
+ const candidateUserIds=uniqueStrings(
+  identityCleanup.candidateUserIds,
+ );
+ const retainedUserIds=uniqueStrings(
+  identityCleanup.retainedUserIds,
+ );
+
+ if(!retainedUserIds.length){
+  redirect(destination(
+   "/admin/organizations",
+   "message",
+   `No retained identities remain for ${audit.data.organization_name}.`,
+  ));
+ }
+
+ const identities=
+  await reconcilePermanentOrganizationDeletionIdentities({
+   admin,
+   deletionAuditId,
+   organizationId:audit.data.deleted_organization_id,
+   candidateUserIds,
+   actingUserId:access.user.id,
+   previouslyDeletedUserIds:uniqueStrings(
+    identityCleanup.deletedUserIds,
+   ),
+   previouslyRetainedUserIds:retainedUserIds,
+   recheckRetainedUserIds:true,
+  });
+
+ const storageStatus=storageCleanup?.status??"NOT_REQUIRED";
+ const storageDeletedPaths=uniqueStrings(
+  storageCleanup?.deletedPaths,
+ );
+ const storageFailedPaths=uniqueStrings(
+  storageCleanup?.failedPaths,
+ );
+
+ const finalized=
+  await finalizePermanentOrganizationDeletionCleanup(
+   admin,
+   deletionAuditId,
+   identities.deletedUserIds,
+   identities.retainedUserIds,
+   identities.failedUserIds,
+   storageStatus,
+   storageDeletedPaths,
+   storageFailedPaths,
+  );
+
+ revalidatePath("/");
+ revalidatePath("/admin/organizations");
+ revalidatePath("/admin/users");
+
+ if(finalized.error){
+  console.error(
+   "Permanent organization deletion retained identity finalization failed",
+   {
+    deletionAuditId,
+    message:finalized.error.message,
+   },
+  );
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "Retained identities were re-evaluated, but the deletion audit could not be finalized.",
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ if(identities.failedUserIds.length){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   `Retained identity review for ${audit.data.organization_name} still has unresolved items.`,
+   "deletionAuditId",
+   deletionAuditId,
+  ));
+ }
+
+ redirect(destination(
+  "/admin/organizations",
+  "message",
+  `Retained identity review for ${audit.data.organization_name} is complete. ${identities.deletedUserIds.length} ${identities.deletedUserIds.length===1?"identity was":"identities were"} permanently removed; ${identities.retainedUserIds.length} ${identities.retainedUserIds.length===1?"identity remains":"identities remain"} retained.`,
  ));
 }
 

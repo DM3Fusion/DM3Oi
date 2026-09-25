@@ -440,6 +440,60 @@ test("global identity deletion guard can read every dependency table through ser
   );
 });
 
+test("completed retained identities can be explicitly re-evaluated after a fail-closed dependency check", () => {
+  assert.match(
+    actions,
+    /recheckPermanentOrganizationDeletionRetainedIdentitiesAction/,
+  );
+  assert.match(
+    actions,
+    /recheckRetainedUserIds\?:boolean/,
+  );
+  assert.match(
+    actions,
+    /previouslyRetained\.has\(userId\)&&!recheckRetainedUserIds/,
+  );
+  assert.match(
+    actions,
+    /recheckRetainedUserIds:true/,
+  );
+  assert.match(
+    actions,
+    /previouslyDeletedUserIds:uniqueStrings\(/,
+  );
+  assert.match(
+    actions,
+    /getGlobalUserDeletionEligibility\(userId\)/,
+  );
+  assert.match(
+    actions,
+    /finalizePermanentOrganizationDeletionCleanup/,
+  );
+});
+
+test("completed deletion audits with retained identities are recoverable from the organizations page", () => {
+  assert.match(
+    actions,
+    /getRetainedPermanentOrganizationDeletionIdentityReviews/,
+  );
+  assert.match(
+    actions,
+    /retainedUserIds\.length>0/,
+  );
+  assert.match(
+    organizationsPage,
+    /Retained Identity Review/,
+  );
+  assert.match(
+    organizationsPage,
+    /Re-evaluate Identities/,
+  );
+  assert.match(
+    organizationsPage,
+    /recheckPermanentOrganizationDeletionRetainedIdentitiesAction/,
+  );
+});
+
 test("unresolved post-deletion cleanup is discoverable after organization route disappears", () => {
   assert.match(
     actions,
