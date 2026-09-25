@@ -242,7 +242,7 @@ export async function getGlobalUserDeletionEligibility(
             .eq("updated_by", userId),
           admin
             .from("organization_lifecycle_statuses")
-            .select("id", { count: "exact", head: true })
+            .select("organization_id", { count: "exact", head: true })
             .eq("updated_by", userId),
           admin
             .from("organization_role_permissions")

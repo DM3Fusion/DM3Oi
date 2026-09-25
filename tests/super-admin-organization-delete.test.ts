@@ -440,6 +440,35 @@ test("global identity deletion guard can read every dependency table through ser
   );
 });
 
+test("global identity guard counts lifecycle dependencies using an existing lifecycle column", () => {
+  const guard = read(
+    "lib/data/platform-user-global-deletion.ts",
+  );
+
+  const lifecycleStart = guard.indexOf(
+    '.from("organization_lifecycle_statuses")',
+  );
+  assert.notEqual(
+    lifecycleStart,
+    -1,
+    "organization_lifecycle_statuses dependency check must exist",
+  );
+
+  const lifecycleBlock = guard.slice(
+    lifecycleStart,
+    lifecycleStart + 260,
+  );
+
+  assert.match(
+    lifecycleBlock,
+    /\.select\("organization_id", \{ count: "exact", head: true \}\)/,
+  );
+  assert.doesNotMatch(
+    lifecycleBlock,
+    /\.select\("id", \{ count: "exact", head: true \}\)/,
+  );
+});
+
 test("completed retained identities can be explicitly re-evaluated after a fail-closed dependency check", () => {
   assert.match(
     actions,
