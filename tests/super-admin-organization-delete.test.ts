@@ -381,6 +381,21 @@ test("Storage cleanup is restricted to organization avatar buckets and retries s
   );
 });
 
+test("durable deletion audit grants server cleanup the required table privileges", () => {
+  const privilegeMigration = read(
+    "supabase/migrations/20260925181000_dm3oi_permanent_deletion_audit_service_role.sql",
+  );
+
+  assert.match(
+    privilegeMigration,
+    /grant select, update\s+on table public\.platform_organization_deletion_audit\s+to service_role;/,
+  );
+  assert.doesNotMatch(
+    privilegeMigration,
+    /grant[\s\S]*\b(insert|delete)\b/i,
+  );
+});
+
 test("unresolved post-deletion cleanup is discoverable after organization route disappears", () => {
   assert.match(
     actions,
