@@ -56,14 +56,14 @@ export function DraftIntakeRow({
           Resume
         </Link>
       </td>
-      <td>{customerName}</td>
-      <td>{caseTitle}</td>
       <td className="draft-intake-status">
         <strong>
           {completedSteps} of {totalSteps} ({completionPercent}%)
         </strong>
         <span>complete</span>
       </td>
+      <td>{customerName}</td>
+      <td>{caseTitle}</td>
       <td>{savedStep}</td>
       <td>{updatedAt}</td>
     </tr>

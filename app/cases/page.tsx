@@ -54,9 +54,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               <thead>
                 <tr>
                   <th>Action</th>
+                  <th>Status</th>
                   <th>Customer</th>
                   <th>Case Title</th>
-                  <th>Status</th>
                   <th>Saved Step</th>
                   <th>Updated</th>
                 </tr>
