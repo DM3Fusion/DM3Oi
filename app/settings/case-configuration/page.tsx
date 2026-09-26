@@ -9,12 +9,12 @@ const configurationCards = [
   {
     title: "Case Types",
     description: "Define the kinds of cases this organization manages.",
-    href: "/administration/case-types",
+    href: "/settings/case-configuration/case-types",
   },
   {
     title: "Case Lifecycle",
     description: "Configure case status presentation and workflow behavior.",
-    href: "/administration/case-lifecycle",
+    href: "/settings/case-configuration/lifecycle",
   },
 ] as const;
 

@@ -156,7 +156,7 @@ export function AppShell({
         ...(access.isSuperAdmin
           ? [
               {
-                href: "/administration/defaults",
+                href: "/settings/general",
                 label: "General",
                 icon: "settings" as const,
               },
@@ -170,7 +170,7 @@ export function AppShell({
                 icon: "cases" as const,
               },
               {
-                href: "/administration/customer-portal",
+                href: "/settings/customer-portal",
                 label: "Customer Portal",
                 icon: "customers" as const,
               },
@@ -188,12 +188,7 @@ export function AppShell({
       ]
     : [];
 
-  const settingsRouteActive =
-    pathname.startsWith("/settings") ||
-    pathname === "/administration/defaults" ||
-    pathname === "/administration/customer-portal" ||
-    pathname === "/administration/case-types" ||
-    pathname === "/administration/case-lifecycle";
+  const settingsRouteActive = pathname.startsWith("/settings");
 
   const mobileNavigation = [
     ...nav
@@ -300,28 +295,37 @@ export function AppShell({
               if (href === "/settings") {
                 return (
                   <div className="settings-nav-group" key={href}>
-                    <button
-                      type="button"
+                    <div
                       className={`settings-nav-parent ${settingsRouteActive ? "active" : ""}`.trim()}
-                      aria-expanded={settingsOpen}
-                      onClick={() => setSettingsOpen((value) => !value)}
                     >
-                      <ApplicationIcon name={icon} />
-                      <span>{label}</span>
-                      <ApplicationIcon
-                        name="forward"
-                        className={`settings-nav-chevron ${settingsOpen ? "open" : ""}`.trim()}
-                      />
-                    </button>
+                      <Link
+                        href="/settings/general"
+                        onClick={() => setOpen(false)}
+                        className="settings-nav-parent-link"
+                      >
+                        <ApplicationIcon name={icon} />
+                        <span>{label}</span>
+                      </Link>
+                      <button
+                        type="button"
+                        className="settings-nav-toggle"
+                        aria-label={settingsOpen ? "Collapse Settings" : "Expand Settings"}
+                        aria-expanded={settingsOpen}
+                        onClick={() => setSettingsOpen((value) => !value)}
+                      >
+                        <ApplicationIcon
+                          name="forward"
+                          className={`settings-nav-chevron ${settingsOpen ? "open" : ""}`.trim()}
+                        />
+                      </button>
+                    </div>
 
                     {settingsOpen && settingsNavigation.length ? (
                       <div className="settings-subnav">
                         {settingsNavigation.map((item) => {
                           const childActive =
                             item.href === "/settings/case-configuration"
-                              ? pathname.startsWith("/settings/case-configuration") ||
-                                pathname === "/administration/case-types" ||
-                                pathname === "/administration/case-lifecycle"
+                              ? pathname.startsWith("/settings/case-configuration")
                               : pathname === item.href ||
                                 pathname.startsWith(`${item.href}/`);
 

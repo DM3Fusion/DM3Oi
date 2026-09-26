@@ -8,7 +8,7 @@ const configurationCards = [
   {
     title: "General",
     description: "Configure organization-wide operational defaults.",
-    href: "/administration/defaults",
+    href: "/settings/general",
     permission: "VIEW_ADMINISTRATION",
   },
   {
@@ -20,7 +20,7 @@ const configurationCards = [
   {
     title: "Customer Portal",
     description: "Configure customer-facing portal behavior.",
-    href: "/administration/customer-portal",
+    href: "/settings/customer-portal",
     permission: "VIEW_ADMINISTRATION",
   },
   {
@@ -36,7 +36,7 @@ export default async function Page() {
   const cards = configurationCards.filter(
     (card) =>
       hasPermission(access, card.permission) &&
-      (card.href !== "/administration/defaults" || access?.isSuperAdmin),
+      (card.href !== "/settings/general" || access?.isSuperAdmin),
   );
   return (
     <>
