@@ -7127,3 +7127,13 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     min-height: clamp(54px, 10vw, 66px);
   }
 }
+
+.intake-actions-left .secondary-button:hover {
+  background: #dcfce7;
+  border-color: #86efac;
+}
+
+.intake-cancel-button:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+}
