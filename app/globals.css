@@ -6739,3 +6739,122 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     flex-wrap: wrap;
   }
 }
+
+/* Guided Intake six-tab navigation.
+   Always remains one six-column row; labels reserve two lines and wrap. */
+.intake-stepper {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+  align-items: stretch;
+}
+
+.intake-stepper li {
+  min-width: 0;
+  align-items: stretch;
+  font-size: 10px;
+}
+
+.intake-stepper li:not(:last-child)::after {
+  top: 17px;
+  left: 34px;
+  right: -7px;
+}
+
+.intake-step-tab {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  align-items: start;
+  width: 100%;
+  min-width: 0;
+  min-height: 52px;
+  gap: 7px;
+  padding: 3px 0;
+  text-align: left;
+  opacity: 1;
+}
+
+.intake-stepper li > .intake-step-tab > span {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.intake-stepper li > .intake-step-tab > b {
+  display: flex;
+  align-items: flex-start;
+  min-width: 0;
+  min-height: 2.4em;
+  padding-top: 7px;
+  overflow: visible;
+  font-size: 12px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-overflow: clip;
+}
+
+@media (max-width: 850px) {
+  .intake-stepper {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+    row-gap: 0;
+  }
+
+  .intake-stepper li:nth-child(3)::after {
+    display: block;
+  }
+
+  .intake-step-tab {
+    grid-template-columns: 30px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .intake-stepper li > .intake-step-tab > span {
+    width: 28px;
+    height: 28px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    padding-top: 5px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 600px) {
+  .intake-stepper {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .intake-stepper li:nth-child(2)::after,
+  .intake-stepper li:nth-child(3)::after,
+  .intake-stepper li:nth-child(4)::after {
+    display: block;
+  }
+
+  .intake-step-tab {
+    grid-template-columns: 26px minmax(0, 1fr);
+    gap: 3px;
+    min-height: 50px;
+  }
+
+  .intake-stepper li > .intake-step-tab > span {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    min-height: 2.5em;
+    padding-top: 3px;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+
+  .intake-stepper li:not(:last-child)::after {
+    top: 15px;
+    left: 27px;
+    right: -3px;
+  }
+}
