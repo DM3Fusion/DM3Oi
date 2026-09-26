@@ -6652,3 +6652,23 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   outline: 2px solid #111827;
   outline-offset: -2px;
 }
+
+.draft-intakes-panel {
+  background: #f4f7fa;
+  border: 1px solid #c9d2dc;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.draft-intakes-panel .section-head {
+  border-bottom: 1px solid #d8e0e8;
+  padding-bottom: 1rem;
+  margin-bottom: 0;
+}
+
+.draft-intakes-panel thead th {
+  background: #edf2f7;
+}
+
+.draft-intakes-panel tbody tr {
+  background: #ffffff;
+}

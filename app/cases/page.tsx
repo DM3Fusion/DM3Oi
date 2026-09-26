@@ -42,7 +42,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         }
       />
       {drafts.length ? (
-        <section className="panel detail-section">
+        <section className="panel detail-section draft-intakes-panel">
           <div className="section-head">
             <div>
               <h2>Draft Intakes</h2>
