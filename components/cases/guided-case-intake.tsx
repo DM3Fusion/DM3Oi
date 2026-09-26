@@ -274,6 +274,68 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
     setFormError(null);
     setStep((current) => Math.min(current + 1, guidedCaseIntakeSteps.length - 1));
   };
+
+  const createNewCustomerAndContinue = async () => {
+    if (pending) return;
+
+    setPending(true);
+    setCustomerErrors({});
+    setFormError(null);
+
+    const inlineErrors: Record<string, string> = {};
+    const normalizedEmail = customerValues.email.trim().toLowerCase();
+    const normalizedPhone = normalizeCustomerPhone(customerValues.phone);
+    const canonicalName =
+      customerValues.type === "INDIVIDUAL"
+        ? `${customerFirstName.trim()} ${customerLastName.trim()}`.trim()
+        : customerValues.name.trim();
+
+    if (customerValues.type === "INDIVIDUAL") {
+      if (!customerFirstName.trim())
+        inlineErrors.firstName = "First Name is required.";
+      if (!customerLastName.trim())
+        inlineErrors.lastName = "Last Name is required.";
+    } else if (!canonicalName) {
+      inlineErrors.name = "Business Name is required.";
+    }
+
+    if (!customerEmailPattern.test(normalizedEmail))
+      inlineErrors.email = "Enter a valid email address.";
+
+    if (!normalizedPhone)
+      inlineErrors.phone = "Enter a valid U.S. phone number.";
+
+    if (Object.keys(inlineErrors).length) {
+      setCustomerErrors(inlineErrors);
+      setFormError("Correct the highlighted fields.");
+      setPending(false);
+      return;
+    }
+
+    const result = await createInlineIntakeCustomerAction({
+      ...customerValues,
+      name: canonicalName,
+      email: normalizedEmail,
+    });
+
+    if (!result.ok) {
+      setCustomerErrors(result.fieldErrors);
+      setFormError(result.error);
+      setPending(false);
+      return;
+    }
+
+    setCustomers((current) => [...current, result.customer]);
+    setDraft((current) => ({
+      ...current,
+      customerId: result.customer.id,
+    }));
+    setCustomerMode("existing");
+    setErrors({});
+    setFormError(null);
+    setPending(false);
+    setStep(1);
+  };
   const answerLabel = (question: GuidedIntakeQuestion) => {
     const value = draft.answers[question.id];
     if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -342,59 +404,7 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
             </label>
           </div>
         ) : (
-          <form
-            className="entity-form intake-inline-customer"
-            onSubmit={async (event) => {
-              event.preventDefault();
-              setPending(true);
-              setCustomerErrors({});
-
-              const inlineErrors: Record<string, string> = {};
-              const normalizedEmail = customerValues.email.trim().toLowerCase();
-              const normalizedPhone = normalizeCustomerPhone(customerValues.phone);
-              const canonicalName =
-                customerValues.type === "INDIVIDUAL"
-                  ? `${customerFirstName.trim()} ${customerLastName.trim()}`.trim()
-                  : customerValues.name.trim();
-
-              if (customerValues.type === "INDIVIDUAL") {
-                if (!customerFirstName.trim())
-                  inlineErrors.firstName = "First Name is required.";
-                if (!customerLastName.trim())
-                  inlineErrors.lastName = "Last Name is required.";
-              } else if (!canonicalName) {
-                inlineErrors.name = "Business Name is required.";
-              }
-
-              if (!customerEmailPattern.test(normalizedEmail))
-                inlineErrors.email = "Enter a valid email address.";
-
-              if (!normalizedPhone)
-                inlineErrors.phone = "Enter a valid U.S. phone number.";
-
-              if (Object.keys(inlineErrors).length) {
-                setCustomerErrors(inlineErrors);
-                setFormError("Correct the highlighted fields.");
-                setPending(false);
-                return;
-              }
-
-              const result = await createInlineIntakeCustomerAction({
-                ...customerValues,
-                name: canonicalName,
-                email: normalizedEmail,
-              });
-              setPending(false);
-              if (!result.ok) {
-                setCustomerErrors(result.fieldErrors);
-                setFormError(result.error);
-                return;
-              }
-              setCustomers((current) => [...current, result.customer]);
-              updateDraft("customerId", result.customer.id);
-              setCustomerMode("existing");
-            }}
-          >
+          <div className="entity-form intake-inline-customer">
             <div className="form-grid">
               <label>
                 <span>Customer Type</span>
@@ -543,10 +553,7 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
                 />
               </label>
             </div>
-            <button className="secondary-button" disabled={pending}>
-              {pending ? "Creating Customer…" : "Create and Select Customer"}
-            </button>
-          </form>
+          </div>
         )}
       </div>
     );
@@ -770,7 +777,20 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
           <button type="button" className="secondary-button" onClick={() => { setStep((current) => current - 1); setErrors({}); setFormError(null); }} disabled={pending}>Back</button>
         )}
         {step < guidedCaseIntakeSteps.length - 1 ? (
-          <button type="button" className="primary-button" onClick={continueForward} disabled={pending}>Continue</button>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={
+              step === 0 && customerMode === "new"
+                ? createNewCustomerAndContinue
+                : continueForward
+            }
+            disabled={pending}
+          >
+            {pending && step === 0 && customerMode === "new"
+              ? "Creating Customer…"
+              : "Continue"}
+          </button>
         ) : (
           <button
             type="button"
