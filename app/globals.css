@@ -7137,3 +7137,13 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   background: #fee2e2;
   border-color: #fca5a5;
 }
+
+.intake-staff-fieldset.has-error .check-list {
+  border-color: #be123c;
+  background: #fff1f2;
+  box-shadow: 0 0 0 3px rgba(190, 18, 60, 0.1);
+}
+
+.intake-staff-fieldset.has-error > legend {
+  color: #be123c;
+}

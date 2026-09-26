@@ -691,7 +691,9 @@ export function GuidedCaseIntake({
             </select>
             {fieldError(errors, "managerUserId")}
           </label>
-          <fieldset className="full intake-staff-fieldset">
+          <fieldset
+            className={`full intake-staff-fieldset${errors.staffUserIds ? " has-error" : ""}`}
+          >
             <legend>Assigned Staff <b aria-label="required"> *</b> <small>At least one required · multiple allowed</small></legend>
             <div className="check-list">
               {configuration.staff.map((member) => (
