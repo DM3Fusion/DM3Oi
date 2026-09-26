@@ -6858,3 +6858,173 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     right: -3px;
   }
 }
+
+.intake-stepper {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  align-items: end;
+  margin: 0 0 30px;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid #aeb8c5;
+}
+
+.intake-stepper li {
+  position: relative;
+  display: block;
+  min-width: 0;
+  color: #5b677a;
+  font-size: inherit;
+}
+
+.intake-stepper li::after,
+.intake-stepper li:not(:last-child)::after {
+  display: none !important;
+}
+
+.intake-step-tab {
+  appearance: none;
+  display: grid;
+  grid-template-rows: auto minmax(2.5em, auto);
+  align-content: center;
+  width: 100%;
+  min-width: 0;
+  min-height: 72px;
+  gap: 4px;
+  padding: 10px 8px 9px;
+  border: 1px solid #c7d0dc;
+  border-bottom: 0;
+  border-radius: 9px 9px 0 0;
+  background: #f3f6f9;
+  color: inherit;
+  font: inherit;
+  text-align: center;
+  opacity: 1;
+}
+
+.intake-stepper li > .intake-step-tab > span {
+  display: block;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #718096;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.45px;
+}
+
+.intake-stepper li > .intake-step-tab > span::before {
+  content: "Step ";
+}
+
+.intake-stepper li > .intake-step-tab > b {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.4em;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+  color: #42506a;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: normal;
+  word-break: normal;
+  text-overflow: clip;
+}
+
+.intake-stepper li.active .intake-step-tab {
+  border-color: #40506a;
+  background: #40506a;
+  color: #fff;
+}
+
+.intake-stepper li.active .intake-step-tab > span,
+.intake-stepper li.active .intake-step-tab > b {
+  color: #fff;
+}
+
+.intake-stepper li.complete .intake-step-tab {
+  border-color: #78c9c2;
+  background: #e9f7f5;
+  cursor: pointer;
+}
+
+.intake-stepper li.complete .intake-step-tab > span {
+  color: #0f766e;
+}
+
+.intake-stepper li.complete .intake-step-tab > b {
+  color: #173b3a;
+}
+
+.intake-stepper li.complete .intake-step-tab:hover {
+  background: #d8f0ed;
+}
+
+.intake-stepper li.complete:hover b {
+  text-decoration: none;
+}
+
+.intake-stepper li:not(.complete):not(.active) .intake-step-tab {
+  cursor: default;
+}
+
+.intake-stepper li:not(.complete):not(.active) .intake-step-tab:disabled {
+  opacity: 1;
+}
+
+.intake-stepper .intake-step-tab:focus-visible {
+  position: relative;
+  z-index: 2;
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
+
+@media (max-width: 850px) {
+  .intake-stepper {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+  }
+
+  .intake-step-tab {
+    min-height: 70px;
+    padding: 9px 5px 8px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .intake-stepper {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .intake-step-tab {
+    min-height: 68px;
+    padding: 8px 3px 7px;
+    border-radius: 6px 6px 0 0;
+  }
+
+  .intake-stepper li > .intake-step-tab > span {
+    font-size: 8px;
+    letter-spacing: 0.2px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    min-height: 2.5em;
+    font-size: 10px;
+    line-height: 1.15;
+  }
+}
