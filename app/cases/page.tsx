@@ -52,12 +52,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
             <table>
               <thead>
                 <tr>
+                  <th>Action</th>
                   <th>Customer</th>
                   <th>Case Title</th>
                   <th>Case Type</th>
                   <th>Saved Step</th>
                   <th>Updated</th>
-                  <th></th>
                 </tr>
               </thead>
               <tbody>
