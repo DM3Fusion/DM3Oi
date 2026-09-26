@@ -10,6 +10,7 @@ import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, 
 import { ApplicationIcon } from "@/components/application-icon";
 import { guidedCaseIntakeSteps } from "@/lib/guided-case-intake";
 import { loadGuidedIntakeDraftSummaries } from "@/lib/data/guided-case-intake-drafts";
+import { DraftIntakeRow } from "@/components/cases/draft-intake-row";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -62,16 +63,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               </thead>
               <tbody>
                 {drafts.map((draft) => (
-                  <tr key={draft.id}>
-                    <td>{draft.customerName}</td>
-                    <td>{draft.caseTitle}</td>
-                    <td>{draft.caseType}</td>
-                    <td>{guidedCaseIntakeSteps[draft.currentStep] ?? "Customer"}</td>
-                    <td>{new Date(draft.updatedAt).toLocaleString()}</td>
-                    <td>
-                      <Link href={`/cases/new?draft=${draft.id}`}>Resume</Link>
-                    </td>
-                  </tr>
+                  <DraftIntakeRow
+                    key={draft.id}
+                    draftId={draft.id}
+                    customerName={draft.customerName}
+                    caseTitle={draft.caseTitle}
+                    caseType={draft.caseType}
+                    savedStep={guidedCaseIntakeSteps[draft.currentStep] ?? "Customer"}
+                    updatedAt={new Date(draft.updatedAt).toLocaleString()}
+                  />
                 ))}
               </tbody>
             </table>

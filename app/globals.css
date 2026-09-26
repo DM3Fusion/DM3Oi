@@ -6634,3 +6634,21 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .draft-intake-resume-button:hover {
   background: #f3f4f6;
 }
+
+.draft-intake-row {
+  cursor: pointer;
+}
+
+.draft-intake-row > td {
+  transition: background-color 0.15s ease;
+}
+
+.draft-intake-row:hover > td,
+.draft-intake-row:focus-visible > td {
+  background: #dbe2ea;
+}
+
+.draft-intake-row:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: -2px;
+}
