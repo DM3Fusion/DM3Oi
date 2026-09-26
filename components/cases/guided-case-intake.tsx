@@ -825,11 +825,40 @@ export function GuidedCaseIntake({
   return (
     <section className="panel guided-case-intake">
       <ol className="intake-stepper" aria-label="Case intake progress">
-        {guidedCaseIntakeSteps.map((label, index) => (
-          <li key={label} className={index === step ? "active" : index < step ? "complete" : ""} aria-current={index === step ? "step" : undefined}>
-            <span>{index + 1}</span><b>{label}</b>
-          </li>
-        ))}
+        {guidedCaseIntakeSteps.map((label, index) => {
+          const completed = index < step;
+          const current = index === step;
+
+          return (
+            <li
+              key={label}
+              className={current ? "active" : completed ? "complete" : ""}
+              aria-current={current ? "step" : undefined}
+            >
+              <button
+                type="button"
+                className="intake-step-tab"
+                disabled={!completed}
+                onClick={() => {
+                  if (!completed) return;
+                  setStep(index);
+                  setErrors({});
+                  setFormError(null);
+                }}
+                aria-label={
+                  completed
+                    ? `Go back to ${label}`
+                    : current
+                      ? `${label}, current step`
+                      : `${label}, not yet available`
+                }
+              >
+                <span>{index + 1}</span>
+                <b>{label}</b>
+              </button>
+            </li>
+          );
+        })}
       </ol>
       <header className="intake-step-heading">
         <p>Step {step + 1} of {guidedCaseIntakeSteps.length}</p>

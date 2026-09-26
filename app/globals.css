@@ -6672,3 +6672,39 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .draft-intakes-panel tbody tr {
   background: #ffffff;
 }
+
+.intake-step-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  display: contents;
+}
+
+.intake-stepper li > .intake-step-tab > span {
+  font-size: 1.2em;
+}
+
+.intake-stepper li > .intake-step-tab > b {
+  font-size: 1.2em;
+}
+
+.intake-stepper li.complete .intake-step-tab {
+  cursor: pointer;
+}
+
+.intake-stepper li.complete:hover b {
+  text-decoration: underline;
+}
+
+.intake-stepper li.active .intake-step-tab,
+.intake-stepper li:not(.complete):not(.active) .intake-step-tab {
+  cursor: default;
+}
+
+.intake-stepper li.complete .intake-step-tab:focus-visible > span {
+  outline: 2px solid #111827;
+  outline-offset: 3px;
+}
