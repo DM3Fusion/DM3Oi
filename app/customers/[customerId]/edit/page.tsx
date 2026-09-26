@@ -7,11 +7,13 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/format-phone";
 import { ApplicationIcon } from "@/components/application-icon";
+import { requireOrganizationCustomer } from "@/lib/data/organization-customers";
 export default async function Page({ params }: { params: Promise<{ customerId: string }> }) {
   const [{ customerId }, access] = await Promise.all([params, getAccessContext()]);
   if (!access?.activeOrganization || !hasPermission(access, "EDIT_CUSTOMER")) notFound();
   const supabase = await createClient();
-  const { data: customer } = await supabase.from("organization_customers").select("*").eq("id", customerId).eq("organization_id", access.activeOrganization.id).maybeSingle();
+  const { data: customerRow } = await supabase.from("organization_customers").select("*").eq("id", customerId).eq("organization_id", access.activeOrganization.id).maybeSingle();
+  const customer = requireOrganizationCustomer(customerRow);
   if (!customer) notFound();
   return (
     <>
@@ -28,9 +30,16 @@ export default async function Page({ params }: { params: Promise<{ customerId: s
           customerId={customer.id}
           initial={{
             name: customer.name,
+            firstName: customer.first_name ?? "",
+            lastName: customer.last_name ?? "",
+            streetAddress: customer.street_address ?? "",
+            city: customer.city ?? "",
+            state: customer.state ?? "",
+            postalCode: customer.postal_code ?? "",
             email: customer.email ?? "",
             phone: formatPhone(customer.phone) === "—" ? "" : formatPhone(customer.phone),
             notes: customer.notes ?? "",
+            type: customer.type,
             status: customer.status,
           }}
         />

@@ -198,6 +198,12 @@ export async function createCustomerAction(data: FormData) {
   const values = {
     type: String(data.get("type") ?? ""),
     name: String(data.get("name") ?? ""),
+    firstName: String(data.get("firstName") ?? ""),
+    lastName: String(data.get("lastName") ?? ""),
+    streetAddress: String(data.get("streetAddress") ?? ""),
+    city: String(data.get("city") ?? ""),
+    state: String(data.get("state") ?? ""),
+    postalCode: String(data.get("postalCode") ?? ""),
     email: String(data.get("email") ?? ""),
     phone: String(data.get("phone") ?? ""),
     notes: String(data.get("notes") ?? ""),

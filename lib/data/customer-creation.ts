@@ -32,7 +32,13 @@ export async function createCustomerForCurrentOrganization(
     target_name: parsed.value.name,
     target_email: parsed.value.email,
     target_phone: parsed.value.phone,
-    target_notes: parsed.value.notes || undefined,
+    target_notes: parsed.value.notes,
+    target_first_name: parsed.value.firstName,
+    target_last_name: parsed.value.lastName,
+    target_street_address: parsed.value.streetAddress,
+    target_city: parsed.value.city,
+    target_state: parsed.value.state,
+    target_postal_code: parsed.value.postalCode,
   });
   if (error || !created) {
     console.error("Create customer failed", {
@@ -58,4 +64,3 @@ export async function createCustomerForCurrentOrganization(
     },
   };
 }
-

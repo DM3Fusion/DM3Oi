@@ -12,12 +12,14 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { ApplicationIcon } from "@/components/application-icon";
 import { CustomerPermanentDelete } from "@/components/customer-permanent-delete";
+import { requireOrganizationCustomer } from "@/lib/data/organization-customers";
 
 export default async function Page({ params, searchParams }: { params: Promise<{ customerId: string }>; searchParams: Promise<{ message?: string; error?: string }> }) {
   const [{ customerId }, query, access] = await Promise.all([params, searchParams, getAccessContext()]);
   if (!access || !hasTenantInternalAccess(access) || !access.activeOrganization) notFound();
   const supabase = await createClient();
-  const { data: customer } = await supabase.from("organization_customers").select("*").eq("id", customerId).eq("organization_id", access.activeOrganization.id).maybeSingle();
+  const { data: customerRow } = await supabase.from("organization_customers").select("*").eq("id", customerId).eq("organization_id", access.activeOrganization.id).maybeSingle();
+  const customer = requireOrganizationCustomer(customerRow);
   if (!customer) notFound();
   const [{ data: creator }, { data: cases }, { data: portalLinks }] = await Promise.all([customer.created_by_user_id ? supabase.from("profiles").select("*").eq("id", customer.created_by_user_id).maybeSingle() : Promise.resolve({ data: null }), supabase.from("organization_cases").select("id,status").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id), supabase.from("customer_portal_users").select("id,user_id,is_active").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id).order("is_active", { ascending: false })]);
   const openCases = (cases ?? []).filter((item) => !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status)).length;
@@ -64,6 +66,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <dt>Name</dt>
             <dd>{customer.name}</dd>
           </div>
+          {customer.first_name || customer.last_name ? <div><dt>Structured name</dt><dd>{[customer.first_name, customer.last_name].filter(Boolean).join(" ")}</dd></div> : null}
           <div>
             <dt>Email</dt>
             <dd>{customer.email ?? "—"}</dd>
@@ -72,6 +75,9 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <dt>Phone</dt>
             <dd>{formatPhone(customer.phone)}</dd>
           </div>
+          {customer.street_address || customer.city || customer.state || customer.postal_code ? (
+            <div><dt>Address</dt><dd>{[customer.street_address, [customer.city, customer.state].filter(Boolean).join(", "), customer.postal_code].filter(Boolean).join(" · ")}</dd></div>
+          ) : null}
           {customer.notes ? (
             <div>
               <dt>Notes</dt>

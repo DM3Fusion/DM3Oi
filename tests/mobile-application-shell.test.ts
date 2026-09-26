@@ -114,7 +114,7 @@ test("mobile Account omits secondary destinations absent from effective permissi
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
 });
 
 test("mobile More orders authorized organization destinations without bypassing permissions", () => {

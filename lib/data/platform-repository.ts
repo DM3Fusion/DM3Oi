@@ -10,6 +10,7 @@ import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platfor
 import { isEffectiveCustomerPortalAccess } from "@/lib/auth/customer-portal-effectiveness";
 import type { Database } from "@/types/database.generated";
 import type { User } from "@supabase/supabase-js";
+import { requireOrganizationCustomers } from "@/lib/data/organization-customers";
 type Tables = Database["public"]["Tables"];
 export type OrganizationRow = Tables["organizations"]["Row"];
 export type MembershipRow = Tables["organization_members"]["Row"];
@@ -159,7 +160,7 @@ async function loadPlatformData() {
     platformRoles: platformRoles.data ?? [],
     portalUsers: portalUsers.data ?? [],
     cases: cases.data ?? [],
-    customers: customers.data ?? [],
+    customers: requireOrganizationCustomers(customers.data ?? []),
     organizationSettings: organizationSettings.data ?? [],
     authUsers,
   };
@@ -404,7 +405,9 @@ export async function getOrganizationAdministration(id: string) {
 
   const membershipRows = membershipsResult.data ?? [];
   const organizationCases = casesResult.data ?? [];
-  const organizationCustomers = customersResult.data ?? [];
+  const organizationCustomers = requireOrganizationCustomers(
+    customersResult.data ?? [],
+  );
 
   const memberUserIds = [
     ...new Set(membershipRows.map((membership) => membership.user_id)),

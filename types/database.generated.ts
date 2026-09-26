@@ -532,6 +532,59 @@ export type Database = {
           },
         ]
       }
+      customer_merge_history: {
+        Row: {
+          dependency_move_summary: Json
+          field_resolution: Json
+          id: string
+          merged_customer_id: string
+          merged_customer_number: string
+          merged_customer_snapshot: Json
+          organization_id: string
+          performed_at: string
+          performed_by_user_id: string
+          surviving_customer_id: string
+          surviving_customer_number: string
+          surviving_customer_snapshot: Json
+        }
+        Insert: {
+          dependency_move_summary: Json
+          field_resolution: Json
+          id?: string
+          merged_customer_id: string
+          merged_customer_number: string
+          merged_customer_snapshot: Json
+          organization_id: string
+          performed_at?: string
+          performed_by_user_id: string
+          surviving_customer_id: string
+          surviving_customer_number: string
+          surviving_customer_snapshot: Json
+        }
+        Update: {
+          dependency_move_summary?: Json
+          field_resolution?: Json
+          id?: string
+          merged_customer_id?: string
+          merged_customer_number?: string
+          merged_customer_snapshot?: Json
+          organization_id?: string
+          performed_at?: string
+          performed_by_user_id?: string
+          surviving_customer_id?: string
+          surviving_customer_number?: string
+          surviving_customer_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_merge_history_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_portal_users: {
         Row: {
           created_at: string
@@ -579,44 +632,62 @@ export type Database = {
       }
       customers: {
         Row: {
+          city: string | null
           created_at: string
           created_by_user_id: string | null
           customer_number: string
           email: string | null
+          first_name: string | null
           id: string
+          last_name: string | null
           name: string
           notes: string | null
           organization_id: string
           phone: string | null
+          postal_code: string | null
+          state: string | null
           status: Database["public"]["Enums"]["customer_status"]
+          street_address: string | null
           type: Database["public"]["Enums"]["customer_type"]
           updated_at: string
         }
         Insert: {
+          city?: string | null
           created_at?: string
           created_by_user_id?: string | null
           customer_number: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name: string
           notes?: string | null
           organization_id: string
           phone?: string | null
+          postal_code?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
+          street_address?: string | null
           type: Database["public"]["Enums"]["customer_type"]
           updated_at?: string
         }
         Update: {
+          city?: string | null
           created_at?: string
           created_by_user_id?: string | null
           customer_number?: string
           email?: string | null
+          first_name?: string | null
           id?: string
+          last_name?: string | null
           name?: string
           notes?: string | null
           organization_id?: string
           phone?: string | null
+          postal_code?: string | null
+          state?: string | null
           status?: Database["public"]["Enums"]["customer_status"]
+          street_address?: string | null
           type?: Database["public"]["Enums"]["customer_type"]
           updated_at?: string
         }
@@ -2298,21 +2369,77 @@ export type Database = {
       }
       organization_customers: {
         Row: {
-          created_at: string
+          city: string | null
+          created_at: string | null
           created_by_display_name: string | null
           created_by_user_id: string | null
-          customer_number: string
+          customer_number: string | null
           email: string | null
-          id: string
-          name: string
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          name: string | null
           notes: string | null
-          organization_id: string
+          organization_id: string | null
           phone: string | null
-          status: Database["public"]["Enums"]["customer_status"]
-          type: Database["public"]["Enums"]["customer_type"]
-          updated_at: string
+          postal_code: string | null
+          state: string | null
+          status: Database["public"]["Enums"]["customer_status"] | null
+          street_address: string | null
+          type: Database["public"]["Enums"]["customer_type"] | null
+          updated_at: string | null
         }
-        Relationships: []
+        Insert: {
+          city?: string | null
+          created_at?: string | null
+          created_by_display_name?: never
+          created_by_user_id?: never
+          customer_number?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          name?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["customer_status"] | null
+          street_address?: string | null
+          type?: Database["public"]["Enums"]["customer_type"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          city?: string | null
+          created_at?: string | null
+          created_by_display_name?: never
+          created_by_user_id?: never
+          customer_number?: string | null
+          email?: string | null
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          name?: string | null
+          notes?: string | null
+          organization_id?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          state?: string | null
+          status?: Database["public"]["Enums"]["customer_status"] | null
+          street_address?: string | null
+          type?: Database["public"]["Enums"]["customer_type"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       organization_question_definitions: {
         Row: {
@@ -2780,35 +2907,106 @@ export type Database = {
         Args: { target_case_id: string; target_customer_id: string }
         Returns: undefined
       }
-      create_customer_record: {
+      create_customer_record:
+        | {
+            Args: {
+              target_email?: string
+              target_name: string
+              target_notes?: string
+              target_organization_id: string
+              target_phone?: string
+              target_type: Database["public"]["Enums"]["customer_type"]
+            }
+            Returns: {
+              city: string | null
+              created_at: string
+              created_by_user_id: string | null
+              customer_number: string
+              email: string | null
+              first_name: string | null
+              id: string
+              last_name: string | null
+              name: string
+              notes: string | null
+              organization_id: string
+              phone: string | null
+              postal_code: string | null
+              state: string | null
+              status: Database["public"]["Enums"]["customer_status"]
+              street_address: string | null
+              type: Database["public"]["Enums"]["customer_type"]
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "customers"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+        | {
+            Args: {
+              target_city: string
+              target_email: string
+              target_first_name: string
+              target_last_name: string
+              target_name: string
+              target_notes: string
+              target_organization_id: string
+              target_phone: string
+              target_postal_code: string
+              target_state: string
+              target_street_address: string
+              target_type: Database["public"]["Enums"]["customer_type"]
+            }
+            Returns: {
+              city: string | null
+              created_at: string
+              created_by_user_id: string | null
+              customer_number: string
+              email: string | null
+              first_name: string | null
+              id: string
+              last_name: string | null
+              name: string
+              notes: string | null
+              organization_id: string
+              phone: string | null
+              postal_code: string | null
+              state: string | null
+              status: Database["public"]["Enums"]["customer_status"]
+              street_address: string | null
+              type: Database["public"]["Enums"]["customer_type"]
+              updated_at: string
+            }
+            SetofOptions: {
+              from: "*"
+              to: "customers"
+              isOneToOne: true
+              isSetofReturn: false
+            }
+          }
+      super_admin_customer_merge_preview: {
         Args: {
-          target_email?: string
-          target_name: string
-          target_notes?: string
+          target_merged_customer_id: string
           target_organization_id: string
-          target_phone?: string
-          target_type: Database["public"]["Enums"]["customer_type"]
+          target_surviving_customer_id: string
         }
-        Returns: {
-          created_at: string
-          created_by_user_id: string | null
-          customer_number: string
-          email: string | null
-          id: string
-          name: string
-          notes: string | null
-          organization_id: string
-          phone: string | null
-          status: Database["public"]["Enums"]["customer_status"]
-          type: Database["public"]["Enums"]["customer_type"]
-          updated_at: string
+        Returns: Json
+      }
+      super_admin_import_customers: {
+        Args: { target_organization_id: string; target_rows: Json }
+        Returns: Json
+      }
+      super_admin_merge_customers: {
+        Args: {
+          target_confirmation: string
+          target_field_resolution: Json
+          target_merged_customer_id: string
+          target_organization_id: string
+          target_surviving_customer_id: string
         }
-        SetofOptions: {
-          from: "*"
-          to: "customers"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Returns: Json
       }
       create_customer_service_request: {
         Args: {

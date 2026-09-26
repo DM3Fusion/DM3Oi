@@ -118,7 +118,15 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
     })),
     currentTasks: currentTaskResult.data ?? [],
     requests: requestResult.data ?? [],
-    customers: customerResult.data ?? [],
+    customers: (customerResult.data ?? []).flatMap((customer) =>
+      customer.id && customer.organization_id && customer.name
+        ? [{
+            id: customer.id,
+            organization_id: customer.organization_id,
+            name: customer.name,
+          }]
+        : [],
+    ),
     capabilities,
   });
 }

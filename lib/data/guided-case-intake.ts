@@ -206,11 +206,15 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     access,
     configuration: {
       organizationId,
-      customers: (customers.data ?? []).map((customer) => ({
-        id: customer.id,
-        customerNumber: customer.customer_number,
-        name: customer.name,
-      })),
+      customers: (customers.data ?? []).flatMap((customer) =>
+        customer.id && customer.customer_number && customer.name
+          ? [{
+              id: customer.id,
+              customerNumber: customer.customer_number,
+              name: customer.name,
+            }]
+          : [],
+      ),
       caseTitles: caseTitles.data ?? [],
       caseTypes: caseTypes.data ?? [],
       managers: canAssign

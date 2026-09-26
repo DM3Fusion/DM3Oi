@@ -23,10 +23,14 @@ import {
   evaluatedCaseQuestionsFrom,
   type EvaluatedCaseQuestion,
 } from "@/lib/data/question-repository";
+import {
+  requireOrganizationCustomers,
+  type OrganizationCustomer,
+} from "@/lib/data/organization-customers";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
 export type CaseRow = Views["organization_cases"]["Row"];
-export type CustomerRow = Views["organization_customers"]["Row"];
+export type CustomerRow = OrganizationCustomer;
 export type TaskRow = Views["organization_case_tasks"]["Row"];
 export type AssignmentRow = Tables["case_assignments"]["Row"];
 export type ActivityRow = Views["organization_case_activity"]["Row"];
@@ -194,7 +198,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       ),
     ]),
   ];
-  const customers = customerResult.data ?? [];
+  const customers = requireOrganizationCustomers(customerResult.data ?? []);
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
   const rawCases = caseResult.data ?? [];

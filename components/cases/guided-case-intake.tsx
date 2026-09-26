@@ -409,6 +409,8 @@ export function GuidedCaseIntake({
       ...customerValues,
       name: canonicalName,
       email: normalizedEmail,
+      firstName: customerFirstName,
+      lastName: customerLastName,
     });
 
     if (!result.ok) {
@@ -1073,4 +1075,3 @@ export function GuidedCaseIntake({
     </section>
   );
 }
-
