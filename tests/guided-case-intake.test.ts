@@ -29,6 +29,7 @@ const question = (
   description: `${id} description`,
   responseType,
   required,
+  requireAllOptions: false,
   displayOrder: 0,
   options,
 });

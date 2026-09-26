@@ -66,7 +66,11 @@ function QuestionField({
   error,
   onChange,
 }: {
-  question: GuidedIntakeQuestion & { effectiveRequired: boolean };
+  question: GuidedIntakeQuestion & {
+    effectiveRequired: boolean;
+    answered: boolean;
+    valid: boolean;
+  };
   value: Json | undefined;
   error?: string;
   onChange: (value: Json | undefined) => void;
