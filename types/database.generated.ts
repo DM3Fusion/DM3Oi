@@ -1572,6 +1572,7 @@ export type Database = {
           id: string
           organization_id: string
           question_text: string
+          question_group: string | null
           required: boolean
           require_all_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
@@ -1586,6 +1587,7 @@ export type Database = {
           id?: string
           organization_id: string
           question_text: string
+          question_group?: string | null
           required?: boolean
           require_all_options?: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
@@ -1600,6 +1602,7 @@ export type Database = {
           id?: string
           organization_id?: string
           question_text?: string
+          question_group?: string | null
           required?: boolean
           require_all_options?: boolean
           response_type?: Database["public"]["Enums"]["question_response_type"]
@@ -2322,6 +2325,7 @@ export type Database = {
           id: string
           organization_id: string
           question_text: string
+          question_group: string | null
           required: boolean
           require_all_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]

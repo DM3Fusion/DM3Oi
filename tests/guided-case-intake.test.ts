@@ -30,6 +30,7 @@ const question = (
   responseType,
   required,
   requireAllOptions: false,
+  group: null,
   displayOrder: 0,
   options,
 });
@@ -363,4 +364,209 @@ test("Guided Intake is the only routed Case creation UI and completion guards re
   assert.doesNotMatch(actions, /export async function createCaseAction/);
   assert.match(completion, /required applicable tasks/);
   assert.match(completion, /required applicable questions/);
+});
+
+test("dependent verification is hidden when dependents are not claimed", () => {
+  const dependents = question("dependents", "YES_NO", true);
+  const verification = question(
+    "dependent-verification",
+    "YES_NO",
+    false,
+  );
+
+  const configuration: GuidedIntakeConfiguration = {
+    organizationId,
+    customers: [],
+    caseTitles: [],
+    caseTypes: [],
+    managers: [],
+    staff: [],
+    questions: [dependents, verification],
+    rules: [
+      {
+        id: "dependents-rule",
+        organization_id: organizationId,
+        name: "Require dependent verification when dependents are claimed",
+        source_question_id: dependents.id,
+        condition_operator: "IS_YES",
+        condition_option_id: null,
+        active: true,
+      },
+    ],
+    actions: [
+      {
+        id: "dependents-action",
+        organization_id: organizationId,
+        rule_definition_id: "dependents-rule",
+        action_type: "REQUIRE_QUESTION",
+        target_question_id: verification.id,
+        task_title: null,
+        task_description: null,
+        task_priority: null,
+        task_required: null,
+        task_blocking: null,
+      },
+    ],
+    defaultPriority: "NORMAL",
+    canViewCustomers: true,
+    canCreateCustomer: true,
+    canAssign: true,
+  };
+
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    {
+      [dependents.id]: false,
+    },
+  );
+
+  const result = evaluation.questions.find(
+    (candidate) => candidate.id === verification.id,
+  );
+
+  assert.ok(result);
+  assert.equal(result.applicable, false);
+  assert.equal(result.effectiveRequired, false);
+});
+
+test("dependent verification becomes visible and required when dependents are claimed", () => {
+  const dependents = question("dependents", "YES_NO", true);
+  const verification = question(
+    "dependent-verification",
+    "YES_NO",
+    false,
+  );
+
+  const configuration: GuidedIntakeConfiguration = {
+    organizationId,
+    customers: [],
+    caseTitles: [],
+    caseTypes: [],
+    managers: [],
+    staff: [],
+    questions: [dependents, verification],
+    rules: [
+      {
+        id: "dependents-rule",
+        organization_id: organizationId,
+        name: "Require dependent verification when dependents are claimed",
+        source_question_id: dependents.id,
+        condition_operator: "IS_YES",
+        condition_option_id: null,
+        active: true,
+      },
+    ],
+    actions: [
+      {
+        id: "dependents-action",
+        organization_id: organizationId,
+        rule_definition_id: "dependents-rule",
+        action_type: "REQUIRE_QUESTION",
+        target_question_id: verification.id,
+        task_title: null,
+        task_description: null,
+        task_priority: null,
+        task_required: null,
+        task_blocking: null,
+      },
+    ],
+    defaultPriority: "NORMAL",
+    canViewCustomers: true,
+    canCreateCustomer: true,
+    canAssign: true,
+  };
+
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    {
+      [dependents.id]: true,
+    },
+  );
+
+  const result = evaluation.questions.find(
+    (candidate) => candidate.id === verification.id,
+  );
+
+  assert.ok(result);
+  assert.equal(result.applicable, true);
+  assert.equal(result.effectiveRequired, true);
+  assert.equal(result.valid, false);
+});
+
+test("business records follow the self-employment hierarchy", () => {
+  const businessIncome = question("business-income", "YES_NO", true);
+  const businessRecords = question(
+    "business-records",
+    "YES_NO",
+    false,
+  );
+
+  const configuration: GuidedIntakeConfiguration = {
+    organizationId,
+    customers: [],
+    caseTitles: [],
+    caseTypes: [],
+    managers: [],
+    staff: [],
+    questions: [businessIncome, businessRecords],
+    rules: [
+      {
+        id: "business-rule",
+        organization_id: organizationId,
+        name: "Require business records when business income is involved",
+        source_question_id: businessIncome.id,
+        condition_operator: "IS_YES",
+        condition_option_id: null,
+        active: true,
+      },
+    ],
+    actions: [
+      {
+        id: "business-action",
+        organization_id: organizationId,
+        rule_definition_id: "business-rule",
+        action_type: "REQUIRE_QUESTION",
+        target_question_id: businessRecords.id,
+        task_title: null,
+        task_description: null,
+        task_priority: null,
+        task_required: null,
+        task_blocking: null,
+      },
+    ],
+    defaultPriority: "NORMAL",
+    canViewCustomers: true,
+    canCreateCustomer: true,
+    canAssign: true,
+  };
+
+  const noBusiness = evaluateGuidedCaseIntake(
+    configuration,
+    {
+      [businessIncome.id]: false,
+    },
+  );
+
+  const noBusinessResult = noBusiness.questions.find(
+    (candidate) => candidate.id === businessRecords.id,
+  );
+
+  assert.ok(noBusinessResult);
+  assert.equal(noBusinessResult.applicable, false);
+  assert.equal(noBusinessResult.effectiveRequired, false);
+
+  const hasBusiness = evaluateGuidedCaseIntake(
+    configuration,
+    {
+      [businessIncome.id]: true,
+    },
+  );
+
+  const hasBusinessResult = hasBusiness.questions.find(
+    (candidate) => candidate.id === businessRecords.id,
+  );
+
+  assert.ok(hasBusinessResult);
+  assert.equal(hasBusinessResult.applicable, true);
+  assert.equal(hasBusinessResult.effectiveRequired, true);
 });

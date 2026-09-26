@@ -15,6 +15,7 @@ const question = (
   responseType: "MULTI_SELECT",
   required: true,
   requireAllOptions,
+  group: null,
   displayOrder: 1,
   options: [
     {

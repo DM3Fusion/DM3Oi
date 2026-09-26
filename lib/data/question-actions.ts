@@ -89,6 +89,7 @@ export async function saveQuestionAction(form: FormData) {
     target_active: form.get("active") === "on",
     target_display_order: Number(text(form, "displayOrder") || 0),
     target_options: options,
+    target_question_group: text(form, "questionGroup") || null,
   });
   if (error) {
     console.error("Save question failed", {

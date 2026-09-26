@@ -14,6 +14,7 @@ import { RuleFilters } from "@/components/rule-filters";
 import { normalizeRuleQuery,normalizeRuleStatus,ruleMatchesSearch } from "@/lib/rule-filters";
 import { ApplicationIcon } from "@/components/application-icon";
 import { QuestionOptionsEditor } from "@/components/question-options-editor";
+import { guidedQuestionGroups, guidedQuestionGroupLabels, type GuidedQuestionGroup } from "@/lib/guided-case-intake";
 export default async function Page({
   searchParams,
 }: {
@@ -69,6 +70,11 @@ export default async function Page({
                   <b>{q.question_text}</b>
                   <p>{q.description || "No help text."}</p>
                   <span>
+                    {q.question_group
+                      ? `${guidedQuestionGroupLabels[
+                          q.question_group as GuidedQuestionGroup
+                        ]} · `
+                      : ""}
                     {q.response_type.replaceAll("_", " ")} ·{" "}
                     {q.options
                       .filter((o) => o.is_active)
@@ -135,6 +141,20 @@ function QuestionForm({
           })) ?? []
         }
       />
+      <label>
+        <span>Function / Group</span>
+        <select
+          name="questionGroup"
+          defaultValue={question?.question_group ?? ""}
+        >
+          <option value="">Unassigned</option>
+          {guidedQuestionGroups.map((group) => (
+            <option key={group} value={group}>
+              {guidedQuestionGroupLabels[group]}
+            </option>
+          ))}
+        </select>
+      </label>
       <label>
         <span>Help text</span>
         <input name="description" defaultValue={question?.description} />

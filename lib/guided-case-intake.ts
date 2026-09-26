@@ -23,6 +23,24 @@ export const guidedCasePriorities = [
 ] as const;
 
 export type GuidedCasePriority = (typeof guidedCasePriorities)[number];
+
+export const guidedQuestionGroups = [
+  "CUSTOMER_PROFILE",
+  "VERIFICATION_ELIGIBILITY",
+  "REQUIRED_DOCUMENTS",
+  "MISSING_INFORMATION_FOLLOW_UP",
+  "READY_FOR_HANDOFF",
+] as const;
+
+export type GuidedQuestionGroup = (typeof guidedQuestionGroups)[number];
+
+export const guidedQuestionGroupLabels: Record<GuidedQuestionGroup, string> = {
+  CUSTOMER_PROFILE: "Customer Profile",
+  VERIFICATION_ELIGIBILITY: "Verification & Eligibility",
+  REQUIRED_DOCUMENTS: "Required Documents",
+  MISSING_INFORMATION_FOLLOW_UP: "Missing Information / Follow-up",
+  READY_FOR_HANDOFF: "Ready for Handoff",
+};
 export type GuidedQuestionResponseType =
   | "YES_NO"
   | "NUMBER"
@@ -53,6 +71,7 @@ export type GuidedIntakeQuestion = {
   responseType: GuidedQuestionResponseType;
   required: boolean;
   requireAllOptions: boolean;
+  group: GuidedQuestionGroup | null;
   displayOrder: number;
   options: GuidedIntakeOption[];
 };

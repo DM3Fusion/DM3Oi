@@ -10,6 +10,8 @@ import {
 import {
   evaluateGuidedCaseIntake,
   guidedCaseIntakeSteps,
+  guidedQuestionGroups,
+  guidedQuestionGroupLabels,
   guidedCasePriorities,
   validateGuidedCaseDetails,
   validateGuidedCustomerStep,
@@ -776,23 +778,95 @@ export function GuidedCaseIntake({
     </div>
   );
 
-  const renderQuestions = () => (
-    <div className="intake-question-list intake-step-content">
-      {visibleQuestions.length ? (
-        visibleQuestions.map((question) => (
-          <QuestionField
-            key={question.id}
-            question={question}
-            value={draft.answers[question.id]}
-            error={errors[`question.${question.id}`]}
-            onChange={(value) => updateAnswer(question.id, value)}
-          />
-        ))
-      ) : (
-        <div className="empty compact-empty"><p>No intake questions currently apply.</p></div>
-      )}
-    </div>
-  );
+  const renderQuestions = () => {
+    if (!visibleQuestions.length) {
+      return (
+        <div className="intake-question-list intake-step-content">
+          <div className="empty compact-empty">
+            <p>No intake questions currently apply.</p>
+          </div>
+        </div>
+      );
+    }
+
+    const grouped = guidedQuestionGroups
+      .map((group) => ({
+        group,
+        questions: visibleQuestions
+          .filter((question) => question.group === group)
+          .sort((a, b) => a.displayOrder - b.displayOrder),
+      }))
+      .filter((section) => section.questions.length > 0);
+
+    const unassigned = visibleQuestions
+      .filter((question) => !question.group)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+
+    return (
+      <div className="intake-question-groups intake-step-content">
+        {grouped.map((section) => {
+          const requiredQuestions = section.questions.filter(
+            (question) => question.effectiveRequired,
+          );
+          const requiredComplete = requiredQuestions.filter(
+            (question) => question.valid,
+          ).length;
+
+          return (
+            <section
+              className="intake-question-group"
+              key={section.group}
+            >
+              <header>
+                <h3>{guidedQuestionGroupLabels[section.group]}</h3>
+                {requiredQuestions.length ? (
+                  <span>
+                    {requiredComplete} of {requiredQuestions.length} required
+                    complete
+                  </span>
+                ) : null}
+              </header>
+
+              <div className="intake-question-list">
+                {section.questions.map((question) => (
+                  <QuestionField
+                    key={question.id}
+                    question={question}
+                    value={draft.answers[question.id]}
+                    error={errors[`question.${question.id}`]}
+                    onChange={(value) =>
+                      updateAnswer(question.id, value)
+                    }
+                  />
+                ))}
+              </div>
+            </section>
+          );
+        })}
+
+        {unassigned.length ? (
+          <section className="intake-question-group">
+            <header>
+              <h3>Other</h3>
+            </header>
+            <div className="intake-question-list">
+              {unassigned.map((question) => (
+                <QuestionField
+                  key={question.id}
+                  question={question}
+                  value={draft.answers[question.id]}
+                  error={errors[`question.${question.id}`]}
+                  onChange={(value) =>
+                    updateAnswer(question.id, value)
+                  }
+                />
+              ))}
+            </div>
+          </section>
+        ) : null}
+      </div>
+    );
+  };
 
   const renderRequirements = () => {
     const requiredQuestions = evaluation.questions.filter(
