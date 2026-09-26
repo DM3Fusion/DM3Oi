@@ -27,7 +27,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const counts = getCaseDashboardCounts(data.cases, data.timezone);
   const items = data.cases.filter((item) => matchesCaseRegisterFilters(item, filters, data.timezone));
   const canCreate = hasPermission(access, "CREATE_CASE");
-  const drafts = canCreate ? await loadGuidedIntakeDraftSummaries() : [];
+  const canDeleteDrafts = hasPermission(access, "DELETE_DRAFT_INTAKES");
+  const drafts =
+    canCreate || canDeleteDrafts
+      ? await loadGuidedIntakeDraftSummaries()
+      : [];
   return (
     <>
       <PageHeader
@@ -72,6 +76,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       guidedCaseIntakeSteps.length,
                     )}
                     totalSteps={guidedCaseIntakeSteps.length}
+                    canResume={draft.canResume}
+                    canDelete={draft.canDelete}
                     updatedAt={new Date(draft.updatedAt).toLocaleString()}
                   />
                 ))}

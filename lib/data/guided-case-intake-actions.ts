@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { getAccessContext } from "@/lib/auth/context";
+import { hasPermission } from "@/lib/auth/permissions";
 import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creation";
 import { loadGuidedCaseIntakeConfiguration } from "@/lib/data/guided-case-intake";
 import {
@@ -194,4 +196,66 @@ export async function createGuidedCaseAction(
   revalidatePath("/customers");
   revalidatePath(`/cases/${created.id}`);
   return { ok: true, caseId: created.id, caseNumber: created.case_number };
+}
+
+
+export async function deleteGuidedIntakeDraftAction(
+  draftId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const access = await getAccessContext();
+  const organizationId = access?.activeOrganization?.id;
+
+  if (
+    !access?.user?.id ||
+    !organizationId ||
+    !hasPermission(access, "DELETE_DRAFT_INTAKES")
+  ) {
+    return {
+      ok: false,
+      error: "You are not authorized to delete this draft intake.",
+    };
+  }
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      draftId,
+    )
+  ) {
+    return { ok: false, error: "This draft intake is invalid." };
+  }
+
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("guided_case_intake_drafts")
+    .delete()
+    .eq("organization_id", organizationId)
+    .eq("id", draftId)
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Guided Intake draft delete failed", {
+      organizationId,
+      draftId,
+      code: error.code,
+      message: error.message,
+    });
+
+    return {
+      ok: false,
+      error: "The draft intake could not be deleted.",
+    };
+  }
+
+  if (!data) {
+    return {
+      ok: false,
+      error:
+        "The draft intake was not found or you are not authorized to delete it.",
+    };
+  }
+
+  revalidatePath("/cases");
+  return { ok: true };
 }

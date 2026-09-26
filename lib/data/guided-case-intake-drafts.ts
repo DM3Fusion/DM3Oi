@@ -35,6 +35,9 @@ export type GuidedIntakeDraftSummary = {
   customerName: string;
   caseTitle: string;
   caseType: string;
+  createdByUserId: string;
+  canResume: boolean;
+  canDelete: boolean;
   updatedAt: string;
 };
 
@@ -84,11 +87,13 @@ const parseAnswers = (value: Json): GuidedIntakeAnswers => {
 async function requireDraftAccess() {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
+  const canCreate = hasPermission(access, "CREATE_CASE");
+  const canDelete = hasPermission(access, "DELETE_DRAFT_INTAKES");
 
   if (
     !access?.user?.id ||
     !organizationId ||
-    !hasPermission(access, "CREATE_CASE")
+    (!canCreate && !canDelete)
   ) {
     throw new Error("not authorized");
   }
@@ -96,13 +101,20 @@ async function requireDraftAccess() {
   return {
     access,
     organizationId,
+    canCreate,
+    canDelete,
   };
 }
 
 export async function loadGuidedIntakeDraft(
   draftId: string,
 ): Promise<GuidedIntakeSavedDraft | null> {
-  const { access, organizationId } = await requireDraftAccess();
+  const { access, organizationId, canCreate } = await requireDraftAccess();
+
+  if (!canCreate) {
+    throw new Error("not authorized");
+  }
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -154,17 +166,35 @@ export async function loadGuidedIntakeDraft(
 export async function loadGuidedIntakeDraftSummaries(): Promise<
   GuidedIntakeDraftSummary[]
 > {
-  const { access, organizationId } = await requireDraftAccess();
+  const { access, organizationId, canCreate, canDelete } =
+    await requireDraftAccess();
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  const role = access.activeOrganization?.role;
+  const canManageOrganizationDrafts =
+    canDelete &&
+    (
+      access.isSuperAdmin ||
+      role === "BUSINESS_OWNER" ||
+      role === "BUSINESS_ADMIN" ||
+      role === "STAFF_MANAGER"
+    );
+
+  let query = supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,current_step,customer_id,case_title_id,case_type_id,updated_at",
+      "id,current_step,customer_id,case_title_id,case_type_id,created_by_user_id,updated_at",
     )
-    .eq("organization_id", organizationId)
-    .eq("created_by_user_id", access.user.id)
-    .order("updated_at", { ascending: false });
+    .eq("organization_id", organizationId);
+
+  if (!canManageOrganizationDrafts) {
+    query = query.eq("created_by_user_id", access.user.id);
+  }
+
+  const { data, error } = await query.order(
+    "updated_at",
+    { ascending: false },
+  );
 
   if (error) {
     console.error("Guided Intake draft list failed", {
@@ -238,19 +268,26 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
     (types.data ?? []).map((item) => [item.id, item.name]),
   );
 
-  return rows.map((row) => ({
-    id: row.id,
-    currentStep: row.current_step,
-    customerId: row.customer_id ?? "",
-    customerName: row.customer_id
-      ? customerNames.get(row.customer_id) ?? "Unavailable Customer"
-      : "Customer not selected",
-    caseTitle: row.case_title_id
-      ? titleNames.get(row.case_title_id) ?? "Unavailable Case Title"
-      : "Case Title not selected",
-    caseType: row.case_type_id
-      ? typeNames.get(row.case_type_id) ?? "Unavailable Case Type"
-      : "Case Type not selected",
-    updatedAt: row.updated_at,
-  }));
+  return rows.map((row) => {
+    const ownsDraft = row.created_by_user_id === access.user.id;
+
+    return {
+      id: row.id,
+      currentStep: row.current_step,
+      customerId: row.customer_id ?? "",
+      customerName: row.customer_id
+        ? customerNames.get(row.customer_id) ?? "Unavailable Customer"
+        : "Customer not selected",
+      caseTitle: row.case_title_id
+        ? titleNames.get(row.case_title_id) ?? "Unavailable Case Title"
+        : "Case Title not selected",
+      caseType: row.case_type_id
+        ? typeNames.get(row.case_type_id) ?? "Unavailable Case Type"
+        : "Case Type not selected",
+      createdByUserId: row.created_by_user_id,
+      canResume: canCreate && ownsDraft,
+      canDelete: canDelete && (ownsDraft || canManageOrganizationDrafts),
+      updatedAt: row.updated_at,
+    };
+  });
 }
