@@ -7361,17 +7361,21 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 .draft-intake-delete-button {
   appearance: none;
-  border: 0;
-  background: transparent;
-  padding: 0.15rem 0.2rem;
-  color: var(--danger, #991b1b);
+  border: 1px solid #991b1b;
+  border-radius: 0.45rem;
+  background: #fff;
+  padding: 0.55rem 0.9rem;
+  color: #991b1b;
   font: inherit;
   font-weight: 700;
+  line-height: 1.2;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .draft-intake-delete-button:hover:not(:disabled) {
-  text-decoration: underline;
+  background: #fee2e2;
+  text-decoration: none;
 }
 
 .draft-intake-delete-button:disabled {
