@@ -9,7 +9,6 @@ type Props = {
   caseTitle: string;
   completedSteps: number;
   totalSteps: number;
-  savedStep: string;
   updatedAt: string;
 };
 
@@ -19,7 +18,6 @@ export function DraftIntakeRow({
   caseTitle,
   completedSteps,
   totalSteps,
-  savedStep,
   updatedAt,
 }: Props) {
   const router = useRouter();
@@ -64,7 +62,6 @@ export function DraftIntakeRow({
       </td>
       <td>{customerName}</td>
       <td>{caseTitle}</td>
-      <td>{savedStep}</td>
       <td>{updatedAt}</td>
     </tr>
   );

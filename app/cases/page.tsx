@@ -57,7 +57,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   <th>Status</th>
                   <th>Customer</th>
                   <th>Case Title</th>
-                  <th>Saved Step</th>
                   <th>Updated</th>
                 </tr>
               </thead>
@@ -73,7 +72,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                       guidedCaseIntakeSteps.length,
                     )}
                     totalSteps={guidedCaseIntakeSteps.length}
-                    savedStep={guidedCaseIntakeSteps[draft.currentStep] ?? "Customer"}
                     updatedAt={new Date(draft.updatedAt).toLocaleString()}
                   />
                 ))}
