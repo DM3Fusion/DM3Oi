@@ -21,6 +21,7 @@ import {
   mobileSecondaryNavigation,
   platformNavigation,
 } from "@/lib/application-navigation";
+import { hasPermission } from "@/lib/auth/permissions";
 
 const phoneMediaQuery = "(max-width: 600px)";
 const getPhoneSnapshot = () => window.matchMedia(phoneMediaQuery).matches;
@@ -59,6 +60,10 @@ export function AppShell({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(
+    pathname.startsWith("/settings") ||
+      pathname.startsWith("/administration"),
+  );
   const [liveNewTrialRequestCount, setLiveNewTrialRequestCount] =
     useState(newTrialRequestCount);
   const closeDrawer = useCallback(() => setOpen(false), []);
@@ -121,6 +126,15 @@ export function AppShell({
       void supabase.removeChannel(trialRequestChannel);
     };
   }, [access?.isSuperAdmin, newTrialRequestCount]);
+  useEffect(() => {
+    if (
+      pathname.startsWith("/settings") ||
+      pathname.startsWith("/administration")
+    ) {
+      setSettingsOpen(true);
+    }
+  }, [pathname]);
+
   const phoneLayout = usePhoneLayout(closeDrawer);
   if (isPublic(pathname, access))
     return <main className="public-main">{children}</main>;
@@ -136,6 +150,51 @@ export function AppShell({
   const administrationNav = access?.internalAccess
     ? authorizedOrganizationAdministrationNavigation(access)
     : [];
+
+  const settingsNavigation = access
+    ? [
+        ...(access.isSuperAdmin
+          ? [
+              {
+                href: "/administration/defaults",
+                label: "General",
+                icon: "settings" as const,
+              },
+            ]
+          : []),
+        ...(hasPermission(access, "VIEW_ADMINISTRATION")
+          ? [
+              {
+                href: "/settings/case-configuration",
+                label: "Case Configuration",
+                icon: "cases" as const,
+              },
+              {
+                href: "/administration/customer-portal",
+                label: "Customer Portal",
+                icon: "customers" as const,
+              },
+            ]
+          : []),
+        ...(hasPermission(access, "MANAGE_ROLE_PERMISSIONS")
+          ? [
+              {
+                href: "/settings/user-access",
+                label: "User Access",
+                icon: "users" as const,
+              },
+            ]
+          : []),
+      ]
+    : [];
+
+  const settingsRouteActive =
+    pathname.startsWith("/settings") ||
+    pathname === "/administration/defaults" ||
+    pathname === "/administration/customer-portal" ||
+    pathname === "/administration/case-types" ||
+    pathname === "/administration/case-lifecycle";
+
   const mobileNavigation = [
     ...nav
       .filter((item) => mobilePrimaryDestinations.has(item.href))
@@ -238,8 +297,64 @@ export function AppShell({
           <nav className="administration-nav" aria-label="Administration navigation">
             <span className="sidebar-section-label">Administration</span>
             {administrationNav.map(({ href, label, icon }) => {
+              if (href === "/settings") {
+                return (
+                  <div className="settings-nav-group" key={href}>
+                    <button
+                      type="button"
+                      className={`settings-nav-parent ${settingsRouteActive ? "active" : ""}`.trim()}
+                      aria-expanded={settingsOpen}
+                      onClick={() => setSettingsOpen((value) => !value)}
+                    >
+                      <ApplicationIcon name={icon} />
+                      <span>{label}</span>
+                      <ApplicationIcon
+                        name="forward"
+                        className={`settings-nav-chevron ${settingsOpen ? "open" : ""}`.trim()}
+                      />
+                    </button>
+
+                    {settingsOpen && settingsNavigation.length ? (
+                      <div className="settings-subnav">
+                        {settingsNavigation.map((item) => {
+                          const childActive =
+                            item.href === "/settings/case-configuration"
+                              ? pathname.startsWith("/settings/case-configuration") ||
+                                pathname === "/administration/case-types" ||
+                                pathname === "/administration/case-lifecycle"
+                              : pathname === item.href ||
+                                pathname.startsWith(`${item.href}/`);
+
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              onClick={() => setOpen(false)}
+                              className={childActive ? "active" : ""}
+                            >
+                              <ApplicationIcon name={item.icon} />
+                              <span>{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+
               const active = pathname.startsWith(href);
-              return <Link key={href} href={href} onClick={() => setOpen(false)} className={active ? "active" : ""}><ApplicationIcon name={icon} /><span>{label}</span></Link>;
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setOpen(false)}
+                  className={active ? "active" : ""}
+                >
+                  <ApplicationIcon name={icon} />
+                  <span>{label}</span>
+                </Link>
+              );
             })}
           </nav>
         ) : null}

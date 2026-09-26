@@ -6,21 +6,15 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
 const configurationCards = [
   {
-    title: "User Access",
-    description: "Control what organization roles can access and manage.",
-    href: "/settings/user-access",
-    permission: "MANAGE_ROLE_PERMISSIONS",
-  },
-  {
-    title: "Case Types",
-    description: "Define the kinds of cases this organization manages.",
-    href: "/administration/case-types",
+    title: "General",
+    description: "Configure organization-wide operational defaults.",
+    href: "/administration/defaults",
     permission: "VIEW_ADMINISTRATION",
   },
   {
-    title: "Case Lifecycle",
-    description: "Configure case status and workflow behavior.",
-    href: "/administration/case-lifecycle",
+    title: "Case Configuration",
+    description: "Configure case types and lifecycle behavior.",
+    href: "/settings/case-configuration",
     permission: "VIEW_ADMINISTRATION",
   },
   {
@@ -30,10 +24,10 @@ const configurationCards = [
     permission: "VIEW_ADMINISTRATION",
   },
   {
-    title: "Organization Defaults",
-    description: "Configure organization-wide operational defaults.",
-    href: "/administration/defaults",
-    permission: "VIEW_ADMINISTRATION",
+    title: "User Access",
+    description: "Control what organization roles can access and manage.",
+    href: "/settings/user-access",
+    permission: "MANAGE_ROLE_PERMISSIONS",
   },
 ] as const;
 export default async function Page() {

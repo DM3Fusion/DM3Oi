@@ -6577,3 +6577,20 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size:9px;
   }
 }
+
+
+/* Settings nested administration navigation. */
+.settings-nav-group{display:grid;gap:2px}
+.sidebar .settings-nav-parent{display:flex;width:100%;min-height:44px;align-items:center;gap:11px;border:0;border-radius:6px;background:transparent;padding:9px 10px;color:#b9c9d9;font-family:inherit;font-size:16px;font-weight:620;line-height:1.25;text-align:left;cursor:pointer}
+.sidebar .settings-nav-parent:hover{background:#0d2947;color:#fff}
+.sidebar .settings-nav-parent.active{background:#0b3558;box-shadow:inset 3px 0 #22c1cf;color:#fff}
+.sidebar .settings-nav-parent>.application-icon:first-child{width:20px;height:20px;color:#7694af}
+.sidebar .settings-nav-parent.active>.application-icon:first-child{color:#49d5df}
+.sidebar .settings-nav-parent>span{flex:1}
+.sidebar .settings-nav-chevron{width:15px;height:15px;transition:transform .15s ease}
+.sidebar .settings-nav-chevron.open{transform:rotate(90deg)}
+.sidebar .settings-subnav{display:grid;gap:2px;margin:2px 0 5px 18px;padding-left:12px;border-left:1px solid #ffffff17}
+.sidebar .settings-subnav a{min-height:38px;padding:7px 9px;font-size:14px}
+.sidebar .settings-subnav a>span{font-size:14px}
+.sidebar .settings-subnav a svg{width:16px;height:16px}
+.sidebar .settings-subnav a.active{box-shadow:none;background:#0d2947;color:#fff}
