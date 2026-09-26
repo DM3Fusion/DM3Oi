@@ -52,6 +52,7 @@ export type GuidedIntakeQuestion = {
   description: string;
   responseType: GuidedQuestionResponseType;
   required: boolean;
+  requireAllOptions: boolean;
   displayOrder: number;
   options: GuidedIntakeOption[];
 };
@@ -149,11 +150,24 @@ export function isGuidedQuestionAnswerValid(
   const optionIds = new Set(question.options.map((option) => option.id));
   if (question.responseType === "SINGLE_SELECT")
     return typeof value === "string" && optionIds.has(value);
-  return (
-    Array.isArray(value) &&
-    value.length > 0 &&
-    value.every((item) => typeof item === "string" && optionIds.has(item))
+  if (question.responseType !== "MULTI_SELECT") return false;
+  if (!Array.isArray(value) || value.length === 0) return false;
+
+  const selected = value.filter(
+    (item): item is string => typeof item === "string",
   );
+
+  if (
+    selected.length !== value.length ||
+    selected.some((item) => !optionIds.has(item))
+  ) {
+    return false;
+  }
+
+  if (!question.requireAllOptions) return true;
+
+  const selectedIds = new Set(selected);
+  return question.options.every((option) => selectedIds.has(option.id));
 }
 
 export function evaluateGuidedCaseIntake(

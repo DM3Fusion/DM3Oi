@@ -143,8 +143,12 @@ function QuestionField({
       </select>
     );
   } else if (question.responseType === "MULTI_SELECT") {
+    const validOptionIds = new Set(question.options.map((option) => option.id));
     const selected = Array.isArray(value)
-      ? value.filter((item): item is string => typeof item === "string")
+      ? value.filter(
+          (item): item is string =>
+            typeof item === "string" && validOptionIds.has(item),
+        )
       : [];
     control = (
       <fieldset {...common} className="intake-option-list">
@@ -176,12 +180,51 @@ function QuestionField({
       />
     );
   }
+  const selectedCount =
+    question.responseType === "MULTI_SELECT" && Array.isArray(value)
+      ? question.options.filter((option) =>
+          value.includes(option.id),
+        ).length
+      : 0;
+
+  const completed =
+    question.valid &&
+    (question.effectiveRequired || question.answered);
+
   return (
-    <div className="intake-question-card">
+    <div
+      className={`intake-question-card${completed ? " complete" : ""}`}
+    >
       <label htmlFor={controlId}>
-        <span>
-          {question.text}
-          {question.effectiveRequired ? <b aria-label="required"> *</b> : null}
+        <span className="intake-question-title-row">
+          <span>
+            {question.text}
+            {question.effectiveRequired ? (
+              <b aria-label="required"> *</b>
+            ) : null}
+          </span>
+
+          {question.responseType === "MULTI_SELECT" ? (
+            <em
+              className={
+                question.valid
+                  ? "intake-question-progress complete"
+                  : "intake-question-progress"
+              }
+            >
+              {selectedCount} of {question.options.length} selected
+            </em>
+          ) : question.effectiveRequired ? (
+            <em
+              className={
+                question.valid
+                  ? "intake-question-progress complete"
+                  : "intake-question-progress required"
+              }
+            >
+              {question.valid ? "Complete" : "Required"}
+            </em>
+          ) : null}
         </span>
         {question.description ? <small>{question.description}</small> : null}
       </label>
@@ -268,6 +311,12 @@ export function GuidedCaseIntake({
   );
   const selectedStaff = configuration.staff.filter((item) =>
     draft.staffUserIds.includes(item.id),
+  );
+  const requiredQuestionsComplete = !evaluation.questions.some(
+    (question) =>
+      question.applicable &&
+      question.effectiveRequired &&
+      !question.valid,
   );
 
   const updateDraft = <K extends keyof GuidedCaseIntakeDraft>(
@@ -906,7 +955,15 @@ export function GuidedCaseIntake({
                 ? createNewCustomerAndContinue
                 : continueForward
             }
-            disabled={pending}
+            disabled={
+              pending ||
+              (step === 2 && !requiredQuestionsComplete)
+            }
+            title={
+              step === 2 && !requiredQuestionsComplete
+                ? "Complete all required questions before continuing."
+                : undefined
+            }
           >
             {pending && step === 0 && customerMode === "new"
               ? "Creating Customer…"

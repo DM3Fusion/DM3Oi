@@ -1573,6 +1573,7 @@ export type Database = {
           organization_id: string
           question_text: string
           required: boolean
+          require_all_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at: string
         }
@@ -1586,6 +1587,8 @@ export type Database = {
           organization_id: string
           question_text: string
           required?: boolean
+          require_all_options?: boolean
+          require_all_options?: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at?: string
         }
@@ -2320,6 +2323,7 @@ export type Database = {
           organization_id: string
           question_text: string
           required: boolean
+          require_all_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at: string
         }

@@ -29,9 +29,11 @@ type EditorOption = InitialOption & {
 export function QuestionOptionsEditor({
   initialResponseType,
   initialOptions,
+  initialRequireAllOptions,
 }: {
   initialResponseType: ResponseType;
   initialOptions: InitialOption[];
+  initialRequireAllOptions: boolean;
 }) {
   const nextKey = useRef(0);
   const [responseType, setResponseType] =
@@ -41,6 +43,9 @@ export function QuestionOptionsEditor({
       ...option,
       editorKey: option.id,
     })),
+  );
+  const [requireAllOptions, setRequireAllOptions] = useState(
+    initialRequireAllOptions,
   );
 
   const isSelect =
@@ -96,6 +101,14 @@ export function QuestionOptionsEditor({
 
       <input
         type="hidden"
+        name="requireAllOptions"
+        value={
+          responseType === "MULTI_SELECT" && requireAllOptions ? "on" : ""
+        }
+      />
+
+      <input
+        type="hidden"
         name="optionsJson"
         value={JSON.stringify(
           options.map((option, index) => ({
@@ -107,6 +120,24 @@ export function QuestionOptionsEditor({
           })),
         )}
       />
+
+      {responseType === "MULTI_SELECT" ? (
+        <label className="checkbox-label full question-require-all-options">
+          <input
+            type="checkbox"
+            checked={requireAllOptions}
+            onChange={(event) =>
+              setRequireAllOptions(event.currentTarget.checked)
+            }
+          />
+          <span>
+            Require all displayed options
+            <small>
+              The question is complete only after every displayed item is selected.
+            </small>
+          </span>
+        </label>
+      ) : null}
 
       {isSelect ? (
         <div className="full question-options-editor">

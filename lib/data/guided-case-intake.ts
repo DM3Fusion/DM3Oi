@@ -92,7 +92,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     supabase
       .from("organization_question_definitions")
       .select(
-        "id,question_text,description,response_type,required,display_order",
+        "id,question_text,description,response_type,required,require_all_options,display_order",
       )
       .eq("organization_id", organizationId)
       .eq("active", true)
@@ -231,6 +231,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
         description: question.description,
         responseType: question.response_type,
         required: question.required,
+        requireAllOptions: question.require_all_options,
         displayOrder: question.display_order,
         options: (options.data ?? [])
           .filter((option) => option.question_id === question.id)
