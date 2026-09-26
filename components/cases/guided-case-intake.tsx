@@ -18,6 +18,10 @@ import {
   type GuidedIntakeFieldErrors,
   type GuidedIntakeQuestion,
 } from "@/lib/guided-case-intake";
+import {
+  customerEmailPattern,
+  normalizeCustomerPhone,
+} from "@/lib/customer-validation";
 import type { Json } from "@/types/database.generated";
 
 type Props = {
@@ -199,6 +203,8 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
   const [customerErrors, setCustomerErrors] = useState<Record<string, string>>(
     {},
   );
+  const [customerFirstName, setCustomerFirstName] = useState("");
+  const [customerLastName, setCustomerLastName] = useState("");
   const scopedConfiguration = useMemo(
     () => ({ ...configuration, customers }),
     [configuration, customers],
@@ -342,8 +348,42 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
               event.preventDefault();
               setPending(true);
               setCustomerErrors({});
-              const result =
-                await createInlineIntakeCustomerAction(customerValues);
+
+              const inlineErrors: Record<string, string> = {};
+              const normalizedEmail = customerValues.email.trim().toLowerCase();
+              const normalizedPhone = normalizeCustomerPhone(customerValues.phone);
+              const canonicalName =
+                customerValues.type === "INDIVIDUAL"
+                  ? `${customerFirstName.trim()} ${customerLastName.trim()}`.trim()
+                  : customerValues.name.trim();
+
+              if (customerValues.type === "INDIVIDUAL") {
+                if (!customerFirstName.trim())
+                  inlineErrors.firstName = "First Name is required.";
+                if (!customerLastName.trim())
+                  inlineErrors.lastName = "Last Name is required.";
+              } else if (!canonicalName) {
+                inlineErrors.name = "Business Name is required.";
+              }
+
+              if (!customerEmailPattern.test(normalizedEmail))
+                inlineErrors.email = "Enter a valid email address.";
+
+              if (!normalizedPhone)
+                inlineErrors.phone = "Enter a valid U.S. phone number.";
+
+              if (Object.keys(inlineErrors).length) {
+                setCustomerErrors(inlineErrors);
+                setFormError("Correct the highlighted fields.");
+                setPending(false);
+                return;
+              }
+
+              const result = await createInlineIntakeCustomerAction({
+                ...customerValues,
+                name: canonicalName,
+                email: normalizedEmail,
+              });
               setPending(false);
               if (!result.ok) {
                 setCustomerErrors(result.fieldErrors);
@@ -360,35 +400,135 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
                 <span>Customer Type</span>
                 <select
                   value={customerValues.type}
-                  onChange={(event) =>
+                  onChange={(event) => {
+                    const type = event.target.value;
                     setCustomerValues((current) => ({
                       ...current,
-                      type: event.target.value,
-                    }))
-                  }
+                      type,
+                      name: type === "INDIVIDUAL" ? "" : current.name,
+                    }));
+                    setCustomerFirstName("");
+                    setCustomerLastName("");
+                    setCustomerErrors({});
+                    setFormError(null);
+                  }}
                 >
                   <option value="INDIVIDUAL">Individual</option>
                   <option value="BUSINESS">Business</option>
                 </select>
                 {fieldError(customerErrors, "type")}
               </label>
-              {(["name", "email", "phone"] as const).map((key) => (
-                <label key={key}>
-                  <span>{key === "name" ? "Name" : key === "email" ? "Email" : "Phone"}</span>
+              {customerValues.type === "INDIVIDUAL" ? (
+                <>
+                  <label>
+                    <span>First Name</span>
+                    <input
+                      type="text"
+                      value={customerFirstName}
+                      onChange={(event) => {
+                        setCustomerFirstName(event.target.value);
+                        setCustomerErrors((current) => ({
+                          ...current,
+                          firstName: "",
+                        }));
+                        setFormError(null);
+                      }}
+                      aria-invalid={Boolean(customerErrors.firstName)}
+                    />
+                    {fieldError(customerErrors, "firstName")}
+                  </label>
+
+                  <label>
+                    <span>Last Name</span>
+                    <input
+                      type="text"
+                      value={customerLastName}
+                      onChange={(event) => {
+                        setCustomerLastName(event.target.value);
+                        setCustomerErrors((current) => ({
+                          ...current,
+                          lastName: "",
+                        }));
+                        setFormError(null);
+                      }}
+                      aria-invalid={Boolean(customerErrors.lastName)}
+                    />
+                    {fieldError(customerErrors, "lastName")}
+                  </label>
+                </>
+              ) : (
+                <label>
+                  <span>Business Name</span>
                   <input
-                    type={key === "email" ? "email" : key === "phone" ? "tel" : "text"}
-                    value={customerValues[key]}
-                    onChange={(event) =>
+                    type="text"
+                    value={customerValues.name}
+                    onChange={(event) => {
                       setCustomerValues((current) => ({
                         ...current,
-                        [key]: event.target.value,
-                      }))
-                    }
-                    aria-invalid={Boolean(customerErrors[key])}
+                        name: event.target.value,
+                      }));
+                      setCustomerErrors((current) => ({
+                        ...current,
+                        name: "",
+                      }));
+                      setFormError(null);
+                    }}
+                    aria-invalid={Boolean(customerErrors.name)}
                   />
-                  {fieldError(customerErrors, key)}
+                  {fieldError(customerErrors, "name")}
                 </label>
-              ))}
+              )}
+
+              <label>
+                <span>Email</span>
+                <input
+                  type="email"
+                  value={customerValues.email}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setCustomerValues((current) => ({
+                      ...current,
+                      email: value,
+                    }));
+                    setCustomerErrors((current) => ({
+                      ...current,
+                      email:
+                        value.trim() &&
+                        !customerEmailPattern.test(value.trim().toLowerCase())
+                          ? "Enter a valid email address."
+                          : "",
+                    }));
+                    setFormError(null);
+                  }}
+                  aria-invalid={Boolean(customerErrors.email)}
+                />
+                {fieldError(customerErrors, "email")}
+              </label>
+
+              <label>
+                <span>Phone</span>
+                <input
+                  type="tel"
+                  value={customerValues.phone}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setCustomerValues((current) => ({
+                      ...current,
+                      phone: value,
+                    }));
+                    setCustomerErrors((current) => ({
+                      ...current,
+                      phone:
+                        value.trim() && !normalizeCustomerPhone(value)
+                          ? "Enter a valid U.S. phone number."
+                          : "",
+                    }));
+                    setFormError(null);
+                  }}
+                  aria-invalid={Boolean(customerErrors.phone)}
+                />
+                {fieldError(customerErrors, "phone")}
+              </label>
               <label className="full">
                 <span>Notes <small>Optional</small></span>
                 <textarea
