@@ -7028,3 +7028,79 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     line-height: 1.15;
   }
 }
+
+/* Guided Intake tab text hierarchy:
+   row 1 = STEP #, row 2+ = step title. */
+.intake-step-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 78px;
+  padding: 12px 8px 10px;
+  gap: 7px;
+}
+
+.intake-stepper li > .intake-step-tab > span {
+  display: block;
+  width: 100%;
+  height: auto;
+  flex: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.intake-stepper li > .intake-step-tab > b {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.18;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+@media (max-width: 850px) {
+  .intake-step-tab {
+    min-height: 76px;
+    padding: 11px 5px 9px;
+    gap: 6px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 600px) {
+  .intake-step-tab {
+    min-height: 74px;
+    padding: 10px 3px 8px;
+    gap: 5px;
+  }
+
+  .intake-stepper li > .intake-step-tab > span {
+    font-size: 8px;
+  }
+
+  .intake-stepper li > .intake-step-tab > b {
+    font-size: 10px;
+    line-height: 1.15;
+  }
+}
