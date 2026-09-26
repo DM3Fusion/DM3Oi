@@ -7104,3 +7104,26 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     line-height: 1.15;
   }
 }
+
+/* Responsive Guided Intake tab height. */
+.intake-step-tab {
+  min-height: clamp(58px, 5.2vw, 76px);
+  padding-top: clamp(8px, 0.9vw, 12px);
+  padding-bottom: clamp(7px, 0.8vw, 10px);
+}
+
+.intake-stepper li > .intake-step-tab > b {
+  min-height: auto;
+}
+
+@media (max-width: 850px) {
+  .intake-step-tab {
+    min-height: clamp(56px, 7vw, 70px);
+  }
+}
+
+@media (max-width: 600px) {
+  .intake-step-tab {
+    min-height: clamp(54px, 10vw, 66px);
+  }
+}
