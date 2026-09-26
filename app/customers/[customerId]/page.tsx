@@ -11,6 +11,7 @@ import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission } from "@/lib/auth/permissions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { ApplicationIcon } from "@/components/application-icon";
+import { CustomerPermanentDelete } from "@/components/customer-permanent-delete";
 
 export default async function Page({ params, searchParams }: { params: Promise<{ customerId: string }>; searchParams: Promise<{ message?: string; error?: string }> }) {
   const [{ customerId }, query, access] = await Promise.all([params, searchParams, getAccessContext()]);
@@ -128,6 +129,13 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           </form>
         )}
       </section>
+      {access.isSuperAdmin ? (
+        <CustomerPermanentDelete
+          customerId={customer.id}
+          customerName={customer.name}
+          customerNumber={customer.customer_number}
+        />
+      ) : null}
       <Link className="auth-link" href="/customers">
         <ApplicationIcon name="back" />All customers
       </Link>

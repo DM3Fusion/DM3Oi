@@ -7397,3 +7397,25 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .draft-intake-row-static {
   cursor: default;
 }
+
+
+.customer-danger-zone {
+  border-color: #fecaca;
+}
+
+.customer-danger-zone .section-head h2 {
+  color: #991b1b;
+}
+
+.customer-delete-blockers {
+  margin: 0.85rem 0 1rem 1.25rem;
+  color: #7f1d1d;
+}
+
+.customer-delete-blockers li + li {
+  margin-top: 0.35rem;
+}
+
+.customer-delete-error {
+  margin-top: 1rem;
+}
