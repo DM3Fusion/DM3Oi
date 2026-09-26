@@ -13,15 +13,7 @@ import { RuleBuilder } from "@/components/rule-builder";
 import { RuleFilters } from "@/components/rule-filters";
 import { normalizeRuleQuery,normalizeRuleStatus,ruleMatchesSearch } from "@/lib/rule-filters";
 import { ApplicationIcon } from "@/components/application-icon";
-const types = [
-  "TEXT",
-  "LONG_TEXT",
-  "YES_NO",
-  "SINGLE_SELECT",
-  "MULTI_SELECT",
-  "DATE",
-  "NUMBER",
-] as const;
+import { QuestionOptionsEditor } from "@/components/question-options-editor";
 export default async function Page({
   searchParams,
 }: {
@@ -78,7 +70,13 @@ export default async function Page({
                   <p>{q.description || "No help text."}</p>
                   <span>
                     {q.response_type.replaceAll("_", " ")} ·{" "}
-                    {q.options.map((o) => o.option_label).join(", ")}
+                    {q.options
+                      .filter((o) => o.is_active)
+                      .map((o) => o.option_label)
+                      .join(", ")}
+                    {q.options.some((o) => !o.is_active)
+                      ? ` · ${q.options.filter((o) => !o.is_active).length} hidden`
+                      : ""}
                   </span>
                 </div>
                 <div>
@@ -117,17 +115,6 @@ function QuestionForm({
   return (
     <form action={saveQuestionAction} className="mini-form question-form">
       <input type="hidden" name="questionId" value={question?.id ?? ""} />
-      <input
-        type="hidden"
-        name="existingOptions"
-        value={JSON.stringify(
-          question?.options.map(({ id, option_label, option_value }) => ({
-            id,
-            label: option_label,
-            value: option_value,
-          })) ?? [],
-        )}
-      />
       <label>
         <span>Question</span>
         <input
@@ -136,17 +123,17 @@ function QuestionForm({
           required
         />
       </label>
-      <label>
-        <span>Response type</span>
-        <select
-          name="responseType"
-          defaultValue={question?.response_type ?? "TEXT"}
-        >
-          {types.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-      </label>
+      <QuestionOptionsEditor
+        initialResponseType={question?.response_type ?? "TEXT"}
+        initialOptions={
+          question?.options.map((option) => ({
+            id: option.id,
+            label: option.option_label,
+            value: option.option_value,
+            isActive: option.is_active,
+          })) ?? []
+        }
+      />
       <label>
         <span>Help text</span>
         <input name="description" defaultValue={question?.description} />
@@ -158,16 +145,6 @@ function QuestionForm({
           type="number"
           min="0"
           defaultValue={question?.display_order ?? 0}
-        />
-      </label>
-      <label className="full">
-        <span>
-          Selectable options <small>one per line</small>
-        </span>
-        <textarea
-          name="options"
-          rows={4}
-          defaultValue={question?.options.map((o) => o.option_label).join("\n")}
         />
       </label>
       <label className="checkbox-label">

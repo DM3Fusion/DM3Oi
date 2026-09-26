@@ -1624,6 +1624,7 @@ export type Database = {
           created_at: string
           display_order: number
           id: string
+          is_active: boolean
           option_label: string
           option_value: string
           organization_id: string
@@ -1633,6 +1634,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          is_active?: boolean
           option_label: string
           option_value: string
           organization_id: string
@@ -1642,6 +1644,7 @@ export type Database = {
           created_at?: string
           display_order?: number
           id?: string
+          is_active?: boolean
           option_label?: string
           option_value?: string
           organization_id?: string

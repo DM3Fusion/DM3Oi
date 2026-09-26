@@ -99,8 +99,9 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .order("display_order"),
     supabase
       .from("question_options")
-      .select("id,question_id,option_label,option_value,display_order")
+      .select("id,question_id,option_label,option_value,display_order,is_active")
       .eq("organization_id", organizationId)
+      .eq("is_active", true)
       .order("display_order"),
     admin
       .from("rule_definitions")

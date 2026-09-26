@@ -45,7 +45,7 @@ test("case task and customer actions enforce centralized capabilities before wri
 
  assert.match(source("lib/data/customer-actions.ts"),/requirePermission\("EDIT_CUSTOMER"\)/);
  const questions=source("lib/data/question-actions.ts");
- assert.match(questions,/requireInternalContext\(\)[\s\S]*hasPermission\(access,"MANAGE_QUESTIONS"\)/);
+ assert.match(questions,/requireInternalContext\(\)[\s\S]*hasPermission\(access,\s*"MANAGE_QUESTIONS"\)/);
  assert.match(questions,/requirePermission\("WORK_CASES"\)/);
  assert.match(actions,/hasPermission\(context, "MANAGE_TASKS"\)/);
  assert.match(actions,/hasPermission\(context, "ASSIGN_TASKS"\)/);

@@ -20,60 +20,70 @@ const friendly = (m: string) =>
       : m.includes("invalid question response")
         ? "The response is not valid for this question type."
         : "The question change could not be saved.";
-type ExistingOption = { id: string; label: string; value: string };
-const existingOptions = (form: FormData): ExistingOption[] => {
+type SubmittedOption = {
+  id?: string;
+  label: string;
+  value?: string;
+  is_active: boolean;
+  display_order: number;
+};
+
+const submittedOptions = (form: FormData): SubmittedOption[] => {
   try {
-    const parsed = JSON.parse(text(form, "existingOptions"));
-    return Array.isArray(parsed)
-      ? parsed.filter(
-          (option): option is ExistingOption =>
-            typeof option?.id === "string" &&
-            typeof option?.label === "string" &&
-            typeof option?.value === "string",
-        )
-      : [];
+    const parsed = JSON.parse(text(form, "optionsJson") || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((option, index) => {
+      if (
+        !option ||
+        typeof option.label !== "string" ||
+        !option.label.trim()
+      ) {
+        return [];
+      }
+      return [{
+        id: typeof option.id === "string" && option.id ? option.id : undefined,
+        label: option.label.trim(),
+        value:
+          typeof option.value === "string" && option.value
+            ? option.value
+            : undefined,
+        is_active: option.is_active !== false,
+        display_order: index,
+      }];
+    });
   } catch {
     return [];
   }
 };
+
+const optionValue = (label: string) =>
+  label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
 export async function saveQuestionAction(form: FormData) {
   const access = await requireInternalContext();
-  if(!hasPermission(access,"MANAGE_QUESTIONS")) fail("/questions","You are not authorized to manage this question.");
-  const lines = text(form, "options")
-    .split("\n")
-    .map((v) => v.trim())
-    .filter(Boolean);
-  const priorOptions = existingOptions(form);
-  const claimed = new Set<string>();
-  const exactByLabel = new Map(priorOptions.map((option) => [option.label, option]));
-  const options = lines.map((label, index) => {
-    const exact = exactByLabel.get(label);
-    const positional = priorOptions[index];
-    const prior = exact && !claimed.has(exact.id)
-      ? exact
-      : positional && !claimed.has(positional.id)
-        ? positional
-        : undefined;
-    if (prior) claimed.add(prior.id);
-    return {
-      id: prior?.id,
-      label,
-      value:
-        prior?.value ??
-        label
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, ""),
-      display_order: index,
-    };
-  }) as Json;
+  if (!hasPermission(access, "MANAGE_QUESTIONS")) {
+    fail("/questions", "You are not authorized to manage this question.");
+  }
+
+  const responseType = text(form, "responseType") as ResponseType;
+  const options = submittedOptions(form).map((option) => ({
+    id: option.id,
+    label: option.label,
+    value: option.value ?? optionValue(option.label),
+    is_active: option.is_active,
+    display_order: option.display_order,
+  })) as Json;
+
   const supabase = await createClient();
   const { error } = await supabase.rpc("save_question_definition", {
     target_organization_id: access.activeOrganization.id,
     target_question_id: (text(form, "questionId") || null) as unknown as string,
     target_question_text: text(form, "questionText"),
     target_description: text(form, "description"),
-    target_response_type: text(form, "responseType") as ResponseType,
+    target_response_type: responseType,
     target_required: form.get("required") === "on",
     target_active: form.get("active") === "on",
     target_display_order: Number(text(form, "displayOrder") || 0),
@@ -89,6 +99,7 @@ export async function saveQuestionAction(form: FormData) {
   revalidatePath("/questions");
   redirect("/questions?message=Question%20saved.");
 }
+
 function responseValue(form: FormData, type: ResponseType): Json {
   const raw = text(form, "response");
   if (type === "YES_NO") return raw === "true";

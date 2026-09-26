@@ -127,24 +127,51 @@ test("Rule definitions and actions enforce composite tenant references", () => {
   assert.doesNotMatch(migration, /on delete cascade/);
 });
 
-test("Option UUIDs survive label edits and referenced options cannot be removed", () => {
+test("Option UUIDs survive edits and hidden options remain durable", () => {
   assert.match(
     migration,
     /unique \(organization_id,question_id,id\)/,
   );
-  assert.match(
-    migration,
-    /update public\.question_options[\s\S]*set option_label=trim\(opt->>'label'\),display_order=[\s\S]*where id=option_id and organization_id=target_organization_id and question_id=item\.id/,
-  );
-  assert.doesNotMatch(
-    migration,
-    /delete from public\.question_options where question_id=item\.id;/,
+
+  const activationMigration = readFileSync(
+    "supabase/migrations/20260926194500_dm3oi_question_option_activation.sql",
+    "utf8",
   );
   const page = readFileSync("app/questions/page.tsx", "utf8");
+  const editor = readFileSync(
+    "components/question-options-editor.tsx",
+    "utf8",
+  );
   const action = readFileSync("lib/data/question-actions.ts", "utf8");
-  assert.match(page, /name="existingOptions"/);
-  assert.match(action, /id: prior\?\.id/);
-  assert.match(action, /value:\s*prior\?\.value/);
+
+  assert.match(
+    activationMigration,
+    /add column if not exists is_active boolean not null default true/,
+  );
+
+  assert.match(
+    activationMigration,
+    /update public\.question_options[\s\S]*option_label=trim\(opt->>'label'\)[\s\S]*is_active=coalesce\(\(opt->>'is_active'\)::boolean,true\)[\s\S]*where id=option_id[\s\S]*question_id=item\.id/,
+  );
+
+  assert.match(
+    activationMigration,
+    /update public\.question_options[\s\S]*set is_active=false[\s\S]*not \(id=any\(seen_option_ids\)\)/,
+  );
+
+  assert.doesNotMatch(
+    activationMigration,
+    /delete from public\.question_options/,
+  );
+
+  assert.match(page, /QuestionOptionsEditor/);
+  assert.match(editor, /name="optionsJson"/);
+  assert.match(editor, /id: option\.id \|\| undefined/);
+  assert.match(editor, /is_active: option\.isActive/);
+
+  assert.match(action, /id: option\.id/);
+  assert.match(action, /value: option\.value \?\? optionValue\(option\.label\)/);
+  assert.match(action, /is_active: option\.is_active/);
 });
 
 test("Actions accept only valid question targets or complete task templates", () => {
