@@ -7291,3 +7291,22 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     gap: 0.4rem;
   }
 }
+
+
+.draft-intake-status {
+  white-space: nowrap;
+}
+
+.draft-intake-status strong {
+  display: block;
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.draft-intake-status span {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}

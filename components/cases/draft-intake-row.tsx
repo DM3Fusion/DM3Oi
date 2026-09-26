@@ -7,7 +7,8 @@ type Props = {
   draftId: string;
   customerName: string;
   caseTitle: string;
-  caseType: string;
+  completedSteps: number;
+  totalSteps: number;
   savedStep: string;
   updatedAt: string;
 };
@@ -16,12 +17,17 @@ export function DraftIntakeRow({
   draftId,
   customerName,
   caseTitle,
-  caseType,
+  completedSteps,
+  totalSteps,
   savedStep,
   updatedAt,
 }: Props) {
   const router = useRouter();
   const href = `/cases/new?draft=${draftId}`;
+  const completionPercent =
+    totalSteps > 0
+      ? Math.round((completedSteps / totalSteps) * 100)
+      : 0;
 
   const resume = () => {
     router.push(href);
@@ -52,7 +58,12 @@ export function DraftIntakeRow({
       </td>
       <td>{customerName}</td>
       <td>{caseTitle}</td>
-      <td>{caseType}</td>
+      <td className="draft-intake-status">
+        <strong>
+          {completedSteps} of {totalSteps} ({completionPercent}%)
+        </strong>
+        <span>complete</span>
+      </td>
       <td>{savedStep}</td>
       <td>{updatedAt}</td>
     </tr>
