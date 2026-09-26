@@ -50,6 +50,7 @@ export async function executeCustomerImportAction(input: { organizationId: strin
         code: error.code,
         message: error.message,
         details: error.details || undefined,
+        hint: error.hint || undefined,
         organizationId: organization.id,
       });
       const failedRow = error.message.match(/CSV row (\d+)/)?.[1];

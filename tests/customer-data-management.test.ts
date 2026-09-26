@@ -9,6 +9,14 @@ import {
 } from "../lib/customer-data-management.ts";
 
 const migration = readFileSync("supabase/migrations/20260926230000_dm3oi_customer_data_management.sql", "utf8");
+const importRepairMigration = readFileSync(
+  "supabase/migrations/20260926231000_dm3oi_fix_customer_import_variable_ambiguity.sql",
+  "utf8",
+);
+const databaseImportRegression = readFileSync(
+  "supabase/tests/customer_import.sql",
+  "utf8",
+);
 const importActions = readFileSync(
   "app/admin/customer-import/actions.ts",
   "utf8",
@@ -196,6 +204,42 @@ test("import classifies every row before canonical-number allocation or Customer
   assert.match(migration.slice(classificationPhase, writePhase), /classified_rows:=classified_rows/);
   assert.match(migration, /public\.next_customer_number\(target_organization_id,'INDIVIDUAL'\)/);
   assert.match(migration, /target organization is not active/);
+});
+
+test("forward import repair removes the deployed PL/pgSQL column ambiguity", () => {
+  assert.match(
+    migration,
+    /coalesce\(c\.first_name,''\)[\s\S]*regexp_replace\(first_name,/,
+  );
+  assert.match(importRepairMigration, /normalized_first_name text/);
+  assert.match(importRepairMigration, /normalized_last_name text/);
+  assert.match(importRepairMigration, /normalized_street_address text/);
+  assert.doesNotMatch(
+    importRepairMigration,
+    /\b(first_name|last_name|street_address) text;/,
+  );
+  assert.match(
+    importRepairMigration,
+    /coalesce\(c\.first_name,''\)[\s\S]*regexp_replace\(normalized_first_name,/,
+  );
+  assert.match(
+    importRepairMigration,
+    /next_customer_number\(target_organization_id,'INDIVIDUAL'::public\.customer_type\)/,
+  );
+});
+
+test("Customer import SQL regression exercises authoritative classification and writes transactionally", () => {
+  assert.match(
+    databaseImportRegression,
+    /public\.super_admin_import_customers/,
+  );
+  assert.match(databaseImportRegression, /'row_number',2/);
+  assert.match(databaseImportRegression, /'street_address','12 Main St'/);
+  assert.match(databaseImportRegression, /payload->>'created'/);
+  assert.match(databaseImportRegression, /payload->>'skipped_exact'/);
+  assert.match(databaseImportRegression, /payload->>'invalid'/);
+  assert.match(databaseImportRegression, /customer_number ~ '\^I/);
+  assert.match(databaseImportRegression, /^begin;[\s\S]*rollback;\s*$/);
 });
 
 test("known Customer FKs are constraint and column exact, including the portal requester FK prerequisite", () => {
