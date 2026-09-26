@@ -9,6 +9,18 @@ import {
 } from "../lib/customer-data-management.ts";
 
 const migration = readFileSync("supabase/migrations/20260926230000_dm3oi_customer_data_management.sql", "utf8");
+const importActions = readFileSync(
+  "app/admin/customer-import/actions.ts",
+  "utf8",
+);
+const importWorkspace = readFileSync(
+  "components/admin/customer-import-workspace.tsx",
+  "utf8",
+);
+const customerDataRepository = readFileSync(
+  "lib/data/customer-data-management-repository.ts",
+  "utf8",
+);
 
 test("CSV parsing enforces the exact contract and supports quoted commas", () => {
   const rows = parseCustomerImportCsv(
@@ -45,6 +57,94 @@ test("preview holds exact matches, strong candidates, intra-file duplicates, and
   );
   const preview = previewCustomerImport(rows, existing);
   assert.deepEqual(preview.summary, { total: 5, validNew: 0, exactMatches: 1, duplicateCandidates: 3, invalid: 1 });
+});
+
+test("preview classifies a representative 30-row valid dataset as NEW without a write path", () => {
+  const csv = [
+    "firstName,lastName,StreetAddress,City,State,ZipCode,Email,Phone",
+    ...Array.from({ length: 30 }, (_, index) => {
+      const sequence = String(index + 1).padStart(2, "0");
+      return `First${sequence},Last${sequence},${index + 1} Unique Rd,Austin,TX,78701,customer${sequence}@example.com,212555${String(1000 + index)}`;
+    }),
+  ].join("\n");
+  const preview = previewCustomerImport(parseCustomerImportCsv(csv), []);
+  assert.deepEqual(preview.summary, {
+    total: 30,
+    validNew: 30,
+    exactMatches: 0,
+    duplicateCandidates: 0,
+    invalid: 0,
+  });
+  assert.ok(preview.rows.every((row) => row.classification === "NEW"));
+});
+
+test("preview uses only the read context and never invokes the import mutation", () => {
+  const previewStart = importActions.indexOf(
+    "export async function previewCustomerImportAction",
+  );
+  const importStart = importActions.indexOf(
+    "export async function executeCustomerImportAction",
+  );
+  const previewAction = importActions.slice(previewStart, importStart);
+  const readContextStart = customerDataRepository.indexOf(
+    "export async function getCustomerImportReadContext",
+  );
+  const readContextEnd = customerDataRepository.indexOf(
+    "export async function getCustomerDataOrganizations",
+  );
+  const readContext = customerDataRepository.slice(
+    readContextStart,
+    readContextEnd,
+  );
+
+  assert.match(previewAction, /getCustomerImportReadContext/);
+  assert.match(readContext, /\.from\("organization_customers"\)/);
+  assert.doesNotMatch(previewAction, /\.rpc\(|super_admin_import_customers/);
+  assert.doesNotMatch(readContext, /\.rpc\(|insert|update|delete/);
+});
+
+test("actual import is the only RPC path and remains behind explicit confirmation", () => {
+  const rpcMatches = importActions.match(
+    /\.rpc\("super_admin_import_customers"/g,
+  );
+  assert.equal(rpcMatches?.length, 1);
+  const importStart = importActions.indexOf(
+    "export async function executeCustomerImportAction",
+  );
+  const importAction = importActions.slice(importStart);
+  const confirmationGate = importAction.indexOf(
+    "if (input.confirmation !== expected)",
+  );
+  const rpcCall = importAction.indexOf(
+    '.rpc("super_admin_import_customers"',
+  );
+  assert.ok(confirmationGate >= 0 && rpcCall > confirmationGate);
+  assert.match(
+    importWorkspace,
+    /disabled=\{pending \|\| confirmation !== expected \|\| preview\.summary\.validNew === 0\}/,
+  );
+});
+
+test("preview and import failures use distinct wording and UI error channels", () => {
+  const previewStart = importActions.indexOf(
+    "export async function previewCustomerImportAction",
+  );
+  const importStart = importActions.indexOf(
+    "export async function executeCustomerImportAction",
+  );
+  const previewAction = importActions.slice(previewStart, importStart);
+  const importAction = importActions.slice(importStart);
+
+  assert.match(previewAction, /PREVIEW_FAILURE_MESSAGE/);
+  assert.match(
+    importActions,
+    /The CSV preview could not be completed\./,
+  );
+  assert.doesNotMatch(previewAction, /No Customers were imported/);
+  assert.match(importAction, /No Customers were imported/);
+  assert.match(importWorkspace, /setPreviewError/);
+  assert.match(importWorkspace, /setImportError/);
+  assert.doesNotMatch(importWorkspace, /const \[error, setError\]/);
 });
 
 test("duplicate detection never matches name alone", () => {
