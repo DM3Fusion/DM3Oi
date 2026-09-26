@@ -9,9 +9,20 @@ import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
 import { getEffectiveOrganizationPermissions, hasPermission, permissions, type OrganizationPermissionOverride, type Permission } from "@/lib/auth/permissions";
 import { resolveCustomerPortalAccesses } from "@/lib/auth/customer-portal-effectiveness";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { licenseQueryDataOrThrow } from "@/lib/auth/license-query";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
 type Role = Database["public"]["Enums"]["application_role"];
+type CurrentLicenseRow = Pick<
+  Database["public"]["Tables"]["organization_licenses"]["Row"],
+  | "license_status"
+  | "commercial_state"
+  | "starts_at"
+  | "expires_at"
+  | "grace_ends_at"
+  | "notice_days"
+  | "notification_thresholds"
+>;
 export interface AuthorizedOrganization {
   id: string;
   name: string;
@@ -182,6 +193,13 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       timing("permission-and-license-lookups", organizationAccessStartedAt);
 
       if (overrideResult.error) throw overrideResult.error;
+      if (licenseResult.error) {
+        console.error("Organization license lookup failed", {
+          organizationId: activeOrganization.id,
+          code: licenseResult.error.code ?? null,
+          message: licenseResult.error.message,
+        });
+      }
 
       const overrideRows = overrideResult.data ?? [];
       const overrides = overrideRows
@@ -201,17 +219,21 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         ),
       );
 
-      const currentLicense = licenseResult.data;
+      const currentLicense = licenseQueryDataOrThrow<CurrentLicenseRow>(
+        licenseResult,
+      );
       if (currentLicense) {
+        const licenseSnapshot: LicenseSnapshot = {
+          status: currentLicense.license_status,
+          commercialState: currentLicense.commercial_state,
+          startsAt: currentLicense.starts_at,
+          expiresAt: currentLicense.expires_at,
+          graceEndsAt: currentLicense.grace_ends_at,
+          noticeDays: currentLicense.notice_days,
+        };
         license = {
-          ...effectiveLicense({
-            status: currentLicense.license_status,
-            commercialState: currentLicense.commercial_state,
-            startsAt: currentLicense.starts_at,
-            expiresAt: currentLicense.expires_at,
-            graceEndsAt: currentLicense.grace_ends_at,
-            noticeDays: currentLicense.notice_days,
-          }),
+          ...licenseSnapshot,
+          ...effectiveLicense(licenseSnapshot),
           ...currentLicense,
           status: currentLicense.license_status,
           commercialState: currentLicense.commercial_state,

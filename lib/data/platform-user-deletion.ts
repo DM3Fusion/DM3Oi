@@ -1,6 +1,10 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  queryOrganizationLifecycleStatusIdentityReferences,
+  type OrganizationLifecycleStatusIdentityClient,
+} from "@/lib/data/platform-user-deletion-query";
 
 export type PlatformUserDeletionEligibility = {
   eligible: boolean;
@@ -232,11 +236,11 @@ export async function getPlatformUserDeletionEligibility(
             .select("organization_id", { count: "exact", head: true })
             .eq("organization_id", organizationId)
             .eq("updated_by", userId),
-          admin
-            .from("organization_lifecycle_statuses")
-            .select("id", { count: "exact", head: true })
-            .eq("organization_id", organizationId)
-            .eq("updated_by", userId),
+          queryOrganizationLifecycleStatusIdentityReferences(
+            admin as unknown as OrganizationLifecycleStatusIdentityClient,
+            organizationId,
+            userId,
+          ),
           admin
             .from("organization_role_permissions")
             .select("id", { count: "exact", head: true })

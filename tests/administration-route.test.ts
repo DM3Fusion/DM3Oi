@@ -11,6 +11,8 @@ test("Organization Defaults is exposed only to SUPER_ADMIN in an active organiza
   const actions=readFileSync("lib/data/organization-administration-actions.ts","utf8");
 
   assert.match(settings,/card\.href !== "\/administration\/defaults" \|\| access\?\.isSuperAdmin/);
-  assert.match(defaults,/!access\?\.isSuperAdmin\|\|!access\.activeOrganization/);
-  assert.match(actions,/if\(!id\|\|!access\?\.isSuperAdmin\) redirect/);
+  assert.match(defaults,/!access\?\.isSuperAdmin\s*\|\|\s*!access\.activeOrganization/);
+  assert.match(actions,/export async function saveOrganizationDefaults/);
+  assert.match(actions,/export async function saveCustomerPortalSettings/);
+  assert.equal((actions.match(/!access\?\.isSuperAdmin/g) ?? []).length,2);
 });

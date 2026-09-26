@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCustomerPortalContext } from "@/lib/auth/customer-portal";
+import { customerPortalDataOrThrow } from "@/lib/data/customer-portal-query";
 import { createClient } from "@/lib/supabase/server";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { CustomerReplyForm } from "@/components/customer-reply-form";
@@ -10,14 +11,22 @@ export default async function PortalRequestDetail({ params }: { params: Promise<
   const context = await requireCustomerPortalContext();
   const { serviceRequestId } = await params;
   const supabase = await createClient();
-  const { data: request } = await supabase.from("organization_service_requests").select("id,request_number,subject,description,status,created_at,updated_at").eq("id", serviceRequestId).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).maybeSingle();
+  const requestResult = await supabase.from("organization_service_requests").select("id,request_number,subject,description,status,created_at,updated_at").eq("id", serviceRequestId).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).maybeSingle();
+  const request = customerPortalDataOrThrow(
+    requestResult,
+    "service-request-detail",
+  );
   if (!request) notFound();
 
-  const { data: messages } = await supabase.from("organization_service_request_messages").select("id,author_user_id,author_type,body,created_at").eq("service_request_id", request.id).order("created_at", { ascending: false }).order("id", { ascending: false });
+  const messagesResult = await supabase.from("organization_service_request_messages").select("id,author_user_id,author_type,body,created_at").eq("service_request_id", request.id).order("created_at", { ascending: false }).order("id", { ascending: false });
+  const messages = customerPortalDataOrThrow(
+    messagesResult,
+    "service-request-messages",
+  ) ?? [];
   const timezone = context.settings?.timezone ?? "UTC";
   const chronology = [
     { id: "opening", author_type: "CUSTOMER", body: request.description, created_at: request.created_at },
-    ...(messages ?? []),
+    ...messages,
   ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id.localeCompare(a.id));
 
   return <section className="portal-panel portal-detail-panel">

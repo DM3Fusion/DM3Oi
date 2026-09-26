@@ -1,10 +1,34 @@
 import Link from "next/link";
-
-// Legacy summary markup intentionally no longer renders these labels: <span>Open Requests</span> / <span>Closed Requests</span>.
 import { requireCustomerPortalContext } from "@/lib/auth/customer-portal";
 import { createClient } from "@/lib/supabase/server";
 import { getCustomerPortalCases } from "@/lib/data/customer-portal-case-repository";
+import { requireCustomerPortalQuerySuccess } from "@/lib/data/customer-portal-query";
 import { PortalCaseSummaries } from "@/components/portal-case-summaries";
 import { customerPortalWelcomeCopy } from "@/lib/customer-portal-welcome";
 import { ApplicationIcon } from "@/components/application-icon";
-export default async function PortalPage() { const context = await requireCustomerPortalContext(); const supabase = await createClient(); const [{ count: openCount }, { count: closedCount }, { data: requests }, cases] = await Promise.all([supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["NEW", "OPEN", "PENDING_CUSTOMER", "PENDING_STAFF", "ON_HOLD"] as never), supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["RESOLVED", "CLOSED"]), supabase.from("organization_service_requests").select("id,request_number,subject,status,priority,updated_at").eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).order("updated_at", { ascending: false }).limit(5), getCustomerPortalCases(context.access.id)]); return <section className="portal-panel portal-home-panel"><div className="portal-customer-text"><p className="eyebrow">{context.customer.name}</p><h1>Welcome Back!</h1><p>{customerPortalWelcomeCopy(cases.length)}</p></div><PortalCaseSummaries cases={cases}/><div className="portal-summary-cards"><div className="portal-summary-card"><strong>{openCount ?? 0}</strong><span>Open</span></div><div className="portal-summary-card"><strong>{closedCount ?? 0}</strong><span>Closed</span></div></div><div className="portal-home-actions"><Link className="primary-button" href="/portal/service-requests/new"><ApplicationIcon name="add" />New Service Request</Link></div><h2>Recent Service Requests</h2>{requests?.length ? <ul className="portal-request-list">{requests.map((request) => <li key={request.id}><Link href={`/portal/service-requests/${request.id}`}><span>{request.request_number}</span><strong>{request.subject}</strong><span className="portal-request-meta">{request.status.replaceAll("_", " ")}</span></Link></li>)}</ul> : <p>No service requests yet.</p>}</section>; }
+
+export default async function PortalPage() {
+  const context = await requireCustomerPortalContext();
+  const supabase = await createClient();
+  const [openResult, closedResult, requestsResult, cases] = await Promise.all([
+    supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["NEW", "OPEN", "PENDING_CUSTOMER", "PENDING_STAFF", "ON_HOLD"] as never),
+    supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["RESOLVED", "CLOSED"]),
+    supabase.from("organization_service_requests").select("id,request_number,subject,status,priority,updated_at").eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).order("updated_at", { ascending: false }).limit(5),
+    getCustomerPortalCases(context.access.id),
+  ]);
+  const { count: openCount } = requireCustomerPortalQuerySuccess(
+    openResult,
+    "home-open-request-count",
+  );
+  const { count: closedCount } = requireCustomerPortalQuerySuccess(
+    closedResult,
+    "home-closed-request-count",
+  );
+  const { data: requestRows } = requireCustomerPortalQuerySuccess(
+    requestsResult,
+    "home-recent-requests",
+  );
+  const requests = requestRows ?? [];
+
+  return <section className="portal-panel portal-home-panel"><div className="portal-customer-text"><p className="eyebrow">{context.customer.name}</p><h1>Welcome Back!</h1><p>{customerPortalWelcomeCopy(cases.length)}</p></div><PortalCaseSummaries cases={cases}/><div className="portal-summary-cards"><div className="portal-summary-card"><strong>{openCount ?? 0}</strong><span>Open</span></div><div className="portal-summary-card"><strong>{closedCount ?? 0}</strong><span>Closed</span></div></div><div className="portal-home-actions"><Link className="primary-button" href="/portal/service-requests/new"><ApplicationIcon name="add" />New Service Request</Link></div><h2>Recent Service Requests</h2>{requests.length ? <ul className="portal-request-list">{requests.map((request) => <li key={request.id}><Link href={`/portal/service-requests/${request.id}`}><span>{request.request_number}</span><strong>{request.subject}</strong><span className="portal-request-meta">{request.status.replaceAll("_", " ")}</span></Link></li>)}</ul> : <p>No service requests yet.</p>}</section>;
+}
