@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   saveCaseTitle,
   saveCaseType,
+  saveCaseTypeMappings,
 } from "@/lib/data/organization-administration-actions";
 
 type SearchParams = Promise<{ message?: string; error?: string }>;
@@ -20,7 +21,7 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
     notFound();
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
-  const [titles, types, query] = await Promise.all([
+  const [titles, types, mappings, query] = await Promise.all([
     supabase
       .from("organization_case_titles")
       .select("id,label,is_active,sort_order")
@@ -33,13 +34,18 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
       .eq("organization_id", organizationId)
       .order("sort_order")
       .order("name"),
+    (supabase as any)
+      .from("organization_case_title_type_mappings")
+      .select("case_title_id,case_type_id")
+      .eq("organization_id", organizationId),
     searchParams,
   ]);
-  if (titles.error || types.error) {
+  if (titles.error || types.error || mappings.error) {
     console.error("Case configuration query failed", {
       organizationId,
       titleError: titles.error?.message,
       typeError: types.error?.message,
+      mappingError: mappings.error?.message,
     });
     throw new Error("Case configuration is temporarily unavailable.");
   }
@@ -103,6 +109,98 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
                 </form></details>
               </td></tr>
             ))}</tbody>
+          </table>
+        </div>
+      </section>
+      <section className="panel detail-section case-configuration-section">
+        <div className="section-head">
+          <div>
+            <h2>Case Title Compatibility</h2>
+            <p>
+              Choose which Case Titles are valid for each Case Type during
+              Guided Intake.
+            </p>
+          </div>
+        </div>
+        <div className="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Case Type</th>
+                <th>Allowed Titles</th>
+                <th>Configure</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(types.data ?? []).map((caseType) => {
+                const mappedTitleIds = new Set(
+                  (mappings.data ?? [])
+                    .filter(
+                      (mapping: {
+                        case_title_id: string;
+                        case_type_id: string;
+                      }) => mapping.case_type_id === caseType.id,
+                    )
+                    .map(
+                      (mapping: {
+                        case_title_id: string;
+                        case_type_id: string;
+                      }) => mapping.case_title_id,
+                    ),
+                );
+                const allowedTitles = (titles.data ?? []).filter(
+                  (title) =>
+                    title.is_active && mappedTitleIds.has(title.id),
+                );
+                return (
+                  <tr key={caseType.id}>
+                    <td>
+                      <b>{caseType.name}</b>
+                      {!caseType.is_active ? (
+                        <div className="table-secondary">Inactive</div>
+                      ) : null}
+                    </td>
+                    <td>
+                      {allowedTitles.length
+                        ? allowedTitles.map((title) => title.label).join(", ")
+                        : "No Case Titles assigned"}
+                    </td>
+                    <td>
+                      <details>
+                        <summary>Edit</summary>
+                        <form
+                          action={saveCaseTypeMappings}
+                          className="mini-form"
+                        >
+                          <input
+                            type="hidden"
+                            name="caseTypeId"
+                            value={caseType.id}
+                          />
+                          <fieldset className="full check-list">
+                            <legend>Allowed Case Titles</legend>
+                            {(titles.data ?? [])
+                              .filter((title) => title.is_active)
+                              .map((title) => (
+                                <label key={title.id}>
+                                  <input
+                                    type="checkbox"
+                                    name="caseTitleIds"
+                                    value={title.id}
+                                    defaultChecked={mappedTitleIds.has(title.id)}
+                                  />
+                                  <span>{title.label}</span>
+                                </label>
+                              ))}
+                          </fieldset>
+                          <button>Save Compatibility</button>
+                        </form>
+                      </details>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </section>

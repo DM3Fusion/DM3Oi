@@ -84,6 +84,10 @@ export type GuidedIntakeConfiguration = {
   customers: GuidedIntakeCustomer[];
   caseTitles: Array<{ id: string; label: string }>;
   caseTypes: Array<{ id: string; name: string }>;
+  caseTitleTypeMappings?: Array<{
+    caseTitleId: string;
+    caseTypeId: string;
+  }>;
   managers: Array<{ id: string; name: string }>;
   staff: Array<{ id: string; name: string }>;
   questions: GuidedIntakeQuestion[];
@@ -263,6 +267,23 @@ export function validateGuidedCustomerStep(
   return {};
 }
 
+export function isCaseTitleTypeCompatible(
+  configuration: Pick<
+    GuidedIntakeConfiguration,
+    "caseTitleTypeMappings"
+  >,
+  caseTitleId: string,
+  caseTypeId: string,
+): boolean {
+  if (!caseTitleId || !caseTypeId) return false;
+  if (configuration.caseTitleTypeMappings === undefined) return true;
+  return configuration.caseTitleTypeMappings.some(
+    (mapping) =>
+      mapping.caseTitleId === caseTitleId &&
+      mapping.caseTypeId === caseTypeId,
+  );
+}
+
 export function validateGuidedCaseDetails(
   draft: Pick<
     GuidedCaseIntakeDraft,
@@ -275,7 +296,12 @@ export function validateGuidedCaseDetails(
   >,
   configuration: Pick<
     GuidedIntakeConfiguration,
-    "caseTitles" | "caseTypes" | "managers" | "staff" | "canAssign"
+    | "caseTitles"
+    | "caseTypes"
+    | "caseTitleTypeMappings"
+    | "managers"
+    | "staff"
+    | "canAssign"
   >,
 ): GuidedIntakeFieldErrors {
   const errors: GuidedIntakeFieldErrors = {};
@@ -289,6 +315,17 @@ export function validateGuidedCaseDetails(
     errors.caseTitleId = "Select an active configured Case Title.";
   if (!configuration.caseTypes.some((item) => item.id === draft.caseTypeId))
     errors.caseTypeId = "Select an active Case Type.";
+  if (
+    !errors.caseTitleId &&
+    !errors.caseTypeId &&
+    !isCaseTitleTypeCompatible(
+      configuration,
+      draft.caseTitleId,
+      draft.caseTypeId,
+    )
+  )
+    errors.caseTitleId =
+      "Select a Case Title compatible with the selected Case Type.";
   if (!guidedCasePriorities.some((priority) => priority === draft.priority))
     errors.priority = "Select a valid priority.";
   if (!configuration.canAssign && (draft.managerUserId || draft.staffUserIds.length))

@@ -194,4 +194,60 @@ export async function saveCaseType(form: FormData) {
   revalidatePath(caseConfigurationPath);
   redirect(`${caseConfigurationPath}?message=Case%20Type%20saved`);
 }
+export async function saveCaseTypeMappings(form: FormData) {
+  const access = await getAccessContext();
+  const organizationId = access?.activeOrganization?.id;
+  if (!organizationId || !ok(access))
+    redirect(`${caseConfigurationPath}?error=Not%20authorized`);
+
+  const caseTypeId = String(form.get("caseTypeId") ?? "");
+  const caseTitleIds = form
+    .getAll("caseTitleIds")
+    .map((value) => String(value))
+    .filter(Boolean);
+
+  if (!caseTypeId)
+    redirect(
+      `${caseConfigurationPath}?error=Select%20a%20valid%20Case%20Type`,
+    );
+
+  const supabase = await createClient();
+  const { data: caseType, error: caseTypeError } = await supabase
+    .from("organization_case_types")
+    .select("id")
+    .eq("id", caseTypeId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (caseTypeError || !caseType)
+    redirect(
+      `${caseConfigurationPath}?error=Select%20a%20valid%20Case%20Type`,
+    );
+
+  const result = await (supabase as any).rpc(
+    "save_case_type_title_mappings",
+    {
+      target_case_type_id: caseTypeId,
+      target_case_title_ids: caseTitleIds,
+    },
+  );
+
+  if (result.error) {
+    console.error("Case Title compatibility save failed", {
+      organizationId,
+      caseTypeId,
+      code: result.error.code,
+      message: result.error.message,
+    });
+    redirect(
+      `${caseConfigurationPath}?error=Unable%20to%20save%20Case%20Title%20compatibility`,
+    );
+  }
+
+  revalidatePath(caseConfigurationPath);
+  redirect(
+    `${caseConfigurationPath}?message=Case%20Title%20compatibility%20saved`,
+  );
+}
+
 export async function saveLifecycleStatus(form:FormData){const a=await getAccessContext();const id=a?.activeOrganization?.id;if(!id||!ok(a))redirect('/administration/case-lifecycle?error=Not%20authorized');const status=String(form.get('status')||'');const db=await createClient();const result=await (db as any).from('organization_lifecycle_statuses').upsert({organization_id:id,status,display_label:String(form.get('displayLabel')||status),description:String(form.get('description')||'').trim()||null,is_active:form.get('isActive')!=='false',sort_order:Number(form.get('sortOrder')||0),updated_by:a.user.id});if(result.error)redirect('/administration/case-lifecycle?error=Unable%20to%20save%20status');revalidatePath('/administration/case-lifecycle');redirect('/administration/case-lifecycle?message=Changes%20Saved');}

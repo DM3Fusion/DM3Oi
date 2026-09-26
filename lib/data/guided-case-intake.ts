@@ -55,6 +55,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     customers,
     caseTitles,
     caseTypes,
+    caseTitleTypeMappings,
     members,
     questions,
     options,
@@ -84,6 +85,10 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
+    (admin as any)
+      .from("organization_case_title_type_mappings")
+      .select("case_title_id,case_type_id")
+      .eq("organization_id", organizationId),
     supabase
       .from("organization_members")
       .select("user_id,role")
@@ -135,6 +140,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     customers.error ??
     caseTitles.error ??
     caseTypes.error ??
+    caseTitleTypeMappings.error ??
     members.error ??
     questions.error ??
     options.error ??
@@ -217,6 +223,15 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       ),
       caseTitles: caseTitles.data ?? [],
       caseTypes: caseTypes.data ?? [],
+      caseTitleTypeMappings: (caseTitleTypeMappings.data ?? []).map(
+        (mapping: {
+          case_title_id: string;
+          case_type_id: string;
+        }) => ({
+          caseTitleId: mapping.case_title_id,
+          caseTypeId: mapping.case_type_id,
+        }),
+      ),
       managers: canAssign
         ? eligible
             .filter((member) =>

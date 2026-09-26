@@ -12,6 +12,7 @@ import {
   canCompleteIntakeFollowUpTask,
   getMissingRequiredOptions,
   isGuidedQuestionAnswerValid,
+  isCaseTitleTypeCompatible,
   guidedCaseIntakeSteps,
   guidedQuestionGroups,
   guidedQuestionGroupLabels,
@@ -311,6 +312,23 @@ export function GuidedCaseIntake({
   const visibleQuestions = evaluation.questions.filter(
     (question) => question.applicable,
   );
+  const compatibleCaseTitles = useMemo(
+    () =>
+      draft.caseTypeId
+        ? configuration.caseTitles.filter((title) =>
+            isCaseTitleTypeCompatible(
+              configuration,
+              title.id,
+              draft.caseTypeId,
+            ),
+          )
+        : [],
+    [
+      configuration,
+      draft.caseTypeId,
+    ],
+  );
+
   const selectedCustomer = customers.find(
     (customer) => customer.id === draft.customerId,
   );
@@ -348,6 +366,28 @@ export function GuidedCaseIntake({
     setErrors((current) => ({ ...current, [key]: "" }));
     setFormError(null);
   };
+  const updateCaseType = (caseTypeId: string) => {
+    setDraft((current) => ({
+      ...current,
+      caseTypeId,
+      caseTitleId:
+        current.caseTitleId &&
+        isCaseTitleTypeCompatible(
+          configuration,
+          current.caseTitleId,
+          caseTypeId,
+        )
+          ? current.caseTitleId
+          : "",
+    }));
+    setErrors((current) => ({
+      ...current,
+      caseTypeId: "",
+      caseTitleId: "",
+    }));
+    setFormError(null);
+  };
+
   const updateAnswer = (questionId: string, value: Json | undefined) => {
     const question = configuration.questions.find((item) => item.id === questionId);
     const answerRemainsValid = question
@@ -778,24 +818,10 @@ export function GuidedCaseIntake({
   const renderDetails = () => (
     <div className="form-grid intake-step-content">
       <label>
-        <span>Case Title</span>
-        <select
-          value={draft.caseTitleId}
-          onChange={(event) => updateDraft("caseTitleId", event.target.value)}
-          aria-invalid={Boolean(errors.caseTitleId)}
-        >
-          <option value="">Select a configured title</option>
-          {configuration.caseTitles.map((item) => (
-            <option key={item.id} value={item.id}>{item.label}</option>
-          ))}
-        </select>
-        {fieldError(errors, "caseTitleId")}
-      </label>
-      <label>
         <span>Case Type</span>
         <select
           value={draft.caseTypeId}
-          onChange={(event) => updateDraft("caseTypeId", event.target.value)}
+          onChange={(event) => updateCaseType(event.target.value)}
           aria-invalid={Boolean(errors.caseTypeId)}
         >
           <option value="">Select a Case Type</option>
@@ -804,6 +830,25 @@ export function GuidedCaseIntake({
           ))}
         </select>
         {fieldError(errors, "caseTypeId")}
+      </label>
+      <label>
+        <span>Case Title</span>
+        <select
+          value={draft.caseTitleId}
+          onChange={(event) => updateDraft("caseTitleId", event.target.value)}
+          aria-invalid={Boolean(errors.caseTitleId)}
+          disabled={!draft.caseTypeId}
+        >
+          <option value="">
+            {draft.caseTypeId
+              ? "Select a compatible Case Title"
+              : "Select a Case Type first"}
+          </option>
+          {compatibleCaseTitles.map((item) => (
+            <option key={item.id} value={item.id}>{item.label}</option>
+          ))}
+        </select>
+        {fieldError(errors, "caseTitleId")}
       </label>
       <label>
         <span>Tax Year</span>
