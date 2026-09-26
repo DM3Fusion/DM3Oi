@@ -6,6 +6,9 @@ import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creati
 import { loadGuidedCaseIntakeConfiguration } from "@/lib/data/guided-case-intake";
 import {
   buildGuidedIntakeCreationPlan,
+  evaluateGuidedCaseIntake,
+  getMissingRequiredOptions,
+  canCompleteIntakeFollowUpTask,
   validateGuidedCaseIntake,
   type GuidedCaseIntakeDraft,
 } from "@/lib/guided-case-intake";
@@ -33,7 +36,7 @@ export async function saveGuidedIntakeDraftAction(
   | { ok: true; draftId: string }
   | { ok: false; error: string }
 > {
-  const { access } = await loadGuidedCaseIntakeConfiguration();
+  const { access, configuration } = await loadGuidedCaseIntakeConfiguration();
   const organizationId = access.activeOrganization!.id;
 
   if (
@@ -45,6 +48,38 @@ export async function saveGuidedIntakeDraftAction(
     )
   ) {
     return { ok: false, error: "This intake draft is invalid." };
+  }
+
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    input.draft.answers,
+  );
+  const unstagedMissingRequirement = getMissingRequiredOptions(
+    evaluation,
+    input.draft.answers,
+  ).some(
+    (requirement) =>
+      !input.draft.followUpTasks.some(
+        (task) => task.questionId === requirement.question.id,
+      ),
+  );
+  if (input.currentStep >= 2 && unstagedMissingRequirement) {
+    return {
+      ok: false,
+      error:
+        "Create a follow-up Task for each missing required-document group before saving this intake.",
+    };
+  }
+  if (
+    input.draft.followUpTasks.some(
+      (task) => task.completed && !canCompleteIntakeFollowUpTask(task, evaluation),
+    )
+  ) {
+    return {
+      ok: false,
+      error:
+        "Required documents must be received before a follow-up Task can remain completed.",
+    };
   }
 
   const supabase = await createClient();
@@ -66,12 +101,14 @@ export async function saveGuidedIntakeDraftAction(
       notes: input.newCustomer.notes,
     },
     case_title_id: input.draft.caseTitleId || null,
+    tax_year: input.draft.taxYear,
     description: input.draft.description,
     case_type_id: input.draft.caseTypeId || null,
     priority: guidedCasePriority(input.draft.priority),
     manager_user_id: input.draft.managerUserId || null,
     staff_user_ids: input.draft.staffUserIds,
     answers: input.draft.answers,
+    follow_up_tasks: input.draft.followUpTasks,
   };
 
   const { data, error } = await supabase
@@ -160,9 +197,11 @@ export async function createGuidedCaseAction(
       target_description: draft.description.trim(),
       target_case_type_id: draft.caseTypeId,
       target_priority: guidedCasePriority(draft.priority),
+      target_tax_year: draft.taxYear!,
       target_manager_user_id: draft.managerUserId || undefined,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,
+      target_follow_up_tasks: draft.followUpTasks,
     },
   );
   if (error || !created) {

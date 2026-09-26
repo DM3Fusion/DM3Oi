@@ -328,6 +328,9 @@ export type Database = {
           description: string
           due_at: string | null
           id: string
+          intake_follow_up_id: string | null
+          intake_question_definition_id: string | null
+          intake_requirement_context: Json | null
           organization_id: string
           prior_actionable_status:
             | Database["public"]["Enums"]["case_task_status"]
@@ -352,6 +355,9 @@ export type Database = {
           description?: string
           due_at?: string | null
           id?: string
+          intake_follow_up_id?: string | null
+          intake_question_definition_id?: string | null
+          intake_requirement_context?: Json | null
           organization_id: string
           prior_actionable_status?:
             | Database["public"]["Enums"]["case_task_status"]
@@ -376,6 +382,9 @@ export type Database = {
           description?: string
           due_at?: string | null
           id?: string
+          intake_follow_up_id?: string | null
+          intake_question_definition_id?: string | null
+          intake_requirement_context?: Json | null
           organization_id?: string
           prior_actionable_status?:
             | Database["public"]["Enums"]["case_task_status"]
@@ -403,6 +412,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "case_tasks_intake_question_fkey"
+            columns: ["organization_id", "intake_question_definition_id"]
+            isOneToOne: false
+            referencedRelation: "question_definitions"
+            referencedColumns: ["organization_id", "id"]
           },
           {
             foreignKeyName: "case_tasks_organization_id_assigned_user_id_fkey"
@@ -454,6 +470,7 @@ export type Database = {
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
           status: Database["public"]["Enums"]["case_status"]
+          tax_year: number | null
           title: string
           updated_at: string
         }
@@ -476,6 +493,7 @@ export type Database = {
           organization_id: string
           priority?: Database["public"]["Enums"]["priority_level"]
           status?: Database["public"]["Enums"]["case_status"]
+          tax_year?: number | null
           title: string
           updated_at?: string
         }
@@ -498,6 +516,7 @@ export type Database = {
           organization_id?: string
           priority?: Database["public"]["Enums"]["priority_level"]
           status?: Database["public"]["Enums"]["case_status"]
+          tax_year?: number | null
           title?: string
           updated_at?: string
         }
@@ -719,6 +738,7 @@ export type Database = {
           customer_id: string | null
           customer_mode: string
           description: string
+          follow_up_tasks: Json
           id: string
           manager_user_id: string | null
           new_customer: Json
@@ -726,6 +746,7 @@ export type Database = {
           priority: Database["public"]["Enums"]["priority_level"]
           staff_user_ids: string[]
           submission_key: string
+          tax_year: number | null
           updated_at: string
         }
         Insert: {
@@ -738,6 +759,7 @@ export type Database = {
           customer_id?: string | null
           customer_mode?: string
           description?: string
+          follow_up_tasks?: Json
           id?: string
           manager_user_id?: string | null
           new_customer?: Json
@@ -745,6 +767,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["priority_level"]
           staff_user_ids?: string[]
           submission_key: string
+          tax_year?: number | null
           updated_at?: string
         }
         Update: {
@@ -757,6 +780,7 @@ export type Database = {
           customer_id?: string | null
           customer_mode?: string
           description?: string
+          follow_up_tasks?: Json
           id?: string
           manager_user_id?: string | null
           new_customer?: Json
@@ -764,6 +788,7 @@ export type Database = {
           priority?: Database["public"]["Enums"]["priority_level"]
           staff_user_ids?: string[]
           submission_key?: string
+          tax_year?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -1750,6 +1775,7 @@ export type Database = {
           target_question_id: string | null
           task_blocking: boolean | null
           task_description: string | null
+          task_due_in_days: number | null
           task_priority: Database["public"]["Enums"]["priority_level"] | null
           task_required: boolean | null
           task_title: string | null
@@ -1768,6 +1794,7 @@ export type Database = {
           target_question_id?: string | null
           task_blocking?: boolean | null
           task_description?: string | null
+          task_due_in_days?: number | null
           task_priority?: Database["public"]["Enums"]["priority_level"] | null
           task_required?: boolean | null
           task_title?: string | null
@@ -1786,6 +1813,7 @@ export type Database = {
           target_question_id?: string | null
           task_blocking?: boolean | null
           task_description?: string | null
+          task_due_in_days?: number | null
           task_priority?: Database["public"]["Enums"]["priority_level"] | null
           task_required?: boolean | null
           task_title?: string | null
@@ -2330,8 +2358,11 @@ export type Database = {
           created_by_user_id: string | null
           description: string
           due_at: string | null
+          generated_by_intake: boolean
           generated_by_rule: boolean
           id: string
+          intake_question_definition_id: string | null
+          intake_requirement_context: Json | null
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
           required: boolean
@@ -2362,6 +2393,7 @@ export type Database = {
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
           status: Database["public"]["Enums"]["case_status"]
+          tax_year: number | null
           title: string
           updated_at: string
         }
@@ -2473,6 +2505,7 @@ export type Database = {
           target_question_id: string | null
           task_blocking: boolean | null
           task_description: string | null
+          task_due_in_days: number | null
           task_priority: Database["public"]["Enums"]["priority_level"] | null
           task_required: boolean | null
           task_title: string | null
@@ -2812,9 +2845,11 @@ export type Database = {
       create_case_task: {
         Args: {
           target_assigned_user_id?: string
+          target_blocking?: boolean
           target_case_id: string
           target_description?: string
-          target_due_at?: string
+          target_due_date?: string
+          target_priority?: Database["public"]["Enums"]["priority_level"]
           target_required?: boolean
           target_title: string
         }
@@ -2829,6 +2864,9 @@ export type Database = {
           description: string
           due_at: string | null
           id: string
+          intake_follow_up_id: string | null
+          intake_question_definition_id: string | null
+          intake_requirement_context: Json | null
           organization_id: string
           prior_actionable_status:
             | Database["public"]["Enums"]["case_task_status"]
@@ -2860,6 +2898,7 @@ export type Database = {
           target_organization_id: string
           target_priority: Database["public"]["Enums"]["priority_level"]
           target_staff_user_ids?: string[]
+          target_tax_year: number
           target_title: string
         }
         Returns: {
@@ -2878,6 +2917,7 @@ export type Database = {
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
           status: Database["public"]["Enums"]["case_status"]
+          tax_year: number | null
           title: string
           updated_at: string
         }
@@ -2895,11 +2935,13 @@ export type Database = {
           target_case_type_id: string
           target_customer_id: string
           target_description: string
+          target_follow_up_tasks?: Json
           target_manager_user_id?: string
           target_organization_id: string
           target_priority: Database["public"]["Enums"]["priority_level"]
           target_staff_user_ids?: string[]
           target_submission_key: string
+          target_tax_year: number
         }
         Returns: Database["public"]["Tables"]["cases"]["Row"]
       }
@@ -3544,6 +3586,7 @@ export type Database = {
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
           status: Database["public"]["Enums"]["case_status"]
+          tax_year: number | null
           title: string
           updated_at: string
         }
@@ -3556,9 +3599,9 @@ export type Database = {
       }
       update_case_task: {
         Args: {
-          target_assigned_user_id: string
+          target_assigned_user_id: string | null
           target_description: string
-          target_due_at: string
+          target_due_date: string | null
           target_required: boolean
           target_status: Database["public"]["Enums"]["case_task_status"]
           target_task_id: string
@@ -3575,6 +3618,9 @@ export type Database = {
           description: string
           due_at: string | null
           id: string
+          intake_follow_up_id: string | null
+          intake_question_definition_id: string | null
+          intake_requirement_context: Json | null
           organization_id: string
           prior_actionable_status:
             | Database["public"]["Enums"]["case_task_status"]

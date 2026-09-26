@@ -61,6 +61,7 @@ const baseConfiguration = (): GuidedIntakeConfiguration => ({
 const draft = (): GuidedCaseIntakeDraft => ({
   submissionKey: "00000000-0000-4000-8000-000000000001",
   customerId: "customer-a",
+  taxYear: 2025,
   caseTitleId: "title-a",
   description: "Details",
   caseTypeId: "type-a",
@@ -68,6 +69,7 @@ const draft = (): GuidedCaseIntakeDraft => ({
   managerUserId: "",
   staffUserIds: ["staff-a"],
   answers: {},
+  followUpTasks: [],
 });
 
 test("Customer step cannot advance without an active organization Customer", () => {

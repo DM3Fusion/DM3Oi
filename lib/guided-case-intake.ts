@@ -97,9 +97,22 @@ export type GuidedIntakeConfiguration = {
 
 export type GuidedIntakeAnswers = Record<string, Json | undefined>;
 
+export type GuidedIntakeFollowUpTask = {
+  id: string;
+  questionId: string;
+  title: string;
+  description: string;
+  missingOptionIds: string[];
+  missingOptionLabels: string[];
+  assignedUserId: string;
+  dueDate: string;
+  completed: boolean;
+};
+
 export type GuidedCaseIntakeDraft = {
   submissionKey: string;
   customerId: string;
+  taxYear: number | null;
   caseTitleId: string;
   description: string;
   caseTypeId: string;
@@ -107,6 +120,7 @@ export type GuidedCaseIntakeDraft = {
   managerUserId: string;
   staffUserIds: string[];
   answers: GuidedIntakeAnswers;
+  followUpTasks: GuidedIntakeFollowUpTask[];
 };
 
 export type GuidedIntakeFieldErrors = Record<string, string>;
@@ -253,6 +267,7 @@ export function validateGuidedCaseDetails(
   draft: Pick<
     GuidedCaseIntakeDraft,
     | "caseTitleId"
+    | "taxYear"
     | "caseTypeId"
     | "priority"
     | "managerUserId"
@@ -264,6 +279,12 @@ export function validateGuidedCaseDetails(
   >,
 ): GuidedIntakeFieldErrors {
   const errors: GuidedIntakeFieldErrors = {};
+  if (
+    !Number.isInteger(draft.taxYear) ||
+    (draft.taxYear ?? 0) < 1900 ||
+    (draft.taxYear ?? 0) > 2200
+  )
+    errors.taxYear = "Enter a valid tax year from 1900 through 2200.";
   if (!configuration.caseTitles.some((item) => item.id === draft.caseTitleId))
     errors.caseTitleId = "Select an active configured Case Title.";
   if (!configuration.caseTypes.some((item) => item.id === draft.caseTypeId))
@@ -289,6 +310,45 @@ export function validateGuidedCaseDetails(
   return errors;
 }
 
+export function getMissingRequiredOptions(
+  evaluation: GuidedIntakeEvaluation,
+  answers: GuidedIntakeAnswers,
+) {
+  return evaluation.questions.flatMap((question) => {
+    if (
+      !question.applicable ||
+      !question.effectiveRequired ||
+      question.responseType !== "MULTI_SELECT" ||
+      !question.requireAllOptions ||
+      question.valid
+    )
+      return [];
+    const answer = answers[question.id];
+    const selected = new Set(
+      Array.isArray(answer)
+        ? answer.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
+    );
+    const missingOptions = question.options.filter(
+      (option) => !selected.has(option.id),
+    );
+    return [{ question, missingOptions }];
+  });
+}
+
+export function canCompleteIntakeFollowUpTask(
+  task: GuidedIntakeFollowUpTask,
+  evaluation: GuidedIntakeEvaluation,
+) {
+  return Boolean(
+    evaluation.questions.find(
+      (question) => question.id === task.questionId && question.valid,
+    ),
+  );
+}
+
 export function validateGuidedIntakeQuestions(
   evaluation: GuidedIntakeEvaluation,
 ): GuidedIntakeFieldErrors {
@@ -308,11 +368,21 @@ export function validateGuidedCaseIntake(
   configuration: GuidedIntakeConfiguration,
 ) {
   const evaluation = evaluateGuidedCaseIntake(configuration, draft.answers);
-  const fieldErrors = {
+  const fieldErrors: GuidedIntakeFieldErrors = {
     ...validateGuidedCustomerStep(draft, configuration),
     ...validateGuidedCaseDetails(draft, configuration),
     ...validateGuidedIntakeQuestions(evaluation),
   };
+  const staffIds = new Set(configuration.staff.map((member) => member.id));
+  for (const task of draft.followUpTasks) {
+    if (!staffIds.has(task.assignedUserId))
+      fieldErrors[`followUp.${task.id}`] = "Select an active Staff assignee.";
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))
+      fieldErrors[`followUp.${task.id}`] = "Select a valid due date.";
+    else if (task.completed && !canCompleteIntakeFollowUpTask(task, evaluation))
+      fieldErrors[`followUp.${task.id}`] =
+        "Required documents must be received before completing this Task.";
+  }
   return { valid: Object.keys(fieldErrors).length === 0, fieldErrors, evaluation };
 }
 

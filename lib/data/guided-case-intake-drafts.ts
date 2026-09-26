@@ -5,6 +5,7 @@ import type {
   GuidedCaseIntakeDraft,
   GuidedCasePriority,
   GuidedIntakeAnswers,
+  GuidedIntakeFollowUpTask,
 } from "@/lib/guided-case-intake";
 import type { Json } from "@/types/database.generated";
 
@@ -84,6 +85,41 @@ const parseAnswers = (value: Json): GuidedIntakeAnswers => {
   return value;
 };
 
+const parseFollowUpTasks = (value: Json): GuidedIntakeFollowUpTask[] => {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) return [];
+    const candidate = item as Record<string, Json | undefined>;
+    if (
+      typeof candidate.id !== "string" ||
+      typeof candidate.questionId !== "string" ||
+      typeof candidate.title !== "string" ||
+      typeof candidate.description !== "string" ||
+      typeof candidate.assignedUserId !== "string" ||
+      typeof candidate.dueDate !== "string" ||
+      typeof candidate.completed !== "boolean" ||
+      !Array.isArray(candidate.missingOptionIds) ||
+      !Array.isArray(candidate.missingOptionLabels)
+    )
+      return [];
+    return [{
+      id: candidate.id,
+      questionId: candidate.questionId,
+      title: candidate.title,
+      description: candidate.description,
+      assignedUserId: candidate.assignedUserId,
+      dueDate: candidate.dueDate,
+      completed: candidate.completed,
+      missingOptionIds: candidate.missingOptionIds.filter(
+        (entry): entry is string => typeof entry === "string",
+      ),
+      missingOptionLabels: candidate.missingOptionLabels.filter(
+        (entry): entry is string => typeof entry === "string",
+      ),
+    }];
+  });
+};
+
 async function requireDraftAccess() {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
@@ -120,7 +156,7 @@ export async function loadGuidedIntakeDraft(
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,updated_at",
+      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,follow_up_tasks,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
@@ -147,6 +183,7 @@ export async function loadGuidedIntakeDraft(
     draft: {
       submissionKey: data.submission_key,
       customerId: data.customer_id ?? "",
+      taxYear: data.tax_year,
       caseTitleId: data.case_title_id ?? "",
       description: data.description,
       caseTypeId: data.case_type_id ?? "",
@@ -154,6 +191,7 @@ export async function loadGuidedIntakeDraft(
       managerUserId: data.manager_user_id ?? "",
       staffUserIds: data.staff_user_ids,
       answers: parseAnswers(data.answers),
+      followUpTasks: parseFollowUpTasks(data.follow_up_tasks),
     },
     newCustomer: {
       ...emptyNewCustomer(),

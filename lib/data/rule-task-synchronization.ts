@@ -37,7 +37,7 @@ async function loadOrganizationRuleState(organizationId: string, caseIds: string
       .order("display_order"),
     admin
       .from("rule_actions")
-      .select("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking")
+      .select("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking,task_due_in_days")
       .eq("organization_id", organizationId)
       .is("retired_at", null)
       .order("display_order"),

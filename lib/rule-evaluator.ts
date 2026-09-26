@@ -42,6 +42,7 @@ export type RuleEvaluationAction = {
   task_priority: Priority | null;
   task_required: boolean | null;
   task_blocking: boolean | null;
+  task_due_in_days?: number | null;
 };
 
 export type EvaluatedQuestion = {
@@ -63,6 +64,7 @@ export type EffectiveTaskAction = {
   priority: Priority;
   required: boolean;
   blocking: boolean;
+  dueInDays: number;
 };
 
 export type RuleEvaluationResult = {
@@ -179,6 +181,7 @@ export function evaluateCaseRules({
           priority: action.task_priority,
           required: action.task_required ?? false,
           blocking: action.task_blocking ?? false,
+          dueInDays: action.task_due_in_days ?? 7,
         }]
       : [],
   );

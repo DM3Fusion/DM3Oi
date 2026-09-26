@@ -46,3 +46,27 @@ export const formatOrganizationDateTime = (value: string | Date | null | undefin
   try { return new Intl.DateTimeFormat("en-US", options).format(new Date(value)); }
   catch { return new Intl.DateTimeFormat("en-US", { ...options, timeZone: "UTC" }).format(new Date(value)); }
 };
+
+export const organizationDateInputValue = (
+  value: string | Date | null | undefined,
+  timezone?: string | null,
+) => {
+  if (!value) return "";
+  const timeZone = isValidTimeZone(timezone) ? timezone : "UTC";
+  const parts = partsInTimeZone(new Date(value), timeZone);
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}-${String(parts.day).padStart(2, "0")}`;
+};
+
+export const formatOrganizationDate = (
+  value: string | Date | null | undefined,
+  timezone?: string | null,
+) => {
+  if (!value) return "—";
+  const timeZone = isValidTimeZone(timezone) ? timezone : "UTC";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
+};

@@ -21,15 +21,17 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
   assert.doesNotMatch(shell, /Case Management Intelligence/);
 });
 
-test("operational dashboard exposes six linked primary KPIs", () => {
+test("operational dashboard exposes two canonical rows of four KPIs", () => {
   const metrics = source("lib/live-dashboard-metrics.ts");
   for (const [label, href] of [
-    ["Active Cases", "/cases?status=active"],
-    ["Open Tasks", "/tasks?status=open"],
     ["Due Today", "/tasks?due=today"],
-    ["Open Service Requests", "/service-desk/requests?status=open"],
-    ["Unread Communications", "/communications?status=unread"],
-    ["Customers", "/customers"],
+    ["Open Requests", "/service-desk/requests?status=open"],
+    ["Open Tasks", "/tasks?status=open"],
+    ["Open Cases", "/cases?status=active"],
+    ["Customers — Lifetime", "/customers"],
+    ["Customers — Prior Tax Year", "/customers"],
+    ["Customers — Current Tax Year", "/customers"],
+    ["Repeat Customers", "/customers"],
   ]) {
     assert.match(metrics, new RegExp(`label:\\"${label}\\",value:[^,]+,href:\\"${href.replace(/[?]/g, "\\?")}\\"`));
   }
@@ -239,13 +241,13 @@ test("dashboard queries remain authorized and recipient scoped", () => {
   assert.match(communications, /\.eq\("recipient_user_id", userId\)/);
 });
 
-test("dashboard KPI cards remain three columns on wide and phone layouts", () => {
+test("dashboard KPI cards remain four columns on wide and two on narrow layouts", () => {
   const css = source("app/globals.css");
-  assert.match(css, /\/\* Operational summary: intentionally compact, text-only KPI cards\. \*\/[\s\S]*\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}/);
-  assert.match(css, /@media\(max-width:850px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)\}\}/);
-  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css, /\/\* Operational summary: intentionally compact, text-only KPI cards\. \*\/[\s\S]*\.operations-kpis\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/);
+  assert.match(css, /@media\(max-width:850px\)\{\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\}/);
+  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:6px\}/);
   assert.match(css, /\.operations-kpi\{min-height:82px;gap:4px;padding:9px 5px\}/);
-  assert.match(css, /\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css, /\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:6px\}/);
   assert.match(css, /\.operations-kpi-label\{[^}]*overflow-wrap:anywhere\}/);
   const operationalSummaryStart = css.indexOf(
       "/* Operational summary: intentionally compact, text-only KPI cards. */",
@@ -268,16 +270,14 @@ test("dashboard KPI cards remain three columns on wide and phone layouts", () =>
   assert.doesNotMatch(css, /route-progress|navigation-progress/);
 });
 
-test("dashboard KPIs render only the existing labels and model values", () => {
+test("dashboard KPIs render the canonical workload and Customer labels", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const metrics = source("lib/live-dashboard-metrics.ts");
-  for (const label of ["Active Cases", "Open Tasks", "Due Today", "Open Service Requests", "Unread Communications", "Customers"]) {
+  for (const label of ["Due Today", "Open Requests", "Open Tasks", "Open Cases", "Customers — Lifetime", "Customers — Prior Tax Year", "Customers — Current Tax Year", "Repeat Customers"]) {
     assert.match(metrics, new RegExp(`label:\\"${label}\\"`));
   }
   assert.match(dashboard, /<span className="operations-kpi-label">\{item\.label\}<\/span>/);
   assert.match(dashboard, /<strong>\{item\.value\}<\/strong>/);
-  assert.doesNotMatch(dashboard, /operations-kpi-icon|iconFor\(item\.label\)|item\.detail/);
-  for (const detail of ["Current authorized caseload", "Not completed or excluded", "Organization-local date", "Active Service Desk workload", "Your unread notifications", "Visible organization records"]) {
-    assert.doesNotMatch(dashboard, new RegExp(detail));
-  }
+  assert.doesNotMatch(dashboard, /operations-kpi-icon|iconFor\(item\.label\)/);
+  assert.match(dashboard, /<small>\{item\.detail\}<\/small>/);
 });

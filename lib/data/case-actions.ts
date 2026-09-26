@@ -11,7 +11,7 @@ type TaskStatus = Database["public"]["Enums"]["case_task_status"];
 const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim();
 const optional = (value: string) => value || undefined;
 const nullableUuid = (value: string) => (value || null) as unknown as string;
-const endOfDay = (value: string) => (value ? `${value}T23:59:59.000Z` : undefined);
+const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
 const friendly = (message: string) => (message.includes("required applicable tasks") ? "Complete or mark not applicable every required task before completing this case." : message.includes("required applicable questions") ? "Answer every required question before completing this case." : message.includes("not authorized") ? "You are not authorized to perform that action." : message.includes("invalid") ? "The selected customer or staff assignment is not valid for this organization." : "The change could not be saved. Please try again.");
 const fail = (path: string, message: string): never => redirect(`${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(message)}`);
 const refreshCase = (id?: string) => {
@@ -107,6 +107,9 @@ export async function setCaseAssignmentAction(data: FormData) {
 export async function createTaskAction(data: FormData) {
   const id = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");
+  const dueDate = text(data, "dueDate");
+  if (!text(data, "title") || !validDate(dueDate))
+    fail(`/cases/${id}`, "Task title and Due Date are required.");
   const supabase = await createClient();
   const { error } = await supabase.rpc("create_case_task", {
     target_case_id: id,
@@ -114,7 +117,9 @@ export async function createTaskAction(data: FormData) {
     target_description: text(data, "description"),
     target_assigned_user_id: optional(text(data, "assignedUserId")),
     target_required: data.get("required") === "on",
-    target_due_at: endOfDay(text(data, "dueAt")),
+    target_due_date: dueDate,
+    target_priority: (text(data, "priority") || "NORMAL") as Database["public"]["Enums"]["priority_level"],
+    target_blocking: data.get("blocking") === "on",
   });
   if (error) {
     console.error("Create task failed", {
@@ -140,6 +145,9 @@ export async function updateTaskAction(data: FormData) {
   if (!existing) return fail(`/cases/${caseId}`, "The task was not found or is not authorized.");
   const canManage = hasPermission(context, "MANAGE_TASKS");
   const canAssign = hasPermission(context, "ASSIGN_TASKS");
+  const dueDate = text(data, "dueDate");
+  if (canManage && !validDate(dueDate))
+    fail(`/cases/${caseId}`, "A Due Date is required when updating a Task.");
   const { error } = await supabase.rpc("update_case_task", {
     target_task_id: taskId,
     target_title: canManage ? text(data, "title") : existing.title,
@@ -147,7 +155,7 @@ export async function updateTaskAction(data: FormData) {
     target_assigned_user_id: canAssign ? nullableUuid(text(data, "assignedUserId")) : nullableUuid(existing.assigned_user_id ?? ""),
     target_status: text(data, "status") as TaskStatus,
     target_required: canManage ? data.get("requiredCheck") === "on" : existing.required,
-    target_due_at: canManage ? nullableUuid(text(data, "dueAt")) : nullableUuid(existing.due_at ?? ""),
+    target_due_date: canManage ? dueDate : null,
   });
   if (error) {
     console.error("Update task failed", {

@@ -25,14 +25,21 @@ function AttentionSummaryRing({items}:{items:ReadonlyArray<{value:number;tone:st
 }
 
 export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrganizationData;unreadCommunications:number;intelligence:AuthorizedOperationalIntelligence|null}){
-  const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers.length,unreadCommunications,data.timezone);
+  const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers,unreadCommunications,data.timezone);
   const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
   const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
   return <div className="operations-dashboard">
-    <section className="operations-kpis" aria-label="Operational summary">
-      {summary.kpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
+    <section className="operations-kpis" aria-label="Action and workload summary">
+      {summary.actionKpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
         <span className="operations-kpi-label">{item.label}</span>
         <strong>{item.value}</strong>
+      </Link>)}
+    </section>
+    <section className="operations-kpis customer-kpis" aria-label="Customer summary">
+      {summary.customerKpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
+        <span className="operations-kpi-label">{item.label}</span>
+        <strong>{item.value}</strong>
+        <small>{item.detail}</small>
       </Link>)}
     </section>
     <div className="operations-visuals">

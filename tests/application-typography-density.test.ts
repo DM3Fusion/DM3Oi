@@ -49,8 +49,8 @@ test("shared forms tables lists and actions use readable internal application si
   assert.match(css, /\.main-column>main \.primary-button[^}]*min-height:44px[^}]*font-size:16px/);
 });
 
-test("Dashboard KPI cards remain text only and three by two on phone", () => {
-  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+test("Dashboard KPI cards remain text only and two by two per row on phone", () => {
+  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:6px\}/);
   assert.match(dashboard, /className="operations-kpi-label"/);
   assert.match(dashboard, /<strong>\{item\.value\}<\/strong>/);
   assert.doesNotMatch(dashboard, /operations-kpi-icon/);
@@ -100,7 +100,7 @@ test("phone Dashboard retains complete readiness content and centered KPI summar
     "Cases Needing Attention",
   ]) assert.match(intelligence, new RegExp(content));
   assert.match(css, /\.intelligence-kpi\{align-items:center;text-align:center\}/);
-  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\);gap:6px\}/);
+  assert.match(css, /@media\(max-width:600px\)\{\.operations-kpis\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\);gap:6px\}/);
   assert.doesNotMatch(css, /@media\(max-width:600px\)\{[^}]*\.operational-intelligence\{display:none/);
 });
 

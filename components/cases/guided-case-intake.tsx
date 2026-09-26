@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -9,6 +9,9 @@ import {
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
+  canCompleteIntakeFollowUpTask,
+  getMissingRequiredOptions,
+  isGuidedQuestionAnswerValid,
   guidedCaseIntakeSteps,
   guidedQuestionGroups,
   guidedQuestionGroupLabels,
@@ -20,6 +23,7 @@ import {
   type GuidedIntakeConfiguration,
   type GuidedIntakeFieldErrors,
   type GuidedIntakeQuestion,
+  type GuidedIntakeFollowUpTask,
 } from "@/lib/guided-case-intake";
 import {
   customerEmailPattern,
@@ -264,6 +268,7 @@ export function GuidedCaseIntake({
     initialDraft ?? {
       submissionKey,
       customerId: "",
+      taxYear: null,
       caseTitleId: "",
       description: "",
       caseTypeId: "",
@@ -271,11 +276,14 @@ export function GuidedCaseIntake({
       managerUserId: "",
       staffUserIds: [],
       answers: {},
+      followUpTasks: [],
     },
   );
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const followUpDialog = useRef<HTMLDialogElement>(null);
+  const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
   const [customerValues, setCustomerValues] = useState({
     type: initialNewCustomer?.type ?? "INDIVIDUAL",
     name: initialNewCustomer?.name ?? "",
@@ -324,6 +332,13 @@ export function GuidedCaseIntake({
       question.effectiveRequired &&
       !question.valid,
   );
+  const missingRequirements = getMissingRequiredOptions(
+    evaluation,
+    draft.answers,
+  );
+  const activeFollowUpRequirement = missingRequirements.find(
+    (item) => item.question.id === followUpQuestionId,
+  );
 
   const updateDraft = <K extends keyof GuidedCaseIntakeDraft>(
     key: K,
@@ -334,15 +349,79 @@ export function GuidedCaseIntake({
     setFormError(null);
   };
   const updateAnswer = (questionId: string, value: Json | undefined) => {
+    const question = configuration.questions.find((item) => item.id === questionId);
+    const answerRemainsValid = question
+      ? isGuidedQuestionAnswerValid(question, value)
+      : false;
     setDraft((current) => ({
       ...current,
       answers: { ...current.answers, [questionId]: value },
+      followUpTasks: current.followUpTasks.map((task) =>
+        task.questionId === questionId && !answerRemainsValid
+          ? { ...task, completed: false }
+          : task,
+      ),
     }));
     setErrors((current) => ({
       ...current,
       [`question.${questionId}`]: "",
     }));
     setFormError(null);
+  };
+  const openFollowUpTask = (questionId: string) => {
+    setFollowUpQuestionId(questionId);
+    followUpDialog.current?.showModal();
+  };
+  const stageFollowUpTask = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!activeFollowUpRequirement) return;
+    const form = new FormData(event.currentTarget);
+    const assignedUserId = String(form.get("assignedUserId") ?? "");
+    const dueDate = String(form.get("dueDate") ?? "");
+    if (!assignedUserId || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return;
+    const existing = draft.followUpTasks.find(
+      (task) => task.questionId === activeFollowUpRequirement.question.id,
+    );
+    const missingOptionIds = activeFollowUpRequirement.missingOptions.map(
+      (option) => option.id,
+    );
+    const missingOptionLabels = activeFollowUpRequirement.missingOptions.map(
+      (option) => option.label,
+    );
+    const task: GuidedIntakeFollowUpTask = {
+      id: existing?.id ?? crypto.randomUUID(),
+      questionId: activeFollowUpRequirement.question.id,
+      title: "Obtain missing required documents",
+      description: `Outstanding requirements: ${missingOptionLabels.join(", ")}`,
+      missingOptionIds,
+      missingOptionLabels,
+      assignedUserId,
+      dueDate,
+      completed: false,
+    };
+    updateDraft(
+      "followUpTasks",
+      existing
+        ? draft.followUpTasks.map((item) =>
+            item.questionId === task.questionId ? task : item,
+          )
+        : [...draft.followUpTasks, task],
+    );
+    followUpDialog.current?.close();
+  };
+  const completeFollowUpTask = (task: GuidedIntakeFollowUpTask) => {
+    if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
+      setFormError(
+        "Mark every tracked required document as received before completing its follow-up Task.",
+      );
+      return;
+    }
+    updateDraft(
+      "followUpTasks",
+      draft.followUpTasks.map((item) =>
+        item.id === task.id ? { ...item, completed: true } : item,
+      ),
+    );
   };
   const validateStep = () => {
     if (step === 0)
@@ -433,6 +512,21 @@ export function GuidedCaseIntake({
   };
   const saveAndContinueLater = async () => {
     if (pending) return;
+
+    if (
+      step >= 2 &&
+      missingRequirements.some(
+        (requirement) =>
+          !draft.followUpTasks.some(
+            (task) => task.questionId === requirement.question.id,
+          ),
+      )
+    ) {
+      setFormError(
+        "Create a follow-up Task for each missing required-document group before saving this intake.",
+      );
+      return;
+    }
 
     setPending(true);
     setFormError(null);
@@ -711,6 +805,24 @@ export function GuidedCaseIntake({
         </select>
         {fieldError(errors, "caseTypeId")}
       </label>
+      <label>
+        <span>Tax Year</span>
+        <input
+          type="number"
+          min="1900"
+          max="2200"
+          required
+          value={draft.taxYear ?? ""}
+          onChange={(event) =>
+            updateDraft(
+              "taxYear",
+              event.target.value === "" ? null : Number(event.target.value),
+            )
+          }
+          aria-invalid={Boolean(errors.taxYear)}
+        />
+        {fieldError(errors, "taxYear")}
+      </label>
       <label className="full">
         <span>Description <small>Optional</small></span>
         <textarea
@@ -830,17 +942,18 @@ export function GuidedCaseIntake({
               </header>
 
               <div className="intake-question-list">
-                {section.questions.map((question) => (
-                  <QuestionField
-                    key={question.id}
-                    question={question}
-                    value={draft.answers[question.id]}
-                    error={errors[`question.${question.id}`]}
-                    onChange={(value) =>
-                      updateAnswer(question.id, value)
-                    }
-                  />
-                ))}
+                {section.questions.map((question) => {
+                  const missing = missingRequirements.find(
+                    (item) => item.question.id === question.id,
+                  );
+                  const staged = draft.followUpTasks.find(
+                    (task) => task.questionId === question.id,
+                  );
+                  return <div className="intake-question-with-follow-up" key={question.id}>
+                    <QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />
+                    {missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>{staged ? "Update Follow-up Task" : "Create Follow-up Task"}</button></div> : null}
+                  </div>;
+                })}
               </div>
             </section>
           );
@@ -852,17 +965,10 @@ export function GuidedCaseIntake({
               <h3>Other</h3>
             </header>
             <div className="intake-question-list">
-              {unassigned.map((question) => (
-                <QuestionField
-                  key={question.id}
-                  question={question}
-                  value={draft.answers[question.id]}
-                  error={errors[`question.${question.id}`]}
-                  onChange={(value) =>
-                    updateAnswer(question.id, value)
-                  }
-                />
-              ))}
+              {unassigned.map((question) => {
+                const missing = missingRequirements.find((item) => item.question.id === question.id);
+                return <div className="intake-question-with-follow-up" key={question.id}><QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />{missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>Create Follow-up Task</button></div> : null}</div>;
+              })}
             </div>
           </section>
         ) : null}
@@ -897,11 +1003,13 @@ export function GuidedCaseIntake({
               <li key={task.actionId} className="conditional">
                 <strong>Conditional</strong>
                 <span>{task.title}</span>
-                <small>{task.required ? "Required Task" : "Task"}{task.blocking ? " · Blocking" : ""} · {task.priority}</small>
+                <small>{task.required ? "Required Task" : "Task"}{task.blocking ? " · Blocking" : ""} · {task.priority} · Due in {task.dueInDays} day{task.dueInDays === 1 ? "" : "s"}</small>
               </li>
             ))}
           </ul>
         ) : <p className="intake-note">No Rule-generated Tasks apply.</p>}
+        <h3>Missing-document Follow-up Tasks</h3>
+        {draft.followUpTasks.length ? <ul>{draft.followUpTasks.map((task) => <li key={task.id} className={task.completed ? "satisfied" : "outstanding"}><strong>{task.completed ? "Completed" : "Staged"}</strong><span>{task.title}<small>{task.missingOptionLabels.join(", ")} · Due {task.dueDate}</small></span>{!task.completed ? <button type="button" className="text-button" onClick={() => completeFollowUpTask(task)}>Complete Task</button> : null}</li>)}</ul> : <p className="intake-note">No missing-document follow-up Tasks have been staged.</p>}
         {hiddenQuestions.length ? (
           <p className="intake-note">{hiddenQuestions.length} conditional question{hiddenQuestions.length === 1 ? " is" : "s are"} currently non-applicable and will not block creation.</p>
         ) : null}
@@ -915,6 +1023,7 @@ export function GuidedCaseIntake({
         ["Customer", selectedCustomer ? `${selectedCustomer.customerNumber} — ${selectedCustomer.name}` : "Not selected", 0],
         ["Case Title", selectedTitle?.label ?? "Not selected", 1],
         ["Case Type", selectedType?.name ?? "Not selected", 1],
+        ["Tax Year", draft.taxYear ?? "Not selected", 1],
         ["Description", draft.description || "None", 1],
         ["Priority", draft.priority, 1],
         ["Case Manager", selectedManager?.name ?? "Unassigned", 1],
@@ -954,6 +1063,27 @@ export function GuidedCaseIntake({
             );
 
   return (
+    <>
+    <dialog
+      ref={followUpDialog}
+      className="task-modal"
+      onCancel={(event) => {
+        event.preventDefault();
+        followUpDialog.current?.close();
+      }}
+    >
+      <form className="task-modal-form" onSubmit={stageFollowUpTask}>
+        <header>
+          <div><p className="eyebrow">Guided Intake</p><h2>Create Follow-up Task</h2></div>
+          <button type="button" className="rule-dialog-close" aria-label="Close follow-up Task modal" onClick={() => followUpDialog.current?.close()}><span aria-hidden>×</span></button>
+        </header>
+        <label><span>Task title</span><input value="Obtain missing required documents" readOnly /></label>
+        <div className="intake-modal-context"><b>Outstanding requirements</b><p>{activeFollowUpRequirement?.missingOptions.map((option) => option.label).join(", ")}</p></div>
+        <label><span>Assigned to</span><select name="assignedUserId" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.assignedUserId ?? ""}><option value="">Select Staff</option>{configuration.staff.map((member) => <option value={member.id} key={member.id}>{member.name}</option>)}</select></label>
+        <label><span>Due Date</span><input type="date" name="dueDate" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.dueDate ?? ""} /></label>
+        <footer><button type="button" className="secondary-button" onClick={() => followUpDialog.current?.close()}>Cancel</button><button className="primary-button">Stage Task</button></footer>
+      </form>
+    </dialog>
     <section className="panel guided-case-intake">
       <ol className="intake-stepper" aria-label="Case intake progress">
         {guidedCaseIntakeSteps.map((label, index) => {
@@ -1073,5 +1203,6 @@ export function GuidedCaseIntake({
         )}
       </div>
     </section>
+    </>
   );
 }

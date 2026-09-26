@@ -108,7 +108,7 @@ test("CREATE_TASK is returned as an effective template without creating or mutat
   const taskAction: RuleEvaluationAction = { ...action("task-action", "Regulatory Installation Task", "CREATE_TASK", null), task_title: "Verify regulatory sign installation", task_description: "Verify in field", task_priority: "HIGH", task_required: true, task_blocking: true };
   const inputTasks = [{ id: "existing-task" }];
   const result = evaluateCaseRules({ organizationId: ORG, questions: [question("sign-type", "SINGLE_SELECT", "regulatory")], options: [option("regulatory-id", "sign-type", "regulatory")], rules: [rule("Regulatory Installation Task", "sign-type", "EQUALS", "regulatory-id")], actions: [taskAction] });
-  assert.deepEqual(result.effectiveTaskActions, [{ actionId: "task-action", ruleId: "Regulatory Installation Task", ruleName: "Regulatory Installation Task", title: "Verify regulatory sign installation", description: "Verify in field", priority: "HIGH", required: true, blocking: true }]);
+  assert.deepEqual(result.effectiveTaskActions, [{ actionId: "task-action", ruleId: "Regulatory Installation Task", ruleName: "Regulatory Installation Task", title: "Verify regulatory sign installation", description: "Verify in field", priority: "HIGH", required: true, blocking: true, dueInDays: 7 }]);
   assert.deepEqual(inputTasks, [{ id: "existing-task" }]);
 });
 
@@ -134,7 +134,7 @@ test("Case integration remains server-authorized evaluation-only UI", () => {
   assert.match(repository, /if \(!authorizedCase\.data\) throw new Error\("Case questions are not available for this Case\."\)/);
   assert.match(synchronization, /evaluateCaseRules/);
   assert.match(synchronization, /\.from\("rule_definitions"\)[\s\S]*?\.select\("id,organization_id,name,source_question_id,condition_operator,condition_option_id,active"\)/);
-  assert.match(synchronization, /\.from\("rule_actions"\)[\s\S]*?\.select\("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking"\)[\s\S]*?\.is\("retired_at", null\)/);
+  assert.match(synchronization, /\.from\("rule_actions"\)[\s\S]*?\.select\("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking,task_due_in_days"\)[\s\S]*?\.is\("retired_at", null\)/);
   assert.match(ui, /Not applicable/);
   assert.match(ui, /effectiveRequired/);
   assert.match(actions, /revalidatePath\(`\/cases\/\$\{saved\.case_id\}`\)/);
