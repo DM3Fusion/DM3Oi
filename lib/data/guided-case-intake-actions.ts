@@ -9,12 +9,101 @@ import {
 } from "@/lib/guided-case-intake";
 import { createClient } from "@/lib/supabase/server";
 import type { CustomerCreationValues } from "@/lib/customer-validation";
+import type { GuidedIntakeNewCustomerDraft } from "@/lib/data/guided-case-intake-drafts";
 
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
 ) {
   return createCustomerForCurrentOrganization(values);
 }
+
+
+export type SaveGuidedIntakeDraftInput = {
+  currentStep: number;
+  customerMode: "existing" | "new";
+  draft: GuidedCaseIntakeDraft;
+  newCustomer: GuidedIntakeNewCustomerDraft;
+};
+
+export async function saveGuidedIntakeDraftAction(
+  input: SaveGuidedIntakeDraftInput,
+): Promise<
+  | { ok: true; draftId: string }
+  | { ok: false; error: string }
+> {
+  const { access } = await loadGuidedCaseIntakeConfiguration();
+  const organizationId = access.activeOrganization!.id;
+
+  if (
+    !Number.isInteger(input.currentStep) ||
+    input.currentStep < 0 ||
+    input.currentStep > 5 ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      input.draft.submissionKey,
+    )
+  ) {
+    return { ok: false, error: "This intake draft is invalid." };
+  }
+
+  const supabase = await createClient();
+
+  const payload = {
+    organization_id: organizationId,
+    created_by_user_id: access.user.id,
+    submission_key: input.draft.submissionKey,
+    current_step: input.currentStep,
+    customer_mode: input.customerMode,
+    customer_id: input.draft.customerId || null,
+    new_customer: {
+      type: input.newCustomer.type,
+      name: input.newCustomer.name,
+      firstName: input.newCustomer.firstName,
+      lastName: input.newCustomer.lastName,
+      email: input.newCustomer.email,
+      phone: input.newCustomer.phone,
+      notes: input.newCustomer.notes,
+    },
+    case_title_id: input.draft.caseTitleId || null,
+    description: input.draft.description,
+    case_type_id: input.draft.caseTypeId || null,
+    priority: guidedCasePriority(input.draft.priority),
+    manager_user_id: input.draft.managerUserId || null,
+    staff_user_ids: input.draft.staffUserIds,
+    answers: input.draft.answers,
+  };
+
+  const { data, error } = await supabase
+    .from("guided_case_intake_drafts")
+    .upsert(payload, {
+      onConflict: "organization_id,created_by_user_id,submission_key",
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Guided Intake draft save failed", {
+      organizationId,
+      code: error?.code,
+      message: error?.message,
+    });
+    return {
+      ok: false,
+      error: "The intake draft could not be saved. Please try again.",
+    };
+  }
+
+  revalidatePath("/cases");
+  return { ok: true, draftId: data.id };
+}
+
+const guidedCasePriority = (
+  priority: GuidedCaseIntakeDraft["priority"],
+): "LOW" | "NORMAL" | "HIGH" | "URGENT" =>
+  priority === "LOW" ||
+  priority === "HIGH" ||
+  priority === "URGENT"
+    ? priority
+    : "NORMAL";
 
 export type CreateGuidedCaseResult =
   | { ok: true; caseId: string; caseNumber: string }
@@ -68,7 +157,7 @@ export async function createGuidedCaseAction(
       target_case_title_id: draft.caseTitleId,
       target_description: draft.description.trim(),
       target_case_type_id: draft.caseTypeId,
-      target_priority: draft.priority as "LOW" | "NORMAL" | "HIGH" | "URGENT",
+      target_priority: guidedCasePriority(draft.priority),
       target_manager_user_id: draft.managerUserId || undefined,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,

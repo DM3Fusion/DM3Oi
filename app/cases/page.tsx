@@ -8,6 +8,8 @@ import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, normalizeRawCaseStatus } from "@/lib/case-dashboard";
 import { ApplicationIcon } from "@/components/application-icon";
+import { guidedCaseIntakeSteps } from "@/lib/guided-case-intake";
+import { loadGuidedIntakeDraftSummaries } from "@/lib/data/guided-case-intake-drafts";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -24,6 +26,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const counts = getCaseDashboardCounts(data.cases, data.timezone);
   const items = data.cases.filter((item) => matchesCaseRegisterFilters(item, filters, data.timezone));
   const canCreate = hasPermission(access, "CREATE_CASE");
+  const drafts = canCreate ? await loadGuidedIntakeDraftSummaries() : [];
   return (
     <>
       <PageHeader
@@ -37,6 +40,44 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           ) : undefined
         }
       />
+      {drafts.length ? (
+        <section className="panel detail-section">
+          <div className="section-head">
+            <div>
+              <h2>Draft Intakes</h2>
+              <p>Saved intake sessions that have not created Cases yet.</p>
+            </div>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Case Title</th>
+                  <th>Case Type</th>
+                  <th>Saved Step</th>
+                  <th>Updated</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {drafts.map((draft) => (
+                  <tr key={draft.id}>
+                    <td>{draft.customerName}</td>
+                    <td>{draft.caseTitle}</td>
+                    <td>{draft.caseType}</td>
+                    <td>{guidedCaseIntakeSteps[draft.currentStep] ?? "Customer"}</td>
+                    <td>{new Date(draft.updatedAt).toLocaleString()}</td>
+                    <td>
+                      <Link href={`/cases/new?draft=${draft.id}`}>Resume</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
       <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>

@@ -245,7 +245,11 @@ export function validateGuidedCaseDetails(
   )
     errors.managerUserId = "Select an active eligible Case Manager.";
   const staffIds = new Set(configuration.staff.map((member) => member.id));
-  if (draft.staffUserIds.some((id) => !staffIds.has(id)))
+  if (draft.staffUserIds.length === 0)
+    errors.staffUserIds = configuration.canAssign
+      ? "Assign at least one Staff member before continuing."
+      : "An Assigned Staff member is required, but you do not have assignment permission.";
+  else if (draft.staffUserIds.some((id) => !staffIds.has(id)))
     errors.staffUserIds = "Assigned Staff must be active eligible members.";
   if (new Set(draft.staffUserIds).size !== draft.staffUserIds.length)
     errors.staffUserIds = "Assigned Staff cannot contain duplicates.";

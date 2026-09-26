@@ -64,7 +64,7 @@ const draft = (): GuidedCaseIntakeDraft => ({
   caseTypeId: "type-a",
   priority: "NORMAL",
   managerUserId: "",
-  staffUserIds: [],
+  staffUserIds: ["staff-a"],
   answers: {},
 });
 
@@ -101,6 +101,15 @@ test("Case Details reject inactive or cross-tenant dimensions and invalid priori
   assert.match(errors.caseTitleId, /active configured Case Title/);
   assert.match(errors.caseTypeId, /active Case Type/);
   assert.match(errors.priority, /valid priority/);
+});
+
+test("Case Details require at least one Assigned Staff member", () => {
+  const configuration = baseConfiguration();
+  const errors = validateGuidedCaseDetails(
+    { ...draft(), staffUserIds: [] },
+    configuration,
+  );
+  assert.match(errors.staffUserIds, /Assign at least one Staff member/);
 });
 
 test("Case Details reject ineligible staff, managers, duplicates, and unauthorized assignment", () => {
@@ -320,6 +329,27 @@ test("atomic RPC enforces tenant, permission, snapshot, task, and idempotency co
   assert.match(migration, /having count\(\*\)>1/);
   assert.match(migration, /select count\(\*\)[\s\S]*lower\(trim\(configured\.name\)\)/);
   assert.match(migration, /revoke all on function public\.stamp_case_title_configuration\(\)/);
+
+  const draftMigration = source(
+    "supabase/migrations/20260925210000_dm3oi_guided_intake_drafts.sql",
+  );
+  assert.match(
+    draftMigration,
+    /cardinality\(target_staff_user_ids\)=0[\s\S]*at least one assigned staff member is required/,
+  );
+  assert.match(draftMigration, /create table public\.guided_case_intake_drafts/);
+  assert.match(
+    draftMigration,
+    /created_by_user_id=auth\.uid\(\)[\s\S]*CREATE_CASE/,
+  );
+  assert.match(
+    draftMigration,
+    /delete from public\.guided_case_intake_drafts[\s\S]*submission_key=target_submission_key/,
+  );
+  assert.match(
+    draftMigration,
+    /if found then[\s\S]*delete from public\.guided_case_intake_drafts[\s\S]*return created_case/,
+  );
 });
 
 test("Guided Intake is the only routed Case creation UI and completion guards remain intact", () => {

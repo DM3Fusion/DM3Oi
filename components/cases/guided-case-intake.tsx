@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   createGuidedCaseAction,
   createInlineIntakeCustomerAction,
+  saveGuidedIntakeDraftAction,
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
@@ -27,6 +28,18 @@ import type { Json } from "@/types/database.generated";
 type Props = {
   configuration: GuidedIntakeConfiguration;
   submissionKey: string;
+  initialDraft?: GuidedCaseIntakeDraft;
+  initialStep?: number;
+  initialCustomerMode?: "existing" | "new";
+  initialNewCustomer?: {
+    type: string;
+    name: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    notes: string;
+  };
 };
 
 const fieldError = (errors: GuidedIntakeFieldErrors, key: string) =>
@@ -171,40 +184,54 @@ function QuestionField({
   );
 }
 
-export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
+export function GuidedCaseIntake({
+  configuration,
+  submissionKey,
+  initialDraft,
+  initialStep = 0,
+  initialCustomerMode,
+  initialNewCustomer,
+}: Props) {
   const router = useRouter();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
   const [customers, setCustomers] = useState(configuration.customers);
   const [customerMode, setCustomerMode] = useState<"existing" | "new">(
-    configuration.customers.length ? "existing" : "new",
+    initialCustomerMode ??
+      (configuration.customers.length ? "existing" : "new"),
   );
   const [customerSearch, setCustomerSearch] = useState("");
-  const [draft, setDraft] = useState<GuidedCaseIntakeDraft>({
-    submissionKey,
-    customerId: "",
-    caseTitleId: "",
-    description: "",
-    caseTypeId: "",
-    priority: configuration.defaultPriority,
-    managerUserId: "",
-    staffUserIds: [],
-    answers: {},
-  });
+  const [draft, setDraft] = useState<GuidedCaseIntakeDraft>(
+    initialDraft ?? {
+      submissionKey,
+      customerId: "",
+      caseTitleId: "",
+      description: "",
+      caseTypeId: "",
+      priority: configuration.defaultPriority,
+      managerUserId: "",
+      staffUserIds: [],
+      answers: {},
+    },
+  );
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [customerValues, setCustomerValues] = useState({
-    type: "INDIVIDUAL",
-    name: "",
-    email: "",
-    phone: "",
-    notes: "",
+    type: initialNewCustomer?.type ?? "INDIVIDUAL",
+    name: initialNewCustomer?.name ?? "",
+    email: initialNewCustomer?.email ?? "",
+    phone: initialNewCustomer?.phone ?? "",
+    notes: initialNewCustomer?.notes ?? "",
   });
   const [customerErrors, setCustomerErrors] = useState<Record<string, string>>(
     {},
   );
-  const [customerFirstName, setCustomerFirstName] = useState("");
-  const [customerLastName, setCustomerLastName] = useState("");
+  const [customerFirstName, setCustomerFirstName] = useState(
+    initialNewCustomer?.firstName ?? "",
+  );
+  const [customerLastName, setCustomerLastName] = useState(
+    initialNewCustomer?.lastName ?? "",
+  );
   const scopedConfiguration = useMemo(
     () => ({ ...configuration, customers }),
     [configuration, customers],
@@ -336,6 +363,33 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
     setPending(false);
     setStep(1);
   };
+  const saveAndContinueLater = async () => {
+    if (pending) return;
+
+    setPending(true);
+    setFormError(null);
+
+    const result = await saveGuidedIntakeDraftAction({
+      currentStep: step,
+      customerMode,
+      draft,
+      newCustomer: {
+        ...customerValues,
+        firstName: customerFirstName,
+        lastName: customerLastName,
+      },
+    });
+
+    setPending(false);
+
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+
+    router.push("/cases?message=Intake%20draft%20saved");
+  };
+
   const answerLabel = (question: GuidedIntakeQuestion) => {
     const value = draft.answers[question.id];
     if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -627,7 +681,7 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
             {fieldError(errors, "managerUserId")}
           </label>
           <fieldset className="full intake-staff-fieldset">
-            <legend>Assigned Staff <small>Optional · multiple allowed</small></legend>
+            <legend>Assigned Staff <b aria-label="required"> *</b> <small>At least one required · multiple allowed</small></legend>
             <div className="check-list">
               {configuration.staff.map((member) => (
                 <label key={member.id}>
@@ -773,6 +827,14 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
       {formError ? <div className="form-alert" role="alert">{formError}</div> : null}
       {content}
       <div className="form-actions intake-actions">
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={saveAndContinueLater}
+          disabled={pending}
+        >
+          {pending ? "Saving…" : "Save and Continue Later"}
+        </button>
         {step === 0 ? <Link href="/cases">Cancel</Link> : (
           <button type="button" className="secondary-button" onClick={() => { setStep((current) => current - 1); setErrors({}); setFormError(null); }} disabled={pending}>Back</button>
         )}

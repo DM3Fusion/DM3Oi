@@ -637,6 +637,109 @@ export type Database = {
           },
         ]
       }
+      guided_case_intake_drafts: {
+        Row: {
+          answers: Json
+          case_title_id: string | null
+          case_type_id: string | null
+          created_at: string
+          created_by_user_id: string
+          current_step: number
+          customer_id: string | null
+          customer_mode: string
+          description: string
+          id: string
+          manager_user_id: string | null
+          new_customer: Json
+          organization_id: string
+          priority: Database["public"]["Enums"]["priority_level"]
+          staff_user_ids: string[]
+          submission_key: string
+          updated_at: string
+        }
+        Insert: {
+          answers?: Json
+          case_title_id?: string | null
+          case_type_id?: string | null
+          created_at?: string
+          created_by_user_id: string
+          current_step?: number
+          customer_id?: string | null
+          customer_mode?: string
+          description?: string
+          id?: string
+          manager_user_id?: string | null
+          new_customer?: Json
+          organization_id: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          staff_user_ids?: string[]
+          submission_key: string
+          updated_at?: string
+        }
+        Update: {
+          answers?: Json
+          case_title_id?: string | null
+          case_type_id?: string | null
+          created_at?: string
+          created_by_user_id?: string
+          current_step?: number
+          customer_id?: string | null
+          customer_mode?: string
+          description?: string
+          id?: string
+          manager_user_id?: string | null
+          new_customer?: Json
+          organization_id?: string
+          priority?: Database["public"]["Enums"]["priority_level"]
+          staff_user_ids?: string[]
+          submission_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guided_case_intake_drafts_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_customer_id_fkey"
+            columns: ["organization_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_case_title_id_fkey"
+            columns: ["organization_id", "case_title_id"]
+            isOneToOne: false
+            referencedRelation: "organization_case_titles"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_case_type_id_fkey"
+            columns: ["organization_id", "case_type_id"]
+            isOneToOne: false
+            referencedRelation: "organization_case_types"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_manager_user_id_fkey"
+            columns: ["organization_id", "manager_user_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "user_id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           archived_at: string | null
