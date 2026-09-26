@@ -7423,3 +7423,218 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .customer-data-workspace{display:grid;gap:1rem}.customer-data-workspace label{display:grid;gap:.4rem;color:var(--ink);font-size:.78rem;font-weight:700}.customer-data-workspace input,.customer-data-workspace select,.customer-data-workspace textarea{width:100%;border:1px solid var(--line);border-radius:7px;background:#fff;padding:.65rem .75rem;color:var(--ink)}.customer-data-workspace button{justify-self:start}.customer-data-workspace .customer-danger-zone .danger-button{border:1px solid #991b1b;border-radius:7px;background:#991b1b;padding:.65rem 1rem;color:#fff;font-weight:800;cursor:pointer}.customer-data-workspace .danger-button:disabled{cursor:not-allowed;opacity:.5}.customer-data-step{display:grid;gap:.9rem}.customer-data-step>label{max-width:42rem}.step-kicker{color:var(--accent);font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em}.customer-data-identity{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:var(--surface-soft)}.customer-data-identity span{color:var(--muted)}.customer-import-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:.75rem}.customer-import-summary .panel{display:grid;gap:.25rem;padding:1rem}.customer-import-summary span{color:var(--muted);font-size:.78rem;font-weight:700}.customer-import-summary strong{font-size:1.5rem}.import-outcome{display:inline-flex;border-radius:999px;padding:.2rem .55rem;background:#e2e8f0;font-size:.7rem;font-weight:800}.import-outcome.new{background:#dcfce7;color:#166534}.import-outcome.exact{background:#e0f2fe;color:#075985}.import-outcome.duplicate{background:#fef3c7;color:#92400e}.import-outcome.invalid{background:#fee2e2;color:#991b1b}.duplicate-pair-list{display:grid;gap:.65rem}.duplicate-pair{display:grid;gap:.2rem;width:100%;padding:.85rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);text-align:left;cursor:pointer}.duplicate-pair:hover,.duplicate-pair.selected{border-color:var(--accent);background:var(--surface-soft)}.duplicate-pair span,.duplicate-pair small{color:var(--muted)}.duplicate-comparison{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.duplicate-comparison>.selected{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}.merge-field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem;margin-bottom:1rem}
 
 @media(max-width:800px){.customer-import-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.duplicate-comparison,.merge-field-grid{grid-template-columns:1fr}.customer-data-identity{align-items:flex-start;flex-direction:column}}
+
+/* Customer Import workspace polish */
+.customer-data-workspace {
+  gap: 1.25rem;
+}
+
+.customer-import-step {
+  gap: 1rem;
+  padding: 1.35rem 1.5rem;
+  border-radius: 14px;
+}
+
+.customer-import-step .section-head {
+  margin-bottom: 0.15rem;
+}
+
+.customer-import-step .section-head h2 {
+  margin-top: 0.18rem;
+  margin-bottom: 0.25rem;
+  font-size: clamp(1.65rem, 2vw, 2rem);
+  line-height: 1.08;
+}
+
+.customer-import-step .section-head p {
+  margin: 0;
+  max-width: 58rem;
+  line-height: 1.45;
+}
+
+.customer-import-step .step-kicker {
+  display: block;
+  margin-bottom: 0.15rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.11em;
+}
+
+.customer-import-step > label {
+  max-width: 44rem;
+}
+
+.customer-import-step > label > span {
+  font-size: 0.76rem;
+  letter-spacing: 0.01em;
+}
+
+.customer-import-step select,
+.customer-import-confirm-input {
+  min-height: 2.8rem;
+  padding: 0.58rem 0.75rem;
+  font-size: 0.95rem;
+}
+
+.customer-data-identity {
+  max-width: 44rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+}
+
+.customer-data-identity strong {
+  font-size: 0.95rem;
+}
+
+.customer-data-identity span {
+  font-size: 0.82rem;
+}
+
+.customer-import-file {
+  max-width: 44rem;
+  min-height: auto !important;
+  padding: 0.55rem 0.65rem !important;
+}
+
+.customer-import-file-name {
+  margin: 0;
+  max-width: 44rem;
+  font-size: 0.82rem;
+}
+
+.customer-import-file-name strong {
+  color: var(--ink);
+}
+
+.customer-import-confirm {
+  max-width: none;
+}
+
+.customer-import-confirm-instruction {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.customer-import-confirm-instruction strong {
+  color: var(--ink);
+}
+
+.customer-import-confirm-input {
+  max-width: 52rem;
+}
+
+.customer-import-confirm .primary-button {
+  min-height: 2.7rem;
+  padding: 0.58rem 0.95rem;
+  font-size: 0.9rem;
+}
+
+.customer-import-confirm .primary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.customer-import-summary {
+  gap: 0.8rem;
+}
+
+.customer-import-summary .panel {
+  min-height: 6.25rem;
+  align-content: center;
+  padding: 0.9rem 1rem;
+  border-radius: 12px;
+}
+
+.customer-import-summary span {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+
+.customer-import-summary strong {
+  margin-top: 0.1rem;
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.customer-import-result {
+  padding: 1.35rem;
+}
+
+.customer-import-success {
+  margin-bottom: 1rem;
+  padding: 0.75rem 0.9rem;
+  font-weight: 800;
+}
+
+.customer-import-result-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 0 0 1rem;
+}
+
+.customer-import-result-summary > div {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 5.25rem;
+  align-content: center;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface-soft);
+}
+
+.customer-import-result-summary dt {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.customer-import-result-summary dd {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.customer-import-result .table-scroll {
+  margin-top: 0.5rem;
+}
+
+.customer-import-result table th,
+.customer-import-result table td {
+  padding-top: 0.7rem;
+  padding-bottom: 0.7rem;
+}
+
+.import-outcome.created {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.customer-import-number {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+@media (max-width: 800px) {
+  .customer-import-step {
+    padding: 1rem;
+  }
+
+  .customer-import-result-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customer-import-confirm-input,
+  .customer-import-file,
+  .customer-data-identity,
+  .customer-import-step > label {
+    max-width: none;
+  }
+}
