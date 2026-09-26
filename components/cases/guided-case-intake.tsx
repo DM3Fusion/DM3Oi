@@ -49,6 +49,17 @@ const fieldError = (errors: GuidedIntakeFieldErrors, key: string) =>
     </small>
   ) : null;
 
+const formatCustomerPhone = (value: string) => {
+  const digits = value.replace(/[^0-9]/g, "").slice(0, 10);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6)
+    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
+
 function QuestionField({
   question,
   value,
@@ -220,7 +231,7 @@ export function GuidedCaseIntake({
     type: initialNewCustomer?.type ?? "INDIVIDUAL",
     name: initialNewCustomer?.name ?? "",
     email: initialNewCustomer?.email ?? "",
-    phone: initialNewCustomer?.phone ?? "",
+    phone: formatCustomerPhone(initialNewCustomer?.phone ?? ""),
     notes: initialNewCustomer?.notes ?? "",
   });
   const [customerErrors, setCustomerErrors] = useState<Record<string, string>>(
@@ -575,7 +586,7 @@ export function GuidedCaseIntake({
                   type="tel"
                   value={customerValues.phone}
                   onChange={(event) => {
-                    const value = event.target.value;
+                    const value = formatCustomerPhone(event.target.value);
                     setCustomerValues((current) => ({
                       ...current,
                       phone: value,
