@@ -867,17 +867,34 @@ export function GuidedCaseIntake({
       {formError ? <div className="form-alert" role="alert">{formError}</div> : null}
       {content}
       <div className="form-actions intake-actions">
-        <button
-          type="button"
-          className="secondary-button"
-          onClick={saveAndContinueLater}
-          disabled={pending}
-        >
-          {pending ? "Saving…" : "Save and Continue Later"}
-        </button>
-        {step === 0 ? <Link href="/cases">Cancel</Link> : (
-          <button type="button" className="secondary-button" onClick={() => { setStep((current) => current - 1); setErrors({}); setFormError(null); }} disabled={pending}>Back</button>
-        )}
+        <div className="intake-actions-left">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={saveAndContinueLater}
+            disabled={pending}
+          >
+            {pending ? "Saving…" : "Save and Continue Later"}
+          </button>
+          {step === 0 ? (
+            <Link className="intake-cancel-button" href="/cases">
+              Cancel
+            </Link>
+          ) : (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={() => {
+                setStep((current) => current - 1);
+                setErrors({});
+                setFormError(null);
+              }}
+              disabled={pending}
+            >
+              Back
+            </button>
+          )}
+        </div>
         {step < guidedCaseIntakeSteps.length - 1 ? (
           <button
             type="button"
