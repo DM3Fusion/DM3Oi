@@ -419,7 +419,7 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
                 {fieldError(customerErrors, "type")}
               </label>
               {customerValues.type === "INDIVIDUAL" ? (
-                <>
+                <div className="full intake-customer-name-row">
                   <label>
                     <span>First Name</span>
                     <input
@@ -455,7 +455,7 @@ export function GuidedCaseIntake({ configuration, submissionKey }: Props) {
                     />
                     {fieldError(customerErrors, "lastName")}
                   </label>
-                </>
+                </div>
               ) : (
                 <label>
                   <span>Business Name</span>
