@@ -13,8 +13,14 @@ const configurationCards = [
   },
   {
     title: "Case Configuration",
-    description: "Configure case types and lifecycle behavior.",
+    description: "Configure the kinds of cases this organization manages.",
     href: "/settings/case-configuration",
+    permission: "VIEW_ADMINISTRATION",
+  },
+  {
+    title: "Case Lifecycle",
+    description: "Configure case status presentation and workflow behavior.",
+    href: "/settings/case-lifecycle",
     permission: "VIEW_ADMINISTRATION",
   },
   {

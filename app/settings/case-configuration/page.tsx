@@ -11,11 +11,6 @@ const configurationCards = [
     description: "Define the kinds of cases this organization manages.",
     href: "/settings/case-configuration/case-types",
   },
-  {
-    title: "Case Lifecycle",
-    description: "Configure case status presentation and workflow behavior.",
-    href: "/settings/case-configuration/lifecycle",
-  },
 ] as const;
 
 export default async function Page() {
@@ -34,7 +29,7 @@ export default async function Page() {
       <PageHeader
         eyebrow="Settings"
         title="Case Configuration"
-        description="Configure organization-wide case structure and workflow."
+        description="Configure the kinds of cases this organization manages."
       />
 
       <div className="admin-card-grid">

@@ -170,6 +170,11 @@ export function AppShell({
                 icon: "cases" as const,
               },
               {
+                href: "/settings/case-lifecycle",
+                label: "Case Lifecycle",
+                icon: "status" as const,
+              },
+              {
                 href: "/settings/customer-portal",
                 label: "Customer Portal",
                 icon: "customers" as const,
