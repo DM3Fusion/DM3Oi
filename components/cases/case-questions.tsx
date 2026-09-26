@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui";
 import { saveCaseResponseAction } from "@/lib/data/question-actions";
 import type { EvaluatedCaseQuestion } from "@/lib/data/question-repository";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-type Option = { label: string; value: string };
+type Option = { id?: string; label: string; value: string };
 const scalar = (value: unknown) =>
   typeof value === "string" ||
   typeof value === "number" ||
@@ -114,7 +114,7 @@ function ResponseInput({
           Select…
         </option>
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.id ?? o.value} value={o.id ?? o.value}>
             {o.label}
           </option>
         ))}
@@ -124,17 +124,18 @@ function ResponseInput({
     const selected = Array.isArray(value) ? value : [];
     return (
       <div className="response-options">
-        {options.map((o) => (
-          <label key={o.value}>
+        {options.map((o) => {
+          const stableValue = o.id ?? o.value;
+          return <label key={stableValue}>
             <input
               type="checkbox"
               name="response"
-              value={o.value}
-              defaultChecked={selected.includes(o.value)}
+              value={stableValue}
+              defaultChecked={selected.includes(stableValue)}
             />
             {o.label}
-          </label>
-        ))}
+          </label>;
+        })}
       </div>
     );
   }

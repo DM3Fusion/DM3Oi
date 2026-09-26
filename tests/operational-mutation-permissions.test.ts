@@ -32,7 +32,17 @@ test("SUPER_ADMIN needs active organization context and Customer Portal has no i
 
 test("case task and customer actions enforce centralized capabilities before writes",()=>{
  const actions=source("lib/data/case-actions.ts");
- for(const capability of ["CREATE_CASE","WORK_CASES","ASSIGN_CASES","MANAGE_TASKS","WORK_TASKS","CREATE_CUSTOMER"])assert.match(actions,new RegExp(`requirePermission\\("${capability}"\\)`));
+ for(const capability of ["WORK_CASES","ASSIGN_CASES","MANAGE_TASKS","WORK_TASKS"])
+  assert.ok(actions.includes(`requirePermission("${capability}")`), `${capability} permission guard`);
+
+ const intake=source("lib/data/guided-case-intake.ts");
+ assert.match(intake,/hasPermission\(access, "CREATE_CASE"\)/);
+ assert.match(intake,/activeOrganization/);
+
+ const customerCreation=source("lib/data/customer-creation.ts");
+ assert.match(customerCreation,/requirePermission\("CREATE_CUSTOMER"\)/);
+ assert.match(customerCreation,/validateCustomerCreation\(values\)/);
+
  assert.match(source("lib/data/customer-actions.ts"),/requirePermission\("EDIT_CUSTOMER"\)/);
  const questions=source("lib/data/question-actions.ts");
  assert.match(questions,/requireInternalContext\(\)[\s\S]*hasPermission\(access,"MANAGE_QUESTIONS"\)/);

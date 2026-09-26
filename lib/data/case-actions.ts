@@ -4,13 +4,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext, requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
-import { synchronizeCaseRuleTasks } from "@/lib/data/rule-task-synchronization";
-import { customerEmailPattern, normalizeCustomerPhone } from "@/lib/customer-validation";
-import type { Database, Json } from "@/types/database.generated";
-type Priority = Database["public"]["Enums"]["priority_level"];
+import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creation";
+import type { Database } from "@/types/database.generated";
 type CaseStatus = Database["public"]["Enums"]["case_status"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];
-type CustomerType = Database["public"]["Enums"]["customer_type"];
 const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim();
 const optional = (value: string) => value || undefined;
 const nullableUuid = (value: string) => (value || null) as unknown as string;
@@ -69,52 +66,6 @@ export async function reassignCaseCustomerAction(input: {
   return { ok: true };
 }
 
-export async function createCaseAction(data: FormData) {
-  const context = await requirePermission("CREATE_CASE");
-  const supabase = await createClient();
-  const initialTasks = text(data, "initialTasks")
-    .split("\n")
-    .map((title) => title.trim())
-    .filter(Boolean)
-    .map((title, index) => ({
-      title,
-      required: true,
-      sequence: index + 1,
-    })) as Json;
-  const { data: created, error } = await supabase.rpc("create_case_workflow", {
-    target_organization_id: context.activeOrganization.id,
-    target_customer_id: text(data, "customerId"),
-    target_title: text(data, "title"),
-    target_description: text(data, "description"),
-    target_case_type: text(data, "caseType"),
-    target_priority: text(data, "priority") as Priority,
-    target_due_at: endOfDay(text(data, "dueAt")),
-    target_manager_user_id: optional(text(data, "managerUserId")),
-    target_staff_user_ids: data.getAll("staffUserIds").map(String),
-    target_initial_tasks: initialTasks,
-  });
-  if (error || !created) {
-    console.error("Create case failed", {
-      code: error?.code,
-      message: error?.message,
-    });
-    fail("/cases/new", friendly(error?.message ?? ""));
-  }
-  const createdCase = created!;
-  try {
-    await synchronizeCaseRuleTasks({
-      organizationId: createdCase.organization_id,
-      caseId: createdCase.id,
-      actorUserId: context.user.id,
-    });
-  } catch (syncError) {
-    console.error("Rule-generated Task synchronization failed after Case creation", syncError);
-    refreshCase(createdCase.id);
-    fail(`/cases/${createdCase.id}`, "The Case was created, but Rule-generated Tasks could not be synchronized. Retry by saving a Case response.");
-  }
-  refreshCase(createdCase.id);
-  redirect(`/cases/${createdCase.id}?message=${encodeURIComponent(`Case ${createdCase.case_number} created.`)}`);
-}
 export async function transitionCaseStatusAction(data: FormData) {
   const id = text(data, "caseId");
   await requirePermission("WORK_CASES");
@@ -244,7 +195,6 @@ export async function moveTaskAction(data: FormData) {
   redirect(`/cases/${caseId}`);
 }
 export async function createCustomerAction(data: FormData) {
-  const context = await requirePermission("CREATE_CUSTOMER");
   const values = {
     type: String(data.get("type") ?? ""),
     name: String(data.get("name") ?? ""),
@@ -252,36 +202,9 @@ export async function createCustomerAction(data: FormData) {
     phone: String(data.get("phone") ?? ""),
     notes: String(data.get("notes") ?? ""),
   };
-  const type = values.type;
-  const email = values.email.trim().toLowerCase();
-  const phone = normalizeCustomerPhone(values.phone);
-  const invalid = (error: string, field?: string) => ({
-    ok: false as const,
-    error,
-    fieldErrors: field ? { [field]: error } : {},
-    values,
-  });
-  if (type !== "INDIVIDUAL" && type !== "BUSINESS") return invalid("Select a valid customer type.", "type");
-  if (!customerEmailPattern.test(email)) return invalid("Enter a valid email address.", "email");
-  if (!phone) return invalid("Enter a valid U.S. phone number.", "phone");
-  if (!values.name.trim()) return invalid("Name is required.", "name");
-  const supabase = await createClient();
-  const { data: created, error } = await supabase.rpc("create_customer_record", {
-    target_organization_id: context.activeOrganization.id,
-    target_type: type as CustomerType,
-    target_name: values.name.trim(),
-    target_email: email,
-    target_phone: phone!,
-    target_notes: optional(values.notes.trim()),
-  });
-  if (error || !created) {
-    console.error("Create customer failed", {
-      code: error?.code,
-      message: error?.message,
-    });
-    return invalid(friendly(error?.message ?? ""));
-  }
-  const customer = created!;
-  revalidatePath("/customers");
-  redirect(`/customers?message=${encodeURIComponent(`Customer ${customer.customer_number} created.`)}`);
+  const result = await createCustomerForCurrentOrganization(values);
+  if (!result.ok) return result;
+  redirect(
+    `/customers?message=${encodeURIComponent(`Customer ${result.customer.customerNumber} created.`)}`,
+  );
 }

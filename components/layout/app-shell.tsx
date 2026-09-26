@@ -126,15 +126,6 @@ export function AppShell({
       void supabase.removeChannel(trialRequestChannel);
     };
   }, [access?.isSuperAdmin, newTrialRequestCount]);
-  useEffect(() => {
-    if (
-      pathname.startsWith("/settings") ||
-      pathname.startsWith("/administration")
-    ) {
-      setSettingsOpen(true);
-    }
-  }, [pathname]);
-
   const phoneLayout = usePhoneLayout(closeDrawer);
   if (isPublic(pathname, access))
     return <main className="public-main">{children}</main>;
@@ -305,7 +296,10 @@ export function AppShell({
                     >
                       <Link
                         href="/settings/general"
-                        onClick={() => setOpen(false)}
+                        onClick={() => {
+                          setOpen(false);
+                          setSettingsOpen(true);
+                        }}
                         className="settings-nav-parent-link"
                       >
                         <ApplicationIcon name={icon} />

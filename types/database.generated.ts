@@ -437,7 +437,9 @@ export type Database = {
       cases: {
         Row: {
           case_number: string
+          case_title_id: string | null
           case_type: string
+          case_type_id: string | null
           closed_at: string | null
           completed_at: string | null
           created_at: string
@@ -446,6 +448,7 @@ export type Database = {
           description: string
           due_at: string | null
           id: string
+          intake_submission_key: string | null
           manager_user_id: string | null
           opened_at: string
           organization_id: string
@@ -456,7 +459,9 @@ export type Database = {
         }
         Insert: {
           case_number: string
+          case_title_id?: string | null
           case_type: string
+          case_type_id?: string | null
           closed_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -465,6 +470,7 @@ export type Database = {
           description?: string
           due_at?: string | null
           id?: string
+          intake_submission_key?: string | null
           manager_user_id?: string | null
           opened_at?: string
           organization_id: string
@@ -475,7 +481,9 @@ export type Database = {
         }
         Update: {
           case_number?: string
+          case_title_id?: string | null
           case_type?: string
+          case_type_id?: string | null
           closed_at?: string | null
           completed_at?: string | null
           created_at?: string
@@ -484,6 +492,7 @@ export type Database = {
           description?: string
           due_at?: string | null
           id?: string
+          intake_submission_key?: string | null
           manager_user_id?: string | null
           opened_at?: string
           organization_id?: string
@@ -757,6 +766,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      organization_case_titles: {
+        Row: {
+          created_at: string
+          created_by_user_id: string
+          id: string
+          is_active: boolean
+          label: string
+          organization_id: string
+          sort_order: number
+          updated_at: string
+          updated_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by_user_id: string
+          id?: string
+          is_active?: boolean
+          label: string
+          organization_id: string
+          sort_order?: number
+          updated_at?: string
+          updated_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by_user_id?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          organization_id?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by_user_id?: string
+        }
+        Relationships: []
       }
       organization_customer_annual_number_counters: {
         Row: {
@@ -2117,7 +2162,9 @@ export type Database = {
       organization_cases: {
         Row: {
           case_number: string
+          case_title_id: string | null
           case_type: string
+          case_type_id: string | null
           closed_at: string | null
           completed_at: string | null
           created_at: string
@@ -2599,6 +2646,21 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_guided_case_intake: {
+        Args: {
+          target_answers?: Json
+          target_case_title_id: string
+          target_case_type_id: string
+          target_customer_id: string
+          target_description: string
+          target_manager_user_id?: string
+          target_organization_id: string
+          target_priority: Database["public"]["Enums"]["priority_level"]
+          target_staff_user_ids?: string[]
+          target_submission_key: string
+        }
+        Returns: Database["public"]["Tables"]["cases"]["Row"]
       }
       reassign_case_customer: {
         Args: { target_case_id: string; target_customer_id: string }

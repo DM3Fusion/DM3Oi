@@ -108,5 +108,90 @@ export async function saveCustomerPortalSettings(form: FormData) {
   revalidatePath("/administration/customer-portal");
   redirect("/administration/customer-portal?message=Changes%20Saved");
 }
-export async function saveCaseType(form:FormData){const a=await getAccessContext();const id=a?.activeOrganization?.id;if(!id||!ok(a))redirect('/administration/case-types?error=Not%20authorized');const name=String(form.get('name')||'').trim();const order=Number(form.get('sortOrder')||0);if(!name||name.length>120||!Number.isInteger(order))redirect('/administration/case-types?error=Enter%20a%20valid%20name%20and%20order');const db=await createClient();const payload={organization_id:id,name,description:String(form.get('description')||'').trim()||null,sort_order:order,is_active:form.get('isActive')!=='false',updated_at:new Date().toISOString()};const q=String(form.get('id')||'');const result=q?await (db as any).from('organization_case_types').update(payload).eq('id',q).eq('organization_id',id):await (db as any).from('organization_case_types').insert(payload);if(result.error)redirect('/administration/case-types?error=Case%20type%20name%20must%20be%20unique');revalidatePath('/administration/case-types');redirect('/administration/case-types?message=Changes%20Saved');}
+
+const caseConfigurationPath = "/settings/case-configuration";
+
+export async function saveCaseTitle(form: FormData) {
+  const access = await getAccessContext();
+  const organizationId = access?.activeOrganization?.id;
+  if (!organizationId || !ok(access))
+    redirect(`${caseConfigurationPath}?error=Not%20authorized`);
+  const label = String(form.get("label") ?? "").trim();
+  const sortOrder = Number(form.get("sortOrder") ?? 0);
+  if (!label || label.length > 180 || !Number.isInteger(sortOrder) || sortOrder < 0)
+    redirect(
+      `${caseConfigurationPath}?error=Enter%20a%20valid%20Case%20Title%20and%20order`,
+    );
+  const supabase = await createClient();
+  const payload = {
+    organization_id: organizationId,
+    label,
+    sort_order: sortOrder,
+    is_active: form.get("isActive") !== "false",
+    created_by_user_id: access.user.id,
+    updated_by_user_id: access.user.id,
+  };
+  const titleId = String(form.get("id") ?? "");
+  const result = titleId
+    ? await supabase
+        .from("organization_case_titles")
+        .update(payload)
+        .eq("id", titleId)
+        .eq("organization_id", organizationId)
+    : await supabase.from("organization_case_titles").insert(payload);
+  if (result.error) {
+    console.error("Case Title configuration save failed", {
+      organizationId,
+      code: result.error.code,
+      message: result.error.message,
+    });
+    redirect(
+      `${caseConfigurationPath}?error=Active%20Case%20Title%20labels%20must%20be%20unique`,
+    );
+  }
+  revalidatePath(caseConfigurationPath);
+  redirect(`${caseConfigurationPath}?message=Case%20Title%20saved`);
+}
+
+export async function saveCaseType(form: FormData) {
+  const access = await getAccessContext();
+  const organizationId = access?.activeOrganization?.id;
+  if (!organizationId || !ok(access))
+    redirect(`${caseConfigurationPath}?error=Not%20authorized`);
+  const name = String(form.get("name") ?? "").trim();
+  const sortOrder = Number(form.get("sortOrder") ?? 0);
+  if (!name || name.length > 120 || !Number.isInteger(sortOrder) || sortOrder < 0)
+    redirect(
+      `${caseConfigurationPath}?error=Enter%20a%20valid%20Case%20Type%20and%20order`,
+    );
+  const supabase = await createClient();
+  const payload = {
+    organization_id: organizationId,
+    name,
+    description: String(form.get("description") ?? "").trim() || null,
+    sort_order: sortOrder,
+    is_active: form.get("isActive") !== "false",
+    updated_at: new Date().toISOString(),
+  };
+  const caseTypeId = String(form.get("id") ?? "");
+  const result = caseTypeId
+    ? await supabase
+        .from("organization_case_types")
+        .update(payload)
+        .eq("id", caseTypeId)
+        .eq("organization_id", organizationId)
+    : await supabase.from("organization_case_types").insert(payload);
+  if (result.error) {
+    console.error("Case Type configuration save failed", {
+      organizationId,
+      code: result.error.code,
+      message: result.error.message,
+    });
+    redirect(
+      `${caseConfigurationPath}?error=Active%20Case%20Type%20names%20must%20be%20unique`,
+    );
+  }
+  revalidatePath(caseConfigurationPath);
+  redirect(`${caseConfigurationPath}?message=Case%20Type%20saved`);
+}
 export async function saveLifecycleStatus(form:FormData){const a=await getAccessContext();const id=a?.activeOrganization?.id;if(!id||!ok(a))redirect('/administration/case-lifecycle?error=Not%20authorized');const status=String(form.get('status')||'');const db=await createClient();const result=await (db as any).from('organization_lifecycle_statuses').upsert({organization_id:id,status,display_label:String(form.get('displayLabel')||status),description:String(form.get('description')||'').trim()||null,is_active:form.get('isActive')!=='false',sort_order:Number(form.get('sortOrder')||0),updated_by:a.user.id});if(result.error)redirect('/administration/case-lifecycle?error=Unable%20to%20save%20status');revalidatePath('/administration/case-lifecycle');redirect('/administration/case-lifecycle?message=Changes%20Saved');}

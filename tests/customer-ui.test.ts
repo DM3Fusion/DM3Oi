@@ -13,7 +13,8 @@ test("customer phone display formatting is safe and presentation-only", () => {
 test("customer creation exposes only valid types and required contact fields", () => {
   const page = readFileSync("app/customers/new/page.tsx", "utf8");
   const form = readFileSync("components/customer-form.tsx", "utf8");
-  const action = readFileSync("lib/data/case-actions.ts", "utf8");
+  const validation = readFileSync("lib/customer-validation.ts", "utf8");
+  const creation = readFileSync("lib/data/customer-creation.ts", "utf8");
   assert.match(form, /INDIVIDUAL/);
   assert.match(form, /BUSINESS/);
   assert.doesNotMatch(form, /ORGANIZATION/);
@@ -21,12 +22,14 @@ test("customer creation exposes only valid types and required contact fields", (
   assert.match(form, /field\("email","Email","email"\)/);
   assert.match(form, /field\("phone","Phone","tel"\)/);
   assert.match(page, /CustomerForm/);
-  assert.match(action, /type !== "INDIVIDUAL" && type !== "BUSINESS"/);
-  assert.match(action, /customerEmailPattern/);
-  assert.match(action, /normalizeCustomerPhone/);
-  assert.match(action, /supabase\.rpc\(\s*"create_customer_record"/);
-  assert.doesNotMatch(action, /target_customer_number/);
-  assert.doesNotMatch(action, /target_created_by_user_id/);
+  assert.match(validation, /values\.type !== "INDIVIDUAL" && values\.type !== "BUSINESS"/);
+  assert.match(validation, /customerEmailPattern/);
+  assert.match(validation, /normalizeCustomerPhone/);
+  assert.match(creation, /validateCustomerCreation\(values\)/);
+  assert.match(creation, /requirePermission\("CREATE_CUSTOMER"\)/);
+  assert.match(creation, /supabase\.rpc\(\s*"create_customer_record"/);
+  assert.doesNotMatch(creation, /target_customer_number/);
+  assert.doesNotMatch(creation, /target_created_by_user_id/);
 });
 
 test("customer register uses full-row navigation and detail preserves historical identity", () => {

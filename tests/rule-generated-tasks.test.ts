@@ -40,13 +40,15 @@ test("trusted synchronization reads templates from the database and is service-r
 test("authoritative response and Rule mutations synchronize Tasks while Case rendering remains read-only", () => {
   const responseActions = source("lib/data/question-actions.ts");
   const ruleActions = source("lib/data/rule-actions.ts");
-  const caseActions = source("lib/data/case-actions.ts");
+  const guidedActions = source("lib/data/guided-case-intake-actions.ts");
+  const guidedMigration = source("supabase/migrations/20260925190000_dm3oi_guided_case_intake.sql");
   const repository = source("lib/data/question-repository.ts");
   const page = source("app/cases/[caseId]/page.tsx");
   assert.match(responseActions, /save_case_question_response[\s\S]*synchronizeCaseRuleTasks/);
   assert.match(responseActions, /organizationId: saved\.organization_id[\s\S]*caseId: saved\.case_id/);
   assert.match(ruleActions, /save_rule_definition[\s\S]*synchronizeOrganizationRuleTasks/);
-  assert.match(caseActions, /create_case_workflow[\s\S]*organizationId: createdCase\.organization_id[\s\S]*caseId: createdCase\.id/);
+  assert.match(guidedActions, /create_guided_case_intake/);
+  assert.match(guidedMigration, /action\.action_type='CREATE_TASK'[\s\S]*source_rule_id,source_rule_action_id/);
   assert.doesNotMatch(repository + page, /synchronizeCaseRuleTasks|synchronizeOrganizationRuleTasks|synchronize_case_rule_tasks/);
 });
 
