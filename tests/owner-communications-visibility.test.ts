@@ -160,3 +160,14 @@ test("organization Owners retain observation without receiving communication del
     /canDeleteCommunications \? \(/,
   );
 });
+
+
+test("SUPER_ADMIN communication deletion uses an in-application confirmation instead of browser dialogs", () => {
+  const inbox = source("components/communications-inbox.tsx");
+
+  assert.doesNotMatch(inbox, /window\.confirm/);
+  assert.match(inbox, /DeleteCommunicationControl/);
+  assert.match(inbox, /Confirm communication deletion/);
+  assert.match(inbox, /Delete permanently/);
+  assert.match(inbox, /setConfirming\(false\)/);
+});

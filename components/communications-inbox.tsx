@@ -65,6 +65,80 @@ function openLabel(item: Notification) {
   return "Open";
 }
 
+function DeleteCommunicationControl({
+  item,
+  compact = false,
+}: {
+  item: Notification;
+  compact?: boolean;
+}) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (!confirming) {
+    return (
+      <button
+        type="button"
+        className="secondary-button communications-delete-button"
+        onClick={() => setConfirming(true)}
+      >
+        {compact ? "Delete" : "Delete communication"}
+      </button>
+    );
+  }
+
+  return (
+    <div
+      className={`communications-delete-confirm${compact ? " compact" : ""}`}
+      role="group"
+      aria-label="Confirm communication deletion"
+    >
+      <p>
+        {item.communication_kind === "EMAIL_DELIVERY"
+          ? "Remove this email record from DM3Oi Communications? This does not recall an email already delivered."
+          : "Permanently remove this notification from DM3Oi Communications?"}
+      </p>
+
+      <div className="communications-delete-confirm-actions">
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={() => setConfirming(false)}
+        >
+          Cancel
+        </button>
+
+        <form action={deleteCommunicationAction}>
+          <input
+            type="hidden"
+            name="organizationId"
+            value={item.organization_id}
+          />
+          <input
+            type="hidden"
+            name="recordKind"
+            value={item.communication_kind}
+          />
+          <input
+            type="hidden"
+            name="recordId"
+            value={
+              item.communication_kind === "EMAIL_DELIVERY"
+                ? item.source_entity_id
+                : item.id
+            }
+          />
+          <PendingSubmitButton
+            className="secondary-button communications-delete-button"
+            pendingLabel="Deleting…"
+          >
+            Delete permanently
+          </PendingSubmitButton>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function NotificationRow({
   item,
   timezone,
@@ -347,45 +421,7 @@ function NotificationPreview({
         ) : null}
 
         {canDeleteCommunications ? (
-          <form
-            action={deleteCommunicationAction}
-            onSubmit={(event) => {
-              if (
-                !window.confirm(
-                  item.communication_kind === "EMAIL_DELIVERY"
-                    ? "Permanently remove this email record from DM3Oi Communications? This does not recall an email already delivered."
-                    : "Permanently remove this notification from DM3Oi Communications?",
-                )
-              )
-                event.preventDefault();
-            }}
-          >
-            <input
-              type="hidden"
-              name="organizationId"
-              value={item.organization_id}
-            />
-            <input
-              type="hidden"
-              name="recordKind"
-              value={item.communication_kind}
-            />
-            <input
-              type="hidden"
-              name="recordId"
-              value={
-                item.communication_kind === "EMAIL_DELIVERY"
-                  ? item.source_entity_id
-                  : item.id
-              }
-            />
-            <PendingSubmitButton
-              className="secondary-button communications-delete-button"
-              pendingLabel="Deleting…"
-            >
-              Delete communication
-            </PendingSubmitButton>
-          </form>
+          <DeleteCommunicationControl item={item} />
         ) : null}
       </div>
     </article>
@@ -454,46 +490,7 @@ function MobileNotification({
       ) : null}
 
       {canDeleteCommunications ? (
-        <form
-          action={deleteCommunicationAction}
-          className="notification-state-form"
-          onSubmit={(event) => {
-            if (
-              !window.confirm(
-                item.communication_kind === "EMAIL_DELIVERY"
-                  ? "Permanently remove this email record from DM3Oi Communications? This does not recall an email already delivered."
-                  : "Permanently remove this notification from DM3Oi Communications?",
-              )
-            )
-              event.preventDefault();
-          }}
-        >
-          <input
-            type="hidden"
-            name="organizationId"
-            value={item.organization_id}
-          />
-          <input
-            type="hidden"
-            name="recordKind"
-            value={item.communication_kind}
-          />
-          <input
-            type="hidden"
-            name="recordId"
-            value={
-              item.communication_kind === "EMAIL_DELIVERY"
-                ? item.source_entity_id
-                : item.id
-            }
-          />
-          <PendingSubmitButton
-            className="communications-delete-button"
-            pendingLabel="Deleting…"
-          >
-            Delete
-          </PendingSubmitButton>
-        </form>
+        <DeleteCommunicationControl item={item} compact />
       ) : null}
     </article>
   );

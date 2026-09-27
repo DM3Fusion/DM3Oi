@@ -7777,3 +7777,33 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   cursor:not-allowed;
   opacity:.55;
 }
+
+
+.communications-delete-confirm{
+  display:grid;
+  gap:8px;
+  max-width:480px;
+  padding:10px 12px;
+  border:1px solid #fecaca;
+  border-radius:7px;
+  background:#fff7f7;
+}
+.communications-delete-confirm p{
+  margin:0;
+  color:#991b1b;
+  font-size:11px;
+  font-weight:650;
+  line-height:1.45;
+}
+.communications-delete-confirm-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.communications-delete-confirm-actions form{
+  margin:0;
+}
+.communications-delete-confirm.compact{
+  margin-top:8px;
+}
