@@ -60,6 +60,14 @@ test("historical Case Question snapshots are explicitly preserved", () => {
   );
   assert.match(
     migration,
+    /update public\.case_questions cq[\s\S]*set question_definition_id = null[\s\S]*cq\.organization_id = target_organization_id[\s\S]*cq\.question_definition_id = any\(target_question_ids\)/,
+  );
+  assert.match(
+    migration,
+    /detached_snapshot_count <> cardinality\(snapshot_ids\)/,
+  );
+  assert.match(
+    migration,
     /Historical Case Question snapshots were unexpectedly removed/,
   );
   assert.match(

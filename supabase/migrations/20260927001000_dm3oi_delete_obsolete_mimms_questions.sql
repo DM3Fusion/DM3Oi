@@ -31,6 +31,7 @@ declare
 
   snapshot_ids uuid[];
   target_count integer;
+  detached_snapshot_count integer;
   deleted_count integer;
   blocker_count integer;
 begin
@@ -131,6 +132,26 @@ begin
   from public.case_questions cq
   where cq.organization_id = target_organization_id
     and cq.question_definition_id = any(target_question_ids);
+
+  -- case_questions uses a composite FK:
+  -- (organization_id, question_definition_id) -> question_definitions.
+  -- ON DELETE SET NULL on that composite FK would attempt to null both
+  -- child columns, but organization_id is NOT NULL. Detach only the
+  -- definition pointer explicitly so the historical snapshot remains
+  -- tenant-scoped and fully preserved.
+  update public.case_questions cq
+  set question_definition_id = null
+  where cq.organization_id = target_organization_id
+    and cq.question_definition_id = any(target_question_ids);
+
+  get diagnostics detached_snapshot_count = row_count;
+
+  if detached_snapshot_count <> cardinality(snapshot_ids) then
+    raise exception
+      'Expected to detach % historical Case Question snapshots, detached %',
+      cardinality(snapshot_ids),
+      detached_snapshot_count;
+  end if;
 
   delete from public.question_definitions q
   where q.organization_id = target_organization_id
