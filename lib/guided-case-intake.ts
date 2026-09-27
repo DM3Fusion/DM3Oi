@@ -61,6 +61,11 @@ export type GuidedIntakeCustomer = {
   email?: string | null;
 };
 
+export type GuidedIntakeCustomerCaseYear = {
+  customerId: string;
+  taxYear: number;
+};
+
 export type GuidedIntakeOption = {
   id: string;
   questionId: string;
@@ -89,6 +94,7 @@ export type GuidedIntakeRuleAction = RuleEvaluationAction;
 export type GuidedIntakeConfiguration = {
   organizationId: string;
   customers: GuidedIntakeCustomer[];
+  customerCaseYears: GuidedIntakeCustomerCaseYear[];
   caseTitles: Array<{ id: string; label: string }>;
   caseTypes: Array<{ id: string; name: string }>;
   caseTitleTypeMappings?: Array<{

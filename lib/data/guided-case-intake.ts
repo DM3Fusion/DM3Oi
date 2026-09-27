@@ -54,6 +54,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   const admin = createAdminClient();
   const [
     customers,
+    customerCaseYears,
     caseTitles,
     caseTypes,
     caseTitleTypeMappings,
@@ -72,6 +73,11 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
       .order("name"),
+    admin
+      .from("cases")
+      .select("customer_id,tax_year")
+      .eq("organization_id", organizationId)
+      .not("tax_year", "is", null),
     supabase
       .from("organization_case_titles")
       .select("id,label")
@@ -141,6 +147,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   ]);
   const error =
     customers.error ??
+    customerCaseYears.error ??
     caseTitles.error ??
     caseTypes.error ??
     caseTitleTypeMappings.error ??
@@ -223,6 +230,11 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
               name: customer.name,
               email: customer.email,
             }]
+          : [],
+      ),
+      customerCaseYears: (customerCaseYears.data ?? []).flatMap((item) =>
+        item.customer_id && typeof item.tax_year === "number"
+          ? [{ customerId: item.customer_id, taxYear: item.tax_year }]
           : [],
       ),
       caseTitles: caseTitles.data ?? [],

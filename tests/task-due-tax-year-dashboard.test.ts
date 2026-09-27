@@ -160,6 +160,51 @@ test("Tax-Year Case Coverage exposes duplicate current-year Cases as an owner-vi
   assert.equal(result.customerKpis[0].tone, "red");
 });
 
+test("one Customer per tax year is enforced by Guided Intake and the database", () => {
+  const intake = source("components/cases/guided-case-intake.tsx");
+  const loader = source("lib/data/guided-case-intake.ts");
+  const action = source("lib/data/guided-case-intake-actions.ts");
+  const uniqueness = source(
+    "supabase/migrations/20260927150000_dm3oi_one_case_per_customer_tax_year.sql",
+  );
+
+  assert.match(loader, /from\("cases"\)[\s\S]*select\("customer_id,tax_year"\)/);
+  assert.match(intake, /availableCustomers[\s\S]*item\.taxYear === draft\.taxYear/);
+  assert.match(intake, /Select a Tax Year first/);
+  assert.match(
+    intake,
+    /This Customer already has a Case for the selected tax year/,
+  );
+  assert.match(
+    intake,
+    /\["Tax Year", draft\.taxYear \?\? "Not selected", 0\]/,
+  );
+  assert.match(
+    action,
+    /key === "customerId" \|\| key === "taxYear"\)\) return 0/,
+  );
+  assert.match(
+    action,
+    /Customer already has a Case for this tax year/,
+  );
+  assert.match(
+    uniqueness,
+    /create unique index cases_one_customer_per_tax_year[\s\S]*organization_id,customer_id,tax_year/,
+  );
+  assert.match(
+    uniqueness,
+    /historical duplicates exist[\s\S]*Resolve duplicates before applying this migration/,
+  );
+  assert.match(
+    uniqueness,
+    /create or replace function public\.create_case_workflow[\s\S]*Customer already has a Case for this tax year/,
+  );
+  assert.match(
+    uniqueness,
+    /create or replace function public\.create_guided_case_intake[\s\S]*intake_submission_key is distinct from target_submission_key[\s\S]*Customer already has a Case for this tax year/,
+  );
+});
+
 test("Case tax year is nullable for history but required at both creation RPC boundaries", () => {
   assert.match(migration, /add column tax_year integer/);
   assert.match(migration, /tax_year is null or tax_year between 1900 and 2200/);
@@ -201,6 +246,7 @@ test("required complete-option questions expose missing items and cannot be sati
   const configuration: GuidedIntakeConfiguration = {
     organizationId: "org",
     customers: [],
+    customerCaseYears: [],
     caseTitles: [],
     caseTypes: [],
     managers: [],

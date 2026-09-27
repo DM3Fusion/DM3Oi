@@ -214,7 +214,7 @@ export type CreateGuidedCaseResult =
 
 const firstInvalidStep = (fieldErrors: Record<string, string>) => {
   const keys = Object.keys(fieldErrors);
-  if (keys.some((key) => key === "customerId")) return 0;
+  if (keys.some((key) => key === "customerId" || key === "taxYear")) return 0;
   if (keys.some((key) => !key.startsWith("question."))) return 1;
   return 2;
 };
@@ -311,6 +311,22 @@ export async function createGuidedCaseAction(
       code: error?.code,
       message: error?.message,
     });
+    const duplicateCustomerTaxYear =
+      error?.message.includes("Customer already has a Case for this tax year") ||
+      (error?.code === "23505" &&
+        error?.message.includes("cases_one_customer_per_tax_year"));
+    if (duplicateCustomerTaxYear) {
+      return {
+        ok: false,
+        error:
+          "This Customer already has a Case for the selected tax year.",
+        fieldErrors: {
+          customerId:
+            "Select another Customer or choose a different tax year.",
+        },
+        step: 0,
+      };
+    }
     const staleConfiguration =
       error?.message.includes("invalid Case Title") ||
       error?.message.includes("invalid Case Type") ||

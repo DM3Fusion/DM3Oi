@@ -45,6 +45,7 @@ const option = (id: string, questionId: string, label: string) => ({
 
 const baseConfiguration = (): GuidedIntakeConfiguration => ({
   organizationId,
+  customerCaseYears: [],
   customers: [{ id: "customer-a", customerNumber: "CUS-1", name: "Acme" }],
   caseTitles: [{ id: "title-a", label: "Early Refund" }],
   caseTypes: [{ id: "type-a", name: "Refund" }],
@@ -382,6 +383,7 @@ test("dependent verification is hidden when dependents are not claimed", () => {
   const configuration: GuidedIntakeConfiguration = {
     organizationId,
     customers: [],
+    customerCaseYears: [],
     caseTitles: [],
     caseTypes: [],
     managers: [],
@@ -445,6 +447,7 @@ test("dependent verification becomes visible and required when dependents are cl
   const configuration: GuidedIntakeConfiguration = {
     organizationId,
     customers: [],
+    customerCaseYears: [],
     caseTitles: [],
     caseTypes: [],
     managers: [],
@@ -509,6 +512,7 @@ test("business records follow the self-employment hierarchy", () => {
   const configuration: GuidedIntakeConfiguration = {
     organizationId,
     customers: [],
+    customerCaseYears: [],
     caseTitles: [],
     caseTypes: [],
     managers: [],

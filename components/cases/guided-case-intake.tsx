@@ -389,6 +389,25 @@ export function GuidedCaseIntake({
     ],
   );
 
+  const availableCustomers = useMemo(() => {
+    if (
+      draft.taxYear === null ||
+      !Number.isInteger(draft.taxYear) ||
+      draft.taxYear < 1900 ||
+      draft.taxYear > 2200
+    ) {
+      return [];
+    }
+    const unavailableCustomerIds = new Set(
+      configuration.customerCaseYears
+        .filter((item) => item.taxYear === draft.taxYear)
+        .map((item) => item.customerId),
+    );
+    return customers.filter(
+      (customer) => !unavailableCustomerIds.has(customer.id),
+    );
+  }, [configuration.customerCaseYears, customers, draft.taxYear]);
+
   const selectedCustomer = customers.find(
     (customer) => customer.id === draft.customerId,
   );
@@ -501,6 +520,50 @@ export function GuidedCaseIntake({
     setErrors((current) => ({ ...current, [key]: "" }));
     setFormError(null);
   };
+
+  const updateTaxYear = (taxYear: number | null) => {
+    const selectedCustomerBecomesUnavailable =
+      Boolean(draft.customerId) &&
+      taxYear !== null &&
+      Number.isInteger(taxYear) &&
+      taxYear >= 1900 &&
+      taxYear <= 2200 &&
+      configuration.customerCaseYears.some(
+        (item) =>
+          item.customerId === draft.customerId &&
+          item.taxYear === taxYear,
+      );
+
+    setPortalStatus(null);
+    setPortalError(null);
+    setPortalPending(false);
+    setDraft((current) => ({
+      ...current,
+      taxYear,
+      customerId: selectedCustomerBecomesUnavailable
+        ? ""
+        : current.customerId,
+      portalOnboarding: selectedCustomerBecomesUnavailable
+        ? unresolvedPortalOnboarding()
+        : current.portalOnboarding,
+    }));
+    setErrors((current) => ({
+      ...current,
+      taxYear: "",
+      customerId: selectedCustomerBecomesUnavailable
+        ? "This Customer already has a Case for the selected tax year."
+        : current.customerId,
+      portalOnboarding: selectedCustomerBecomesUnavailable
+        ? ""
+        : current.portalOnboarding,
+    }));
+    setFormError(
+      selectedCustomerBecomesUnavailable
+        ? "Select a Customer without a Case for the selected tax year."
+        : null,
+    );
+  };
+
   const updateCaseType = (caseTypeId: string) => {
     setDraft((current) => ({
       ...current,
@@ -826,13 +889,35 @@ export function GuidedCaseIntake({
   };
 
   const renderCustomer = () => {
-    const filtered = customers.filter((customer) =>
+    const filtered = availableCustomers.filter((customer) =>
       `${customer.customerNumber} ${customer.name}`
         .toLowerCase()
         .includes(customerSearch.trim().toLowerCase()),
     );
+    const taxYearReady =
+      draft.taxYear !== null &&
+      Number.isInteger(draft.taxYear) &&
+      draft.taxYear >= 1900 &&
+      draft.taxYear <= 2200;
     return (
       <div className="intake-step-content">
+        <label>
+          <span>Tax Year</span>
+          <input
+            type="number"
+            min="1900"
+            max="2200"
+            required
+            value={draft.taxYear ?? ""}
+            onChange={(event) =>
+              updateTaxYear(
+                event.target.value === "" ? null : Number(event.target.value),
+              )
+            }
+            aria-invalid={Boolean(errors.taxYear)}
+          />
+          {fieldError(errors, "taxYear")}
+        </label>
         {configuration.canCreateCustomer ? (
           <div className="intake-mode-switch" role="group" aria-label="Customer source">
             <button
@@ -860,6 +945,7 @@ export function GuidedCaseIntake({
                 value={customerSearch}
                 onChange={(event) => setCustomerSearch(event.target.value)}
                 placeholder="Search by name or Customer number"
+                disabled={!taxYearReady}
               />
             </label>
             <label>
@@ -868,8 +954,13 @@ export function GuidedCaseIntake({
                 value={draft.customerId}
                 onChange={(event) => selectCustomer(event.target.value)}
                 aria-invalid={Boolean(errors.customerId)}
+                disabled={!taxYearReady}
               >
-                <option value="">Select a Customer</option>
+                <option value="">
+                  {taxYearReady
+                    ? "Select a Customer"
+                    : "Select a Tax Year first"}
+                </option>
                 {filtered.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.customerNumber} — {customer.name}
@@ -1069,24 +1160,6 @@ export function GuidedCaseIntake({
           ))}
         </select>
         {fieldError(errors, "caseTitleId")}
-      </label>
-      <label>
-        <span>Tax Year</span>
-        <input
-          type="number"
-          min="1900"
-          max="2200"
-          required
-          value={draft.taxYear ?? ""}
-          onChange={(event) =>
-            updateDraft(
-              "taxYear",
-              event.target.value === "" ? null : Number(event.target.value),
-            )
-          }
-          aria-invalid={Boolean(errors.taxYear)}
-        />
-        {fieldError(errors, "taxYear")}
       </label>
       <label className="full">
         <span>Description <small>Optional</small></span>
@@ -1409,7 +1482,7 @@ export function GuidedCaseIntake({
         ["Customer", selectedCustomer ? `${selectedCustomer.customerNumber} — ${selectedCustomer.name}` : "Not selected", 0],
         ["Case Title", selectedTitle?.label ?? "Not selected", 1],
         ["Case Type", selectedType?.name ?? "Not selected", 1],
-        ["Tax Year", draft.taxYear ?? "Not selected", 1],
+        ["Tax Year", draft.taxYear ?? "Not selected", 0],
         ["Description", draft.description || "None", 1],
         ["Priority", draft.priority, 1],
         ["Case Manager", selectedManager?.name ?? "Unassigned", 1],
