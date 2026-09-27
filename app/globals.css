@@ -7705,3 +7705,60 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .intake-received-only-row > :last-child {
   justify-self: center;
 }
+
+/* Platform Email Templates navigation pills. */
+.email-template-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.email-template-tabs a {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 14px;
+  border: 1px solid #9aa5b1;
+  border-radius: 999px;
+  background: #fff;
+  color: #334155;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease;
+}
+
+.email-template-tabs a:hover {
+  border-color: #87939e;
+  background: #e8f5e9;
+  color: #243b2b;
+}
+
+.email-template-tabs a.active {
+  border-color: #7f9184;
+  background: #dcefe0;
+  color: #1f3d28;
+}
+
+.email-template-tabs a:focus-visible {
+  outline: 2px solid var(--dm3oi-cyan);
+  outline-offset: 2px;
+}
+
+@media(max-width:600px) {
+  .email-template-tabs {
+    gap: 8px;
+  }
+
+  .email-template-tabs a {
+    min-height: 44px;
+    flex: 1 1 180px;
+    padding: 9px 12px;
+  }
+}

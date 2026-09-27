@@ -55,7 +55,7 @@ export default async function EmailTemplatesPage({
       {query?.saved ? <div className="form-success" role="status">Email template saved.</div> : null}
       {query?.testSent ? <div className="form-success" role="status">Test email sent to your SUPER_ADMIN email address.</div> : null}
       {error ? <div className="form-alert" role="alert">{error}</div> : null}
-      <nav className="settings-tabs" aria-label="Email templates">
+      <nav className="settings-tabs email-template-tabs" aria-label="Email templates">
         {emailTemplateDefinitions.map((item) => (
           <a key={item.key} href={`/admin/email-templates?template=${item.key}`} className={item.key === activeKey ? "active" : undefined}>
             {item.title}
