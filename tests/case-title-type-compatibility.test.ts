@@ -6,7 +6,11 @@ import {
 } from "../lib/guided-case-intake.ts";
 
 const migration = fs.readFileSync(
-  "supabase/migrations/20260926234000_dm3oi_case_title_type_compatibility.sql",
+  "supabase/migrations/20260927160000_dm3oi_guided_intake_case_model.sql",
+  "utf8",
+);
+const foundationMigration = fs.readFileSync(
+  "supabase/migrations/20260927154500_dm3oi_case_types_task_purposes.sql",
   "utf8",
 );
 const intake = fs.readFileSync(
@@ -18,87 +22,145 @@ const settings = fs.readFileSync(
   "utf8",
 );
 
-test("Guided Intake rejects an incompatible Case Title and Case Type", () => {
+const configuration = {
+  currentTaxYear: 2026,
+  caseTypes: [
+    {
+      id: "current-new",
+      name: "Cash Advance - New Customer",
+      customerMode: "NEW" as const,
+      taxYearRule: "CURRENT_YEAR" as const,
+    },
+    {
+      id: "current-existing",
+      name: "Cash Advance - Existing Customer",
+      customerMode: "EXISTING" as const,
+      taxYearRule: "CURRENT_YEAR" as const,
+    },
+    {
+      id: "prior-new",
+      name: "Prior-Year - New Customer",
+      customerMode: "NEW" as const,
+      taxYearRule: "PRIOR_YEAR_REQUIRED" as const,
+    },
+    {
+      id: "prior-existing",
+      name: "Prior-Year - Existing Customer",
+      customerMode: "EXISTING" as const,
+      taxYearRule: "PRIOR_YEAR_REQUIRED" as const,
+    },
+  ],
+  managers: [],
+  staff: [{ id: "staff-a", name: "Staff" }],
+  canAssign: true,
+};
+
+const detail = {
+  taxYear: 2026,
+  caseTypeId: "current-existing",
+  priority: "NORMAL",
+  managerUserId: "",
+  staffUserIds: ["staff-a"],
+};
+
+test("Guided Intake rejects a new-Customer Case Type for an existing Customer", () => {
   const errors = validateGuidedCaseDetails(
     {
-      caseTitleId: "title-new",
-      taxYear: 2025,
-      caseTypeId: "type-returning",
-      priority: "NORMAL",
-      managerUserId: "",
-      staffUserIds: ["staff-a"],
+      ...detail,
+      caseTypeId: "current-new",
     },
+    configuration,
+    "existing",
+  );
+
+  assert.match(errors.caseTypeId, /existing Customer/);
+});
+
+test("Guided Intake rejects an existing-Customer Case Type for a new Customer", () => {
+  const errors = validateGuidedCaseDetails(
     {
-      caseTitles: [
-        { id: "title-new", label: "New Client" },
-        { id: "title-returning", label: "Returning Client" },
-      ],
-      caseTypes: [
-        { id: "type-new", name: "New" },
-        { id: "type-returning", name: "Returning" },
-      ],
-      caseTitleTypeMappings: [
-        { caseTitleId: "title-new", caseTypeId: "type-new" },
-        {
-          caseTitleId: "title-returning",
-          caseTypeId: "type-returning",
-        },
-      ],
-      managers: [],
-      staff: [{ id: "staff-a", name: "Staff" }],
-      canAssign: true,
+      ...detail,
+      caseTypeId: "current-existing",
     },
+    configuration,
+    "new",
   );
 
-  assert.match(errors.caseTitleId, /compatible/);
+  assert.match(errors.caseTypeId, /new Customer/);
 });
 
-test("database enforces Case Title and Case Type compatibility", () => {
-  assert.match(
-    migration,
-    /organization_case_title_type_mappings/,
+test("current-year Case Types require the organization-local current Tax Year", () => {
+  const errors = validateGuidedCaseDetails(
+    {
+      ...detail,
+      taxYear: 2025,
+    },
+    configuration,
+    "existing",
   );
-  assert.match(
-    migration,
-    /before insert or update of case_title_id, case_type_id/i,
+
+  assert.match(errors.caseTypeId, /requires Tax Year 2026/);
+});
+
+test("prior-year Case Types require a Tax Year before the current Tax Year", () => {
+  const errors = validateGuidedCaseDetails(
+    {
+      ...detail,
+      caseTypeId: "prior-existing",
+      taxYear: 2026,
+    },
+    configuration,
+    "existing",
   );
-  assert.match(
-    migration,
-    /Case Title is not compatible with selected Case Type/,
+
+  assert.match(errors.caseTypeId, /before 2026/);
+});
+
+test("valid prior-year and current-year combinations pass Case Type validation", () => {
+  assert.deepEqual(
+    validateGuidedCaseDetails(
+      {
+        ...detail,
+        caseTypeId: "prior-existing",
+        taxYear: 2025,
+      },
+      configuration,
+      "existing",
+    ),
+    {},
   );
-  assert.match(
-    migration,
-    /save_case_type_title_mappings/,
+
+  assert.deepEqual(
+    validateGuidedCaseDetails(
+      detail,
+      configuration,
+      "existing",
+    ),
+    {},
   );
 });
 
-test("Mimms compatibility distinguishes new and returning refund advance Cases", () => {
-  assert.match(
-    migration,
-    /\('New Client — Refund Advance', 'New Refund Advance Return'\)/,
-  );
-  assert.match(
-    migration,
-    /\('Returning Client — Refund Advance', 'Returning Refund Advance Return'\)/,
-  );
-  assert.doesNotMatch(
-    migration,
-    /\('New Client — Refund Advance', 'Returning Refund Advance Return'\)/,
-  );
+test("database Case Types carry stable Customer and Tax Year semantics", () => {
+  assert.match(foundationMigration, /customer_mode text not null default 'ANY'/);
+  assert.match(foundationMigration, /tax_year_rule text not null default 'ANY_YEAR'/);
+  assert.match(foundationMigration, /'Cash Advance - New Customer'/);
+  assert.match(foundationMigration, /'Cash Advance - Existing Customer'/);
+  assert.match(foundationMigration, /'Prior-Year - New Customer'/);
+  assert.match(foundationMigration, /'Prior-Year - Existing Customer'/);
 });
 
-test("Step 2 chooses Case Type first and filters compatible titles", () => {
-  const caseTypePosition = intake.indexOf("<span>Case Type</span>");
-  const caseTitlePosition = intake.indexOf("<span>Case Title</span>");
-  assert.ok(caseTypePosition >= 0);
-  assert.ok(caseTitlePosition > caseTypePosition);
-  assert.match(intake, /compatibleCaseTitles/);
-  assert.match(intake, /Select a Case Type first/);
-  assert.match(intake, /disabled=\{!draft\.caseTypeId\}/);
+test("Guided Intake no longer uses Case Titles", () => {
+  assert.doesNotMatch(intake, /Case Title/);
+  assert.doesNotMatch(intake, /caseTitleId/);
+  assert.doesNotMatch(intake, /compatibleCaseTitles/);
+  assert.doesNotMatch(migration, /target_case_title_id/);
 });
 
-test("Case Configuration exposes organization-managed compatibility", () => {
-  assert.match(settings, /Case Title Compatibility/);
-  assert.match(settings, /saveCaseTypeMappings/);
-  assert.match(settings, /Allowed Case Titles/);
+test("Case Configuration manages Case Type behavior instead of title compatibility", () => {
+  assert.match(settings, /Customer/);
+  assert.match(settings, /Tax Year/);
+  assert.match(settings, /customerMode/);
+  assert.match(settings, /taxYearRule/);
+  assert.doesNotMatch(settings, /Case Title Compatibility/);
+  assert.doesNotMatch(settings, /Allowed Case Titles/);
 });

@@ -95,11 +95,13 @@ export type GuidedIntakeConfiguration = {
   organizationId: string;
   customers: GuidedIntakeCustomer[];
   customerCaseYears: GuidedIntakeCustomerCaseYear[];
-  caseTitles: Array<{ id: string; label: string }>;
-  caseTypes: Array<{ id: string; name: string }>;
-  caseTitleTypeMappings?: Array<{
-    caseTitleId: string;
-    caseTypeId: string;
+  currentTaxYear: number;
+  taxYearOptions: number[];
+  caseTypes: Array<{
+    id: string;
+    name: string;
+    customerMode: "ANY" | "NEW" | "EXISTING";
+    taxYearRule: "ANY_YEAR" | "CURRENT_YEAR" | "PRIOR_YEAR_REQUIRED";
   }>;
   managers: Array<{ id: string; name: string }>;
   staff: Array<{ id: string; name: string }>;
@@ -132,7 +134,6 @@ export type GuidedCaseIntakeDraft = {
   submissionKey: string;
   customerId: string;
   taxYear: number | null;
-  caseTitleId: string;
   description: string;
   caseTypeId: string;
   priority: GuidedCasePriority | string;
@@ -326,27 +327,9 @@ export function validateGuidedCustomerStep(
   return {};
 }
 
-export function isCaseTitleTypeCompatible(
-  configuration: Pick<
-    GuidedIntakeConfiguration,
-    "caseTitleTypeMappings"
-  >,
-  caseTitleId: string,
-  caseTypeId: string,
-): boolean {
-  if (!caseTitleId || !caseTypeId) return false;
-  if (configuration.caseTitleTypeMappings === undefined) return true;
-  return configuration.caseTitleTypeMappings.some(
-    (mapping) =>
-      mapping.caseTitleId === caseTitleId &&
-      mapping.caseTypeId === caseTypeId,
-  );
-}
-
 export function validateGuidedCaseDetails(
   draft: Pick<
     GuidedCaseIntakeDraft,
-    | "caseTitleId"
     | "taxYear"
     | "caseTypeId"
     | "priority"
@@ -355,54 +338,92 @@ export function validateGuidedCaseDetails(
   >,
   configuration: Pick<
     GuidedIntakeConfiguration,
-    | "caseTitles"
+    | "currentTaxYear"
     | "caseTypes"
-    | "caseTitleTypeMappings"
     | "managers"
     | "staff"
     | "canAssign"
   >,
+  customerMode: "existing" | "new" = "existing",
 ): GuidedIntakeFieldErrors {
   const errors: GuidedIntakeFieldErrors = {};
+
   if (
     !Number.isInteger(draft.taxYear) ||
     (draft.taxYear ?? 0) < 1900 ||
-    (draft.taxYear ?? 0) > 2200
-  )
-    errors.taxYear = "Enter a valid tax year from 1900 through 2200.";
-  if (!configuration.caseTitles.some((item) => item.id === draft.caseTitleId))
-    errors.caseTitleId = "Select an active configured Case Title.";
-  if (!configuration.caseTypes.some((item) => item.id === draft.caseTypeId))
+    (draft.taxYear ?? 0) > configuration.currentTaxYear
+  ) {
+    errors.taxYear =
+      `Select a tax year from 1900 through ${configuration.currentTaxYear}.`;
+  }
+
+  const caseType = configuration.caseTypes.find(
+    (item) => item.id === draft.caseTypeId,
+  );
+
+  if (!caseType) {
     errors.caseTypeId = "Select an active Case Type.";
-  if (
-    !errors.caseTitleId &&
-    !errors.caseTypeId &&
-    !isCaseTitleTypeCompatible(
-      configuration,
-      draft.caseTitleId,
-      draft.caseTypeId,
-    )
-  )
-    errors.caseTitleId =
-      "Select a Case Title compatible with the selected Case Type.";
+  } else {
+    const requiredCustomerMode = customerMode === "new" ? "NEW" : "EXISTING";
+
+    if (
+      caseType.customerMode !== "ANY" &&
+      caseType.customerMode !== requiredCustomerMode
+    ) {
+      errors.caseTypeId =
+        customerMode === "new"
+          ? "Select a Case Type configured for a new Customer."
+          : "Select a Case Type configured for an existing Customer.";
+    }
+
+    if (
+      draft.taxYear !== null &&
+      caseType.taxYearRule === "CURRENT_YEAR" &&
+      draft.taxYear !== configuration.currentTaxYear
+    ) {
+      errors.caseTypeId =
+        `This Case Type requires Tax Year ${configuration.currentTaxYear}.`;
+    }
+
+    if (
+      draft.taxYear !== null &&
+      caseType.taxYearRule === "PRIOR_YEAR_REQUIRED" &&
+      draft.taxYear >= configuration.currentTaxYear
+    ) {
+      errors.caseTypeId =
+        `This Case Type requires a Tax Year before ${configuration.currentTaxYear}.`;
+    }
+  }
+
   if (!guidedCasePriorities.some((priority) => priority === draft.priority))
     errors.priority = "Select a valid priority.";
-  if (!configuration.canAssign && (draft.managerUserId || draft.staffUserIds.length))
+
+  if (
+    !configuration.canAssign &&
+    (draft.managerUserId || draft.staffUserIds.length)
+  )
     errors.assignments = "You do not have permission to assign this Case.";
+
   if (
     draft.managerUserId &&
-    !configuration.managers.some((manager) => manager.id === draft.managerUserId)
+    !configuration.managers.some(
+      (manager) => manager.id === draft.managerUserId,
+    )
   )
     errors.managerUserId = "Select an active eligible Case Manager.";
+
   const staffIds = new Set(configuration.staff.map((member) => member.id));
+
   if (draft.staffUserIds.length === 0)
     errors.staffUserIds = configuration.canAssign
       ? "Assign at least one Staff member before continuing."
       : "An Assigned Staff member is required, but you do not have assignment permission.";
   else if (draft.staffUserIds.some((id) => !staffIds.has(id)))
     errors.staffUserIds = "Assigned Staff must be active eligible members.";
+
   if (new Set(draft.staffUserIds).size !== draft.staffUserIds.length)
     errors.staffUserIds = "Assigned Staff cannot contain duplicates.";
+
   return errors;
 }
 
@@ -619,6 +640,7 @@ export function validateGuidedIntakeQuestions(
 export function validateGuidedCaseIntake(
   draft: GuidedCaseIntakeDraft,
   configuration: GuidedIntakeConfiguration,
+  customerMode: "existing" | "new" = "existing",
 ) {
   const evaluation = evaluateGuidedCaseIntake(
     configuration,
@@ -627,7 +649,7 @@ export function validateGuidedCaseIntake(
   );
   const fieldErrors: GuidedIntakeFieldErrors = {
     ...validateGuidedCustomerStep(draft, configuration),
-    ...validateGuidedCaseDetails(draft, configuration),
+    ...validateGuidedCaseDetails(draft, configuration, customerMode),
     ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
     ...validateGuidedRequiredOptionMap(
       configuration.questions,

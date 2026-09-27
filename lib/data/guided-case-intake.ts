@@ -55,9 +55,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   const [
     customers,
     customerCaseYears,
-    caseTitles,
     caseTypes,
-    caseTitleTypeMappings,
     members,
     questions,
     options,
@@ -78,26 +76,16 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .select("customer_id,tax_year")
       .eq("organization_id", organizationId)
       .not("tax_year", "is", null),
-    supabase
-      .from("organization_case_titles")
-      .select("id,label")
-      .eq("organization_id", organizationId)
-      .eq("is_active", true)
-      .order("sort_order")
-      .order("label"),
-    supabase
+    // Temporary schema bridge until generated Supabase types include
+    // Case Type Customer/Tax Year behavior fields.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
       .from("organization_case_types")
-      .select("id,name")
+      .select("id,name,customer_mode,tax_year_rule")
       .eq("organization_id", organizationId)
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
-    // The 234000 mapping table is not yet present in the checked-in generated types.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (admin as any)
-      .from("organization_case_title_type_mappings")
-      .select("case_title_id,case_type_id")
-      .eq("organization_id", organizationId),
     supabase
       .from("organization_members")
       .select("user_id,role")
@@ -136,7 +124,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .order("display_order"),
     admin
       .from("organization_settings")
-      .select("default_priority,portal_onboarding_mode")
+      .select("default_priority,portal_onboarding_mode,timezone")
       .eq("organization_id", organizationId)
       .maybeSingle(),
     admin
@@ -148,9 +136,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   const error =
     customers.error ??
     customerCaseYears.error ??
-    caseTitles.error ??
     caseTypes.error ??
-    caseTitleTypeMappings.error ??
     members.error ??
     questions.error ??
     options.error ??
@@ -218,6 +204,17 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   });
   const canAssign = hasPermission(access, "ASSIGN_CASES");
   const defaultPriority = settings.data?.default_priority ?? "NORMAL";
+  const timezone = settings.data?.timezone ?? "UTC";
+  const currentTaxYear = Number(
+    new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      timeZone: timezone,
+    }).format(new Date()),
+  );
+  const taxYearOptions = Array.from(
+    { length: currentTaxYear - 1900 + 1 },
+    (_, index) => currentTaxYear - index,
+  );
   return {
     access,
     configuration: {
@@ -237,16 +234,31 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
           ? [{ customerId: item.customer_id, taxYear: item.tax_year }]
           : [],
       ),
-      caseTitles: caseTitles.data ?? [],
-      caseTypes: caseTypes.data ?? [],
-      caseTitleTypeMappings: (caseTitleTypeMappings.data ?? []).map(
-        (mapping: {
-          case_title_id: string;
-          case_type_id: string;
-        }) => ({
-          caseTitleId: mapping.case_title_id,
-          caseTypeId: mapping.case_type_id,
-        }),
+      currentTaxYear,
+      taxYearOptions,
+      caseTypes: (caseTypes.data ?? []).flatMap(
+        (item: {
+          id: string;
+          name: string;
+          customer_mode: string;
+          tax_year_rule: string;
+        }) =>
+          item.id && item.name
+            ? [{
+                id: item.id,
+                name: item.name,
+                customerMode:
+                  item.customer_mode === "NEW" ||
+                  item.customer_mode === "EXISTING"
+                    ? item.customer_mode
+                    : "ANY",
+                taxYearRule:
+                  item.tax_year_rule === "CURRENT_YEAR" ||
+                  item.tax_year_rule === "PRIOR_YEAR_REQUIRED"
+                    ? item.tax_year_rule
+                    : "ANY_YEAR",
+              }]
+            : [],
       ),
       managers: canAssign
         ? eligible

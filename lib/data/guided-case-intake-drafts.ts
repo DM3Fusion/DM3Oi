@@ -36,8 +36,8 @@ export type GuidedIntakeDraftSummary = {
   currentStep: number;
   customerId: string;
   customerName: string;
-  caseTitle: string;
   caseType: string;
+  taxYear: number | null;
   createdByUserId: string;
   canResume: boolean;
   canDelete: boolean;
@@ -170,7 +170,7 @@ export async function loadGuidedIntakeDraft(
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
+      "id,submission_key,current_step,customer_mode,customer_id,new_customer,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
@@ -198,7 +198,6 @@ export async function loadGuidedIntakeDraft(
       submissionKey: data.submission_key,
       customerId: data.customer_id ?? "",
       taxYear: data.tax_year,
-      caseTitleId: data.case_title_id ?? "",
       description: data.description,
       caseTypeId: data.case_type_id ?? "",
       priority: data.priority as GuidedCasePriority,
@@ -239,7 +238,7 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
   let query = supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,current_step,customer_id,case_title_id,case_type_id,created_by_user_id,updated_at",
+      "id,current_step,customer_id,tax_year,case_type_id,created_by_user_id,updated_at",
     )
     .eq("organization_id", organizationId);
 
@@ -269,31 +268,19 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
       rows.flatMap((row) => (row.customer_id ? [row.customer_id] : [])),
     ),
   ];
-  const titleIds = [
-    ...new Set(
-      rows.flatMap((row) => (row.case_title_id ? [row.case_title_id] : [])),
-    ),
-  ];
   const typeIds = [
     ...new Set(
       rows.flatMap((row) => (row.case_type_id ? [row.case_type_id] : [])),
     ),
   ];
 
-  const [customers, titles, types] = await Promise.all([
+  const [customers, types] = await Promise.all([
     customerIds.length
       ? supabase
           .from("customers")
           .select("id,name")
           .eq("organization_id", organizationId)
           .in("id", customerIds)
-      : Promise.resolve({ data: [], error: null }),
-    titleIds.length
-      ? supabase
-          .from("organization_case_titles")
-          .select("id,label")
-          .eq("organization_id", organizationId)
-          .in("id", titleIds)
       : Promise.resolve({ data: [], error: null }),
     typeIds.length
       ? supabase
@@ -304,7 +291,7 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const relatedError = customers.error ?? titles.error ?? types.error;
+  const relatedError = customers.error ?? types.error;
   if (relatedError) {
     console.error("Guided Intake draft labels failed", {
       organizationId,
@@ -316,9 +303,6 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
 
   const customerNames = new Map(
     (customers.data ?? []).map((item) => [item.id, item.name]),
-  );
-  const titleNames = new Map(
-    (titles.data ?? []).map((item) => [item.id, item.label]),
   );
   const typeNames = new Map(
     (types.data ?? []).map((item) => [item.id, item.name]),
@@ -334,12 +318,10 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
       customerName: row.customer_id
         ? customerNames.get(row.customer_id) ?? "Unavailable Customer"
         : "Customer not selected",
-      caseTitle: row.case_title_id
-        ? titleNames.get(row.case_title_id) ?? "Unavailable Case Title"
-        : "Case Title not selected",
       caseType: row.case_type_id
         ? typeNames.get(row.case_type_id) ?? "Unavailable Case Type"
         : "Case Type not selected",
+      taxYear: row.tax_year,
       createdByUserId: row.created_by_user_id,
       canResume: canCreate && ownsDraft,
       canDelete: canDelete && (ownsDraft || canManageOrganizationDrafts),

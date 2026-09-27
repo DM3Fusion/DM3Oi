@@ -157,7 +157,6 @@ export async function saveGuidedIntakeDraftAction(
       phone: input.newCustomer.phone,
       notes: input.newCustomer.notes,
     },
-    case_title_id: input.draft.caseTitleId || null,
     tax_year: input.draft.taxYear,
     description: input.draft.description,
     case_type_id: input.draft.caseTypeId || null,
@@ -170,11 +169,52 @@ export async function saveGuidedIntakeDraftAction(
     portal_onboarding: portalOnboarding,
   };
 
+  let canonicalSubmissionKey = input.draft.submissionKey;
+
+  if (
+    input.draft.customerId &&
+    input.draft.taxYear !== null &&
+    Number.isInteger(input.draft.taxYear)
+  ) {
+    const existingDraft = await supabase
+      .from("guided_case_intake_drafts")
+      .select("id,submission_key")
+      .eq("organization_id", organizationId)
+      .eq("created_by_user_id", access.user.id)
+      .eq("customer_id", input.draft.customerId)
+      .eq("tax_year", input.draft.taxYear)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingDraft.error) {
+      console.error("Guided Intake canonical draft lookup failed", {
+        organizationId,
+        code: existingDraft.error.code,
+        message: existingDraft.error.message,
+      });
+      return {
+        ok: false,
+        error: "The intake draft could not be saved. Please try again.",
+      };
+    }
+
+    if (existingDraft.data?.submission_key) {
+      canonicalSubmissionKey = existingDraft.data.submission_key;
+    }
+  }
+
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
-    .upsert(payload, {
-      onConflict: "organization_id,created_by_user_id,submission_key",
-    })
+    .upsert(
+      {
+        ...payload,
+        submission_key: canonicalSubmissionKey,
+      },
+      {
+        onConflict: "organization_id,created_by_user_id,submission_key",
+      },
+    )
     .select("id")
     .single();
 
@@ -221,6 +261,7 @@ const firstInvalidStep = (fieldErrors: Record<string, string>) => {
 
 export async function createGuidedCaseAction(
   draft: GuidedCaseIntakeDraft,
+  customerMode: "existing" | "new",
 ): Promise<CreateGuidedCaseResult> {
   const { access, configuration } =
     await loadGuidedCaseIntakeConfiguration();
@@ -232,7 +273,11 @@ export async function createGuidedCaseAction(
       step: 0,
     };
   }
-  const validation = validateGuidedCaseIntake(draft, configuration);
+  const validation = validateGuidedCaseIntake(
+    draft,
+    configuration,
+    customerMode,
+  );
   if (!validation.valid) {
     return {
       ok: false,
@@ -286,13 +331,15 @@ export async function createGuidedCaseAction(
     draft.answers,
     draft.requiredOptionIds,
   );
-  const { data: created, error } = await supabase.rpc(
+  // Temporary RPC signature bridge until generated Supabase types are refreshed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: created, error } = await (supabase as any).rpc(
     "create_guided_case_intake",
     {
       target_organization_id: access.activeOrganization!.id,
       target_submission_key: draft.submissionKey,
       target_customer_id: draft.customerId,
-      target_case_title_id: draft.caseTitleId,
+      target_customer_mode: customerMode,
       target_description: draft.description.trim(),
       target_case_type_id: draft.caseTypeId,
       target_priority: guidedCasePriority(draft.priority),
@@ -328,8 +375,9 @@ export async function createGuidedCaseAction(
       };
     }
     const staleConfiguration =
-      error?.message.includes("invalid Case Title") ||
       error?.message.includes("invalid Case Type") ||
+      error?.message.includes("Case Type requires") ||
+      error?.message.includes("Case Type is not valid") ||
       error?.message.includes("invalid manager") ||
       error?.message.includes("invalid staff") ||
       error?.message.includes("intake response") ||

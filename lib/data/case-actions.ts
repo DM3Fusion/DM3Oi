@@ -108,11 +108,14 @@ export async function createTaskAction(data: FormData) {
   const id = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");
   const dueDate = text(data, "dueDate");
-  if (!text(data, "title") || !validDate(dueDate))
-    fail(`/cases/${id}`, "Task title and Due Date are required.");
+  if (!text(data, "taskPurposeId") || !text(data, "title") || !validDate(dueDate))
+    fail(`/cases/${id}`, "Task Purpose, Task title, and Due Date are required.");
   const supabase = await createClient();
-  const { error } = await supabase.rpc("create_case_task", {
+  // Temporary RPC signature bridge until generated Supabase types are refreshed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc("create_case_task", {
     target_case_id: id,
+    target_task_purpose_id: text(data, "taskPurposeId"),
     target_title: text(data, "title"),
     target_description: text(data, "description"),
     target_assigned_user_id: optional(text(data, "assignedUserId")),
@@ -136,9 +139,11 @@ export async function updateTaskAction(data: FormData) {
   const context = await requirePermission("WORK_TASKS");
   const supabase = await createClient();
   const taskId = text(data, "taskId");
-  const { data: existing } = await supabase
+  // Temporary schema bridge until generated Supabase types include task_purpose_id.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: existing } = await (supabase as any)
     .from("case_tasks")
-    .select("title,description,assigned_user_id,required,due_at")
+    .select("title,description,assigned_user_id,required,due_at,task_purpose_id,source_rule_action_id")
     .eq("id", taskId)
     .eq("organization_id", context.activeOrganization.id)
     .maybeSingle();
@@ -148,8 +153,13 @@ export async function updateTaskAction(data: FormData) {
   const dueDate = text(data, "dueDate");
   if (canManage && !validDate(dueDate))
     fail(`/cases/${caseId}`, "A Due Date is required when updating a Task.");
-  const { error } = await supabase.rpc("update_case_task", {
+  // Temporary RPC signature bridge until generated Supabase types are refreshed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc("update_case_task", {
     target_task_id: taskId,
+    target_task_purpose_id: canManage
+      ? (text(data, "taskPurposeId") || null)
+      : existing.task_purpose_id,
     target_title: canManage ? text(data, "title") : existing.title,
     target_description: canManage ? text(data, "description") : existing.description,
     target_assigned_user_id: canAssign ? nullableUuid(text(data, "assignedUserId")) : nullableUuid(existing.assigned_user_id ?? ""),

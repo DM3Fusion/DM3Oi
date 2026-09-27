@@ -15,7 +15,6 @@ import {
   canCompleteIntakeFollowUpTask,
   getMissingRequiredOptions,
   isGuidedQuestionAnswerValid,
-  isCaseTitleTypeCompatible,
   reconcileGuidedIntakeFollowUpTasks,
   guidedCaseIntakeSteps,
   guidedQuestionGroups,
@@ -307,6 +306,12 @@ export function GuidedCaseIntake({
   const [step, setStep] = useState(initialStep);
   const [customers, setCustomers] = useState(configuration.customers);
   const [customerMode, setCustomerMode] = useState<"existing" | "new">(
+    initialDraft?.customerId
+      ? "existing"
+      : initialCustomerMode ??
+          (configuration.customers.length ? "existing" : "new"),
+  );
+  const [caseCustomerMode, setCaseCustomerMode] = useState<"existing" | "new">(
     initialCustomerMode ??
       (configuration.customers.length ? "existing" : "new"),
   );
@@ -315,8 +320,7 @@ export function GuidedCaseIntake({
     initialDraft ?? {
       submissionKey,
       customerId: "",
-      taxYear: null,
-      caseTitleId: "",
+      taxYear: configuration.currentTaxYear,
       description: "",
       caseTypeId: "",
       priority: configuration.defaultPriority,
@@ -372,23 +376,6 @@ export function GuidedCaseIntake({
   const visibleQuestions = evaluation.questions.filter(
     (question) => question.applicable,
   );
-  const compatibleCaseTitles = useMemo(
-    () =>
-      draft.caseTypeId
-        ? configuration.caseTitles.filter((title) =>
-            isCaseTitleTypeCompatible(
-              configuration,
-              title.id,
-              draft.caseTypeId,
-            ),
-          )
-        : [],
-    [
-      configuration,
-      draft.caseTypeId,
-    ],
-  );
-
   const availableCustomers = useMemo(() => {
     if (
       draft.taxYear === null ||
@@ -411,9 +398,39 @@ export function GuidedCaseIntake({
   const selectedCustomer = customers.find(
     (customer) => customer.id === draft.customerId,
   );
-  const selectedTitle = configuration.caseTitles.find(
-    (item) => item.id === draft.caseTitleId,
-  );
+  const availableCaseTypes = useMemo(() => {
+    const requiredCustomerMode =
+      caseCustomerMode === "new" ? "NEW" : "EXISTING";
+
+    return configuration.caseTypes.filter((item) => {
+      if (
+        item.customerMode !== "ANY" &&
+        item.customerMode !== requiredCustomerMode
+      )
+        return false;
+
+      if (
+        item.taxYearRule === "CURRENT_YEAR" &&
+        draft.taxYear !== configuration.currentTaxYear
+      )
+        return false;
+
+      if (
+        item.taxYearRule === "PRIOR_YEAR_REQUIRED" &&
+        (draft.taxYear === null ||
+          draft.taxYear >= configuration.currentTaxYear)
+      )
+        return false;
+
+      return true;
+    });
+  }, [
+    caseCustomerMode,
+    configuration.caseTypes,
+    configuration.currentTaxYear,
+    draft.taxYear,
+  ]);
+
   const selectedType = configuration.caseTypes.find(
     (item) => item.id === draft.caseTypeId,
   );
@@ -496,6 +513,7 @@ export function GuidedCaseIntake({
   }, [draft.customerId, portalPromptEnabled]);
 
   const selectCustomer = (customerId: string) => {
+    setCaseCustomerMode("existing");
     setPortalStatus(null);
     setPortalError(null);
     setPortalPending(Boolean(customerId) && portalPromptEnabled);
@@ -568,20 +586,10 @@ export function GuidedCaseIntake({
     setDraft((current) => ({
       ...current,
       caseTypeId,
-      caseTitleId:
-        current.caseTitleId &&
-        isCaseTitleTypeCompatible(
-          configuration,
-          current.caseTitleId,
-          caseTypeId,
-        )
-          ? current.caseTitleId
-          : "",
     }));
     setErrors((current) => ({
       ...current,
       caseTypeId: "",
-      caseTitleId: "",
     }));
     setFormError(null);
   };
@@ -821,6 +829,7 @@ export function GuidedCaseIntake({
     }
 
     setCustomers((current) => [...current, result.customer]);
+    setCaseCustomerMode("new");
     setPortalPending(portalPromptEnabled);
     setDraft((current) => ({
       ...current,
@@ -856,7 +865,7 @@ export function GuidedCaseIntake({
 
     const result = await saveGuidedIntakeDraftAction({
       currentStep: step,
-      customerMode,
+      customerMode: caseCustomerMode,
       draft,
       newCustomer: {
         ...customerValues,
@@ -903,10 +912,7 @@ export function GuidedCaseIntake({
       <div className="intake-step-content">
         <label className="intake-tax-year">
           <span>Tax Year</span>
-          <input
-            type="number"
-            min="1900"
-            max="2200"
+          <select
             required
             value={draft.taxYear ?? ""}
             onChange={(event) =>
@@ -915,7 +921,14 @@ export function GuidedCaseIntake({
               )
             }
             aria-invalid={Boolean(errors.taxYear)}
-          />
+          >
+            <option value="">Select a Tax Year</option>
+            {configuration.taxYearOptions.map((taxYear) => (
+              <option key={taxYear} value={taxYear}>
+                {taxYear}
+              </option>
+            ))}
+          </select>
           {fieldError(errors, "taxYear")}
         </label>
         {configuration.canCreateCustomer ? (
@@ -923,14 +936,21 @@ export function GuidedCaseIntake({
             <button
               type="button"
               className={customerMode === "existing" ? "active" : ""}
-              onClick={() => setCustomerMode("existing")}
+              onClick={() => {
+                setCustomerMode("existing");
+                setCaseCustomerMode("existing");
+              }}
             >
               Existing Customer
             </button>
             <button
               type="button"
               className={customerMode === "new" ? "active" : ""}
-              onClick={() => setCustomerMode("new")}
+              onClick={() => {
+                setCustomerMode("new");
+                setCaseCustomerMode("new");
+                selectCustomer("");
+              }}
             >
               Create New
             </button>
@@ -1136,30 +1156,11 @@ export function GuidedCaseIntake({
           aria-invalid={Boolean(errors.caseTypeId)}
         >
           <option value="">Select a Case Type</option>
-          {configuration.caseTypes.map((item) => (
+          {availableCaseTypes.map((item) => (
             <option key={item.id} value={item.id}>{item.name}</option>
           ))}
         </select>
         {fieldError(errors, "caseTypeId")}
-      </label>
-      <label>
-        <span>Case Title</span>
-        <select
-          value={draft.caseTitleId}
-          onChange={(event) => updateDraft("caseTitleId", event.target.value)}
-          aria-invalid={Boolean(errors.caseTitleId)}
-          disabled={!draft.caseTypeId}
-        >
-          <option value="">
-            {draft.caseTypeId
-              ? "Select a compatible Case Title"
-              : "Select a Case Type first"}
-          </option>
-          {compatibleCaseTitles.map((item) => (
-            <option key={item.id} value={item.id}>{item.label}</option>
-          ))}
-        </select>
-        {fieldError(errors, "caseTitleId")}
       </label>
       <label className="full">
         <span>Description <small>Optional</small></span>
@@ -1480,7 +1481,6 @@ export function GuidedCaseIntake({
     <div className="intake-review intake-step-content">
       {[
         ["Customer", selectedCustomer ? `${selectedCustomer.customerNumber} — ${selectedCustomer.name}` : "Not selected", 0],
-        ["Case Title", selectedTitle?.label ?? "Not selected", 1],
         ["Case Type", selectedType?.name ?? "Not selected", 1],
         ["Tax Year", draft.taxYear ?? "Not selected", 0],
         ["Description", draft.description || "None", 1],
@@ -1517,7 +1517,7 @@ export function GuidedCaseIntake({
               <div className="intake-create-confirmation intake-step-content">
                 <h2>Ready to create this Case</h2>
                 <p>The server will revalidate the Customer, configuration, assignments, questions, Rules, and requirements before making any changes.</p>
-                <p><strong>{selectedTitle?.label}</strong> for <strong>{selectedCustomer?.name}</strong></p>
+                <p><strong>{selectedType?.name}</strong> for <strong>{selectedCustomer?.name}</strong> · Tax Year <strong>{draft.taxYear}</strong></p>
               </div>
             );
 
@@ -1650,7 +1650,10 @@ export function GuidedCaseIntake({
             onClick={async () => {
               setPending(true);
               setFormError(null);
-              const result = await createGuidedCaseAction(draft);
+              const result = await createGuidedCaseAction(
+                draft,
+                caseCustomerMode,
+              );
               if (!result.ok) {
                 setPending(false);
                 setErrors(result.fieldErrors);

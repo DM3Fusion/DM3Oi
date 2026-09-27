@@ -60,7 +60,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                   <th>Action</th>
                   <th>Status</th>
                   <th>Customer</th>
-                  <th>Case Title</th>
+                  <th>Case Type</th>
                   <th>Updated</th>
                 </tr>
               </thead>
@@ -70,7 +70,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
                     key={draft.id}
                     draftId={draft.id}
                     customerName={draft.customerName}
-                    caseTitle={draft.caseTitle}
+                    caseTitle={draft.caseType}
                     completedSteps={Math.min(
                       Math.max(draft.currentStep, 0),
                       guidedCaseIntakeSteps.length,

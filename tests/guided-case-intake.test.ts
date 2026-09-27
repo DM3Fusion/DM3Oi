@@ -46,9 +46,15 @@ const option = (id: string, questionId: string, label: string) => ({
 const baseConfiguration = (): GuidedIntakeConfiguration => ({
   organizationId,
   customerCaseYears: [],
+  currentTaxYear: 2026,
+  taxYearOptions: [2026, 2025, 2024],
   customers: [{ id: "customer-a", customerNumber: "CUS-1", name: "Acme" }],
-  caseTitles: [{ id: "title-a", label: "Early Refund" }],
-  caseTypes: [{ id: "type-a", name: "Refund" }],
+  caseTypes: [{
+    id: "type-a",
+    name: "Refund",
+    customerMode: "ANY",
+    taxYearRule: "ANY_YEAR",
+  }],
   managers: [{ id: "manager-a", name: "Manager" }],
   staff: [{ id: "staff-a", name: "Staff" }],
   questions: [],
@@ -64,7 +70,6 @@ const draft = (): GuidedCaseIntakeDraft => ({
   submissionKey: "00000000-0000-4000-8000-000000000001",
   customerId: "customer-a",
   taxYear: 2025,
-  caseTitleId: "title-a",
   description: "Details",
   caseTypeId: "type-a",
   priority: "NORMAL",
@@ -95,18 +100,16 @@ test("Customer step cannot advance without an active organization Customer", () 
   );
 });
 
-test("Case Details reject inactive or cross-tenant dimensions and invalid priority", () => {
+test("Case Details reject inactive or cross-tenant Case Types and invalid priority", () => {
   const configuration = baseConfiguration();
   const errors = validateGuidedCaseDetails(
     {
       ...draft(),
-      caseTitleId: "inactive-title",
       caseTypeId: "other-tenant-type",
       priority: "CRITICAL",
     },
     configuration,
   );
-  assert.match(errors.caseTitleId, /active configured Case Title/);
   assert.match(errors.caseTypeId, /active Case Type/);
   assert.match(errors.priority, /valid priority/);
 });
@@ -307,13 +310,26 @@ test("creation plan snapshots applicable definitions and generated Task provenan
   assert.equal(plan.questions[0].required, true);
 });
 
-test("final validation rechecks fresh configuration instead of trusting draft state", () => {
+test("final validation rechecks fresh Case Type configuration instead of trusting draft state", () => {
   const original = baseConfiguration();
-  assert.equal(validateGuidedCaseIntake(draft(), original).valid, true);
-  const changed = { ...original, caseTitles: [] };
-  const result = validateGuidedCaseIntake(draft(), changed);
+  assert.equal(
+    validateGuidedCaseIntake(draft(), original, "existing").valid,
+    true,
+  );
+
+  const changed = {
+    ...original,
+    caseTypes: [],
+  };
+
+  const result = validateGuidedCaseIntake(
+    draft(),
+    changed,
+    "existing",
+  );
+
   assert.equal(result.valid, false);
-  assert.match(result.fieldErrors.caseTitleId, /active configured Case Title/);
+  assert.match(result.fieldErrors.caseTypeId, /active Case Type/);
 });
 
 test("atomic RPC enforces tenant, permission, snapshot, task, and idempotency contracts", () => {
@@ -384,7 +400,8 @@ test("dependent verification is hidden when dependents are not claimed", () => {
     organizationId,
     customers: [],
     customerCaseYears: [],
-    caseTitles: [],
+    currentTaxYear: 2026,
+    taxYearOptions: [2026, 2025, 2024],
     caseTypes: [],
     managers: [],
     staff: [],
@@ -448,7 +465,8 @@ test("dependent verification becomes visible and required when dependents are cl
     organizationId,
     customers: [],
     customerCaseYears: [],
-    caseTitles: [],
+    currentTaxYear: 2026,
+    taxYearOptions: [2026, 2025, 2024],
     caseTypes: [],
     managers: [],
     staff: [],
@@ -513,7 +531,8 @@ test("business records follow the self-employment hierarchy", () => {
     organizationId,
     customers: [],
     customerCaseYears: [],
-    caseTitles: [],
+    currentTaxYear: 2026,
+    taxYearOptions: [2026, 2025, 2024],
     caseTypes: [],
     managers: [],
     staff: [],

@@ -8,9 +8,11 @@ import { ApplicationIcon } from "@/components/application-icon";
 export function CreateTaskModal({
   caseId,
   staff,
+  purposes,
 }: {
   caseId: string;
   staff: Array<{ id: string; name: string }>;
+  purposes: Array<{ id: string; label: string }>;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
 
@@ -37,6 +39,17 @@ export function CreateTaskModal({
             <button type="button" className="rule-dialog-close" aria-label="Close Create Task modal" onClick={() => dialog.current?.close()}><ApplicationIcon name="close" /></button>
           </header>
           <input type="hidden" name="caseId" value={caseId} />
+          <label>
+            <span>Task Purpose</span>
+            <select name="taskPurposeId" required defaultValue="">
+              <option value="" disabled>Select purpose…</option>
+              {purposes.map((purpose) => (
+                <option key={purpose.id} value={purpose.id}>
+                  {purpose.label}
+                </option>
+              ))}
+            </select>
+          </label>
           <label><span>Task title</span><input name="title" required maxLength={200} /></label>
           <label><span>Assigned to <small>Optional</small></span><select name="assignedUserId" defaultValue=""><option value="">Unassigned</option>{staff.map((member) => <option key={member.id} value={member.id}>{member.name}</option>)}</select></label>
           <label><span>Due Date</span><input type="date" name="dueDate" required /></label>

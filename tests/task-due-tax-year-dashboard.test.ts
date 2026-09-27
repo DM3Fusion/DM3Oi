@@ -212,7 +212,7 @@ test("Case tax year is nullable for history but required at both creation RPC bo
   assert.match(migration, /valid Case tax year is required/);
   assert.match(migration, /create function public\.create_case_workflow[\s\S]*target_tax_year integer/);
   assert.match(migration, /create function public\.create_guided_case_intake[\s\S]*target_tax_year integer/);
-  assert.match(source("components/cases/guided-case-intake.tsx"), /<span>Tax Year<\/span>[\s\S]*min="1900"[\s\S]*max="2200"/);
+  assert.match(source("components/cases/guided-case-intake.tsx"), /<span>Tax Year<\/span>[\s\S]*<select[\s\S]*configuration\.taxYearOptions/);
   assert.match(source("app/cases/[caseId]/page.tsx"), /<dt>Tax year<\/dt>[\s\S]*item\.tax_year \?\? "—"/);
 });
 
@@ -247,7 +247,8 @@ test("required complete-option questions expose missing items and cannot be sati
     organizationId: "org",
     customers: [],
     customerCaseYears: [],
-    caseTitles: [],
+    currentTaxYear: 2026,
+    taxYearOptions: [2026, 2025, 2024],
     caseTypes: [],
     managers: [],
     staff: [{ id: "staff", name: "Staff" }],
@@ -309,10 +310,46 @@ test("Guided Intake stages follow-ups without orphan Tasks and materializes prov
   assert.doesNotMatch(actions, /\.from\("case_tasks"\)\.(?:insert|upsert)/);
 });
 
+test("Task Purpose migration preserves deployed RPC compatibility and generated Task exemptions", () => {
+  const purposeMigration = source(
+    "supabase/migrations/20260927154500_dm3oi_case_types_task_purposes.sql",
+  );
+
+  assert.doesNotMatch(
+    purposeMigration,
+    /General Follow-Up/,
+  );
+
+  assert.doesNotMatch(
+    purposeMigration,
+    /drop function if exists public\.create_case_task\(\s*uuid,text,text,uuid,boolean,date,public\.priority_level,boolean\s*\)/,
+  );
+
+  assert.doesNotMatch(
+    purposeMigration,
+    /drop function if exists public\.update_case_task\(\s*uuid,text,text,uuid,public\.case_task_status,boolean,date\s*\)/,
+  );
+
+  assert.match(
+    purposeMigration,
+    /existing\.source_rule_action_id is null[\s\S]*existing\.intake_follow_up_id is null[\s\S]*target_task_purpose_id is null/,
+  );
+
+  assert.match(
+    purposeMigration,
+    /create function public\.create_case_task\([\s\S]*target_task_purpose_id uuid/,
+  );
+
+  assert.match(
+    purposeMigration,
+    /create function public\.update_case_task\([\s\S]*target_task_purpose_id uuid/,
+  );
+});
+
 test("Case Create Task uses an in-place modal with required Due Date", () => {
   const page = source("app/cases/[caseId]/page.tsx");
   const modal = source("components/cases/create-task-modal.tsx");
-  assert.match(page, /<CreateTaskModal caseId=\{item\.id\}/);
+  assert.match(page, /<CreateTaskModal[\s\S]*?caseId=\{item\.id\}/);
   assert.doesNotMatch(page, /<details className="create-panel">/);
   assert.match(modal, /dialog\.current\?\.showModal\(\)/);
   assert.match(modal, /name="dueDate" required/);

@@ -12,10 +12,10 @@ const loader = readFileSync(
   "utf8",
 );
 
-test("Guided Intake service-role mapping query has its required table privilege", () => {
-  assert.match(
+test("Guided Intake no longer depends on Case Title compatibility mappings", () => {
+  assert.doesNotMatch(
     loader,
-    /\(admin as any\)[\s\S]*?\.from\("organization_case_title_type_mappings"\)[\s\S]*?\.select\("case_title_id,case_type_id"\)/,
+    /organization_case_title_type_mappings/,
   );
 
   assert.match(
