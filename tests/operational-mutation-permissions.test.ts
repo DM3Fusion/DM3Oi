@@ -41,7 +41,7 @@ test("case task and customer actions enforce centralized capabilities before wri
 
  const customerCreation=source("lib/data/customer-creation.ts");
  assert.match(customerCreation,/requirePermission\("CREATE_CUSTOMER"\)/);
- assert.match(customerCreation,/validateCustomerCreation\(values\)/);
+ assert.match(customerCreation,/validateCustomerCreation\(values,\s*validationMode\)/);
 
  assert.match(source("lib/data/customer-actions.ts"),/requirePermission\("EDIT_CUSTOMER"\)/);
  const questions=source("lib/data/question-actions.ts");

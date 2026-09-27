@@ -16,6 +16,8 @@ export type CustomerCreationValues = {
   notes: string;
 };
 
+export type CustomerCreationValidationMode = "COMPLETE_PROFILE" | "GUIDED_INTAKE";
+
 export const deriveCustomerName = (firstName: string | undefined, lastName: string | undefined, fallback: string) =>
   [firstName?.trim(), lastName?.trim()].filter(Boolean).join(" ") || fallback.trim();
 
@@ -30,39 +32,73 @@ export function validateOptionalCustomerAddress(values: Pick<CustomerCreationVal
   return fieldErrors;
 }
 
-export function validateCustomerCreation(values: CustomerCreationValues) {
+export function validateCustomerCreation(
+  values: CustomerCreationValues,
+  mode: CustomerCreationValidationMode = "COMPLETE_PROFILE",
+) {
   const fieldErrors: Record<string, string> = {};
-  const email = values.email.trim().toLowerCase();
-  const phone = normalizeCustomerPhone(values.phone);
-  const name = deriveCustomerName(values.firstName, values.lastName, values.name);
-  Object.assign(fieldErrors, validateOptionalCustomerAddress(values));
-  if (values.type !== "INDIVIDUAL" && values.type !== "BUSINESS")
+  const normalizedValues = {
+    ...values,
+    type: values.type.trim(),
+    name: values.name.trim(),
+    firstName: values.firstName?.trim() ?? "",
+    lastName: values.lastName?.trim() ?? "",
+    streetAddress: values.streetAddress?.trim() ?? "",
+    city: values.city?.trim() ?? "",
+    state: values.state?.trim().toUpperCase() ?? "",
+    postalCode: values.postalCode?.trim() ?? "",
+    email: values.email.trim().toLowerCase(),
+    phone: values.phone.trim(),
+    notes: values.notes.trim(),
+  };
+  const phone = normalizeCustomerPhone(normalizedValues.phone);
+  const name = deriveCustomerName(
+    normalizedValues.firstName,
+    normalizedValues.lastName,
+    normalizedValues.name,
+  );
+  Object.assign(fieldErrors, validateOptionalCustomerAddress(normalizedValues));
+  if (normalizedValues.type !== "INDIVIDUAL" && normalizedValues.type !== "BUSINESS")
     fieldErrors.type = "Select a valid customer type.";
-  if (!name) fieldErrors.name = "Name or structured first/last name is required.";
-  if (!customerEmailPattern.test(email))
+  if (mode === "COMPLETE_PROFILE") {
+    if (!normalizedValues.firstName) fieldErrors.firstName = "First name is required.";
+    if (!normalizedValues.lastName) fieldErrors.lastName = "Last name is required.";
+    if (!normalizedValues.streetAddress) fieldErrors.streetAddress = "Street address is required.";
+    if (!normalizedValues.city) fieldErrors.city = "City is required.";
+    if (!normalizedValues.state) fieldErrors.state = "State is required.";
+    if (!normalizedValues.postalCode) fieldErrors.postalCode = "Postal code is required.";
+  } else if (!name) {
+    fieldErrors.name = "Name or structured first/last name is required.";
+  }
+  if (!normalizedValues.email)
+    fieldErrors.email = "Email is required.";
+  else if (!customerEmailPattern.test(normalizedValues.email))
     fieldErrors.email = "Enter a valid email address.";
-  if (!phone) fieldErrors.phone = "Enter a valid U.S. phone number.";
+  if (!normalizedValues.phone)
+    fieldErrors.phone = "Phone is required.";
+  else if (!phone)
+    fieldErrors.phone = "Enter a valid U.S. phone number.";
   return Object.keys(fieldErrors).length
     ? {
         ok: false as const,
         error: "Correct the highlighted fields.",
         fieldErrors,
-        values,
+        values: normalizedValues,
       }
     : {
         ok: true as const,
         value: {
-          type: values.type as "INDIVIDUAL" | "BUSINESS",
+          type: normalizedValues.type as "INDIVIDUAL" | "BUSINESS",
           name,
-          firstName: values.firstName?.trim() ?? "",
-          lastName: values.lastName?.trim() ?? "",
-          streetAddress: values.streetAddress?.trim() ?? "",
-          city: values.city?.trim() ?? "",
-          state: values.state?.trim().toUpperCase() ?? "",
-          postalCode: values.postalCode?.trim() ?? "",
-          email,
+          firstName: normalizedValues.firstName,
+          lastName: normalizedValues.lastName,
+          streetAddress: normalizedValues.streetAddress,
+          city: normalizedValues.city,
+          state: normalizedValues.state,
+          postalCode: normalizedValues.postalCode,
+          email: normalizedValues.email,
           phone: phone!,
-          notes: values.notes.trim(),
+          notes: normalizedValues.notes,
         },
       };
 }

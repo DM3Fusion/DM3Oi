@@ -4,6 +4,7 @@ import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import {
   validateCustomerCreation,
+  type CustomerCreationValidationMode,
   type CustomerCreationValues,
 } from "@/lib/customer-validation";
 
@@ -26,8 +27,9 @@ export type CustomerCreationResult =
 
 export async function createCustomerForCurrentOrganization(
   values: CustomerCreationValues,
+  validationMode: CustomerCreationValidationMode = "COMPLETE_PROFILE",
 ): Promise<CustomerCreationResult> {
-  const parsed = validateCustomerCreation(values);
+  const parsed = validateCustomerCreation(values, validationMode);
   if (!parsed.ok) return parsed;
   const context = await requirePermission("CREATE_CUSTOMER");
   const supabase = await createClient();

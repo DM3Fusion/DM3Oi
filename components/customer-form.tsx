@@ -18,7 +18,7 @@ export function CustomerForm() {
     setSummary(null);
   };
   const field = (key: keyof Values, label: string, type = "text") => {
-    const required = key === "email" || key === "phone";
+    const required = key !== "name";
     return (
     <label><span>{label}{!required ? <small> Optional</small> : null}</span><input name={key} type={type} required={required} value={values[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={Boolean(errors[key])} />{errors[key] ? <small className="field-error" role="alert">{errors[key]}</small> : null}</label>
     );
@@ -31,7 +31,7 @@ export function CustomerForm() {
       if (!result.ok) { setValues({ ...initial, ...result.values }); setErrors(result.fieldErrors); setSummary(result.error); }
     }} className="entity-form">
       <div className="form-grid">
-        <label><span>Customer Type</span><select name="type" value={values.type} onChange={(event) => update("type", event.target.value)}><option value="INDIVIDUAL">INDIVIDUAL</option><option value="BUSINESS">BUSINESS</option></select></label>
+        <label><span>Customer Type</span><select name="type" required value={values.type} onChange={(event) => update("type", event.target.value)} aria-invalid={Boolean(errors.type)}><option value="INDIVIDUAL">INDIVIDUAL</option><option value="BUSINESS">BUSINESS</option></select>{errors.type ? <small className="field-error" role="alert">{errors.type}</small> : null}</label>
         {field("name", "Business / display name")}{field("firstName", "First name")}{field("lastName", "Last name")}
         {field("email","Email","email")}{field("phone","Phone","tel")}
         {field("streetAddress", "Street address")}{field("city", "City")}{field("state", "State")}{field("postalCode", "Postal code")}

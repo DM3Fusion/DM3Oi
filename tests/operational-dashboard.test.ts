@@ -273,6 +273,16 @@ test("dashboard KPI cards remain four columns on wide and two on narrow layouts"
 test("dashboard KPIs render the canonical workload and Customer labels", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const metrics = source("lib/live-dashboard-metrics.ts");
+
+  const currentTaxYearIndex = metrics.indexOf('label:"Customers — Current Tax Year"');
+  const priorTaxYearIndex = metrics.indexOf('label:"Customers — Prior Tax Year"');
+  const repeatCustomersIndex = metrics.indexOf('label:"Repeat Customers"');
+  const lifetimeCustomersIndex = metrics.indexOf('label:"Customers — Lifetime"');
+
+  assert.ok(currentTaxYearIndex >= 0);
+  assert.ok(priorTaxYearIndex > currentTaxYearIndex);
+  assert.ok(repeatCustomersIndex > priorTaxYearIndex);
+  assert.ok(lifetimeCustomersIndex > repeatCustomersIndex);
   for (const label of ["Due Today", "Open Requests", "Open Tasks", "Open Cases", "Customers — Lifetime", "Customers — Prior Tax Year", "Customers — Current Tax Year", "Repeat Customers"]) {
     assert.match(metrics, new RegExp(`label:\\"${label}\\"`));
   }

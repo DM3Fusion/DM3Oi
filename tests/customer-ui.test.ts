@@ -10,7 +10,7 @@ test("customer phone display formatting is safe and presentation-only", () => {
   assert.equal(formatPhone("legacy phone"), "legacy phone");
 });
 
-test("customer creation exposes only valid types and required contact fields", () => {
+test("customer creation exposes valid types and requires the complete profile", () => {
   const page = readFileSync("app/customers/new/page.tsx", "utf8");
   const form = readFileSync("components/customer-form.tsx", "utf8");
   const validation = readFileSync("lib/customer-validation.ts", "utf8");
@@ -19,13 +19,19 @@ test("customer creation exposes only valid types and required contact fields", (
   assert.match(form, /BUSINESS/);
   assert.doesNotMatch(form, /ORGANIZATION/);
   assert.match(form, /name=\{key\} type=\{type\} required/);
+  assert.match(form, /const required = key !== "name"/);
   assert.match(form, /field\("email","Email","email"\)/);
   assert.match(form, /field\("phone","Phone","tel"\)/);
+  assert.match(form, /<select name="type" required/);
+  assert.match(form, /Business \/ display name/);
+  assert.match(form, /Notes <small>Optional<\/small>/);
   assert.match(page, /CustomerForm/);
-  assert.match(validation, /values\.type !== "INDIVIDUAL" && values\.type !== "BUSINESS"/);
+  assert.match(validation, /normalizedValues\.type !== "INDIVIDUAL" && normalizedValues\.type !== "BUSINESS"/);
+  for (const field of ["firstName", "lastName", "streetAddress", "city", "state", "postalCode"])
+    assert.match(validation, new RegExp(`!normalizedValues\\.${field}`));
   assert.match(validation, /customerEmailPattern/);
   assert.match(validation, /normalizeCustomerPhone/);
-  assert.match(creation, /validateCustomerCreation\(values\)/);
+  assert.match(creation, /validateCustomerCreation\(values,\s*validationMode\)/);
   assert.match(creation, /requirePermission\("CREATE_CUSTOMER"\)/);
   assert.match(creation, /supabase\.rpc\(\s*"create_customer_record"/);
   assert.doesNotMatch(creation, /target_customer_number/);

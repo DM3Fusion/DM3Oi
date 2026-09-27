@@ -32,7 +32,7 @@ import {
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
 ) {
-  return createCustomerForCurrentOrganization(values);
+  return createCustomerForCurrentOrganization(values, "GUIDED_INTAKE");
 }
 
 

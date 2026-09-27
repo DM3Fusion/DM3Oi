@@ -33,10 +33,10 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
       {label:"Open Cases",value:openCases,href:"/cases?status=active",detail:"Open lifecycle statuses",tone:"blue"},
     ],
     customerKpis:[
-      {label:"Customers — Lifetime",value:customerMetrics.lifetimeCustomers,href:"/customers",detail:"Distinct organization Customers",tone:"green"},
-      {label:"Customers — Prior Tax Year",value:customerMetrics.priorTaxYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear?String(customerMetrics.priorTaxYear):"No tax-year Case data",tone:"slate"},
       {label:"Customers — Current Tax Year",value:customerMetrics.currentTaxYearCustomers,href:"/customers",detail:customerMetrics.currentTaxYear?String(customerMetrics.currentTaxYear):"No tax-year Case data",tone:"cyan"},
+      {label:"Customers — Prior Tax Year",value:customerMetrics.priorTaxYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear?String(customerMetrics.priorTaxYear):"No tax-year Case data",tone:"slate"},
       {label:"Repeat Customers",value:customerMetrics.repeatCustomers,href:"/customers",detail:"Served in adjacent tax years",tone:"violet"},
+      {label:"Customers — Lifetime",value:customerMetrics.lifetimeCustomers,href:"/customers",detail:"Distinct organization Customers",tone:"green"},
     ],
     caseProgress:[
       {label:"New",value:cases.filter(item=>item.status==="NEW").length,href:"/cases?status=new"},
