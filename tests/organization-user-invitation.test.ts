@@ -102,6 +102,46 @@ test("invitation reuses canonical Auth, profile, and membership infrastructure",
   assert.match(usersPage, /ResendInviteButton/);
 });
 
+test("reused Auth identities receive canonical profile identity immediately", () => {
+  const organizationFlow = actions.slice(
+    actions.indexOf("export async function inviteOrganizationUserAction"),
+    actions.indexOf("export async function resendUserInviteAction"),
+  );
+
+  assert.match(
+    organizationFlow,
+    /\.select\("id,email,first_name,last_name,display_name,title,is_active"\)/,
+  );
+  assert.match(
+    organizationFlow,
+    /profile\?\.first_name\?\.trim\(\) \|\| firstName/,
+  );
+  assert.match(
+    organizationFlow,
+    /profile\?\.last_name\?\.trim\(\) \|\| lastName/,
+  );
+  assert.match(
+    organizationFlow,
+    /profile\?\.display_name\?\.trim\(\)/,
+  );
+  assert.match(
+    organizationFlow,
+    /\.from\("profiles"\)\.upsert\(\{/,
+  );
+  assert.match(
+    organizationFlow,
+    /display_name: resolvedDisplayName/,
+  );
+  assert.match(
+    organizationFlow,
+    /first_name:[\s\S]*firstName/,
+  );
+  assert.match(
+    organizationFlow,
+    /organization_name:[\s\S]*activeOrganization\.name/,
+  );
+});
+
 test("organization invitation metadata preserves existing Auth data", () => {
   assert.deepEqual(
     organizationInvitationMetadata(

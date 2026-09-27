@@ -332,25 +332,36 @@ export async function inviteOrganizationUserAction(form: FormData) {
           .maybeSingle(),
         admin
           .from("profiles")
-          .select("id,is_active")
+          .select("id,email,first_name,last_name,display_name,title,is_active")
           .eq("id", existingAuthUser.id)
           .maybeSingle(),
       ]);
     if (platformRole || profileLookupError || profile?.is_active === false)
       go(path, "error", "The invitation could not be completed for this user.");
-    if (!profile) {
-      const { error: profileError } = await admin.from("profiles").upsert({
-        id: existingAuthUser.id,
-        email,
-        first_name: firstName,
-        last_name: lastName,
-        display_name: displayName,
-        title: title || null,
-        is_active: true,
-      });
-      if (profileError)
-        go(path, "error", "The invitation could not be completed for this user.");
-    }
+
+    const resolvedFirstName =
+      profile?.first_name?.trim() || firstName;
+    const resolvedLastName =
+      profile?.last_name?.trim() || lastName;
+    const resolvedDisplayName =
+      profile?.display_name?.trim() ||
+      `${resolvedFirstName} ${resolvedLastName}`.trim() ||
+      displayName;
+    const resolvedTitle =
+      profile?.title?.trim() || title || null;
+
+    const { error: profileError } = await admin.from("profiles").upsert({
+      id: existingAuthUser.id,
+      email: profile?.email?.trim() || email,
+      first_name: resolvedFirstName,
+      last_name: resolvedLastName,
+      display_name: resolvedDisplayName,
+      title: resolvedTitle,
+      is_active: true,
+    });
+
+    if (profileError)
+      go(path, "error", "The invitation could not be completed for this user.");
   } else {
     const { data: invited, error: inviteError } =
       await admin.auth.admin.inviteUserByEmail(email, {
@@ -531,10 +542,32 @@ export async function inviteOrganizationUserAction(form: FormData) {
       email,
       {
         redirectTo: getInvitationRedirect(),
-        data: organizationInvitationMetadata(
-          existingAuthUser.user_metadata,
-          activeOrganization.name,
-        ),
+        data: {
+          ...organizationInvitationMetadata(
+            existingAuthUser.user_metadata,
+            activeOrganization.name,
+          ),
+          first_name:
+            typeof existingAuthUser.user_metadata?.first_name === "string" &&
+            existingAuthUser.user_metadata.first_name.trim()
+              ? existingAuthUser.user_metadata.first_name
+              : firstName,
+          last_name:
+            typeof existingAuthUser.user_metadata?.last_name === "string" &&
+            existingAuthUser.user_metadata.last_name.trim()
+              ? existingAuthUser.user_metadata.last_name
+              : lastName,
+          display_name:
+            typeof existingAuthUser.user_metadata?.display_name === "string" &&
+            existingAuthUser.user_metadata.display_name.trim()
+              ? existingAuthUser.user_metadata.display_name
+              : displayName,
+          title:
+            typeof existingAuthUser.user_metadata?.title === "string" &&
+            existingAuthUser.user_metadata.title.trim()
+              ? existingAuthUser.user_metadata.title
+              : title || null,
+        },
       },
     );
     if (resendError) {
