@@ -256,7 +256,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
         responseType: question.response_type,
         required: question.required,
         requireAllOptions: question.require_all_options,
-        trackRequiredOptions: question.track_required_options,
+        trackRequiredOptions: false,
         completionCondition:
           question.completion_condition === "YES_REQUIRED"
             ? "YES_REQUIRED"

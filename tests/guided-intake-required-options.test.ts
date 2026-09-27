@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
+
+const intakeComponent = readFileSync(
+  "components/cases/guided-case-intake.tsx",
+  "utf8",
+);
 import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
@@ -223,13 +228,16 @@ test("tracked creation plan snapshots only the Case-specific required subset", (
   );
 });
 
-test("tracked UI separates Required and Received and clears received state when Required is removed", () => {
-  const source = readFileSync("components/cases/guided-case-intake.tsx", "utf8");
-  assert.match(source, /Document \/ Item/);
-  assert.match(source, />Required</);
-  assert.match(source, />Received</);
-  assert.match(source, /disabled=\{!isRequired\}/);
-  assert.match(source, /nextRequired\.includes\(id\)/);
+test("configured required-item UI exposes Received only", () => {
+  assert.match(intakeComponent, /Document \/ Item/);
+  assert.match(intakeComponent, />Received</);
+  assert.match(intakeComponent, /question\.requireAllOptions/);
+  assert.match(
+    intakeComponent,
+    /\$\{selectedCount\} of \$\{question\.options\.length\} received/,
+  );
+  assert.doesNotMatch(intakeComponent, /onRequiredChange/);
+  assert.doesNotMatch(intakeComponent, />Required<\/span>/);
 });
 
 test("draft persistence carries required option selections", () => {
