@@ -28,7 +28,9 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
   };
   const settings = await createAdminClient().from("organization_settings").select("timezone").eq("organization_id", context.activeOrganization.id).maybeSingle();
   const timezone = settings.data?.timezone ?? "UTC";
-  const organizationWide = !context.isSuperAdmin && context.activeOrganization.role === "BUSINESS_OWNER";
+  const organizationWide =
+    context.isSuperAdmin ||
+    context.activeOrganization.role === "BUSINESS_OWNER";
   const now = new Date();
   const createdAfter = values.range === "today" ? startOfOrganizationDay(now, timezone).toISOString() : values.range === "7d" ? new Date(now.getTime() - 7 * 86400000).toISOString() : values.range === "30d" ? new Date(now.getTime() - 30 * 86400000).toISOString() : undefined;
   const [notifications, unread] = await Promise.all([
@@ -53,6 +55,7 @@ export default async function CommunicationsPage({ searchParams }: { searchParam
         notifications={notifications}
         timezone={timezone}
         emptyMessage={values.q ? (hasStructuredFilters ? "No communications match your search and filters." : "No communications match your search.") : filtered ? "No communications match these filters." : "No communications yet."}
+        canDeleteCommunications={context.isSuperAdmin}
       />
     </div>
   );

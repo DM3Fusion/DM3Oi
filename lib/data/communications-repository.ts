@@ -34,7 +34,9 @@ export type NotificationFilters = {
 
 export async function getNotifications(filters: NotificationFilters = {}): Promise<Notification[]> {
   const context = await requireInternalContext();
-  const organizationWide = !context.isSuperAdmin && context.activeOrganization.role === "BUSINESS_OWNER";
+  const organizationWide =
+    context.isSuperAdmin ||
+    context.activeOrganization.role === "BUSINESS_OWNER";
   const supabase = await createClient();
   let query = supabase
     .from("notifications")

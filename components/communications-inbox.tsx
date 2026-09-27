@@ -8,6 +8,7 @@ import {
   markNotificationReadAction,
   markNotificationUnreadAction,
   openNotificationAction,
+  deleteCommunicationAction,
 } from "@/lib/data/communications-actions";
 import type { Notification } from "@/lib/data/communications-repository";
 import { communicationsDestination } from "@/lib/communications-view";
@@ -22,6 +23,7 @@ type Props = {
   notifications: Notification[];
   timezone: string;
   emptyMessage: string;
+  canDeleteCommunications: boolean;
 };
 
 function humanize(value: string) {
@@ -226,12 +228,14 @@ function NotificationPreview({
   serviceRequestPreview,
   loading,
   error,
+  canDeleteCommunications,
 }: {
   item: Notification;
   timezone: string;
   serviceRequestPreview: ServiceRequestInboxPreview | null;
   loading: boolean;
   error: string | null;
+  canDeleteCommunications: boolean;
 }) {
   const category = categoryLabel(item);
 
@@ -341,6 +345,48 @@ function NotificationPreview({
             </PendingSubmitButton>
           </form>
         ) : null}
+
+        {canDeleteCommunications ? (
+          <form
+            action={deleteCommunicationAction}
+            onSubmit={(event) => {
+              if (
+                !window.confirm(
+                  item.communication_kind === "EMAIL_DELIVERY"
+                    ? "Permanently remove this email record from DM3Oi Communications? This does not recall an email already delivered."
+                    : "Permanently remove this notification from DM3Oi Communications?",
+                )
+              )
+                event.preventDefault();
+            }}
+          >
+            <input
+              type="hidden"
+              name="organizationId"
+              value={item.organization_id}
+            />
+            <input
+              type="hidden"
+              name="recordKind"
+              value={item.communication_kind}
+            />
+            <input
+              type="hidden"
+              name="recordId"
+              value={
+                item.communication_kind === "EMAIL_DELIVERY"
+                  ? item.source_entity_id
+                  : item.id
+              }
+            />
+            <PendingSubmitButton
+              className="secondary-button communications-delete-button"
+              pendingLabel="Deleting…"
+            >
+              Delete communication
+            </PendingSubmitButton>
+          </form>
+        ) : null}
       </div>
     </article>
   );
@@ -349,9 +395,11 @@ function NotificationPreview({
 function MobileNotification({
   item,
   timezone,
+  canDeleteCommunications,
 }: {
   item: Notification;
   timezone: string;
+  canDeleteCommunications: boolean;
 }) {
   const category = categoryLabel(item);
 
@@ -404,11 +452,59 @@ function MobileNotification({
           </PendingSubmitButton>
         </form>
       ) : null}
+
+      {canDeleteCommunications ? (
+        <form
+          action={deleteCommunicationAction}
+          className="notification-state-form"
+          onSubmit={(event) => {
+            if (
+              !window.confirm(
+                item.communication_kind === "EMAIL_DELIVERY"
+                  ? "Permanently remove this email record from DM3Oi Communications? This does not recall an email already delivered."
+                  : "Permanently remove this notification from DM3Oi Communications?",
+              )
+            )
+              event.preventDefault();
+          }}
+        >
+          <input
+            type="hidden"
+            name="organizationId"
+            value={item.organization_id}
+          />
+          <input
+            type="hidden"
+            name="recordKind"
+            value={item.communication_kind}
+          />
+          <input
+            type="hidden"
+            name="recordId"
+            value={
+              item.communication_kind === "EMAIL_DELIVERY"
+                ? item.source_entity_id
+                : item.id
+            }
+          />
+          <PendingSubmitButton
+            className="communications-delete-button"
+            pendingLabel="Deleting…"
+          >
+            Delete
+          </PendingSubmitButton>
+        </form>
+      ) : null}
     </article>
   );
 }
 
-export function CommunicationsInbox({ notifications, timezone, emptyMessage }: Props) {
+export function CommunicationsInbox({
+  notifications,
+  timezone,
+  emptyMessage,
+  canDeleteCommunications,
+}: Props) {
   const [selectedId, setSelectedId] = useState<string | null>(notifications[0]?.id ?? null);
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
   const [serviceRequestPreview, setServiceRequestPreview] = useState<{
@@ -511,12 +607,18 @@ export function CommunicationsInbox({ notifications, timezone, emptyMessage }: P
               ? previewError.message
               : null
           }
+          canDeleteCommunications={canDeleteCommunications}
         />
       </div>
 
       <div className="notification-list communications-inbox-mobile">
         {displayedNotifications.map((item) => (
-          <MobileNotification key={item.id} item={item} timezone={timezone} />
+          <MobileNotification
+            key={item.id}
+            item={item}
+            timezone={timezone}
+            canDeleteCommunications={canDeleteCommunications}
+          />
         ))}
       </div>
     </section>

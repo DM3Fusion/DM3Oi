@@ -7762,3 +7762,18 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     padding: 9px 12px;
   }
 }
+
+
+.communications-delete-button{
+  border-color:#fecaca!important;
+  background:#fff1f2!important;
+  color:#b91c1c!important;
+}
+.communications-delete-button:hover:not(:disabled){
+  border-color:#fca5a5!important;
+  background:#ffe4e6!important;
+}
+.communications-delete-button:disabled{
+  cursor:not-allowed;
+  opacity:.55;
+}

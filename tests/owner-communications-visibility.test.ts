@@ -30,8 +30,8 @@ test("Business Owner receives organization-wide read access without global authe
   assert.doesNotMatch(migration, /disable row level security/i);
 });
 
-test("repository broadens only a non-platform Business Owner in the active organization", () => {
-  assert.match(repository, /!context\.isSuperAdmin && context\.activeOrganization\.role === "BUSINESS_OWNER"/);
+test("repository broadens only Business Owners and SUPER_ADMIN in active organization context", () => {
+  assert.match(repository, /context\.isSuperAdmin\s*\|\|\s*context\.activeOrganization\.role === "BUSINESS_OWNER"/);
   assert.match(repository, /\.eq\("organization_id", context\.activeOrganization\.id\)/);
   assert.match(repository, /if \(!organizationWide\) query = query\.eq\("recipient_user_id", context\.user\.id\)/);
   assert.match(repository, /get_organization_email_delivery_audit/);
@@ -97,4 +97,66 @@ test("other internal roles, portal users, and platform behavior remain constrain
   assert.match(databaseRegression, /Staff User remains recipient scoped/);
   assert.match(databaseRegression, /Customer Portal identity cannot read internal Communications/);
   assert.match(databaseRegression, /SUPER_ADMIN recipient behavior remains personal/);
+});
+
+
+test("SUPER_ADMIN organization context can observe and target-delete exact communications", () => {
+  const repository = source("lib/data/communications-repository.ts");
+  const page = source("app/communications/page.tsx");
+  const actions = source("lib/data/communications-actions.ts");
+  const inbox = source("components/communications-inbox.tsx");
+  const migration = source(
+    "supabase/migrations/20260927133000_dm3oi_super_admin_targeted_communication_delete.sql",
+  );
+
+  assert.match(
+    repository,
+    /context\.isSuperAdmin\s*\|\|\s*context\.activeOrganization\.role === "BUSINESS_OWNER"/,
+  );
+  assert.match(
+    page,
+    /canDeleteCommunications=\{context\.isSuperAdmin\}/,
+  );
+  assert.match(
+    actions,
+    /requireSuperAdmin\(\)[\s\S]*activeOrganization\.id !== organizationId/,
+  );
+  assert.match(
+    inbox,
+    /Delete communication[\s\S]*EMAIL_DELIVERY[\s\S]*source_entity_id/,
+  );
+  assert.match(
+    migration,
+    /create table if not exists public\.platform_communication_deletion_audit/,
+  );
+  assert.match(
+    migration,
+    /service_request_communications[\s\S]*notification_id[\s\S]*durable Service Request delivery history/,
+  );
+  assert.match(
+    migration,
+    /delete from public\.email_deliveries/,
+  );
+  assert.match(
+    migration,
+    /delete from public\.notifications/,
+  );
+  assert.match(
+    migration,
+    /public\.is_super_admin\(actor\)/,
+  );
+});
+
+test("organization Owners retain observation without receiving communication deletion", () => {
+  const page = source("app/communications/page.tsx");
+  const inbox = source("components/communications-inbox.tsx");
+
+  assert.match(
+    page,
+    /canDeleteCommunications=\{context\.isSuperAdmin\}/,
+  );
+  assert.match(
+    inbox,
+    /canDeleteCommunications \? \(/,
+  );
 });
