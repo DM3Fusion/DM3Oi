@@ -222,3 +222,186 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
     returnTo,
   );
 }
+
+
+export async function reassignOrganizationUserWorkAction(form: FormData) {
+  const membershipId = value(form, "membershipId");
+  const workType = value(form, "workType").toUpperCase();
+  const replacementUserId = value(form, "replacementUserId");
+
+  if (!membershipId)
+    return go(membershipId, "error", "Organization user not found.");
+
+  if (!["CASES", "TASKS", "SERVICE_REQUESTS"].includes(workType))
+    return go(membershipId, "error", "Select a valid workload type.");
+
+  if (!replacementUserId)
+    return go(membershipId, "error", "Select an active user for reassignment.");
+
+  const access = await getAccessContext();
+  if (
+    !access?.activeOrganization ||
+    !hasPermission(access, "MANAGE_USERS")
+  )
+    return go(
+      membershipId,
+      "error",
+      "You are not authorized to manage organization users.",
+    );
+
+  const supabase = await createClient();
+
+  const { data: membership } = await supabase
+    .from("organization_members")
+    .select("id,user_id,organization_id,role,status")
+    .eq("id", membershipId)
+    .eq("organization_id", access.activeOrganization.id)
+    .maybeSingle();
+
+  if (!membership)
+    return go(membershipId, "error", "Organization user not found.");
+
+  if (membership.status !== "REVOKED")
+    return go(
+      membershipId,
+      "error",
+      "Work reassignment is available after organization access is revoked.",
+    );
+
+  if (
+    !isOrganizationUserRole(membership.role) ||
+    !isOrganizationUserRole(access.activeOrganization.role)
+  )
+    return go(
+      membershipId,
+      "error",
+      "You are not authorized to reassign this user's work.",
+    );
+
+  const targetRole = membership.role as
+    | "BUSINESS_OWNER"
+    | "BUSINESS_ADMIN"
+    | "STAFF_MANAGER"
+    | "STAFF_USER";
+  const actorRole = access.activeOrganization.role as
+    | "BUSINESS_OWNER"
+    | "BUSINESS_ADMIN"
+    | "STAFF_MANAGER"
+    | "STAFF_USER";
+
+  if (
+    !canConfigureOrganizationRole(
+      actorRole,
+      targetRole,
+      access.isSuperAdmin,
+    )
+  )
+    return go(
+      membershipId,
+      "error",
+      "You are not authorized to reassign this user's work.",
+    );
+
+  if (replacementUserId === membership.user_id)
+    return go(
+      membershipId,
+      "error",
+      "Select a different active user for reassignment.",
+    );
+
+  const { data: replacement } = await supabase
+    .from("organization_members")
+    .select("id,user_id,status,is_active")
+    .eq("organization_id", access.activeOrganization.id)
+    .eq("user_id", replacementUserId)
+    .eq("status", "ACTIVE")
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (!replacement)
+    return go(
+      membershipId,
+      "error",
+      "Select a valid active organization user.",
+    );
+
+  const rpcClient = supabase as unknown as {
+    rpc(
+      fn: "reassign_revoked_member_work",
+      args: {
+        target_membership_id: string;
+        target_work_type: string;
+        replacement_user_id: string;
+      },
+    ): PromiseLike<{
+      data: { affected?: number } | null;
+      error: { message: string; code?: string } | null;
+    }>;
+  };
+
+  const { data, error } = await rpcClient.rpc(
+    "reassign_revoked_member_work",
+    {
+      target_membership_id: membershipId,
+      target_work_type: workType,
+      replacement_user_id: replacementUserId,
+    },
+  );
+
+  if (error) {
+    console.error("Revoked organization user workload reassignment failed", {
+      code: error.code ?? null,
+      message: error.message,
+      membershipId,
+      workType,
+      replacementUserId,
+    });
+
+    if (
+      error.message.includes("active organization user") ||
+      error.message.includes("different active user")
+    )
+      return go(
+        membershipId,
+        "error",
+        "Select a valid active organization user.",
+      );
+
+    if (error.message.toLowerCase().includes("not authorized"))
+      return go(
+        membershipId,
+        "error",
+        "You are not authorized to reassign this user's work.",
+      );
+
+    return go(
+      membershipId,
+      "error",
+      "The selected workload could not be reassigned.",
+    );
+  }
+
+  revalidatePath("/users");
+  revalidatePath(`/users/${membershipId}`);
+  revalidatePath("/cases");
+  revalidatePath("/tasks");
+  revalidatePath("/service-desk");
+  revalidatePath("/communications");
+
+  const labels: Record<string, string> = {
+    CASES: "Case responsibility",
+    TASKS: "Task responsibility",
+    SERVICE_REQUESTS: "Service Request responsibility",
+  };
+
+  const affected =
+    data && typeof data.affected === "number" ? data.affected : null;
+
+  return go(
+    membershipId,
+    "message",
+    affected === null
+      ? `${labels[workType]} reassigned.`
+      : `${labels[workType]} reassigned (${affected} ${affected === 1 ? "item" : "items"}).`,
+  );
+}

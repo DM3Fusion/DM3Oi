@@ -25,6 +25,7 @@ export function SuperAdminUserDelete({
   displayName,
   email,
   blockers,
+  returnTo,
 }: {
   userId: string;
   membershipId: string;
@@ -32,6 +33,7 @@ export function SuperAdminUserDelete({
   displayName: string;
   email: string;
   blockers: string[];
+  returnTo?: "/users";
 }) {
   const [confirmation, setConfirmation] = useState("");
 
@@ -69,6 +71,7 @@ export function SuperAdminUserDelete({
           <input type="hidden" name="userId" value={userId} />
           <input type="hidden" name="membershipId" value={membershipId} />
           <input type="hidden" name="organizationId" value={organizationId} />
+          {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <label>
             <span>Type DELETE to confirm</span>
             <input

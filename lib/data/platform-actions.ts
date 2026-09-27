@@ -1713,7 +1713,8 @@ export async function deleteRevokedPlatformUserAction(form:FormData){
   const membershipId=value(form,"membershipId");
   const organizationId=value(form,"organizationId");
   const confirmation=value(form,"confirmation");
-  const path=`/admin/users/${userId}`;
+  const returnTo=value(form,"returnTo")==="/users"?"/users":"/admin/users";
+  const path=returnTo==="/users"?`/users/${membershipId}`:`/admin/users/${userId}`;
 
   if(confirmation!=="DELETE")redirect(destination(path,"error","Type DELETE exactly to confirm permanent deletion."));
   if(access.user.id===userId)redirect(destination(path,"error","You cannot permanently delete your own platform identity."));
@@ -1753,5 +1754,6 @@ export async function deleteRevokedPlatformUserAction(form:FormData){
   revalidatePath("/admin/users");
   revalidatePath("/admin/organizations");
   revalidatePath(`/admin/organizations/${organizationId}`);
-  redirect(destination("/admin/users","message","User permanently deleted."));
+  revalidatePath("/users");
+  redirect(destination(returnTo,"message","User permanently deleted."));
 }

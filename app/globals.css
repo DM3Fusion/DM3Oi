@@ -7807,3 +7807,25 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 .communications-delete-confirm.compact{
   margin-top:8px;
 }
+
+
+.revoked-user-work-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin-top:16px;
+}
+.revoked-user-work-form{
+  align-content:start;
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+.revoked-user-work-form strong{
+  display:block;
+}
+@media (max-width:900px){
+  .revoked-user-work-grid{
+    grid-template-columns:1fr;
+  }
+}

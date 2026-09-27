@@ -8,6 +8,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import {
   updateOrganizationMembershipAction,
   transitionOrganizationMembershipAction,
+  reassignOrganizationUserWorkAction,
 } from "@/lib/data/organization-user-actions";
 import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
 import { ORGANIZATION_USER_ROLES, isOrganizationUserRole } from "@/lib/data/user-provisioning";
@@ -20,6 +21,9 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
 import { organizationUserDisplayName } from "@/lib/data/pending-invite-identity";
+import { getOrganizationUserWorkload } from "@/lib/data/organization-user-workload";
+import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
+import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
 
 export default async function Page({
   params,
@@ -72,6 +76,22 @@ export default async function Page({
         access.activeOrganization.id,
       )
     : false;
+
+  const revokedWorkload =
+    canManageTarget && membership.status === "REVOKED"
+      ? await getOrganizationUserWorkload(
+          access.activeOrganization.id,
+          membership.user_id,
+        )
+      : null;
+
+  const deletionEligibility =
+    access.isSuperAdmin && membership.status === "REVOKED"
+      ? await getPlatformUserDeletionEligibility(
+          membership.user_id,
+          membership.id,
+        )
+      : null;
 
   return (
     <>
@@ -246,6 +266,136 @@ export default async function Page({
           ) : null}
         </section>
       ) : null}
+      {revokedWorkload ? (
+        <section className="panel detail-section">
+          <div className="section-head">
+            <div>
+              <h2>Reassign Work</h2>
+              <p>
+                Move current operational responsibility from this revoked user
+                to an active user. Historical activity and attribution are preserved.
+              </p>
+            </div>
+          </div>
+
+          <dl className="detail-facts">
+            <div>
+              <dt>Open Cases</dt>
+              <dd>{revokedWorkload.counts.cases}</dd>
+            </div>
+            <div>
+              <dt>Incomplete Tasks</dt>
+              <dd>{revokedWorkload.counts.tasks}</dd>
+            </div>
+            <div>
+              <dt>Active Service Requests</dt>
+              <dd>{revokedWorkload.counts.serviceRequests}</dd>
+            </div>
+          </dl>
+
+          {revokedWorkload.assignees.length ? (
+            <div className="revoked-user-work-grid">
+              {[
+                {
+                  key: "CASES",
+                  label: "Cases",
+                  count: revokedWorkload.counts.cases,
+                },
+                {
+                  key: "TASKS",
+                  label: "Tasks",
+                  count: revokedWorkload.counts.tasks,
+                },
+                {
+                  key: "SERVICE_REQUESTS",
+                  label: "Service Requests",
+                  count: revokedWorkload.counts.serviceRequests,
+                },
+              ].map((work) => (
+                <form
+                  key={work.key}
+                  action={reassignOrganizationUserWorkAction}
+                  className="mini-form revoked-user-work-form"
+                >
+                  <input
+                    type="hidden"
+                    name="membershipId"
+                    value={membership.id}
+                  />
+                  <input type="hidden" name="workType" value={work.key} />
+                  <div>
+                    <strong>{work.label}</strong>
+                    <p className="table-secondary">
+                      {work.count} current {work.count === 1 ? "item" : "items"}
+                    </p>
+                  </div>
+                  <label>
+                    <span>Reassign to</span>
+                    <select
+                      name="replacementUserId"
+                      required
+                      disabled={work.count === 0}
+                      defaultValue=""
+                    >
+                      <option value="" disabled>
+                        Select active user
+                      </option>
+                      {revokedWorkload.assignees.map((assignee) => (
+                        <option key={assignee.id} value={assignee.id}>
+                          {assignee.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <PendingSubmitButton
+                    className="secondary-button"
+                    pendingLabel="Reassigning…"
+                    disabled={work.count === 0}
+                  >
+                    Reassign {work.label}
+                  </PendingSubmitButton>
+                </form>
+              ))}
+            </div>
+          ) : (
+            <div className="form-alert">
+              No active organization users are currently available for reassignment.
+            </div>
+          )}
+
+          {revokedWorkload.counts.cases === 0 &&
+          revokedWorkload.counts.tasks === 0 &&
+          revokedWorkload.counts.serviceRequests === 0 ? (
+            <p className="muted">
+              No current operational responsibility remains assigned to this user.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+
+      {deletionEligibility ? (
+        <section className="panel detail-section">
+          <div className="section-head">
+            <div>
+              <h2>SUPER_ADMIN identity controls</h2>
+              <p>
+                Permanent deletion is available only when retained DM3Oi history
+                does not require this identity.
+              </p>
+            </div>
+          </div>
+          <SuperAdminUserDelete
+            userId={membership.user_id}
+            membershipId={membership.id}
+            organizationId={access.activeOrganization.id}
+            displayName={name}
+            email={profile?.email ?? ""}
+            blockers={deletionEligibility.blockers}
+            returnTo="/users"
+          />
+        </section>
+      ) : null}
+
       <Link className="auth-link" href="/users">
         <ApplicationIcon name="back" />All users
       </Link>
