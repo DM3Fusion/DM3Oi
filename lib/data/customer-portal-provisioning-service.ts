@@ -472,7 +472,14 @@ export async function provisionCustomerPortalAccess(input: {
 
     const delivery = await sendCustomerPortalInvitationEmail({
       recipientEmail: email,
+      recipientName:
+        typeof authUser.user_metadata?.display_name === "string"
+          ? authUser.user_metadata.display_name
+          : email,
+      recipientUserId: authUser.id,
       organizationName: input.organizationName,
+      organizationId: input.organizationId,
+      customerId: input.customerId,
       invitationUrl,
     });
     const now = new Date().toISOString();

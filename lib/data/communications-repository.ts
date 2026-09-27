@@ -20,11 +20,14 @@ export type Notification = {
   archived_at: string | null;
   is_personal: boolean;
   recipient_display_name: string | null;
+  communication_kind: "NOTIFICATION" | "EMAIL_DELIVERY";
+  delivery_status: "PENDING" | "SENT" | "FAILED" | null;
+  opened_at: string | null;
 };
 
 export type NotificationFilters = {
   status?: "all" | "unread" | "read" | "archived";
-  source?: "all" | "service-request" | "case" | "task" | "other";
+  source?: "all" | "service-request" | "case" | "task" | "email" | "other";
   createdAfter?: string;
   search?: string;
 };
@@ -46,7 +49,8 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
   if (filters.source === "service-request") query = query.eq("source_domain", "SERVICE_REQUEST");
   if (filters.source === "case") query = query.eq("source_domain", "CASE");
   if (filters.source === "task") query = query.eq("source_domain", "TASK");
-  if (filters.source === "other") query = query.not("source_domain", "in", '("SERVICE_REQUEST","CASE","TASK")');
+  if (filters.source === "email") query = query.eq("source_domain", "EMAIL");
+  if (filters.source === "other") query = query.not("source_domain", "in", '("SERVICE_REQUEST","CASE","TASK","EMAIL")');
   if (filters.createdAfter) query = query.gte("created_at", filters.createdAfter);
   const search = filters.search?.trim();
   if (search) {
@@ -60,6 +64,9 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
     ...notification,
     is_personal: notification.recipient_user_id === context.user.id,
     recipient_display_name: null as string | null,
+    communication_kind: "NOTIFICATION" as const,
+    delivery_status: null,
+    opened_at: null,
   }));
   if (organizationWide && newestFirst.length) {
     const recipientIds = [...new Set(newestFirst.map((notification) => notification.recipient_user_id))];
@@ -79,7 +86,88 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
       recipient_display_name: recipientNames.get(notification.recipient_user_id) ?? "Organization user",
     }));
   }
-  if (organizationWide) return newestFirst;
+  if (organizationWide) {
+    const includeEmailAudit =
+      (!filters.status || filters.status === "all") &&
+      (!filters.source || filters.source === "all" || filters.source === "email");
+    if (!includeEmailAudit) return newestFirst;
+    const auditResult = await supabase.rpc(
+      "get_organization_email_delivery_audit" as never,
+      {
+        target_organization_id: context.activeOrganization.id,
+        created_after: filters.createdAfter ?? null,
+        search_text: filters.search?.trim() || null,
+      } as never,
+    );
+    if (auditResult.error)
+      throw new Error("Communications are temporarily unavailable.");
+    type EmailAuditRow = {
+      id: string;
+      organization_id: string;
+      template_key: string;
+      recipient_email: string;
+      recipient_user_id: string | null;
+      membership_id: string | null;
+      customer_id: string | null;
+      case_id: string | null;
+      service_request_id: string | null;
+      subject: string;
+      delivery_status: "PENDING" | "SENT" | "FAILED";
+      opened_at: string | null;
+      error_summary: string | null;
+      activity_at: string;
+    };
+    const audits = ((auditResult.data ?? []) as EmailAuditRow[]).map((delivery): Notification => ({
+      id: `email:${delivery.id}`,
+      organization_id: delivery.organization_id,
+      recipient_user_id: delivery.recipient_user_id ?? "",
+      notification_type: delivery.opened_at
+        ? "EMAIL_OPENED"
+        : delivery.delivery_status === "FAILED"
+          ? "EMAIL_FAILED"
+          : `${delivery.template_key}_${delivery.delivery_status}`,
+      category: delivery.template_key,
+      title: delivery.opened_at
+        ? "Email opened"
+        : delivery.delivery_status === "FAILED"
+          ? "Email failed"
+          : delivery.template_key === "ORGANIZATION_USER_INVITATION_RESEND"
+            ? "Invitation resent"
+            : delivery.template_key === "ORGANIZATION_USER_INVITATION"
+              ? "Invitation sent"
+              : delivery.template_key === "CUSTOMER_PORTAL_INVITATION"
+                ? "Customer Portal invitation sent"
+                : delivery.template_key === "NEW_SERVICE_REQUEST_NOTIFICATION"
+                  ? "New Service Request notification sent"
+                  : "Email sent",
+      message: delivery.delivery_status === "FAILED" && delivery.error_summary
+        ? `${delivery.subject} — ${delivery.error_summary}`
+        : delivery.subject,
+      source_domain: "EMAIL",
+      source_entity_id: delivery.id,
+      source_event_id: null,
+      destination_path: delivery.service_request_id
+        ? `/service-desk/${delivery.service_request_id}`
+        : delivery.case_id
+          ? `/cases/${delivery.case_id}`
+          : delivery.customer_id
+            ? `/customers/${delivery.customer_id}`
+            : delivery.membership_id
+              ? `/users/${delivery.membership_id}`
+              : "/communications",
+      created_at: delivery.activity_at,
+      read_at: null,
+      archived_at: null,
+      is_personal: false,
+      recipient_display_name: delivery.recipient_email,
+      communication_kind: "EMAIL_DELIVERY",
+      delivery_status: delivery.delivery_status,
+      opened_at: delivery.opened_at,
+    }));
+    return [...newestFirst, ...audits].sort((left, right) =>
+      right.created_at.localeCompare(left.created_at) || right.id.localeCompare(left.id),
+    );
+  }
   if (filters.status && filters.status !== "all") return newestFirst;
   return [
     ...newestFirst.filter((notification) => !notification.read_at),

@@ -65,11 +65,11 @@ test("a provider is mocked and a durable claim prevents duplicate email delivery
   });
   assert.deepEqual(
     await deliverEmailOnce(message, delivery.provider, delivery.store),
-    { ok: true, status: "SENT" },
+    { ok: true, status: "SENT", transport: "SENT", audit: "RECORDED" },
   );
   assert.deepEqual(
     await deliverEmailOnce(message, delivery.provider, delivery.store),
-    { ok: true, status: "ALREADY_RECORDED" },
+    { ok: true, status: "ALREADY_RECORDED", transport: "NOT_SENT", audit: "RECORDED" },
   );
   assert.equal(delivery.sends(), 1);
   assert.deepEqual(delivery.completions, [{ ok: true }]);
@@ -90,6 +90,8 @@ test("mocked provider failure is recorded and remains non-throwing", async () =>
   );
   assert.deepEqual(result, {
     ok: false,
+    transport: "NOT_SENT",
+    audit: "RECORDED",
     errorCode: "SMTP_TEMPORARY_FAILURE",
     safeMessage: "Email notification could not be sent.",
   });
@@ -107,10 +109,43 @@ test("an unexpected provider exception is converted to a safe recorded failure",
   );
   assert.deepEqual(result, {
     ok: false,
+    transport: "NOT_SENT",
+    audit: "RECORDED",
     errorCode: "MAIL_SEND_FAILED",
     safeMessage: "Email notification could not be sent.",
   });
   assert.equal(delivery.completions.length, 1);
+});
+
+test("SMTP acceptance remains authoritative when delivery finalization fails", async () => {
+  const provider: EmailProvider = {
+    async send() {
+      return { ok: true, messageId: "smtp-message-1" };
+    },
+  };
+  const store: EmailDeliveryStore = {
+    async claim() {
+      return { id: "delivery-1" };
+    },
+    async complete() {
+      throw new Error("ledger unavailable");
+    },
+  };
+  assert.deepEqual(
+    await deliverEmailOnce(
+      { to: "manager@example.com", subject: "Subject", text: "Body" },
+      provider,
+      store,
+    ),
+    {
+      ok: true,
+      status: "SENT",
+      transport: "SENT",
+      audit: "FINALIZATION_FAILED",
+      messageId: "smtp-message-1",
+      auditErrorCode: "DELIVERY_STATE_UPDATE_FAILED",
+    },
+  );
 });
 
 test("trusted dispatcher derives recipients from tenant notifications and active profiles", () => {
@@ -124,13 +159,15 @@ test("trusted dispatcher derives recipients from tenant notifications and active
   assert.match(service, /NEW_SERVICE_REQUEST_RECEIVED/);
   assert.match(service, /source_event_id", input\.serviceRequestId/);
   assert.match(service, /\.from\("organization_members"\)/);
-  assert.match(service, /profiles!inner\(email,is_active\)/);
+  assert.match(service, /profiles!inner\(email,is_active,first_name,last_name,display_name\)/);
   assert.match(service, /\.from\("platform_user_roles"\)/);
   assert.match(service, /platformIds\.has\(notification\.recipient_user_id\)/);
   assert.match(service, /isNewServiceRequestEmailEnabled/);
-  assert.match(service, /applicationEmailProvider/);
+  assert.match(service, /sendTrackedTemplateEmail/);
+  assert.match(service, /NEW_SERVICE_REQUEST_NOTIFICATION/);
   assert.match(mailer, /applicationEmailProvider: EmailProvider = smtpEmailProvider/);
-  assert.doesNotMatch(service, /formData|FormData|recipientEmail:/);
+  assert.doesNotMatch(service, /formData|FormData/);
+  assert.match(service, /deliverNewServiceRequestNotificationEmails\(input: \{[\s\S]*organizationId: string;[\s\S]*serviceRequestId: string;[\s\S]*\}\)/);
   assert.doesNotMatch(
     service,
     /MANAGE_SERVICE_REQUEST|BUSINESS_OWNER|BUSINESS_ADMIN|STAFF_MANAGER|STAFF_USER/,

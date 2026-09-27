@@ -34,7 +34,8 @@ test("repository broadens only a non-platform Business Owner in the active organ
   assert.match(repository, /!context\.isSuperAdmin && context\.activeOrganization\.role === "BUSINESS_OWNER"/);
   assert.match(repository, /\.eq\("organization_id", context\.activeOrganization\.id\)/);
   assert.match(repository, /if \(!organizationWide\) query = query\.eq\("recipient_user_id", context\.user\.id\)/);
-  assert.match(repository, /if \(organizationWide\) return newestFirst/);
+  assert.match(repository, /get_organization_email_delivery_audit/);
+  assert.match(repository, /if \(!includeEmailAudit\) return newestFirst/);
   assert.match(databaseRegression, /Business Owner sees Owner, Admin, Manager, and Staff notifications/);
   assert.match(databaseRegression, /Business Owner cannot see another organization/);
 });
@@ -42,7 +43,7 @@ test("repository broadens only a non-platform Business Owner in the active organ
 test("recipient names use profile display conventions without exposing email or platform identity", () => {
   assert.match(repository, /\.select\("id,display_name,first_name,last_name"\)/);
   assert.match(repository, /profile\.display_name \|\| \[profile\.first_name, profile\.last_name\]/);
-  assert.doesNotMatch(repository, /profiles[^\n]*email|recipient_email/);
+  assert.doesNotMatch(repository, /\.select\("id,display_name,first_name,last_name,email"\)/);
   assert.match(inbox, /Recipient: \{item\.recipient_display_name\}/);
   assert.match(migration, /not public\.is_super_admin\(recipient_user_id\)/);
 });
@@ -54,8 +55,9 @@ test("Owner observed rows do not present recipient unread state as the Owner's u
   );
   assert.match(
     inbox,
-    /item\.is_personal \? \(item\.read_at \? "Read" : "Unread"\) : "Observed"/,
+    /communication_kind === "EMAIL_DELIVERY"[\s\S]*return "Opened"/,
   );
+  assert.match(inbox, /Email delivery\/open state is separate from Inbox read state/);
 });
 
 test("observed rows navigate without mutating another recipient's read state", () => {

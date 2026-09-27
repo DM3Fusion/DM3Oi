@@ -37,7 +37,18 @@ function sourceLabel(item: Notification) {
   if (item.source_domain === "SERVICE_REQUEST") return "Service Request";
   if (item.source_domain === "CASE") return "Case";
   if (item.source_domain === "TASK") return "Task";
+  if (item.source_domain === "EMAIL") return "Email";
   return humanize(item.source_domain);
+}
+
+function communicationStatus(item: Notification) {
+  if (item.communication_kind === "EMAIL_DELIVERY") {
+    if (item.opened_at) return "Opened";
+    return humanize(item.delivery_status ?? "Pending");
+  }
+  return item.read_at
+    ? (item.is_personal ? "Read" : "Recipient read")
+    : (item.is_personal ? "Unread" : "Recipient unread");
 }
 
 function categoryLabel(item: Notification) {
@@ -71,7 +82,7 @@ function NotificationRow({
       className={`notification-summary${item.is_personal && !item.read_at ? " unread" : ""}${selected ? " selected" : ""}${item.is_personal ? "" : " observed"}`}
       onClick={onSelect}
       aria-pressed={selected}
-      aria-label={`${item.is_personal ? (item.read_at ? "Read" : "Unread") : "Observed"} notification: ${item.title}`}
+      aria-label={`${item.communication_kind === "EMAIL_DELIVERY" ? "Email audit" : item.is_personal ? (item.read_at ? "Read" : "Unread") : "Observed notification"}: ${item.title}`}
     >
       <span className="notification-summary-state" aria-hidden />
       <span className="notification-summary-content">
@@ -289,7 +300,7 @@ function NotificationPreview({
         ) : null}
         <div>
           <dt>Status</dt>
-          <dd>{item.read_at ? (item.is_personal ? "Read" : "Recipient read") : (item.is_personal ? "Unread" : "Recipient unread")}</dd>
+          <dd>{communicationStatus(item)}</dd>
         </div>
         {!item.is_personal && item.recipient_display_name ? (
           <div>
@@ -301,7 +312,9 @@ function NotificationPreview({
 
       {!item.is_personal ? (
         <p className="communications-preview-observed">
-          Organization notification · Recipient read status is not changed from this view.
+          {item.communication_kind === "EMAIL_DELIVERY"
+            ? "Organization email audit · Email delivery/open state is separate from Inbox read state."
+            : "Organization notification · Recipient read status is not changed from this view."}
         </p>
       ) : null}
 
@@ -314,11 +327,11 @@ function NotificationPreview({
               {openLabel(item)}
             </PendingSubmitButton>
           </form>
-        ) : (
+        ) : item.destination_path !== "/communications" ? (
           <Link className="primary-button" href={communicationsDestination(item.destination_path)}>
             {openLabel(item)}
           </Link>
-        )}
+        ) : null}
 
         {item.is_personal ? (
           <form action={item.read_at ? markNotificationUnreadAction : markNotificationReadAction}>
@@ -350,9 +363,7 @@ function MobileNotification({
         <span>{item.message}</span>
         <small>
           <span className="notification-read-label">
-            {item.is_personal
-              ? (item.read_at ? "Read" : "Unread")
-              : (item.read_at ? "Recipient read" : "Recipient unread")}
+            {communicationStatus(item)}
           </span>
           {" · "}
           <span className="notification-source">{sourceLabel(item)}</span>

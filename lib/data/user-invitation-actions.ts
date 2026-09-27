@@ -12,7 +12,10 @@ import {
   type OrganizationUserRole,
 } from "@/lib/data/user-provisioning";
 import type { Database } from "@/types/database.generated";
+import type { User } from "@supabase/supabase-js";
 import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permissions";
+import { resolvePendingInviteIdentityRepair } from "@/lib/data/pending-invite-identity";
+import { sendOrganizationInvitationEmail } from "@/lib/data/organization-invitation-email-service";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -170,37 +173,64 @@ export async function inviteUserAction(form: FormData) {
       "Existing Auth user access provisioned.",
     );
   }
-  const { data: invited, error: inviteError } = sendInvitation
-    ? await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: getInvitationRedirect(),
-        data: invitationOrganization
-          ? organizationInvitationMetadata(
-              { display_name: displayName, title: title || null },
-              invitationOrganization.name,
-            )
-          : { display_name: displayName, title: title || null },
-      })
-    : await admin.auth.admin.createUser({
+  const organizationInvitationData = invitationOrganization
+    ? organizationInvitationMetadata(
+        { display_name: displayName, title: title || null },
+        invitationOrganization.name,
+      )
+    : { display_name: displayName, title: title || null };
+  const generatedOrganizationInvitation = Boolean(sendInvitation && invitationOrganization);
+  let invitedUser: User | null = null;
+  let invitationUrl: string | null = null;
+  if (generatedOrganizationInvitation) {
+    const generated = await admin.auth.admin.generateLink({
+        type: "invite",
         email,
-        email_confirm: true,
-        user_metadata: { display_name: displayName, title: title || null },
+        options: {
+          redirectTo: getInvitationRedirect(),
+          data: organizationInvitationData,
+        },
       });
-  if (inviteError || !invited.user) {
-    console.error("Auth user invitation failed", {
-      message: inviteError?.message,
+    if (generated.error || !generated.data.user || !generated.data.properties?.action_link) {
+      console.error("Auth user invitation link generation failed", {
+        message: generated.error?.message,
+      });
+      go("/admin/users/new", "error", "The invitation could not be prepared.");
+    }
+    invitedUser = generated.data.user;
+    invitationUrl = generated.data.properties!.action_link;
+  } else if (sendInvitation) {
+    const invited = await admin.auth.admin.inviteUserByEmail(email, {
+      redirectTo: getInvitationRedirect(),
+      data: organizationInvitationData,
     });
-    go(
-      "/admin/users/new",
-      "error",
-      inviteError?.message.toLowerCase().includes("already")
-        ? "A user with this email already exists."
-        : "The invitation could not be sent.",
-    );
+    if (invited.error || !invited.data.user) {
+      console.error("Auth user invitation failed", { message: invited.error?.message });
+      go(
+        "/admin/users/new",
+        "error",
+        invited.error?.message.toLowerCase().includes("already")
+          ? "A user with this email already exists."
+          : "The invitation could not be sent.",
+      );
+    }
+    invitedUser = invited.data.user;
+  } else {
+    const created = await admin.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { display_name: displayName, title: title || null },
+    });
+    if (created.error || !created.data.user) {
+      console.error("Auth user creation failed", { message: created.error?.message });
+      go("/admin/users/new", "error", "The user could not be created.");
+    }
+    invitedUser = created.data.user;
   }
-  const invitedUser = invited.user!;
   if (!invitedUser)
     go("/admin/users/new", "error", "The invitation could not be completed.");
-  const userId = invitedUser.id;
+  const preparedUser = invitedUser!;
+  const userId = preparedUser.id;
   const { error: profileError } = await admin.from("profiles").upsert({
     id: userId,
     email,
@@ -224,7 +254,7 @@ export async function inviteUserAction(form: FormData) {
   }
   if (organizationId) {
     const identityVerified = Boolean(
-      invitedUser.email_confirmed_at || invitedUser.last_sign_in_at,
+      preparedUser.email_confirmed_at || preparedUser.last_sign_in_at,
     );
     const { error } = await session.rpc("provision_organization_member", {
       target_organization_id: organizationId,
@@ -239,6 +269,41 @@ export async function inviteUserAction(form: FormData) {
         "error",
         `${roleError(error.message)} The invitation was rolled back.`,
       );
+    }
+    if (sendInvitation && invitationOrganization && invitationUrl) {
+      const membership = await admin
+        .from("organization_members")
+        .select("id")
+        .eq("organization_id", organizationId)
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (membership.error || !membership.data) {
+        await admin.auth.admin.deleteUser(userId);
+        go("/admin/users/new", "error", "The invitation could not be recorded.");
+      }
+      const membershipId = membership.data!.id;
+      const delivery = await sendOrganizationInvitationEmail({
+        resend: false,
+        organizationId,
+        organizationName: invitationOrganization.name,
+        membershipId,
+        recipientUserId: userId,
+        recipientEmail: email,
+        recipientFirstName: displayName.split(/\s+/)[0],
+        recipientName: displayName,
+        role,
+        invitationUrl,
+      });
+      if (!delivery.ok) {
+        console.error("Platform organization invitation delivery failed", {
+          operation: "sendInvitation",
+          organizationId,
+          membershipId,
+          code: delivery.errorCode,
+        });
+        await admin.auth.admin.deleteUser(userId);
+        go("/admin/users/new", "error", "The invitation could not be sent.");
+      }
     }
   }
   revalidatePath("/");
@@ -319,6 +384,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
   const existingAuthUser = await findAuthUserByEmail(admin, email);
   let userId = existingAuthUser?.id;
   let createdUser = false;
+  let invitationUrl: string | null = null;
 
   if (existingAuthUser) {
     const [{ data: platformRole }, { data: profile, error: profileLookupError }] =
@@ -364,24 +430,29 @@ export async function inviteOrganizationUserAction(form: FormData) {
       go(path, "error", "The invitation could not be completed for this user.");
   } else {
     const { data: invited, error: inviteError } =
-      await admin.auth.admin.inviteUserByEmail(email, {
-        redirectTo: getInvitationRedirect(),
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-          display_name: displayName,
-          title: title || null,
-          organization_name: activeOrganization.name,
+      await admin.auth.admin.generateLink({
+        type: "invite",
+        email,
+        options: {
+          redirectTo: getInvitationRedirect(),
+          data: {
+            first_name: firstName,
+            last_name: lastName,
+            display_name: displayName,
+            title: title || null,
+            organization_name: activeOrganization.name,
+          },
         },
       });
-    if (inviteError || !invited.user) {
-      console.error("Organization user invitation failed", {
+    if (inviteError || !invited.user || !invited.properties?.action_link) {
+      console.error("Organization user invitation link generation failed", {
         code: inviteError?.code,
         message: inviteError?.message,
       });
-      go(path, "error", "The invitation could not be sent.");
+      go(path, "error", "The invitation could not be prepared.");
     }
     userId = invited.user!.id;
+    invitationUrl = invited.properties!.action_link;
     createdUser = true;
     const { error: profileError } = await admin.from("profiles").upsert({
       id: userId,
@@ -500,47 +571,15 @@ export async function inviteOrganizationUserAction(form: FormData) {
   }
   const membershipId = membershipResult.data!.id;
 
-  const { error: membershipEventError } = await session.rpc(
-    "record_organization_membership_invitation_event",
-    {
-      target_membership_id: membershipId,
-      target_event_type: identityVerified ? "VERIFIED" : "INVITED",
-    },
-  );
-  if (membershipEventError) {
-    console.error("Organization membership invitation audit failed", {
-      code: membershipEventError.code,
-      message: membershipEventError.message,
-      membershipId,
-    });
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
-    else if (priorMembership)
-      await admin
-        .from("organization_members")
-        .update({
-          role: priorMembership.role,
-          status: priorMembership.status,
-          is_active: priorMembership.is_active,
-          verified_at: priorMembership.verified_at,
-        })
-        .eq("id", membershipId);
-    else
-      await admin
-        .from("organization_members")
-        .delete()
-        .eq("id", membershipId)
-        .eq("organization_id", activeOrganization.id);
-    go(path, "error", "The invitation could not be recorded.");
-  }
-
   if (
     existingAuthUser &&
     !existingAuthUser.email_confirmed_at &&
     !existingAuthUser.last_sign_in_at
   ) {
-    const { error: resendError } = await admin.auth.admin.inviteUserByEmail(
+    const generated = await admin.auth.admin.generateLink({
+      type: "invite",
       email,
-      {
+      options: {
         redirectTo: getInvitationRedirect(),
         data: {
           ...organizationInvitationMetadata(
@@ -569,8 +608,8 @@ export async function inviteOrganizationUserAction(form: FormData) {
               : title || null,
         },
       },
-    );
-    if (resendError) {
+    });
+    if (generated.error || !generated.data.properties?.action_link) {
       if (priorMembership)
         await admin
           .from("organization_members")
@@ -588,12 +627,93 @@ export async function inviteOrganizationUserAction(form: FormData) {
           .delete()
           .eq("id", membershipId)
           .eq("organization_id", activeOrganization.id);
-      console.error("Existing organization user invitation failed", {
-        code: resendError.code,
-        message: resendError.message,
+      console.error("Existing organization user invitation link generation failed", {
+        code: generated.error?.code,
+        message: generated.error?.message,
       });
+      go(path, "error", "The invitation could not be prepared.");
+    }
+    invitationUrl = generated.data.properties!.action_link;
+  }
+
+  let invitationTransportSent = false;
+  if (invitationUrl) {
+    const delivery = await sendOrganizationInvitationEmail({
+      resend: Boolean(existingAuthUser),
+      organizationId: activeOrganization.id,
+      organizationName: activeOrganization.name,
+      membershipId,
+      recipientUserId: targetUserId,
+      recipientEmail: email,
+      recipientFirstName: firstName,
+      recipientName: displayName,
+      role,
+      invitationUrl,
+    });
+    if (!delivery.ok) {
+      console.error("Organization user invitation delivery failed", {
+        operation: existingAuthUser ? "resendInvitation" : "sendInvitation",
+        organizationId: activeOrganization.id,
+        membershipId,
+        code: delivery.errorCode,
+      });
+      if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+      else if (priorMembership)
+        await admin
+          .from("organization_members")
+          .update({
+            role: priorMembership.role,
+            status: priorMembership.status,
+            is_active: priorMembership.is_active,
+            verified_at: priorMembership.verified_at,
+          })
+          .eq("id", membershipId);
+      else
+        await admin
+          .from("organization_members")
+          .delete()
+          .eq("id", membershipId)
+          .eq("organization_id", activeOrganization.id);
       go(path, "error", "The invitation could not be sent.");
     }
+    invitationTransportSent = delivery.transport === "SENT";
+  }
+
+  const { error: membershipEventError } = await session.rpc(
+    "record_organization_membership_invitation_event",
+    {
+      target_membership_id: membershipId,
+      target_event_type: identityVerified ? "VERIFIED" : "INVITED",
+    },
+  );
+  if (membershipEventError) {
+    console.error("Organization membership invitation audit failed", {
+      code: membershipEventError.code,
+      message: membershipEventError.message,
+      membershipId,
+    });
+    if (!invitationTransportSent) {
+      if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+      else if (priorMembership)
+        await admin
+          .from("organization_members")
+          .update({
+            role: priorMembership.role,
+            status: priorMembership.status,
+            is_active: priorMembership.is_active,
+            verified_at: priorMembership.verified_at,
+          })
+          .eq("id", membershipId);
+      else
+        await admin
+          .from("organization_members")
+          .delete()
+          .eq("id", membershipId)
+          .eq("organization_id", activeOrganization.id);
+      go(path, "error", "The invitation could not be recorded.");
+    }
+    // SMTP acceptance is authoritative. Never invalidate an emailed link or
+    // roll back its membership because a later audit write failed.
   }
 
   revalidatePath("/users");
@@ -613,51 +733,111 @@ export async function resendUserInviteAction(form: FormData) {
     hasPermission(access, "MANAGE_USERS");
   if (!isPlatformAdmin && !orgAdmin) return { ok: false, error: "You are not authorized to resend invitations." };
   const admin = adminClient("/admin/users");
+  let membership: { id: string; status: string; role: string } | null = null;
+  let organizationName: string | null = null;
   if (organizationId) {
     const session = await createClient();
-    const [{ data: member }, { data: platformRole }] = await Promise.all([
-      session.from("organization_members").select("id,status").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle(),
+    const [{ data: member }, { data: platformRole }, { data: organization }] = await Promise.all([
+      session.from("organization_members").select("id,status,role").eq("organization_id", organizationId).eq("user_id", targetUserId).maybeSingle(),
       admin.from("platform_user_roles").select("id").eq("user_id", targetUserId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
+      session.from("organizations").select("name").eq("id", organizationId).maybeSingle(),
     ]);
-    if (!member || member.status !== "INVITED" || (!isPlatformAdmin && platformRole))
+    if (!member || !organization || member.status !== "INVITED" || (!isPlatformAdmin && platformRole))
       return { ok: false, error: "Only pending invitations can be resent." };
+    membership = member;
+    organizationName = organization.name;
   }
   const { data: target, error: lookupError } = await admin.auth.admin.getUserById(targetUserId);
   const targetUser = target?.user;
   if (lookupError || !targetUser?.email) return { ok: false, error: "The invitation could not be resent." };
   if (targetUser.email_confirmed_at || targetUser.last_sign_in_at) return { ok: false, error: "This user has already completed account activation." };
-  const resendData = orgAdmin
-    ? organizationInvitationMetadata(
-        targetUser.user_metadata,
-        access.activeOrganization!.name,
-      )
-    : targetUser.user_metadata;
-  const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, { redirectTo: getInvitationRedirect(), data: resendData });
-  if (error) { console.error("Invitation resend failed", { code: error.code, message: error.message }); return { ok: false, error: "Unable to resend invitation." }; }
+  if (organizationId && membership && organizationName) {
+    const { data: profile, error: profileLookupError } = await admin
+      .from("profiles")
+      .select("email,first_name,last_name,display_name,title")
+      .eq("id", targetUserId)
+      .maybeSingle();
+    if (profileLookupError)
+      return { ok: false, error: "The invitation identity could not be checked." };
+    const repair = resolvePendingInviteIdentityRepair({
+      profile,
+      authEmail: targetUser.email,
+      userMetadata: targetUser.user_metadata,
+    });
+    if (repair) {
+      const repaired = await admin.from("profiles").upsert({ id: targetUserId, ...repair });
+      if (repaired.error) {
+        console.error("Pending invitation identity repair failed", {
+          operation: "repairPendingInviteIdentity",
+          organizationId,
+          targetUserId,
+          code: repaired.error.code,
+          message: repaired.error.message,
+        });
+        return { ok: false, error: "The invitation identity could not be repaired." };
+      }
+    }
+    const resendData = organizationInvitationMetadata(
+      targetUser.user_metadata,
+      organizationName,
+    );
+    const generated = await admin.auth.admin.generateLink({
+      type: "invite",
+      email: targetUser.email,
+      options: { redirectTo: getInvitationRedirect(), data: resendData },
+    });
+    if (generated.error || !generated.data.properties?.action_link) {
+      console.error("Invitation resend link generation failed", {
+        code: generated.error?.code,
+        message: generated.error?.message,
+      });
+      return { ok: false, error: "Unable to resend invitation." };
+    }
+    const firstName = repair?.first_name ?? profile?.first_name ?? "";
+    const lastName = repair?.last_name ?? profile?.last_name ?? "";
+    const recipientName = (
+      repair?.display_name ??
+      profile?.display_name ??
+      `${firstName} ${lastName}`.trim()
+    ) || targetUser.email;
+    const delivery = await sendOrganizationInvitationEmail({
+      resend: true,
+      organizationId,
+      organizationName,
+      membershipId: membership.id,
+      recipientUserId: targetUserId,
+      recipientEmail: targetUser.email,
+      recipientFirstName: firstName || recipientName,
+      recipientName,
+      role: membership.role,
+      invitationUrl: generated.data.properties.action_link,
+    });
+    if (!delivery.ok) {
+      console.error("Invitation resend delivery failed", {
+        operation: "resendInvitation",
+        organizationId,
+        targetUserId,
+        code: delivery.errorCode,
+      });
+      return { ok: false, error: "Unable to resend invitation." };
+    }
+  } else {
+    const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.email, {
+      redirectTo: getInvitationRedirect(),
+      data: targetUser.user_metadata,
+    });
+    if (error) {
+      console.error("Invitation resend failed", { code: error.code, message: error.message });
+      return { ok: false, error: "Unable to resend invitation." };
+    }
+  }
 
   if (organizationId) {
     const session = await createClient();
-    const { data: member, error: memberError } = await session
-      .from("organization_members")
-      .select("id")
-      .eq("organization_id", organizationId)
-      .eq("user_id", targetUserId)
-      .eq("status", "INVITED")
-      .maybeSingle();
-
-    if (memberError || !member) {
-      console.error("Invitation resend audit membership lookup failed", {
-        message: memberError?.message ?? null,
-        organizationId,
-        targetUserId,
-      });
-      return { ok: false, error: "The invitation was sent, but its audit event could not be recorded." };
-    }
-
     const { error: eventError } = await session.rpc(
       "record_organization_membership_invitation_event",
       {
-        target_membership_id: member.id,
+        target_membership_id: membership!.id,
         target_event_type: "INVITATION_RESENT",
       },
     );
@@ -666,7 +846,7 @@ export async function resendUserInviteAction(form: FormData) {
       console.error("Invitation resend audit failed", {
         code: eventError.code,
         message: eventError.message,
-        membershipId: member.id,
+        membershipId: membership!.id,
       });
       return { ok: false, error: "The invitation was sent, but its audit event could not be recorded." };
     }

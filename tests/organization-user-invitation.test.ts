@@ -191,8 +191,10 @@ test("manual resend distinguishes organization and platform metadata", () => {
   );
   assert.match(
     resendFlow,
-    /const resendData = orgAdmin[\s\S]*organizationInvitationMetadata\([\s\S]*access\.activeOrganization!\.name[\s\S]*: targetUser\.user_metadata/,
+    /organizationInvitationMetadata\([\s\S]*targetUser\.user_metadata,[\s\S]*organizationName/,
   );
+  assert.match(resendFlow, /sendOrganizationInvitationEmail\(/);
+  assert.match(resendFlow, /organizationName,/);
   assert.doesNotMatch(resendFlow, /value\(form, "organizationName"\)/);
 });
 

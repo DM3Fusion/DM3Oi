@@ -29,6 +29,7 @@ export type OrganizationResetPreview = {
  serviceRequestMessages:number;
  serviceRequestActivity:number;
  serviceRequestCommunications:number;
+ emailDeliveries:number;
  notifications:number;
  organizationUsersRemoved:number;
  membershipEvents:number;
@@ -812,6 +813,7 @@ export type PermanentOrganizationDeletionPreview = {
  serviceRequestMessages:number;
  serviceRequestActivity:number;
  serviceRequestCommunications:number;
+ emailDeliveries:number;
  notifications:number;
  membershipEvents:number;
  questionDefinitions:number;

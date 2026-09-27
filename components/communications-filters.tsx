@@ -6,7 +6,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 
 export type CommunicationsFilterValues = {
   status: "all" | "unread" | "read" | "archived";
-  source: "all" | "service-request" | "case" | "task" | "other";
+  source: "all" | "service-request" | "case" | "task" | "email" | "other";
   range: "all" | "today" | "7d" | "30d";
   q: string;
 };
@@ -58,7 +58,7 @@ export function CommunicationsFilters({ values, recipientStatus = false }: { val
     <div className="communications-filter-toggle"><button type="button" className="secondary-button" aria-expanded={filtersOpen} aria-controls="communications-filter-fields" onClick={() => setFiltersOpen((open) => !open)}><ApplicationIcon name="filter"/>Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}</button>{activeFilterCount ? <button type="button" className="communications-clear-filters" onClick={clearFilters}>Clear Filters</button> : null}</div>
     <div className={`communications-filter-fields${filtersOpen ? " open" : ""}`} id="communications-filter-fields">
       <label><span>Status</span><select name="status" defaultValue={values.status} onChange={(event) => update("status", event.currentTarget.value)}><option value="all">All</option><option value="unread">{recipientStatus ? "Recipient unread" : "Unread"}</option><option value="read">{recipientStatus ? "Recipient read" : "Read"}</option><option value="archived">Archived</option></select></label>
-      <label><span>Source</span><select name="source" defaultValue={values.source} onChange={(event) => update("source", event.currentTarget.value)}><option value="all">All sources</option><option value="service-request">Service Requests</option><option value="case">Cases</option><option value="task">Tasks</option><option value="other">Other</option></select></label>
+      <label><span>Source</span><select name="source" defaultValue={values.source} onChange={(event) => update("source", event.currentTarget.value)}><option value="all">All sources</option><option value="service-request">Service Requests</option><option value="case">Cases</option><option value="task">Tasks</option><option value="email">Email</option><option value="other">Other</option></select></label>
       <label><span>Date</span><select name="range" defaultValue={values.range} onChange={(event) => update("range", event.currentTarget.value)}><option value="all">All time</option><option value="today">Today</option><option value="7d">Last 7 days</option><option value="30d">Last 30 days</option></select></label>
     </div>
   </form>;

@@ -14,7 +14,7 @@ import { communicationsViewCookie, normalizeCommunicationsView } from "@/lib/com
 import { CommunicationsInbox } from "@/components/communications-inbox";
 
 const statuses = new Set(["all", "unread", "read", "archived"]);
-const sources = new Set(["all", "service-request", "case", "task", "other"]);
+const sources = new Set(["all", "service-request", "case", "task", "email", "other"]);
 const ranges = new Set(["all", "today", "7d", "30d"]);
 
 export default async function CommunicationsPage({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {

@@ -106,8 +106,8 @@ test("Fastmail application provider receives both HTML and plain-text content", 
   assert.equal(messages[0].to, "customer@example.com");
   assert.ok(messages[0].text);
   assert.ok(messages[0].html);
-  assert.match(emailService, /applicationEmailProvider/);
-  assert.match(emailService, /deliverCustomerPortalInvitationEmail\(input, provider\)/);
+  assert.match(emailService, /sendTrackedTemplateEmail/);
+  assert.match(emailService, /templateKey: "CUSTOMER_PORTAL_INVITATION"/);
   assert.match(mailer, /text: input\.text/);
   assert.match(mailer, /html: input\.html/);
   assert.doesNotMatch(emailService, /nodemailer|SMTP_|process\.env/);

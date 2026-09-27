@@ -21,7 +21,7 @@ export const smtpEmailProvider: EmailProvider = {
         secure: process.env.DM3IQCM_SMTP_SECURE === "true",
         auth: { user, pass: password },
       });
-      await transport.sendMail({
+      const info = await transport.sendMail({
         from: input.fromName || process.env.DM3IQCM_SMTP_FROM_NAME
           ? `"${input.fromName ?? process.env.DM3IQCM_SMTP_FROM_NAME}" <${from}>`
           : from,
@@ -30,7 +30,13 @@ export const smtpEmailProvider: EmailProvider = {
         text: input.text,
         html: input.html,
       });
-      return { ok: true };
+      if (!info.accepted?.length)
+        return {
+          ok: false,
+          errorCode: "RECIPIENT_REJECTED",
+          safeMessage: "Email notification could not be sent.",
+        };
+      return { ok: true, messageId: info.messageId };
     } catch (error) {
       const value = error as { code?: string };
       console.error("Application email delivery failed", {

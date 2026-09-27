@@ -3,16 +3,23 @@ import { getApplicationBaseUrl } from "@/lib/config/application-url";
 import {
   buildNewServiceRequestEmail,
   deliverEmailOnce,
+  type EmailProvider,
   type EmailDeliveryStore,
   type MailResult,
 } from "@/lib/email/delivery";
-import { applicationEmailProvider } from "@/lib/email/mailer";
+import { sendTrackedTemplateEmail } from "@/lib/email/tracked-delivery";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type NotificationRow = { id: string; recipient_user_id: string };
 type MemberRow = {
   user_id: string;
-  profiles: { email: string | null; is_active: boolean };
+  profiles: {
+    email: string | null;
+    is_active: boolean;
+    first_name: string | null;
+    last_name: string | null;
+    display_name: string | null;
+  };
 };
 type RequestRow = {
   request_number: string;
@@ -41,7 +48,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
   if (!baseUrl) return;
 
   const admin = createAdminClient();
-  const [notificationResult, requestResult] = await Promise.all([
+  const [notificationResult, requestResult, organizationResult] = await Promise.all([
     admin
       .from("notifications")
       .select("id,recipient_user_id")
@@ -56,12 +63,17 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
       .eq("id", input.serviceRequestId)
       .eq("organization_id", input.organizationId)
       .maybeSingle(),
+    admin
+      .from("organizations")
+      .select("name")
+      .eq("id", input.organizationId)
+      .maybeSingle(),
   ]);
 
-  if (notificationResult.error || requestResult.error || !requestResult.data) {
+  if (notificationResult.error || requestResult.error || organizationResult.error || !requestResult.data || !organizationResult.data) {
     logDeliveryIssue(
       "New Service Request email lookup failed",
-      notificationResult.error?.code ?? requestResult.error?.code,
+      notificationResult.error?.code ?? requestResult.error?.code ?? organizationResult.error?.code,
     );
     return;
   }
@@ -72,7 +84,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
   const [memberResult, platformResult] = await Promise.all([
     admin
       .from("organization_members")
-      .select("user_id,profiles!inner(email,is_active)")
+      .select("user_id,profiles!inner(email,is_active,first_name,last_name,display_name)")
       .eq("organization_id", input.organizationId)
       .eq("is_active", true)
       .in("user_id", recipientIds),
@@ -115,6 +127,11 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
       if (!member?.profiles.is_active) return;
       const recipientEmail = safeEmail(member.profiles.email);
       const subject = `New service request: ${request.request_number}`;
+      const recipientName =
+        member.profiles.display_name?.trim() ||
+        [member.profiles.first_name, member.profiles.last_name].filter(Boolean).join(" ") ||
+        recipientEmail ||
+        "Organization user";
 
       const insertDelivery = async (status: "PENDING" | "FAILED", errorCode?: string) => {
         const result = await admin
@@ -168,6 +185,30 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
         },
       };
 
+      const trackedProvider: EmailProvider = {
+        send: () =>
+          sendTrackedTemplateEmail({
+            templateKey: "NEW_SERVICE_REQUEST_NOTIFICATION",
+            recipientEmail: recipientEmail!,
+            references: {
+              organizationId: input.organizationId,
+              recipientUserId: notification.recipient_user_id,
+              serviceRequestId: input.serviceRequestId,
+            },
+            variables: {
+              organization_name: organizationResult.data!.name,
+              recipient_first_name:
+                member.profiles.first_name?.trim() || recipientName.split(/\s+/)[0],
+              recipient_name: recipientName,
+              recipient_email: recipientEmail!,
+              service_request_number: request.request_number,
+              customer_name: customerName,
+              request_subject: request.subject,
+              action_url: `${baseUrl}/service-desk/${input.serviceRequestId}`,
+            },
+          }),
+      };
+
       const delivery = await deliverEmailOnce(
         buildNewServiceRequestEmail({
           to: recipientEmail,
@@ -176,7 +217,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
           requestSubject: request.subject,
           destinationUrl: `${baseUrl}/service-desk/${input.serviceRequestId}`,
         }),
-        applicationEmailProvider,
+        trackedProvider,
         store,
       );
       if (!delivery.ok) {

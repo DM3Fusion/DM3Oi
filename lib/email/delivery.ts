@@ -7,8 +7,11 @@ export type EmailMessage = {
 };
 
 export type MailResult =
-  | { ok: true }
+  | { ok: true; messageId?: string }
   | { ok: false; errorCode: string; safeMessage: string };
+
+export type DeliveryTransport = "SENT" | "NOT_SENT";
+export type DeliveryAudit = "RECORDED" | "FINALIZATION_FAILED";
 
 export interface EmailProvider {
   send(message: EmailMessage): Promise<MailResult>;
@@ -20,8 +23,27 @@ export interface EmailDeliveryStore {
 }
 
 export type EmailDeliveryResult =
-  | { ok: true; status: "SENT" | "ALREADY_RECORDED" }
-  | { ok: false; errorCode: string; safeMessage: string };
+  | {
+      ok: true;
+      status: "SENT" | "ALREADY_RECORDED";
+      transport: "SENT" | "NOT_SENT";
+      audit: "RECORDED";
+    }
+  | {
+      ok: true;
+      status: "SENT";
+      transport: "SENT";
+      audit: "FINALIZATION_FAILED";
+      messageId?: string;
+      auditErrorCode: "DELIVERY_STATE_UPDATE_FAILED";
+    }
+  | {
+      ok: false;
+      transport: "NOT_SENT";
+      audit: DeliveryAudit;
+      errorCode: string;
+      safeMessage: string;
+    };
 
 export async function deliverEmailOnce(
   message: EmailMessage,
@@ -34,11 +56,19 @@ export async function deliverEmailOnce(
   } catch {
     return {
       ok: false,
+      transport: "NOT_SENT",
+      audit: "FINALIZATION_FAILED",
       errorCode: "COMMUNICATION_PERSIST_FAILED",
       safeMessage: "Email notification could not be recorded.",
     };
   }
-  if (!claim) return { ok: true, status: "ALREADY_RECORDED" };
+  if (!claim)
+    return {
+      ok: true,
+      status: "ALREADY_RECORDED",
+      transport: "NOT_SENT",
+      audit: "RECORDED",
+    };
 
   let result: MailResult;
   try {
@@ -54,13 +84,26 @@ export async function deliverEmailOnce(
   try {
     await store.complete(claim.id, result);
   } catch {
+    if (result.ok)
+      return {
+        ok: true,
+        status: "SENT",
+        transport: "SENT",
+        audit: "FINALIZATION_FAILED",
+        messageId: result.messageId,
+        auditErrorCode: "DELIVERY_STATE_UPDATE_FAILED",
+      };
     return {
       ok: false,
+      transport: "NOT_SENT",
+      audit: "FINALIZATION_FAILED",
       errorCode: "DELIVERY_STATE_UPDATE_FAILED",
       safeMessage: "Email delivery status could not be updated.",
     };
   }
-  return result.ok ? { ok: true, status: "SENT" } : result;
+  return result.ok
+    ? { ok: true, status: "SENT", transport: "SENT", audit: "RECORDED" }
+    : { ...result, transport: "NOT_SENT", audit: "RECORDED" };
 }
 
 export function buildNewServiceRequestEmail(input: {

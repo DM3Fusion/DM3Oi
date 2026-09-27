@@ -36,6 +36,7 @@ const previewRows = [
   ["Service request messages", "serviceRequestMessages"],
   ["Service request activity", "serviceRequestActivity"],
   ["Service request communications", "serviceRequestCommunications"],
+  ["Email delivery history", "emailDeliveries"],
   ["Notifications", "notifications"],
   ["Membership events", "membershipEvents"],
   ["Case number counters", "caseNumberCounters"],
