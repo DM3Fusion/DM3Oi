@@ -91,6 +91,8 @@ export async function saveQuestionAction(form: FormData) {
     target_display_order: Number(text(form, "displayOrder") || 0),
     target_options: options,
     target_question_group: text(form, "questionGroup") || null,
+    target_completion_condition:
+      text(form, "completionCondition") || "ANY_ANSWER",
   });
   if (error) {
     console.error("Save question failed", {

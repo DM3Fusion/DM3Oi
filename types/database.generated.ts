@@ -1743,7 +1743,8 @@ export type Database = {
       question_definitions: {
         Row: {
           active: boolean
-          created_at: string
+                    completion_condition: string
+created_at: string
           created_by_user_id: string
           description: string
           display_order: number
@@ -1759,7 +1760,8 @@ export type Database = {
         }
         Insert: {
           active?: boolean
-          created_at?: string
+                    completion_condition?: string
+created_at?: string
           created_by_user_id: string
           description?: string
           display_order?: number
@@ -1775,7 +1777,8 @@ export type Database = {
         }
         Update: {
           active?: boolean
-          created_at?: string
+                    completion_condition?: string
+created_at?: string
           created_by_user_id?: string
           description?: string
           display_order?: number
@@ -2561,7 +2564,8 @@ export type Database = {
       organization_question_definitions: {
         Row: {
           active: boolean
-          created_at: string
+                    completion_condition: string
+created_at: string
           created_by_display_name: string | null
           created_by_user_id: string | null
           description: string
@@ -3514,6 +3518,7 @@ export type Database = {
           target_response_type: Database["public"]["Enums"]["question_response_type"]
           target_track_required_options: boolean
           target_question_group?: string | null
+          target_completion_condition?: string
         }
         Returns: {
           active: boolean

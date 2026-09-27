@@ -133,6 +133,11 @@ function QuestionForm({
         initialResponseType={question?.response_type ?? "TEXT"}
         initialRequireAllOptions={question?.require_all_options ?? false}
         initialTrackRequiredOptions={question?.track_required_options ?? false}
+        initialCompletionCondition={
+          question?.completion_condition === "YES_REQUIRED"
+            ? "YES_REQUIRED"
+            : "ANY_ANSWER"
+        }
         initialOptions={
           question?.options.map((option) => ({
             id: option.id,

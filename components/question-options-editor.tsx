@@ -14,6 +14,7 @@ const responseTypes = [
 ] as const;
 
 type ResponseType = (typeof responseTypes)[number];
+type CompletionCondition = "ANY_ANSWER" | "YES_REQUIRED";
 
 type InitialOption = {
   id: string;
@@ -31,11 +32,13 @@ export function QuestionOptionsEditor({
   initialOptions,
   initialRequireAllOptions,
   initialTrackRequiredOptions,
+  initialCompletionCondition,
 }: {
   initialResponseType: ResponseType;
   initialOptions: InitialOption[];
   initialRequireAllOptions: boolean;
   initialTrackRequiredOptions: boolean;
+  initialCompletionCondition: CompletionCondition;
 }) {
   const nextKey = useRef(0);
   const [responseType, setResponseType] =
@@ -52,6 +55,8 @@ export function QuestionOptionsEditor({
   const [trackRequiredOptions, setTrackRequiredOptions] = useState(
     initialTrackRequiredOptions,
   );
+  const [completionCondition, setCompletionCondition] =
+    useState<CompletionCondition>(initialCompletionCondition);
 
   const isSelect =
     responseType === "SINGLE_SELECT" || responseType === "MULTI_SELECT";
@@ -94,15 +99,52 @@ export function QuestionOptionsEditor({
         <select
           name="responseType"
           value={responseType}
-          onChange={(event) =>
-            setResponseType(event.currentTarget.value as ResponseType)
-          }
+          onChange={(event) => {
+            const nextType = event.currentTarget.value as ResponseType;
+            setResponseType(nextType);
+            if (nextType !== "YES_NO") {
+              setCompletionCondition("ANY_ANSWER");
+            }
+          }}
         >
           {responseTypes.map((type) => (
             <option key={type}>{type}</option>
           ))}
         </select>
       </label>
+
+      <input
+        type="hidden"
+        name="completionCondition"
+        value={
+          responseType === "YES_NO" ? completionCondition : "ANY_ANSWER"
+        }
+      />
+
+      {responseType === "YES_NO" ? (
+        <label className="full">
+          <span>Completion requirement</span>
+          <select
+            value={completionCondition}
+            onChange={(event) =>
+              setCompletionCondition(
+                event.currentTarget.value as CompletionCondition,
+              )
+            }
+          >
+            <option value="ANY_ANSWER">
+              Either Yes or No completes the Question
+            </option>
+            <option value="YES_REQUIRED">
+              Yes is required to complete the Question
+            </option>
+          </select>
+          <small>
+            Use Yes required for verification or satisfaction Questions.
+            Use either answer for decision and branching Questions.
+          </small>
+        </label>
+      ) : null}
 
       <input
         type="hidden"

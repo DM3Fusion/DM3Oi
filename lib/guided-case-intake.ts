@@ -77,6 +77,7 @@ export type GuidedIntakeQuestion = {
   required: boolean;
   requireAllOptions: boolean;
   trackRequiredOptions: boolean;
+  completionCondition?: "ANY_ANSWER" | "YES_REQUIRED";
   group: GuidedQuestionGroup | null;
   displayOrder: number;
   options: GuidedIntakeOption[];
@@ -235,6 +236,25 @@ export function isGuidedQuestionAnswerValid(
   return question.options.every((option) => selectedIds.has(option.id));
 }
 
+export function isGuidedQuestionAnswerComplete(
+  question: GuidedIntakeQuestion,
+  value: Json | undefined,
+  requiredOptionIds: string[] = [],
+): boolean {
+  if (!isGuidedQuestionAnswerValid(question, value, requiredOptionIds)) {
+    return false;
+  }
+
+  if (
+    question.responseType === "YES_NO" &&
+    question.completionCondition === "YES_REQUIRED"
+  ) {
+    return value === true;
+  }
+
+  return true;
+}
+
 export function evaluateGuidedCaseIntake(
   configuration: Pick<
     GuidedIntakeConfiguration,
@@ -277,7 +297,7 @@ export function evaluateGuidedCaseIntake(
         applicable,
         effectiveRequired,
         answered: answers[question.id] !== undefined,
-        valid: isGuidedQuestionAnswerValid(
+        valid: isGuidedQuestionAnswerComplete(
           question,
           answers[question.id],
           requiredOptionIds[question.id],
