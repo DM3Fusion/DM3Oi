@@ -35,6 +35,16 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
         <strong>{item.value}</strong>
       </Link>)}
     </section>
+    <div className="operations-attention-row">
+      <section className={`panel needs-attention${summary.attention.length ? " has-attention-summary" : ""}`}>
+        <div className={`section-head attention-heading${summary.attention.length ? " attention-summary-heading" : ""}`}>
+          {summary.attention.length ? <AttentionSummaryRing items={summary.attention} /> : <span className="attention-heading-icon"><ApplicationIcon name="warning" /></span>}
+          <h2>All Needing Attention</h2>
+        </div>
+        {summary.attention.length?<div className="attention-summary-layout"><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
+      </section>
+      {intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null}
+    </div>
     <section className="panel customer-metrics-panel" aria-labelledby="customer-metrics-heading">
       <div className="section-head">
         <h2 id="customer-metrics-heading">Customer Metrics</h2>
@@ -70,15 +80,7 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
       </section>
     </div>
     <div className="operations-lower">
-      <section className={`panel needs-attention${summary.attention.length ? " has-attention-summary" : ""}`}>
-        <div className={`section-head attention-heading${summary.attention.length ? " attention-summary-heading" : ""}`}>
-          {summary.attention.length ? <AttentionSummaryRing items={summary.attention} /> : <span className="attention-heading-icon"><ApplicationIcon name="warning" /></span>}
-          <h2>All Needing Attention</h2>
-        </div>
-        {summary.attention.length?<div className="attention-summary-layout"><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
-      </section>
       {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
-      {intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null}
       <section className="panel recent-activity">
         <div className="section-head"><h2>Recent Activity</h2><Link href="/cases">View all <ApplicationIcon name="forward" /></Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>

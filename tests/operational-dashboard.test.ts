@@ -56,25 +56,33 @@ test("dashboard includes deterministic attention, progress, task status, and lin
   assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
 });
 
-test("Dashboard DOM preserves the streamlined phone order with Recent Activity once and last", () => {
+test("Dashboard DOM places attention directly after workload KPIs and before Customer Metrics", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
-  const caseProgress = dashboard.indexOf(">Case Progress<");
-  const taskStatus = dashboard.indexOf(">Task Status<");
+  const workload = dashboard.indexOf('aria-label="Action and workload summary"');
+  const attention = dashboard.indexOf('className="operations-attention-row"');
   const needsAttention = dashboard.indexOf(">All Needing Attention<");
-  const intelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
   const casesNeedingAttention = dashboard.indexOf("<CasesNeedingAttention intelligence={intelligence}");
+  const customerMetrics = dashboard.indexOf(">Customer Metrics<");
+  const caseProgress = dashboard.indexOf(">Case Progress<");
+  const intelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
   const recentActivity = dashboard.indexOf(">Recent Activity<");
-  assert.ok(caseProgress > -1 && caseProgress < taskStatus);
-  assert.ok(taskStatus < needsAttention && needsAttention < intelligence);
-  assert.ok(intelligence < casesNeedingAttention && casesNeedingAttention < recentActivity);
+
+  assert.ok(workload > -1 && workload < attention);
+  assert.ok(attention < needsAttention && needsAttention < casesNeedingAttention);
+  assert.ok(casesNeedingAttention < customerMetrics);
+  assert.ok(customerMetrics < caseProgress);
+  assert.ok(caseProgress < intelligence && intelligence < recentActivity);
+
   assert.equal(dashboard.match(/>Recent Activity</g)?.length, 1);
   assert.equal(dashboard.match(/<OperationalIntelligenceSection intelligence=\{intelligence\}/g)?.length, 1);
   assert.equal(dashboard.match(/<CasesNeedingAttention intelligence=\{intelligence\}/g)?.length, 1);
 });
 
-test("desktop and tablet pair attention cards before Intelligence and place Recent Activity last", () => {
+test("desktop and tablet pair the attention cards in their dedicated row", () => {
   const css = source("app/globals.css");
-  assert.match(css, /@media\(min-width:601px\)\{\.operations-lower\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.operations-lower>\.needs-attention\{order:1\}\.operations-lower>\.cases-needing-attention\{order:2\}\.operations-lower>\.operational-intelligence\{grid-column:1\/-1;order:3\}\.operations-lower>\.recent-activity\{grid-column:1\/-1;order:4\}\}/);
+  assert.match(css, /\.operations-attention-row\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}/);
+  assert.match(css, /@media\(max-width:1050px\)\{\.operations-visuals,\.operations-lower,\.operations-attention-row\{grid-template-columns:1fr\}\}/);
+  assert.match(css, /@media\(max-width:600px\)\{[\s\S]*?\.operations-attention-row\{grid-template-columns:1fr\}/);
 });
 
 test("case progress uses an accessible vertical bar chart with preserved categories", () => {

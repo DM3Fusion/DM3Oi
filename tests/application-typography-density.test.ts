@@ -82,13 +82,13 @@ test("phone Dashboard hides Rule and Recent Activity without changing their data
   assert.match(intelligence, /className="panel intelligence-panel rule-activity"/);
   assert.match(intelligence, /activeRuleActivity\.slice\(0, 5\)\.map/);
   assert.match(intelligence, /href="\/questions\?view=rules">View Rules/);
-  assert.match(css, /@media\(max-width:600px\)\{\.operational-intelligence \.rule-activity,\.operations-lower>\.recent-activity\{display:none\}\}/);
+  assert.match(css, /@media\(max-width:600px\)\{[\s\S]*?\.operational-intelligence \.rule-activity,\.operations-lower>\.recent-activity\{display:none\}[\s\S]*?\.operations-attention-row\{grid-template-columns:1fr\}/);
   assert.doesNotMatch(css, /@media\(min-width:601px\)\{[^}]*rule-activity[^}]*display:none/);
 });
 
 test("tablet and desktop pair attention panels before Intelligence and finish with Recent Activity", () => {
-  assert.match(css, /@media\(min-width:601px\)\{\.operations-lower\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.operations-lower>\.needs-attention\{order:1\}\.operations-lower>\.cases-needing-attention\{order:2\}\.operations-lower>\.operational-intelligence\{grid-column:1\/-1;order:3\}\.operations-lower>\.recent-activity\{grid-column:1\/-1;order:4\}\}/);
-  assert.match(css, /\.operations-visuals,\.operations-lower\{display:grid;gap:16px\}/);
+  assert.match(css, /@media\(min-width:601px\)\{\.operations-attention-row\{grid-template-columns:repeat\(2,minmax\(0,1fr\)\)\}\.operations-lower\{grid-template-columns:1fr\}\.operations-lower>\.operational-intelligence,\.operations-lower>\.recent-activity\{grid-column:1\/-1\}\}/);
+  assert.match(css, /\.operations-visuals,\.operations-lower,\.operations-attention-row\{display:grid;gap:16px\}/);
   assert.match(css, /\.operations-visuals,\.operations-lower\{grid-template-columns:minmax\(0,1\.35fr\) minmax\(310px,\.8fr\)\}/);
 });
 
