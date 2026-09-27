@@ -99,11 +99,31 @@ test("workload row uses open lifecycle semantics and organization-local Due Toda
     result.actionKpis.map(({ label, value }) => ({ label, value })),
     [
       { label: "Due Today", value: 1 },
-      { label: "Open Requests", value: 1 },
-      { label: "Open Tasks", value: 2 },
       { label: "Open Cases", value: 1 },
+      { label: "Open Tasks", value: 2 },
+      { label: "Open Requests", value: 1 },
     ],
   );
+});
+
+test("Tax-Year Case Coverage exposes duplicate current-year Cases as an owner-visible exception", () => {
+  const result = getOperationalDashboardMetrics(
+    [
+      { status: "NEW", customer_id: "a", tax_year: 2026, tasks: [] },
+      { status: "NEW", customer_id: "a", tax_year: 2026, tasks: [] },
+      { status: "NEW", customer_id: "b", tax_year: 2026, tasks: [] },
+    ] as unknown as LiveCase[],
+    [],
+    [{ id: "a" }, { id: "b" }],
+    0,
+    "UTC",
+  );
+
+  assert.equal(result.customerKpis[0].label, "Tax-Year Case Coverage");
+  assert.equal(result.customerKpis[0].value, 150);
+  assert.equal(result.customerKpis[0].valueSuffix, "%");
+  assert.equal(result.customerKpis[0].detail, "3 Cases / 2 Customers · 2026");
+  assert.equal(result.customerKpis[0].tone, "red");
 });
 
 test("Case tax year is nullable for history but required at both creation RPC boundaries", () => {

@@ -28,15 +28,36 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
   return {
     actionKpis:[
       {label:"Due Today",value:dueToday,href:"/tasks?due=today",detail:"Organization-local date",tone:dueToday?"amber":"slate"},
-      {label:"Open Requests",value:openRequests,href:"/service-desk/requests?status=open",detail:"Active Service Desk workload",tone:"violet"},
-      {label:"Open Tasks",value:openTasks,href:"/tasks?status=open",detail:"Not completed or excluded",tone:"cyan"},
       {label:"Open Cases",value:openCases,href:"/cases?status=active",detail:"Open lifecycle statuses",tone:"blue"},
+      {label:"Open Tasks",value:openTasks,href:"/tasks?status=open",detail:"Not completed or excluded",tone:"cyan"},
+      {label:"Open Requests",value:openRequests,href:"/service-desk/requests?status=open",detail:"Active Service Desk workload",tone:"violet"},
     ],
     customerKpis:[
-      {label:"Customers — Current Tax Year",value:customerMetrics.currentTaxYearCustomers,href:"/customers",detail:customerMetrics.currentTaxYear?String(customerMetrics.currentTaxYear):"No tax-year Case data",tone:"cyan"},
-      {label:"Customers — Prior Tax Year",value:customerMetrics.priorTaxYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear?String(customerMetrics.priorTaxYear):"No tax-year Case data",tone:"slate"},
+      {
+        label:"Tax-Year Case Coverage",
+        value:customerMetrics.currentTaxYearCustomers
+          ? Math.round(
+              cases.filter(item=>item.tax_year===customerMetrics.currentTaxYear).length
+              / customerMetrics.currentTaxYearCustomers
+              * 100,
+            )
+          : 0,
+        valueSuffix:"%",
+        href:"/cases",
+        detail:customerMetrics.currentTaxYear
+          ? `${cases.filter(item=>item.tax_year===customerMetrics.currentTaxYear).length} Cases / ${customerMetrics.currentTaxYearCustomers} Customers · ${customerMetrics.currentTaxYear}`
+          : "No tax-year Case data",
+        tone:
+          customerMetrics.currentTaxYearCustomers &&
+          cases.filter(item=>item.tax_year===customerMetrics.currentTaxYear).length >
+            customerMetrics.currentTaxYearCustomers
+            ? "red"
+            : "blue",
+      },
+      {label:"Current Tax-Year Customers",value:customerMetrics.currentTaxYearCustomers,href:"/customers",detail:customerMetrics.currentTaxYear?String(customerMetrics.currentTaxYear):"No tax-year Case data",tone:"cyan"},
+      {label:"Prior Tax-Year Customers",value:customerMetrics.priorTaxYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear?String(customerMetrics.priorTaxYear):"No tax-year Case data",tone:"slate"},
       {label:"Repeat Customers",value:customerMetrics.repeatCustomers,href:"/customers",detail:"Served in adjacent tax years",tone:"violet"},
-      {label:"Customers — Lifetime",value:customerMetrics.lifetimeCustomers,href:"/customers",detail:"Distinct organization Customers",tone:"green"},
+      {label:"Lifetime Customers",value:customerMetrics.lifetimeCustomers,href:"/customers",detail:"Distinct organization Customers",tone:"green"},
     ],
     caseProgress:[
       {label:"New",value:cases.filter(item=>item.status==="NEW").length,href:"/cases?status=new"},

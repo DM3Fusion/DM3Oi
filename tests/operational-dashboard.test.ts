@@ -21,20 +21,29 @@ test("authenticated shell presents DM3Oi branding and preserves operational navi
   assert.doesNotMatch(shell, /Case Management Intelligence/);
 });
 
-test("operational dashboard exposes two canonical rows of four KPIs", () => {
+test("operational dashboard exposes the canonical workload row and Customer Metrics", () => {
   const metrics = source("lib/live-dashboard-metrics.ts");
+
   for (const [label, href] of [
     ["Due Today", "/tasks?due=today"],
-    ["Open Requests", "/service-desk/requests?status=open"],
-    ["Open Tasks", "/tasks?status=open"],
     ["Open Cases", "/cases?status=active"],
-    ["Customers — Lifetime", "/customers"],
-    ["Customers — Prior Tax Year", "/customers"],
-    ["Customers — Current Tax Year", "/customers"],
+    ["Open Tasks", "/tasks?status=open"],
+    ["Open Requests", "/service-desk/requests?status=open"],
+    ["Current Tax-Year Customers", "/customers"],
+    ["Prior Tax-Year Customers", "/customers"],
     ["Repeat Customers", "/customers"],
+    ["Lifetime Customers", "/customers"],
   ]) {
-    assert.match(metrics, new RegExp(`label:\\"${label}\\",value:[^,]+,href:\\"${href.replace(/[?]/g, "\\?")}\\"`));
+    assert.match(
+      metrics,
+      new RegExp(
+        `label:\\"${label}\\",value:[^,]+,href:\\"${href.replace(/[?]/g, "\\?")}\\"`,
+      ),
+    );
   }
+
+  assert.match(metrics, /label:"Tax-Year Case Coverage"/);
+  assert.match(metrics, /valueSuffix:"%"/);
 });
 
 test("dashboard includes deterministic attention, progress, task status, and linked recent activity", () => {
@@ -270,24 +279,50 @@ test("dashboard KPI cards remain four columns on wide and two on narrow layouts"
   assert.doesNotMatch(css, /route-progress|navigation-progress/);
 });
 
-test("dashboard KPIs render the canonical workload and Customer labels", () => {
+test("dashboard KPIs render the canonical workload and Customer Metrics labels", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const metrics = source("lib/live-dashboard-metrics.ts");
 
-  const currentTaxYearIndex = metrics.indexOf('label:"Customers — Current Tax Year"');
-  const priorTaxYearIndex = metrics.indexOf('label:"Customers — Prior Tax Year"');
-  const repeatCustomersIndex = metrics.indexOf('label:"Repeat Customers"');
-  const lifetimeCustomersIndex = metrics.indexOf('label:"Customers — Lifetime"');
+  const workloadLabels = [
+    'label:"Due Today"',
+    'label:"Open Cases"',
+    'label:"Open Tasks"',
+    'label:"Open Requests"',
+  ];
 
-  assert.ok(currentTaxYearIndex >= 0);
+  const workloadIndexes = workloadLabels.map((label) => metrics.indexOf(label));
+  assert.ok(workloadIndexes.every((index) => index >= 0));
+  assert.ok(workloadIndexes[1] > workloadIndexes[0]);
+  assert.ok(workloadIndexes[2] > workloadIndexes[1]);
+  assert.ok(workloadIndexes[3] > workloadIndexes[2]);
+
+  const coverageIndex = metrics.indexOf('label:"Tax-Year Case Coverage"');
+  const currentTaxYearIndex = metrics.indexOf('label:"Current Tax-Year Customers"');
+  const priorTaxYearIndex = metrics.indexOf('label:"Prior Tax-Year Customers"');
+  const repeatCustomersIndex = metrics.indexOf('label:"Repeat Customers"');
+  const lifetimeCustomersIndex = metrics.indexOf('label:"Lifetime Customers"');
+
+  assert.ok(coverageIndex >= 0);
+  assert.ok(currentTaxYearIndex > coverageIndex);
   assert.ok(priorTaxYearIndex > currentTaxYearIndex);
   assert.ok(repeatCustomersIndex > priorTaxYearIndex);
   assert.ok(lifetimeCustomersIndex > repeatCustomersIndex);
-  for (const label of ["Due Today", "Open Requests", "Open Tasks", "Open Cases", "Customers — Lifetime", "Customers — Prior Tax Year", "Customers — Current Tax Year", "Repeat Customers"]) {
-    assert.match(metrics, new RegExp(`label:\\"${label}\\"`));
-  }
-  assert.match(dashboard, /<span className="operations-kpi-label">\{item\.label\}<\/span>/);
-  assert.match(dashboard, /<strong>\{item\.value\}<\/strong>/);
-  assert.doesNotMatch(dashboard, /operations-kpi-icon|iconFor\(item\.label\)/);
+
+  assert.match(
+    dashboard,
+    /<h2 id="customer-metrics-heading">Customer Metrics<\/h2>/,
+  );
+  assert.match(
+    dashboard,
+    /<span className="operations-kpi-label">\{item\.label\}<\/span>/,
+  );
+  assert.match(
+    dashboard,
+    /<strong>\{item\.value\}\{"valueSuffix" in item \? item\.valueSuffix : ""\}<\/strong>/,
+  );
+  assert.doesNotMatch(
+    dashboard,
+    /operations-kpi-icon|iconFor\(item\.label\)/,
+  );
   assert.match(dashboard, /<small>\{item\.detail\}<\/small>/);
 });

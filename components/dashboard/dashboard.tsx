@@ -35,12 +35,17 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
         <strong>{item.value}</strong>
       </Link>)}
     </section>
-    <section className="operations-kpis customer-kpis" aria-label="Customer summary">
-      {summary.customerKpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
-        <span className="operations-kpi-label">{item.label}</span>
-        <strong>{item.value}</strong>
-        <small>{item.detail}</small>
-      </Link>)}
+    <section className="panel customer-metrics-panel" aria-labelledby="customer-metrics-heading">
+      <div className="section-head">
+        <h2 id="customer-metrics-heading">Customer Metrics</h2>
+      </div>
+      <div className="operations-kpis customer-kpis">
+        {summary.customerKpis.map(item=><Link className={`operations-kpi tone-${item.tone}`} href={item.href} key={item.label} aria-label={`View ${item.label.toLowerCase()}`}>
+          <span className="operations-kpi-label">{item.label}</span>
+          <strong>{item.value}{"valueSuffix" in item ? item.valueSuffix : ""}</strong>
+          <small>{item.detail}</small>
+        </Link>)}
+      </div>
     </section>
     <div className="operations-visuals">
       <section className="panel operations-panel">
