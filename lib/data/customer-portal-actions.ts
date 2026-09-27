@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ACTIVE_PORTAL_ACCESS_COOKIE, requireCustomerPortalContext } from "@/lib/auth/customer-portal";
+import { customerPortalCookieOptions } from "@/lib/auth/customer-portal-cookie";
 import { createClient } from "@/lib/supabase/server";
 import { recordPortalCommunication } from "@/lib/data/communication-service";
 import { notifyStaffOfCustomerReply } from "@/lib/data/communication-service";
@@ -16,7 +17,11 @@ export async function selectPortalAccountAction(form: FormData) {
   if (!user) redirect("/login");
   const { data } = await supabase.from("customer_portal_users").select("id").eq("id", id).eq("user_id", user.id).eq("is_active", true).maybeSingle();
   if (!data) redirect("/portal/select-account");
-  (await cookies()).set(ACTIVE_PORTAL_ACCESS_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/" });
+  (await cookies()).set(
+    ACTIVE_PORTAL_ACCESS_COOKIE,
+    id,
+    customerPortalCookieOptions(),
+  );
   redirect("/portal");
 }
 

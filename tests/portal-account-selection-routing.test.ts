@@ -61,7 +61,7 @@ test("manual account selection validates access, writes the canonical cookie, an
   assert.match(actions, /\.eq\("id", id\)/);
   assert.match(actions, /\.eq\("user_id", user\.id\)/);
   assert.match(actions, /\.eq\("is_active", true\)/);
-  assert.match(actions, /cookies\(\)\)\.set\(ACTIVE_PORTAL_ACCESS_COOKIE, id/);
+  assert.match(actions, /cookies\(\)\)\.set\([\s\S]*ACTIVE_PORTAL_ACCESS_COOKIE,[\s\S]*id,[\s\S]*customerPortalCookieOptions\(\)/);
   assert.match(actions, /redirect\("\/portal"\)/);
   assert.doesNotMatch(layout + selectionPage, /router\.(?:refresh|replace)|useEffect|setInterval/);
 });

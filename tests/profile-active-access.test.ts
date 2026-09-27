@@ -25,8 +25,8 @@ test("inactive profiles are rejected by proxy and request-scoped access resoluti
 
 test("inactive profiles cannot resolve Customer Portal access", () => {
   const portal = source("lib/auth/customer-portal.ts");
-  assert.match(portal, /from\("profiles"\)[\s\S]*select\("is_active"\)[\s\S]*eq\("id", user\.id\)/);
-  assert.match(portal, /profile\?\.is_active !== true \|\| error \|\| !activeLinks\.length/);
+  assert.match(portal, /from\("profiles"\)[\s\S]*select\("is_active"\)[\s\S]*eq\("id", userId\)/);
+  assert.match(portal, /profileError \|\|[\s\S]*linksError \|\|[\s\S]*profile\?\.is_active !== true/);
 });
 
 const effectivePortalInput = (
