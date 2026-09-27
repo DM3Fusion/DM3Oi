@@ -15,6 +15,7 @@ import type {
   GuidedIntakeQuestion,
 } from "@/lib/guided-case-intake";
 import type { Database } from "@/types/database.generated";
+import { parsePortalOnboardingMode } from "@/lib/customer-portal-onboarding";
 
 type Role = Database["public"]["Enums"]["application_role"];
 
@@ -67,7 +68,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   ] = await Promise.all([
     supabase
       .from("organization_customers")
-      .select("id,customer_number,name")
+      .select("id,customer_number,name,email")
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
       .order("name"),
@@ -129,7 +130,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .order("display_order"),
     admin
       .from("organization_settings")
-      .select("default_priority")
+      .select("default_priority,portal_onboarding_mode")
       .eq("organization_id", organizationId)
       .maybeSingle(),
     admin
@@ -220,6 +221,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
               id: customer.id,
               customerNumber: customer.customer_number,
               name: customer.name,
+              email: customer.email,
             }]
           : [],
       ),
@@ -270,6 +272,9 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       rules: rules.data ?? [],
       actions: actions.data ?? [],
       defaultPriority: defaultPriority as GuidedCasePriority,
+      portalOnboardingMode: parsePortalOnboardingMode(
+        settings.data?.portal_onboarding_mode,
+      ),
       canViewCustomers: true,
       canCreateCustomer: hasPermission(access, "CREATE_CUSTOMER"),
       canAssign,

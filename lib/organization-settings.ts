@@ -20,6 +20,7 @@ export type CustomerPortalSettingsInput = {
   portalEnabled: unknown;
   portalSubmissionEnabled: unknown;
   portalShowPriority: unknown;
+  portalOnboardingMode: unknown;
 };
 
 type ParseResult<T> =
@@ -104,6 +105,7 @@ export function buildCustomerPortalSettingsWrite(
     SettingsInsert,
     | "organization_id"
     | "portal_enabled"
+    | "portal_onboarding_mode"
     | "portal_submission_enabled"
     | "portal_show_priority"
     | "updated_by"
@@ -114,11 +116,15 @@ export function buildCustomerPortalSettingsWrite(
     input.portalSubmissionEnabled,
   );
   const portalShowPriority = booleanField(input.portalShowPriority);
+  const portalOnboardingMode = text(input.portalOnboardingMode);
 
   if (
     portalEnabled === null ||
     portalSubmissionEnabled === null ||
-    portalShowPriority === null
+    portalShowPriority === null ||
+    !["MANUAL_ONLY", "PROMPT_DURING_CASE_INTAKE"].includes(
+      portalOnboardingMode,
+    )
   ) {
     return { ok: false, error: "Select valid Customer Portal settings." };
   }
@@ -128,6 +134,7 @@ export function buildCustomerPortalSettingsWrite(
     value: {
       organization_id: organizationId,
       portal_enabled: portalEnabled,
+      portal_onboarding_mode: portalOnboardingMode,
       portal_submission_enabled: portalSubmissionEnabled,
       portal_show_priority: portalShowPriority,
       updated_by: updatedBy,

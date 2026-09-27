@@ -14,6 +14,7 @@ import {
 
 const source = (path: string) => readFileSync(path, "utf8");
 const portalAction = source("lib/data/customer-portal-provisioning-actions.ts");
+const portalService = source("lib/data/customer-portal-provisioning-service.ts");
 const internalAction = source("lib/data/user-invitation-actions.ts");
 const emailService = source("lib/data/customer-portal-invitation-email-service.ts");
 const mailer = source("lib/email/mailer.ts");
@@ -26,11 +27,11 @@ test("new Customer Portal invitations use a generated Auth link without a Supaba
   });
   assert.equal(CUSTOMER_PORTAL_INVITATION_CONTEXT, "customer_portal");
   assert.match(
-    portalAction,
-    /generateLink\(\{[\s\S]*type: "invite",[\s\S]*email,[\s\S]*options: \{[\s\S]*redirectTo: getInvitationRedirect\(\),[\s\S]*data: customerPortalInvitationMetadata\(undefined, org\.name\)/,
+    portalService,
+    /generateLink\(\{[\s\S]*type: "invite",[\s\S]*email,[\s\S]*redirectTo: getInvitationRedirect\(\)[\s\S]*customerPortalInvitationMetadata/,
   );
-  assert.match(portalAction, /generated\.data\.properties\.action_link/);
-  assert.doesNotMatch(portalAction, /inviteUserByEmail/);
+  assert.match(portalService, /generated\.data\.properties\?\.action_link/);
+  assert.doesNotMatch(portalService, /inviteUserByEmail/);
 });
 
 test("Customer Portal reissues preserve metadata and refresh authoritative branding", () => {
@@ -52,13 +53,13 @@ test("Customer Portal reissues preserve metadata and refresh authoritative brand
     },
   );
   assert.match(
-    portalAction,
-    /customerPortalInvitationMetadata\(authUser\.user_metadata, org\.name\)/,
+    portalService,
+    /customerPortalInvitationMetadata\([\s\S]*authUser\?\.user_metadata,[\s\S]*input\.organizationName/,
   );
-  assert.match(portalAction, /email_confirmed_at \|\| authUser\.last_sign_in_at/);
-  assert.match(portalAction, /authUser = generated\.data\.user \?\? authUser/);
-  assert.match(portalAction, /linked\.data\?\.user_id === authUser\.id/);
-  assert.match(portalAction, /existing\.data[\s\S]*update\(\{ is_active: true \}\)[\s\S]*insert/);
+  assert.match(portalService, /authUser\.email_confirmed_at[\s\S]*authUser\.last_sign_in_at/);
+  assert.match(portalService, /authUser = generated\.data\.user/);
+  assert.match(portalService, /linked\?\.user_id === authUser\.id/);
+  assert.match(portalService, /existingLink[\s\S]*update\(\{ is_active: true \}\)[\s\S]*insert/);
 });
 
 test("branded Customer Portal email has exact authoritative copy and HTML/plain-text CTA", () => {
@@ -137,23 +138,23 @@ test("unexpected provider failures become safe retryable delivery failures", asy
 
 test("portal invitation branding is server-derived and grants no access", () => {
   assert.doesNotMatch(portalAction, /value\(form, "organizationName"\)/);
-  assert.match(portalAction, /const \{ org \} = await authorize\(customerId\)/);
-  assert.match(portalAction, /\.eq\("organization_id", org\.id\)/);
-  assert.match(portalAction, /\.from\("customer_portal_users"\)/);
-  assert.match(portalAction, /organization_id: org\.id, customer_id: customerId, user_id: authUser\.id/);
-  assert.doesNotMatch(portalAction, /\.from\("organization_members"\)\.insert/);
+  assert.match(portalAction, /const \{ access, org \} = await authorize\(customerId\)/);
+  assert.match(portalService, /\.eq\("organization_id", input\.organizationId\)/);
+  assert.match(portalService, /\.from\("customer_portal_users"\)/);
+  assert.match(portalService, /organization_id: input\.organizationId/);
+  assert.doesNotMatch(portalService, /\.from\("organization_members"\)\.insert/);
   const metadata = source("lib/data/customer-portal-invitation-metadata.ts");
   assert.doesNotMatch(metadata, /role|permission|customer_id|organization_id|user_id/);
   assert.doesNotMatch(portalAction, /value\(form, "(?:organizationName|recipientEmail|invitationUrl)"\)/);
 });
 
 test("delivery failure preserves prepared access, reports failure, and logs no invitation URL", () => {
-  const relationWrite = portalAction.indexOf("const relation = existing.data");
-  const delivery = portalAction.indexOf("sendCustomerPortalInvitationEmail({");
+  const relationWrite = portalService.indexOf("const relation = existingLink");
+  const delivery = portalService.indexOf("sendCustomerPortalInvitationEmail({");
   assert.ok(relationWrite >= 0 && delivery > relationWrite);
-  assert.match(portalAction, /Customer Portal access was prepared, but the invitation email could not be sent\./);
-  assert.doesNotMatch(portalAction, /deleteUser|\.delete\(\)/);
-  assert.doesNotMatch(portalAction, /console\.(?:log|error|warn)\([^\n]*(?:invitationUrl|action_link|hashed_token|email_otp)/);
+  assert.match(portalService, /Customer Portal access was prepared, but the invitation email could not be sent\./);
+  assert.doesNotMatch(portalService, /deleteUser|\.delete\(\)/);
+  assert.doesNotMatch(portalService, /console\.(?:log|error|warn)\([^\n]*(?:invitationUrl|action_link|hashed_token|email_otp)/);
 });
 
 test("success, resend, and duplicate-submit UI semantics are explicit", () => {

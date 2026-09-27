@@ -1,11 +1,14 @@
 "use client";
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   createGuidedCaseAction,
   createInlineIntakeCustomerAction,
   saveGuidedIntakeDraftAction,
+  loadGuidedIntakePortalStatusAction,
+  sendGuidedIntakePortalInvitationAction,
+  setGuidedIntakePortalNotRequiredAction,
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
@@ -32,6 +35,11 @@ import {
   normalizeCustomerPhone,
 } from "@/lib/customer-validation";
 import type { Json } from "@/types/database.generated";
+import {
+  portalOnboardingResolvedForIntake,
+  unresolvedPortalOnboarding,
+  type CustomerPortalOnboardingStatus,
+} from "@/lib/customer-portal-onboarding";
 
 type Props = {
   configuration: GuidedIntakeConfiguration;
@@ -328,11 +336,19 @@ export function GuidedCaseIntake({
       answers: {},
       requiredOptionIds: {},
       followUpTasks: [],
+      portalOnboarding: unresolvedPortalOnboarding(),
     },
   );
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [portalPending, setPortalPending] = useState(
+    configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE" &&
+      Boolean(initialDraft?.customerId),
+  );
+  const [portalStatus, setPortalStatus] =
+    useState<CustomerPortalOnboardingStatus | null>(null);
+  const [portalError, setPortalError] = useState<string | null>(null);
   const followUpDialog = useRef<HTMLDialogElement>(null);
   const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
   const [customerValues, setCustomerValues] = useState({
@@ -413,6 +429,80 @@ export function GuidedCaseIntake({
   const activeFollowUpRequirement = missingRequirements.find(
     (item) => item.question.id === followUpQuestionId,
   );
+  const portalPromptEnabled =
+    configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE";
+  const portalResolved = portalOnboardingResolvedForIntake(
+    configuration.portalOnboardingMode ?? "MANUAL_ONLY",
+    draft.customerId,
+    portalStatus,
+    draft.portalOnboarding,
+  );
+
+  useEffect(() => {
+    if (!portalPromptEnabled || !draft.customerId) {
+      return;
+    }
+    let active = true;
+    void loadGuidedIntakePortalStatusAction(draft.customerId).then((result) => {
+      if (!active) return;
+      setPortalPending(false);
+      if (!result.ok) {
+        setPortalStatus(null);
+        setPortalError(result.error);
+        return;
+      }
+      setPortalStatus(result.status);
+      setDraft((current) => {
+        if (current.customerId !== result.status.customerId) return current;
+        if (result.status.state === "ACTIVE")
+          return {
+            ...current,
+            portalOnboarding: {
+              resolution: "ACTIVE",
+              customerId: current.customerId,
+              recipientEmail: result.status.recipientEmail ?? undefined,
+              invitationId: result.status.invitationId ?? undefined,
+            },
+          };
+        if (result.status.state === "INVITATION_SENT")
+          return {
+            ...current,
+            portalOnboarding: {
+              resolution: "INVITATION_SENT",
+              customerId: current.customerId,
+              recipientEmail: result.status.recipientEmail ?? undefined,
+              invitationId: result.status.invitationId ?? undefined,
+            },
+          };
+        if (
+          current.portalOnboarding.resolution === "NOT_REQUIRED" &&
+          current.portalOnboarding.customerId === current.customerId
+        )
+          return current;
+        return { ...current, portalOnboarding: unresolvedPortalOnboarding() };
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, [draft.customerId, portalPromptEnabled]);
+
+  const selectCustomer = (customerId: string) => {
+    setPortalStatus(null);
+    setPortalError(null);
+    setPortalPending(Boolean(customerId) && portalPromptEnabled);
+    setDraft((current) => ({
+      ...current,
+      customerId,
+      portalOnboarding: unresolvedPortalOnboarding(),
+    }));
+    setErrors((current) => ({
+      ...current,
+      customerId: "",
+      portalOnboarding: "",
+    }));
+    setFormError(null);
+  };
 
   const updateDraft = <K extends keyof GuidedCaseIntakeDraft>(
     key: K,
@@ -591,13 +681,77 @@ export function GuidedCaseIntake({
       return validateGuidedCustomerStep(draft, scopedConfiguration);
     if (step === 1)
       return validateGuidedCaseDetails(draft, scopedConfiguration);
-    if (step === 2 || step === 3)
+    if (step === 2)
       return validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds);
+    if (step === 3)
+      return {
+        ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
+        ...(!portalResolved
+          ? { portalOnboarding: "Resolve Customer Portal onboarding." }
+          : {}),
+      };
     return {
       ...validateGuidedCustomerStep(draft, scopedConfiguration),
       ...validateGuidedCaseDetails(draft, scopedConfiguration),
       ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
+      ...(!portalResolved
+        ? { portalOnboarding: "Resolve Customer Portal onboarding." }
+        : {}),
     };
+  };
+
+  const sendPortalInvitation = async (resend: boolean) => {
+    if (!draft.customerId || portalPending) return;
+    setPortalPending(true);
+    setPortalError(null);
+    const result = await sendGuidedIntakePortalInvitationAction(
+      draft.customerId,
+      resend,
+    );
+    setPortalPending(false);
+    if (!result.ok) {
+      setPortalError(result.error);
+      return;
+    }
+    setPortalStatus(result.status);
+    setDraft((current) => ({
+      ...current,
+      portalOnboarding:
+        result.status.state === "ACTIVE"
+          ? {
+              resolution: "ACTIVE",
+              customerId: current.customerId,
+              recipientEmail: result.status.recipientEmail ?? undefined,
+              invitationId: result.status.invitationId ?? undefined,
+            }
+          : {
+              resolution: "INVITATION_SENT",
+              customerId: current.customerId,
+              recipientEmail: result.status.recipientEmail ?? undefined,
+              invitationId: result.status.invitationId ?? undefined,
+            },
+    }));
+    setErrors((current) => ({ ...current, portalOnboarding: "" }));
+  };
+
+  const setPortalNotRequired = async (notRequired: boolean) => {
+    if (!draft.customerId || portalPending) return;
+    setPortalPending(true);
+    setPortalError(null);
+    const result = await setGuidedIntakePortalNotRequiredAction(
+      draft.customerId,
+      notRequired,
+    );
+    setPortalPending(false);
+    if (!result.ok) {
+      setPortalError(result.error);
+      return;
+    }
+    setDraft((current) => ({
+      ...current,
+      portalOnboarding: result.resolution,
+    }));
+    setErrors((current) => ({ ...current, portalOnboarding: "" }));
   };
   const continueForward = () => {
     const blockers = validateStep();
@@ -663,9 +817,11 @@ export function GuidedCaseIntake({
     }
 
     setCustomers((current) => [...current, result.customer]);
+    setPortalPending(portalPromptEnabled);
     setDraft((current) => ({
       ...current,
       customerId: result.customer.id,
+      portalOnboarding: unresolvedPortalOnboarding(),
     }));
     setCustomerMode("existing");
     setErrors({});
@@ -769,7 +925,7 @@ export function GuidedCaseIntake({
               <span>Customer</span>
               <select
                 value={draft.customerId}
-                onChange={(event) => updateDraft("customerId", event.target.value)}
+                onChange={(event) => selectCustomer(event.target.value)}
                 aria-invalid={Boolean(errors.customerId)}
               >
                 <option value="">Select a Customer</option>
@@ -1144,6 +1300,126 @@ export function GuidedCaseIntake({
     );
   };
 
+  const renderPortalOnboarding = () => {
+    if (!portalPromptEnabled) return null;
+    const notRequired =
+      draft.portalOnboarding.resolution === "NOT_REQUIRED" &&
+      draft.portalOnboarding.customerId === draft.customerId;
+    const state = notRequired ? "NOT_REQUIRED" : portalStatus?.state;
+    return (
+      <section className="intake-portal-onboarding" aria-live="polite">
+        <header>
+          <div>
+            <p className="eyebrow">Customer Portal Access</p>
+            <h3>
+              {state === "ACTIVE"
+                ? "Customer Portal Active"
+                : state === "INVITATION_SENT"
+                  ? "Invitation Sent"
+                  : state === "NOT_REQUIRED"
+                    ? "Not Required for This Case"
+                    : state === "UNAVAILABLE"
+                      ? "Portal invitation unavailable"
+                      : "Portal access has not been activated for this customer."}
+            </h3>
+          </div>
+          <strong className={portalResolved ? "satisfied" : "outstanding"}>
+            {portalResolved ? "Resolved" : "Required"}
+          </strong>
+        </header>
+        {portalPending && !portalStatus ? <p>Checking Portal status…</p> : null}
+        {state === "ACTIVE" ? (
+          <p>
+            This customer can access the Customer Portal for Service Requests,
+            case progress, and messages. No action required.
+          </p>
+        ) : null}
+        {state === "INVITATION_SENT" ? (
+          <>
+            <p>
+              Sent to <strong>{portalStatus?.recipientEmail}</strong>
+              {portalStatus?.lastSentAt
+                ? ` on ${new Date(portalStatus.lastSentAt).toLocaleString()}`
+                : ""}. Activation is still pending.
+            </p>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={portalPending}
+                onClick={() => void sendPortalInvitation(true)}
+              >
+                {portalPending ? "Sending…" : "Resend Invitation"}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={portalPending}
+                onClick={() => void setPortalNotRequired(true)}
+              >
+                Not Required for This Case
+              </button>
+            </div>
+          </>
+        ) : null}
+        {state === "NOT_CONFIGURED" || (!state && !portalPending) ? (
+          <>
+            <p>
+              Customer email: <strong>{selectedCustomer?.email ?? "Not available"}</strong>
+            </p>
+            {portalStatus?.reason ? <p>{portalStatus.reason}</p> : null}
+            <div className="form-actions">
+              <button
+                type="button"
+                className="primary-button"
+                disabled={portalPending}
+                onClick={() => void sendPortalInvitation(false)}
+              >
+                {portalPending ? "Sending…" : "Send Portal Invitation"}
+              </button>
+              <button
+                type="button"
+                className="text-button"
+                disabled={portalPending}
+                onClick={() => void setPortalNotRequired(true)}
+              >
+                Not Required for This Case
+              </button>
+            </div>
+          </>
+        ) : null}
+        {state === "UNAVAILABLE" ? (
+          <>
+            <p>{portalStatus?.reason}</p>
+            <button
+              type="button"
+              className="text-button"
+              disabled={portalPending}
+              onClick={() => void setPortalNotRequired(true)}
+            >
+              Not Required for This Case
+            </button>
+          </>
+        ) : null}
+        {state === "NOT_REQUIRED" ? (
+          <>
+            <p>Portal access will not block this intake.</p>
+            <button
+              type="button"
+              className="text-button"
+              disabled={portalPending}
+              onClick={() => void setPortalNotRequired(false)}
+            >
+              Undo / Reconsider
+            </button>
+          </>
+        ) : null}
+        {portalError ? <div className="form-alert" role="alert">{portalError}</div> : null}
+        {fieldError(errors, "portalOnboarding")}
+      </section>
+    );
+  };
+
   const renderRequirements = () => {
     const requiredQuestions = evaluation.questions.filter(
       (question) => question.applicable && question.effectiveRequired,
@@ -1153,6 +1429,7 @@ export function GuidedCaseIntake({
     );
     return (
       <div className="intake-requirements intake-step-content">
+        {renderPortalOnboarding()}
         <h3>Required Intake Answers</h3>
         {requiredQuestions.length ? (
           <ul>
@@ -1335,11 +1612,15 @@ export function GuidedCaseIntake({
             }
             disabled={
               pending ||
-              (step === 2 && !requiredQuestionsComplete)
+              portalPending ||
+              (step === 2 && !requiredQuestionsComplete) ||
+              (step === 3 && !portalResolved)
             }
             title={
               step === 2 && !requiredQuestionsComplete
                 ? "Complete all required questions before continuing."
+                : step === 3 && !portalResolved
+                  ? "Resolve Customer Portal onboarding before continuing."
                 : undefined
             }
           >
@@ -1351,7 +1632,7 @@ export function GuidedCaseIntake({
           <button
             type="button"
             className="primary-button"
-            disabled={pending}
+            disabled={pending || portalPending || !portalResolved}
             onClick={async () => {
               setPending(true);
               setFormError(null);

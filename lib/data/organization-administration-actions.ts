@@ -79,6 +79,7 @@ export async function saveCustomerPortalSettings(form: FormData) {
       portalEnabled: form.get("portalEnabled"),
       portalSubmissionEnabled: form.get("portalSubmissionEnabled"),
       portalShowPriority: form.get("portalShowPriority"),
+      portalOnboardingMode: form.get("portalOnboardingMode"),
     },
     organizationId,
     access.user.id,

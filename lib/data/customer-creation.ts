@@ -10,7 +10,12 @@ import {
 export type CustomerCreationResult =
   | {
       ok: true;
-      customer: { id: string; customerNumber: string; name: string };
+      customer: {
+        id: string;
+        customerNumber: string;
+        name: string;
+        email: string | null;
+      };
     }
   | {
       ok: false;
@@ -61,6 +66,7 @@ export async function createCustomerForCurrentOrganization(
       id: created.id,
       customerNumber: created.customer_number,
       name: created.name,
+      email: created.email,
     },
   };
 }

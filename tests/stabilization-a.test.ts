@@ -126,6 +126,7 @@ test("Customer Portal payload owns no defaults or organization fields", () => {
       portalEnabled: "false",
       portalSubmissionEnabled: "true",
       portalShowPriority: "false",
+      portalOnboardingMode: "MANUAL_ONLY",
     },
     "organization-id",
     "actor-id",
@@ -138,6 +139,7 @@ test("Customer Portal payload owns no defaults or organization fields", () => {
     portal_enabled: false,
     portal_submission_enabled: true,
     portal_show_priority: false,
+    portal_onboarding_mode: "MANUAL_ONLY",
     updated_by: "actor-id",
   });
   for (const unrelatedField of [

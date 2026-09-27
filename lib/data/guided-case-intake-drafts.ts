@@ -9,6 +9,7 @@ import type {
   GuidedIntakeRequiredOptionIds,
 } from "@/lib/guided-case-intake";
 import type { Json } from "@/types/database.generated";
+import { parseGuidedIntakePortalResolution } from "@/lib/customer-portal-onboarding";
 
 export type GuidedIntakeNewCustomerDraft = {
   type: string;
@@ -169,7 +170,7 @@ export async function loadGuidedIntakeDraft(
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,updated_at",
+      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
@@ -206,6 +207,9 @@ export async function loadGuidedIntakeDraft(
       answers: parseAnswers(data.answers),
       requiredOptionIds: parseRequiredOptionIds(data.required_option_ids),
       followUpTasks: parseFollowUpTasks(data.follow_up_tasks),
+      portalOnboarding: parseGuidedIntakePortalResolution(
+        data.portal_onboarding,
+      ),
     },
     newCustomer: {
       ...emptyNewCustomer(),

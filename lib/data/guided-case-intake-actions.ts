@@ -17,6 +17,17 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import type { CustomerCreationValues } from "@/lib/customer-validation";
 import type { GuidedIntakeNewCustomerDraft } from "@/lib/data/guided-case-intake-drafts";
+import {
+  portalOnboardingResolvedForIntake,
+  parseGuidedIntakePortalResolution,
+  type CustomerPortalOnboardingStatus,
+  type GuidedIntakePortalResolution,
+} from "@/lib/customer-portal-onboarding";
+import {
+  CustomerPortalProvisioningError,
+  getCustomerPortalOnboardingStatus,
+  provisionCustomerPortalAccess,
+} from "@/lib/data/customer-portal-provisioning-service";
 
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
@@ -50,6 +61,18 @@ export async function saveGuidedIntakeDraftAction(
     )
   ) {
     return { ok: false, error: "This intake draft is invalid." };
+  }
+  const portalOnboarding = parseGuidedIntakePortalResolution(
+    input.draft.portalOnboarding,
+  );
+  if (
+    portalOnboarding.resolution !== "UNRESOLVED" &&
+    portalOnboarding.customerId !== input.draft.customerId
+  ) {
+    return {
+      ok: false,
+      error: "Customer Portal onboarding does not match the selected Customer.",
+    };
   }
 
   const evaluation = evaluateGuidedCaseIntake(
@@ -144,6 +167,7 @@ export async function saveGuidedIntakeDraftAction(
     answers: input.draft.answers,
     required_option_ids: input.draft.requiredOptionIds,
     follow_up_tasks: input.draft.followUpTasks,
+    portal_onboarding: portalOnboarding,
   };
 
   const { data, error } = await supabase
@@ -217,12 +241,51 @@ export async function createGuidedCaseAction(
       step: firstInvalidStep(validation.fieldErrors),
     };
   }
+  const supabase = await createClient();
+  const replay =
+    configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE"
+      ? await supabase
+          .from("cases")
+          .select("id")
+          .eq("organization_id", access.activeOrganization!.id)
+          .eq("created_by_user_id", access.user.id)
+          .eq("intake_submission_key", draft.submissionKey)
+          .maybeSingle()
+      : { data: null, error: null };
+  let portalStatus: CustomerPortalOnboardingStatus | null = null;
+  if (
+    configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE" &&
+    !replay.data
+  ) {
+    portalStatus = await getCustomerPortalOnboardingStatus({
+      organizationId: access.activeOrganization!.id,
+      customerId: draft.customerId,
+      actorUserId: access.user.id,
+    });
+    if (
+      !portalOnboardingResolvedForIntake(
+        configuration.portalOnboardingMode,
+        draft.customerId,
+        portalStatus,
+        draft.portalOnboarding,
+      )
+    ) {
+      return {
+        ok: false,
+        error:
+          "Resolve Customer Portal access in Requirements before creating this Case.",
+        fieldErrors: {
+          portalOnboarding: "Customer Portal onboarding is unresolved.",
+        },
+        step: 3,
+      };
+    }
+  }
   const creationPlan = buildGuidedIntakeCreationPlan(
     configuration,
     draft.answers,
     draft.requiredOptionIds,
   );
-  const supabase = await createClient();
   const { data: created, error } = await supabase.rpc(
     "create_guided_case_intake",
     {
@@ -239,6 +302,7 @@ export async function createGuidedCaseAction(
       target_answers: creationPlan.answers,
       target_required_option_ids: draft.requiredOptionIds,
       target_follow_up_tasks: draft.followUpTasks,
+      target_portal_onboarding: draft.portalOnboarding,
     },
   );
   if (error || !created) {
@@ -257,7 +321,8 @@ export async function createGuidedCaseAction(
       error?.message.includes("required intake response") ||
       error?.message.includes("tracked") ||
       error?.message.includes("required option") ||
-      error?.message.includes("missing requirements");
+      error?.message.includes("missing requirements") ||
+      error?.message.includes("Customer Portal onboarding");
     return {
       ok: false,
       error: staleConfiguration
@@ -275,6 +340,110 @@ export async function createGuidedCaseAction(
   revalidatePath("/customers");
   revalidatePath(`/cases/${created.id}`);
   return { ok: true, caseId: created.id, caseNumber: created.case_number };
+}
+
+export type GuidedIntakePortalActionResult =
+  | { ok: true; status: CustomerPortalOnboardingStatus }
+  | { ok: false; error: string; status?: CustomerPortalOnboardingStatus };
+
+async function requireGuidedIntakePortalCustomer(customerId: string) {
+  const { access, configuration } = await loadGuidedCaseIntakeConfiguration();
+  if (configuration.portalOnboardingMode !== "PROMPT_DURING_CASE_INTAKE")
+    throw new CustomerPortalProvisioningError(
+      "Portal onboarding is not enabled for Guided Intake.",
+    );
+  if (!configuration.customers.some((customer) => customer.id === customerId))
+    throw new CustomerPortalProvisioningError(
+      "The selected Customer is not available to this organization.",
+    );
+  return { access, configuration };
+}
+
+export async function loadGuidedIntakePortalStatusAction(
+  customerId: string,
+): Promise<GuidedIntakePortalActionResult> {
+  try {
+    const { access } = await requireGuidedIntakePortalCustomer(customerId);
+    return {
+      ok: true,
+      status: await getCustomerPortalOnboardingStatus({
+        organizationId: access.activeOrganization!.id,
+        customerId,
+        actorUserId: access.user.id,
+      }),
+    };
+  } catch (error) {
+    console.error("Guided Intake Portal status failed", {
+      operation: "loadGuidedIntakePortalStatus",
+      customerId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    return {
+      ok: false,
+      error:
+        error instanceof CustomerPortalProvisioningError
+          ? error.safeMessage
+          : "Customer Portal status could not be loaded.",
+    };
+  }
+}
+
+export async function sendGuidedIntakePortalInvitationAction(
+  customerId: string,
+  resend = false,
+): Promise<GuidedIntakePortalActionResult> {
+  try {
+    const { access } = await requireGuidedIntakePortalCustomer(customerId);
+    const status = await provisionCustomerPortalAccess({
+      organizationId: access.activeOrganization!.id,
+      organizationName: access.activeOrganization!.name,
+      customerId,
+      actorUserId: access.user.id,
+      intent: resend ? "RESEND" : "SEND",
+    });
+    revalidatePath("/cases/new");
+    revalidatePath(`/customers/${customerId}`);
+    return { ok: true, status };
+  } catch (error) {
+    console.error("Guided Intake Portal invitation failed", {
+      operation: resend ? "resendInvitation" : "sendInvitation",
+      customerId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+    return {
+      ok: false,
+      error:
+        error instanceof CustomerPortalProvisioningError
+          ? error.safeMessage
+          : "The Customer Portal invitation could not be sent.",
+    };
+  }
+}
+
+export async function setGuidedIntakePortalNotRequiredAction(
+  customerId: string,
+  notRequired: boolean,
+): Promise<
+  | { ok: true; resolution: GuidedIntakePortalResolution }
+  | { ok: false; error: string }
+> {
+  try {
+    await requireGuidedIntakePortalCustomer(customerId);
+    return {
+      ok: true,
+      resolution: notRequired
+        ? { resolution: "NOT_REQUIRED", customerId }
+        : { resolution: "UNRESOLVED" },
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error:
+        error instanceof CustomerPortalProvisioningError
+          ? error.safeMessage
+          : "Portal onboarding could not be updated.",
+    };
+  }
 }
 
 

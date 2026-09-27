@@ -129,11 +129,11 @@ test("trusted service role retains a profile reactivation recovery path", () => 
 
 test("organization portal provisioning cannot reactivate a globally inactive profile", () => {
   const provisioning = source(
-    "lib/data/customer-portal-provisioning-actions.ts",
+    "lib/data/customer-portal-provisioning-service.ts",
   );
   assert.match(
     provisioning,
-    /from\("profiles"\)[\s\S]*select\("id,is_active"\)[\s\S]*existingProfile\?\.data\?\.is_active === false/,
+    /from\("profiles"\)[\s\S]*select\("is_active"\)[\s\S]*profile\?\.is_active === false/,
   );
   assert.doesNotMatch(
     provisioning,

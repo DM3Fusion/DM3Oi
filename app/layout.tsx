@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import "./globals.css";
+import "./customer-portal-onboarding.css";
 import { AppShell } from "@/components/layout/app-shell";
 import { getAccessContext } from "@/lib/auth/context";
 import { getApplicationVersionLabel } from "@/lib/app-version";

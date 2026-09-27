@@ -7,6 +7,7 @@ import { formatPhone } from "@/lib/format-phone";
 import Link from "next/link";
 import { manageCustomerPortalAccessAction } from "@/lib/data/customer-portal-provisioning-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCustomerPortalOnboardingStatus } from "@/lib/data/customer-portal-provisioning-service";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { hasPermission } from "@/lib/auth/permissions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
@@ -26,15 +27,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const openCases = (cases ?? []).filter((item) => !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status)).length;
   const memberSince = getCustomerMemberSince(cases ?? []);
   const portal = portalLinks?.[0];
-  const portalProfile = portal?.user_id ? (await supabase.from("profiles").select("email").eq("id", portal.user_id).maybeSingle()).data : null;
-  let linkedAuthEmail = portalProfile?.email ?? null;
-  if (portal?.user_id) {
-    try {
-      linkedAuthEmail = (await createAdminClient().auth.admin.getUserById(portal.user_id)).data.user?.email ?? linkedAuthEmail;
-    } catch {
-      /* fallback to profile/customer email */
-    }
-  }
+  const portalStatus = await getCustomerPortalOnboardingStatus({ organizationId: access.activeOrganization.id, customerId: customer.id, actorUserId: access.user.id });
   const { data: settings } = await createAdminClient().from("organization_settings").select("timezone").eq("organization_id", access.activeOrganization.id).maybeSingle();
   return (
     <>
@@ -111,18 +104,20 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       <section className="panel detail-section portal-access-card">
         <div className="section-head">
           <h2>Portal Access</h2>
-          <Badge value={portal ? (portal.is_active ? "ACTIVE" : "INACTIVE") : "NOT ENABLED"} />
+          <Badge value={portalStatus.state === "INVITATION_SENT" ? "INVITATION SENT" : portalStatus.state === "NOT_CONFIGURED" ? "NOT ENABLED" : portalStatus.state === "UNAVAILABLE" && portal ? "INACTIVE" : portalStatus.state} />
         </div>
         {portal ? (
           <>
-            <p className="muted">{linkedAuthEmail ?? customer.email ?? "No email available"}</p>
+            <p className="muted">{portalStatus.recipientEmail ?? customer.email ?? "No email available"}</p>
+            {portalStatus.state === "INVITATION_SENT" && portalStatus.lastSentAt ? <p className="muted">Invitation sent {formatOrganizationDateTime(portalStatus.lastSentAt, settings?.timezone)} · activation pending</p> : null}
+            {portalStatus.reason ? <p className="muted">{portalStatus.reason}</p> : null}
             <form action={manageCustomerPortalAccessAction}>
               <input type="hidden" name="customerId" value={customer.id} />
               <input type="hidden" name="portalAccessId" value={portal.id} />
               <input type="hidden" name="intent" value={portal.is_active ? "disable" : "enable"} />
               <PendingSubmitButton className="primary-button" pendingLabel="Updating…">{portal.is_active ? "Disable Portal Access" : "Enable / Reactivate Portal Access"}</PendingSubmitButton>
             </form>
-            {portal.is_active && linkedAuthEmail ? (
+            {portal.is_active && portalStatus.recipientEmail ? (
               <form action={manageCustomerPortalAccessAction}>
                 <input type="hidden" name="customerId" value={customer.id} />
                 <input type="hidden" name="intent" value="resend" />

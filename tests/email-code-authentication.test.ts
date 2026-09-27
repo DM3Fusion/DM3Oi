@@ -76,7 +76,7 @@ test("post-auth access routing preserves internal, portal, platform, and unprovi
 test("internal and Customer Portal invitation acceptance remains separate and compatible", () => {
   const internalInvitations = source("lib/data/user-invitation-actions.ts");
   const portalInvitations = source(
-    "lib/data/customer-portal-provisioning-actions.ts",
+    "lib/data/customer-portal-provisioning-service.ts",
   );
   const invitePage = source("app/auth/invite/page.tsx");
 

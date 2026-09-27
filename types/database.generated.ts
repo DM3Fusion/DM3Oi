@@ -604,6 +604,79 @@ export type Database = {
           },
         ]
       }
+      customer_portal_invitations: {
+        Row: {
+          activated_at: string | null
+          created_at: string
+          created_by_user_id: string | null
+          customer_id: string
+          id: string
+          last_sent_at: string | null
+          organization_id: string
+          recipient_email: string
+          send_count: number
+          sent_at: string | null
+          status: string
+          updated_at: string
+          updated_by_user_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_id: string
+          id?: string
+          last_sent_at?: string | null
+          organization_id: string
+          recipient_email: string
+          send_count?: number
+          sent_at?: string | null
+          status: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          created_at?: string
+          created_by_user_id?: string | null
+          customer_id?: string
+          id?: string
+          last_sent_at?: string | null
+          organization_id?: string
+          recipient_email?: string
+          send_count?: number
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_portal_invitations_created_by_user_id_fkey"
+            columns: ["created_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_portal_invitations_portal_user_fkey"
+            columns: ["organization_id", "customer_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "customer_portal_users"
+            referencedColumns: ["organization_id", "customer_id", "user_id"]
+          },
+          {
+            foreignKeyName: "customer_portal_invitations_updated_by_user_id_fkey"
+            columns: ["updated_by_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_portal_users: {
         Row: {
           created_at: string
@@ -743,6 +816,7 @@ export type Database = {
           manager_user_id: string | null
           new_customer: Json
           organization_id: string
+          portal_onboarding: Json
           priority: Database["public"]["Enums"]["priority_level"]
           required_option_ids: Json
           staff_user_ids: string[]
@@ -765,6 +839,7 @@ export type Database = {
           manager_user_id?: string | null
           new_customer?: Json
           organization_id: string
+          portal_onboarding?: Json
           priority?: Database["public"]["Enums"]["priority_level"]
           required_option_ids?: Json
           staff_user_ids?: string[]
@@ -787,6 +862,7 @@ export type Database = {
           manager_user_id?: string | null
           new_customer?: Json
           organization_id?: string
+          portal_onboarding?: Json
           priority?: Database["public"]["Enums"]["priority_level"]
           required_option_ids?: Json
           staff_user_ids?: string[]
@@ -1387,6 +1463,7 @@ export type Database = {
           default_priority: Database["public"]["Enums"]["priority_level"]
           organization_id: string
           portal_enabled: boolean
+          portal_onboarding_mode: string
           portal_show_priority: boolean
           portal_submission_enabled: boolean
           portal_support_label: string | null
@@ -1401,6 +1478,7 @@ export type Database = {
           default_priority?: Database["public"]["Enums"]["priority_level"]
           organization_id: string
           portal_enabled?: boolean
+          portal_onboarding_mode?: string
           portal_show_priority?: boolean
           portal_submission_enabled?: boolean
           portal_support_label?: string | null
@@ -1415,6 +1493,7 @@ export type Database = {
           default_priority?: Database["public"]["Enums"]["priority_level"]
           organization_id?: string
           portal_enabled?: boolean
+          portal_onboarding_mode?: string
           portal_show_priority?: boolean
           portal_submission_enabled?: boolean
           portal_support_label?: string | null
@@ -2945,6 +3024,7 @@ export type Database = {
           target_follow_up_tasks?: Json
           target_manager_user_id?: string
           target_organization_id: string
+          target_portal_onboarding?: Json
           target_priority: Database["public"]["Enums"]["priority_level"]
           target_required_option_ids?: Json
           target_staff_user_ids?: string[]

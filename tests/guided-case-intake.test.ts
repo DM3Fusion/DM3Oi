@@ -72,6 +72,7 @@ const draft = (): GuidedCaseIntakeDraft => ({
   answers: {},
   requiredOptionIds: {},
   followUpTasks: [],
+  portalOnboarding: { resolution: "UNRESOLVED" },
 });
 
 test("Customer step cannot advance without an active organization Customer", () => {

@@ -5,6 +5,10 @@ import {
   type RuleEvaluationAction,
   type RuleEvaluationDefinition,
 } from "./rule-evaluator.ts";
+import type {
+  GuidedIntakePortalResolution,
+  PortalOnboardingMode,
+} from "./customer-portal-onboarding.ts";
 
 export const guidedCaseIntakeSteps = [
   "Customer",
@@ -54,6 +58,7 @@ export type GuidedIntakeCustomer = {
   id: string;
   customerNumber: string;
   name: string;
+  email?: string | null;
 };
 
 export type GuidedIntakeOption = {
@@ -95,6 +100,7 @@ export type GuidedIntakeConfiguration = {
   rules: GuidedIntakeRule[];
   actions: GuidedIntakeRuleAction[];
   defaultPriority: GuidedCasePriority;
+  portalOnboardingMode?: PortalOnboardingMode;
   canViewCustomers: boolean;
   canCreateCustomer: boolean;
   canAssign: boolean;
@@ -128,6 +134,7 @@ export type GuidedCaseIntakeDraft = {
   answers: GuidedIntakeAnswers;
   requiredOptionIds: GuidedIntakeRequiredOptionIds;
   followUpTasks: GuidedIntakeFollowUpTask[];
+  portalOnboarding: GuidedIntakePortalResolution;
 };
 
 export type GuidedIntakeFieldErrors = Record<string, string>;
