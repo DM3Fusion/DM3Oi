@@ -901,7 +901,7 @@ export function GuidedCaseIntake({
       draft.taxYear <= 2200;
     return (
       <div className="intake-step-content">
-        <label>
+        <label className="intake-tax-year">
           <span>Tax Year</span>
           <input
             type="number"
