@@ -548,7 +548,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
     );
   }
 
-  const identityVerified = Boolean(
+  const existingIdentityConfirmed = Boolean(
     existingAuthUser?.email_confirmed_at || existingAuthUser?.last_sign_in_at,
   );
 
@@ -557,9 +557,9 @@ export async function inviteOrganizationUserAction(form: FormData) {
         .from("organization_members")
         .update({
           role,
-          status: identityVerified ? "VERIFIED" : "INVITED",
+          status: "INVITED",
           is_active: false,
-          verified_at: identityVerified ? new Date().toISOString() : null,
+          verified_at: null,
           suspended_at: null,
           revoked_at: null,
         })
@@ -573,9 +573,9 @@ export async function inviteOrganizationUserAction(form: FormData) {
           organization_id: activeOrganization.id,
           user_id: targetUserId,
           role,
-          status: identityVerified ? "VERIFIED" : "INVITED",
+          status: "INVITED",
           is_active: false,
-          verified_at: identityVerified ? new Date().toISOString() : null,
+          verified_at: null,
         })
         .select("id")
         .maybeSingle();
@@ -585,13 +585,12 @@ export async function inviteOrganizationUserAction(form: FormData) {
   }
   const membershipId = membershipResult.data!.id;
 
-  if (
-    existingAuthUser &&
-    !existingAuthUser.email_confirmed_at &&
-    !existingAuthUser.last_sign_in_at
-  ) {
+  if (existingAuthUser) {
+    const organizationLinkType = existingIdentityConfirmed
+      ? "magiclink"
+      : "invite";
     const generated = await admin.auth.admin.generateLink({
-      type: "invite",
+      type: organizationLinkType,
       email,
       options: {
         redirectTo: getInvitationRedirect(),
@@ -610,7 +609,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
     if (
       generated.error ||
       !generated.data.properties?.hashed_token ||
-      generated.data.properties.verification_type !== "invite"
+      generated.data.properties.verification_type !== organizationLinkType
     ) {
       if (priorMembership)
         await admin
@@ -685,7 +684,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
     "record_organization_membership_invitation_event",
     {
       target_membership_id: membershipId,
-      target_event_type: identityVerified ? "VERIFIED" : "INVITED",
+      target_event_type: "INVITED",
     },
   );
   if (membershipEventError) {
@@ -720,7 +719,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
 
   revalidatePath("/users");
   redirect(
-    `/users?message=${encodeURIComponent(existingAuthUser?.email_confirmed_at || existingAuthUser?.last_sign_in_at ? "Organization access added." : "Invitation sent.")}`,
+    `/users?message=${encodeURIComponent("Invitation sent.")}`,
   );
 }
 

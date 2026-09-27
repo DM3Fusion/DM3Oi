@@ -236,3 +236,45 @@ test("organization invitation structured names outrank stale display-name metada
     /concat_ws\(' ', repaired_first_name, repaired_last_name\)[\s\S]*repaired_display_name/,
   );
 });
+
+
+test("organization invitations always require explicit membership acceptance even for confirmed Auth identities", () => {
+  const actions = source("lib/data/user-invitation-actions.ts");
+  const organizationInvite = actions.slice(
+    actions.indexOf("export async function inviteOrganizationUserAction"),
+    actions.indexOf("export async function resendUserInviteAction"),
+  );
+
+  assert.match(
+    organizationInvite,
+    /const existingIdentityConfirmed = Boolean\([\s\S]*email_confirmed_at[\s\S]*last_sign_in_at/,
+  );
+  assert.match(
+    organizationInvite,
+    /status: "INVITED"[\s\S]*is_active: false[\s\S]*verified_at: null/,
+  );
+  assert.doesNotMatch(
+    organizationInvite,
+    /status: identityVerified \? "VERIFIED" : "INVITED"/,
+  );
+  assert.match(
+    organizationInvite,
+    /existingIdentityConfirmed[\s\S]*\? "magiclink"[\s\S]*: "invite"/,
+  );
+  assert.match(
+    organizationInvite,
+    /type: organizationLinkType/,
+  );
+  assert.match(
+    organizationInvite,
+    /verification_type !== organizationLinkType/,
+  );
+  assert.match(
+    organizationInvite,
+    /target_event_type: "INVITED"/,
+  );
+  assert.match(
+    organizationInvite,
+    /encodeURIComponent\("Invitation sent\."\)/,
+  );
+});
