@@ -1,3 +1,4 @@
+import { AuthCard } from "@/components/auth-card";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
@@ -39,40 +40,27 @@ export default async function PendingActivationPage() {
     : organizationValue;
   const organizationName = organization?.name ?? "your organization";
 
+  const verified = membership.status === "VERIFIED";
+
   return (
-    <main className="public-main">
-      <section className="auth-card">
-        <p className="eyebrow">Account access</p>
-        {membership.status === "VERIFIED" ? (
-          <>
-            <h1>Email verification complete</h1>
-            <p>
-              Your email address has been verified for {organizationName}.
-            </p>
-            <p>
-              An administrator must activate your organization access before
-              you can use DM3Oi.
-            </p>
-            <p>
-              After activation, sign in again to continue.
-            </p>
-          </>
-        ) : (
-          <>
-            <h1>Invitation verification required</h1>
-            <p>
-              Your invitation to {organizationName} has not completed email
-              verification.
-            </p>
-            <p>
-              Use the verification code or invitation link sent to your email.
-            </p>
-          </>
-        )}
+    <AuthCard
+      title={verified ? "Email verification complete" : "Invitation verification required"}
+      description={
+        verified
+          ? `Your email address has been verified for ${organizationName}.`
+          : `Your invitation to ${organizationName} has not completed email verification.`
+      }
+    >
+      <div className="auth-message">
+        {verified
+          ? "An administrator must activate your organization access before you can use DM3Oi. After activation, sign in again to continue."
+          : "Use the verification code or invitation link sent to your email."}
+      </div>
+      <div className="form-actions">
         <form action={signOutAction}>
           <button className="secondary-button">Sign out</button>
         </form>
-      </section>
-    </main>
+      </div>
+    </AuthCard>
   );
 }

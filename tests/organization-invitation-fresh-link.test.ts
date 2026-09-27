@@ -129,3 +129,45 @@ test("OTP reconciliation and INVITED to VERIFIED to ACTIVE lifecycle remain inta
   );
   assert.match(activation, /when 'ACTIVATE'[\s\S]*membership\.status <> 'VERIFIED'/);
 });
+
+
+test("invitation verification ambiguity is fixed without changing lifecycle semantics", () => {
+  const migration = source(
+    "supabase/migrations/20260927123000_dm3oi_fix_invitation_verification_ambiguity.sql",
+  );
+
+  assert.match(
+    migration,
+    /update public\.organization_members as member_to_verify/,
+  );
+  assert.match(
+    migration,
+    /member_to_verify\.organization_id = membership\.organization_id/,
+  );
+  assert.match(
+    migration,
+    /member_to_verify\.status = 'INVITED'/,
+  );
+  assert.match(migration, /set status = 'VERIFIED'/);
+  assert.doesNotMatch(
+    migration,
+    /set[\s\S]{0,80}status = 'ACTIVE'/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.verify_my_membership_invitation\(\)[\s\S]*to authenticated/,
+  );
+});
+
+test("invitation verification pages use the canonical DM3Oi AuthCard", () => {
+  const invite = source("app/auth/invite/page.tsx");
+  const pending = source("app/account/pending-activation/page.tsx");
+
+  assert.match(invite, /import \{ AuthCard \}/);
+  assert.match(invite, /<AuthCard/);
+  assert.doesNotMatch(invite, /<main className="public-main"/);
+
+  assert.match(pending, /import \{ AuthCard \}/);
+  assert.match(pending, /<AuthCard/);
+  assert.doesNotMatch(pending, /<main className="public-main"/);
+});

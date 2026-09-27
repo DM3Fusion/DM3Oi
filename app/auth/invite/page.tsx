@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AuthCard } from "@/components/auth-card";
 import { createClient } from "@/lib/supabase/client";
 
 export default function InvitePage(){
@@ -28,5 +29,29 @@ export default function InvitePage(){
   if(!verified.data.user||verified.data.user.id!==established.data.user.id){await supabase.auth.signOut({scope:"local"});setError("The invitation could not establish a session.");return;}
   window.location.replace("/auth/invite/complete");
  })();},[]);
- return <main className="public-main"><section className="auth-card"><h1>{authenticatedFailure?"Invitation verification pending":error?"Invitation link expired":"Accepting invitation"}</h1><p>{error??"Establishing your DM3Oi session…"}</p>{authenticatedFailure?<form action="/auth/sign-out" method="post"><button className="secondary-button" type="submit">Sign out</button></form>:error?<Link className="primary-button" href="/login">Return to Sign In</Link>:null}</section></main>;
+ return (
+  <AuthCard
+   title={authenticatedFailure?"Invitation verification pending":error?"Invitation link expired":"Accepting invitation"}
+   description={authenticatedFailure
+    ?"Your DM3Oi account was authenticated, but organization access verification needs attention."
+    :error
+     ?"This invitation link cannot be completed."
+     :"Establishing your secure DM3Oi session…"}
+   error={error??undefined}
+  >
+   {authenticatedFailure?(
+    <div className="form-actions">
+     <form action="/auth/sign-out" method="post">
+      <button className="secondary-button" type="submit">Sign out</button>
+     </form>
+    </div>
+   ):error?(
+    <div className="form-actions">
+     <Link className="primary-button" href="/login">Return to Sign In</Link>
+    </div>
+   ):(
+    <div className="auth-message">Verifying your invitation…</div>
+   )}
+  </AuthCard>
+ );
 }
