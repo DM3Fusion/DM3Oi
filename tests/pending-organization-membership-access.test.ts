@@ -1,0 +1,90 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+
+const source = (path: string) => fs.readFileSync(path, "utf8");
+
+test("pending organization membership lookup is authenticated self-only and narrowly exposed", () => {
+  const migration = source(
+    "supabase/migrations/20260927143000_dm3oi_self_pending_organization_access.sql",
+  );
+
+  assert.match(
+    migration,
+    /create or replace function public\.get_my_pending_organization_membership\(\)/,
+  );
+  assert.match(migration, /actor uuid := auth\.uid\(\)/);
+  assert.match(migration, /member\.user_id = actor/);
+  assert.match(migration, /member\.status in \('INVITED', 'VERIFIED'\)/);
+  assert.match(migration, /member\.is_active = false/);
+  assert.match(migration, /organization\.status = 'ACTIVE'/);
+  assert.match(migration, /security definer/);
+  assert.match(
+    migration,
+    /revoke all[\s\S]*get_my_pending_organization_membership\(\)[\s\S]*from public, anon/,
+  );
+  assert.match(
+    migration,
+    /grant execute[\s\S]*get_my_pending_organization_membership\(\)[\s\S]*to authenticated/,
+  );
+  assert.doesNotMatch(
+    migration,
+    /target_user_id|target_organization_id|target_membership_id/,
+  );
+});
+
+test("proxy resolves pending organization access without broad inactive-membership RLS reads", () => {
+  const proxy = source("proxy.ts");
+
+  assert.match(proxy, /getMyPendingOrganizationMembership\(supabase\)/);
+  assert.match(
+    proxy,
+    /const hasPendingOrganizationAccess=Boolean\(pendingMembership\)/,
+  );
+  assert.doesNotMatch(
+    proxy,
+    /organization_members"\)\.select\("id,status"\)\.eq\("user_id",user\.id\)\.eq\("is_active",false\)/,
+  );
+  assert.match(
+    proxy,
+    /!hasActiveAccess&&hasPendingOrganizationAccess[\s\S]*\/account\/pending-activation/,
+  );
+});
+
+test("pending activation page uses the same self-only membership projection", () => {
+  const page = source("app/account/pending-activation/page.tsx");
+
+  assert.match(page, /getMyPendingOrganizationMembership\(supabase\)/);
+  assert.match(page, /membership\.organization_name/);
+  assert.match(page, /membership\.status === "VERIFIED"/);
+  assert.doesNotMatch(
+    page,
+    /\.from\("organization_members"\)[\s\S]{0,220}\.in\("status", \["INVITED", "VERIFIED"\]\)/,
+  );
+});
+
+
+test("verified pending activation reconciles automatically into active access", () => {
+  const page = source("app/account/pending-activation/page.tsx");
+  const reconciler = source("components/pending-activation-reconciler.tsx");
+
+  assert.match(page, /<PendingActivationReconciler \/>/);
+  assert.match(
+    page,
+    /This page will update automatically after activation\./,
+  );
+  assert.doesNotMatch(page, /After activation, sign in again to continue\./);
+
+  assert.match(reconciler, /window\.setInterval\(reconcile, 5_000\)/);
+  assert.match(reconciler, /router\.refresh\(\)/);
+  assert.match(reconciler, /window\.addEventListener\("focus", reconcile\)/);
+  assert.match(
+    reconciler,
+    /document\.addEventListener\("visibilitychange", refreshOnVisibility\)/,
+  );
+
+  assert.match(
+    page,
+    /if \(activeMembership\) redirect\("\/"\)/,
+  );
+});

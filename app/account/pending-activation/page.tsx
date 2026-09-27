@@ -1,7 +1,9 @@
 import { AuthCard } from "@/components/auth-card";
+import { PendingActivationReconciler } from "@/components/pending-activation-reconciler";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/server";
+import { getMyPendingOrganizationMembership } from "@/lib/auth/pending-organization-membership";
 
 export default async function PendingActivationPage() {
   const supabase = await createClient();
@@ -11,14 +13,7 @@ export default async function PendingActivationPage() {
 
   if (!user) redirect("/login");
 
-  const { data: membership } = await supabase
-    .from("organization_members")
-    .select("status,organization:organizations(name,status)")
-    .eq("user_id", user.id)
-    .in("status", ["INVITED", "VERIFIED"])
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
+  const membership = await getMyPendingOrganizationMembership(supabase);
 
   if (!membership) {
     const { data: activeMembership } = await supabase
@@ -34,12 +29,7 @@ export default async function PendingActivationPage() {
     redirect("/account/unprovisioned");
   }
 
-  const organizationValue = membership.organization;
-  const organization = Array.isArray(organizationValue)
-    ? organizationValue[0]
-    : organizationValue;
-  const organizationName = organization?.name ?? "your organization";
-
+  const organizationName = membership.organization_name || "your organization";
   const verified = membership.status === "VERIFIED";
 
   return (
@@ -51,9 +41,10 @@ export default async function PendingActivationPage() {
           : `Your invitation to ${organizationName} has not completed email verification.`
       }
     >
+      <PendingActivationReconciler />
       <div className="auth-message">
         {verified
-          ? "An administrator must activate your organization access before you can use DM3Oi. After activation, sign in again to continue."
+          ? "An administrator must activate your organization access before you can use DM3Oi. This page will update automatically after activation."
           : "Use the verification code or invitation link sent to your email."}
       </div>
       <div className="form-actions">

@@ -178,7 +178,11 @@ test("pending organization identities reach awaiting activation without gaining 
 
   assert.match(
     proxy,
-    /\.eq\("is_active",false\)\.in\("status",\["INVITED","VERIFIED"\]\)/,
+    /getMyPendingOrganizationMembership\(supabase\)/,
+  );
+  assert.doesNotMatch(
+    proxy,
+    /organization_members"\)\.select\("id,status"\)\.eq\("user_id",user\.id\)\.eq\("is_active",false\)/,
   );
   assert.match(
     proxy,

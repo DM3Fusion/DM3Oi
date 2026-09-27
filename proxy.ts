@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getPublicEnvironment } from "@/lib/config/env";
 import { safeInternalPath } from "@/lib/auth/redirects";
 import type { Database } from "@/types/database.generated";
+import { getMyPendingOrganizationMembership } from "@/lib/auth/pending-organization-membership";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out"];
 export async function proxy(request:NextRequest){
  let response=NextResponse.next({request}); const env=getPublicEnvironment(); const pathname=request.nextUrl.pathname;
@@ -17,11 +18,11 @@ export async function proxy(request:NextRequest){
    supabase.from("profiles").select("is_active").eq("id",user.id).maybeSingle(),
    supabase.from("platform_user_roles").select("id").eq("user_id",user.id).eq("role","SUPER_ADMIN").eq("is_active",true).limit(1),
    supabase.from("organization_members").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
-   supabase.from("organization_members").select("id,status").eq("user_id",user.id).eq("is_active",false).in("status",["INVITED","VERIFIED"]).limit(1),
+   getMyPendingOrganizationMembership(supabase),
    supabase.from("customer_portal_users").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
   ]);
   const hasActiveAccess=Boolean(platform.data?.length||activeMembership.data?.length||portal.data?.length);
-  const hasPendingOrganizationAccess=Boolean(pendingMembership.data?.length);
+  const hasPendingOrganizationAccess=Boolean(pendingMembership);
 
   if(profile.data?.is_active===false){
    if(pathname!=="/account/unprovisioned")return NextResponse.redirect(new URL("/account/unprovisioned",request.url));
