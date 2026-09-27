@@ -39,6 +39,8 @@ test("Customer KPIs use distinct Case tax years and adjacent-year retention", ()
     currentTaxYearCustomers: 1,
     priorTaxYearCustomers: 2,
     repeatCustomers: 1,
+    newCustomers: 0,
+    inactivePriorYearCustomers: 2,
   });
 });
 
@@ -50,6 +52,8 @@ test("Customer tenure has a truthful empty fallback and derives earliest valid y
     currentTaxYearCustomers: 0,
     priorTaxYearCustomers: 0,
     repeatCustomers: 0,
+    newCustomers: 0,
+    inactivePriorYearCustomers: 0,
   });
   assert.equal(
     getCustomerMemberSince([
@@ -102,6 +106,36 @@ test("workload row uses open lifecycle semantics and organization-local Due Toda
       { label: "Open Cases", value: 1 },
       { label: "Open Tasks", value: 2 },
       { label: "Open Requests", value: 1 },
+    ],
+  );
+});
+
+test("Customer Metrics distinguish acquisition, prior-year inactivity, and customers without active Cases", () => {
+  const result = getOperationalDashboardMetrics(
+    [
+      { status: "COMPLETED", customer_id: "a", tax_year: 2025, tasks: [] },
+      { status: "NEW", customer_id: "a", tax_year: 2026, tasks: [] },
+      { status: "CLOSED", customer_id: "b", tax_year: 2025, tasks: [] },
+      { status: "NEW", customer_id: "c", tax_year: 2026, tasks: [] },
+      { status: "CANCELLED", customer_id: "d", tax_year: 2024, tasks: [] },
+    ] as unknown as LiveCase[],
+    [],
+    [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }],
+    0,
+    "UTC",
+  );
+
+  assert.deepEqual(
+    result.customerKpis.map(({ label, value }) => ({ label, value })),
+    [
+      { label: "Tax-Year Case Coverage", value: 100 },
+      { label: "Current Tax-Year Customers", value: 2 },
+      { label: "Prior Tax-Year Customers", value: 2 },
+      { label: "Repeat Customers", value: 1 },
+      { label: "New Customers", value: 1 },
+      { label: "Inactive Prior-Year Customers", value: 1 },
+      { label: "Customers Without an Active Case", value: 3 },
+      { label: "Lifetime Customers", value: 5 },
     ],
   );
 });

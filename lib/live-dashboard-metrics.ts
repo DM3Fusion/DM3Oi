@@ -25,6 +25,12 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
   const unassignedRequests=serviceRequests.filter(item=>isLiveServiceRequestActive(item)&&!item.assigned_user_id).length;
   const awaitingStaff=serviceRequests.filter(item=>item.status==="PENDING_STAFF").length;
   const customerMetrics=getCustomerTenureMetrics(customers,cases);
+  const activeCaseCustomerIds=new Set(
+    cases.filter(isLiveCaseActive).map(item=>item.customer_id),
+  );
+  const customersWithoutActiveCase=customers.filter(
+    customer=>!activeCaseCustomerIds.has(customer.id),
+  ).length;
   return {
     actionKpis:[
       {label:"Due Today",value:dueToday,href:"/tasks?due=today",detail:"Organization-local date",tone:dueToday?"amber":"slate"},
@@ -57,6 +63,9 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
       {label:"Current Tax-Year Customers",value:customerMetrics.currentTaxYearCustomers,href:"/customers",detail:customerMetrics.currentTaxYear?String(customerMetrics.currentTaxYear):"No tax-year Case data",tone:"cyan"},
       {label:"Prior Tax-Year Customers",value:customerMetrics.priorTaxYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear?String(customerMetrics.priorTaxYear):"No tax-year Case data",tone:"slate"},
       {label:"Repeat Customers",value:customerMetrics.repeatCustomers,href:"/customers",detail:"Served in adjacent tax years",tone:"violet"},
+      {label:"New Customers",value:customerMetrics.newCustomers,href:"/customers",detail:customerMetrics.currentTaxYear?`First represented tax year · ${customerMetrics.currentTaxYear}`:"No tax-year Case data",tone:"blue"},
+      {label:"Inactive Prior-Year Customers",value:customerMetrics.inactivePriorYearCustomers,href:"/customers",detail:customerMetrics.priorTaxYear&&customerMetrics.currentTaxYear?`${customerMetrics.priorTaxYear} without ${customerMetrics.currentTaxYear} Case`:"No tax-year Case data",tone:"amber"},
+      {label:"Customers Without an Active Case",value:customersWithoutActiveCase,href:"/customers",detail:"No non-terminal Case",tone:"orange"},
       {label:"Lifetime Customers",value:customerMetrics.lifetimeCustomers,href:"/customers",detail:"Distinct organization Customers",tone:"green"},
     ],
     caseProgress:[

@@ -42,6 +42,22 @@ export function getCustomerTenureMetrics(
       customerIds.has(customerId) &&
       [...years].some((year) => years.has(year + 1)),
   ).length;
+  const newCustomers =
+    currentTaxYear === null
+      ? 0
+      : [...yearsByCustomer].filter(([customerId, years]) => {
+          if (!customerIds.has(customerId) || !years.has(currentTaxYear)) return false;
+          return Math.min(...years) === currentTaxYear;
+        }).length;
+  const inactivePriorYearCustomers =
+    currentTaxYear === null || priorTaxYear === null
+      ? 0
+      : [...yearsByCustomer].filter(
+          ([customerId, years]) =>
+            customerIds.has(customerId) &&
+            years.has(priorTaxYear) &&
+            !years.has(currentTaxYear),
+        ).length;
 
   return {
     lifetimeCustomers: customerIds.size,
@@ -50,6 +66,8 @@ export function getCustomerTenureMetrics(
     currentTaxYearCustomers: countForYear(currentTaxYear),
     priorTaxYearCustomers: countForYear(priorTaxYear),
     repeatCustomers,
+    newCustomers,
+    inactivePriorYearCustomers,
   };
 }
 

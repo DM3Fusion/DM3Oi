@@ -32,6 +32,9 @@ test("operational dashboard exposes the canonical workload row and Customer Metr
     ["Current Tax-Year Customers", "/customers"],
     ["Prior Tax-Year Customers", "/customers"],
     ["Repeat Customers", "/customers"],
+    ["New Customers", "/customers"],
+    ["Inactive Prior-Year Customers", "/customers"],
+    ["Customers Without an Active Case", "/customers"],
     ["Lifetime Customers", "/customers"],
   ]) {
     assert.match(
@@ -308,13 +311,19 @@ test("dashboard KPIs render the canonical workload and Customer Metrics labels",
   const currentTaxYearIndex = metrics.indexOf('label:"Current Tax-Year Customers"');
   const priorTaxYearIndex = metrics.indexOf('label:"Prior Tax-Year Customers"');
   const repeatCustomersIndex = metrics.indexOf('label:"Repeat Customers"');
+  const newCustomersIndex = metrics.indexOf('label:"New Customers"');
+  const inactivePriorYearIndex = metrics.indexOf('label:"Inactive Prior-Year Customers"');
+  const withoutActiveCaseIndex = metrics.indexOf('label:"Customers Without an Active Case"');
   const lifetimeCustomersIndex = metrics.indexOf('label:"Lifetime Customers"');
 
   assert.ok(coverageIndex >= 0);
   assert.ok(currentTaxYearIndex > coverageIndex);
   assert.ok(priorTaxYearIndex > currentTaxYearIndex);
   assert.ok(repeatCustomersIndex > priorTaxYearIndex);
-  assert.ok(lifetimeCustomersIndex > repeatCustomersIndex);
+  assert.ok(newCustomersIndex > repeatCustomersIndex);
+  assert.ok(inactivePriorYearIndex > newCustomersIndex);
+  assert.ok(withoutActiveCaseIndex > inactivePriorYearIndex);
+  assert.ok(lifetimeCustomersIndex > withoutActiveCaseIndex);
 
   assert.match(
     dashboard,
