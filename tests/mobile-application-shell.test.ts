@@ -39,7 +39,8 @@ test("mobile destinations derive from the existing effective-permission navigati
 
 test("mobile Communications badge reuses the root unread count and disappears at zero", () => {
   assert.match(layout, /getUnreadNotificationCount\(\{organizationId:access\.activeOrganization\.id,userId:access\.user\.id\}\)/);
-  assert.match(shell, /unreadCount: item\.href === "\/communications" \? unreadNotificationCount : undefined/);
+  assert.match(shell, /unreadCount: item\.href === "\/communications" \? liveUnreadNotificationCount : undefined/);
+  assert.match(shell, /useState\(unreadNotificationCount\)/);
   assert.match(navigation, /unreadCount > 0 \? <span className="mobile-navigation-badge"/);
   assert.match(navigation, /unreadCount > 99 \? "99\+" : unreadCount/);
   assert.doesNotMatch(navigation, /getUnreadNotificationCount|notifications/);

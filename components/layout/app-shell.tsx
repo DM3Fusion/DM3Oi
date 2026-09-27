@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import { signOutAction } from "@/lib/auth/actions";
 import { createClient } from "@/lib/supabase/client";
@@ -59,6 +59,7 @@ export function AppShell({
   newTrialRequestCount: number;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(
     pathname.startsWith("/settings") ||
@@ -66,7 +67,74 @@ export function AppShell({
   );
   const [liveNewTrialRequestCount, setLiveNewTrialRequestCount] =
     useState(newTrialRequestCount);
+  const [liveUnreadNotificationCount, setLiveUnreadNotificationCount] =
+    useState(unreadNotificationCount);
   const closeDrawer = useCallback(() => setOpen(false), []);
+
+  useEffect(() => {
+    const synchronization = window.setTimeout(() => {
+      setLiveUnreadNotificationCount(unreadNotificationCount);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(synchronization);
+    };
+  }, [unreadNotificationCount]);
+
+  useEffect(() => {
+    if (!access?.internalAccess || !access.activeOrganization) {
+      return;
+    }
+
+    const supabase = createClient();
+    let active = true;
+
+    const reconcileOrganizationAttention = async () => {
+      const { count, error } = await supabase
+        .from("notifications")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", access.activeOrganization!.id)
+        .eq("recipient_user_id", access.user.id)
+        .is("read_at", null)
+        .is("archived_at", null);
+
+      if (!active || error) {
+        return;
+      }
+
+      setLiveUnreadNotificationCount(count ?? 0);
+
+      if (pathname === "/users" || pathname.startsWith("/users/")) {
+        router.refresh();
+      }
+    };
+
+    const reconciliationInterval = window.setInterval(() => {
+      void reconcileOrganizationAttention();
+    }, 30_000);
+
+    const refreshOnVisibility = () => {
+      if (document.visibilityState === "visible") {
+        void reconcileOrganizationAttention();
+      }
+    };
+
+    window.addEventListener("focus", reconcileOrganizationAttention);
+    document.addEventListener("visibilitychange", refreshOnVisibility);
+
+    return () => {
+      active = false;
+      window.clearInterval(reconciliationInterval);
+      window.removeEventListener("focus", reconcileOrganizationAttention);
+      document.removeEventListener("visibilitychange", refreshOnVisibility);
+    };
+  }, [
+    access?.activeOrganization,
+    access?.internalAccess,
+    access?.user.id,
+    pathname,
+    router,
+  ]);
 
   useEffect(() => {
     if (!access?.isSuperAdmin) {
@@ -193,7 +261,7 @@ export function AppShell({
         href: item.href,
         label: item.href === "/" ? "Home" : item.label,
         icon: item.icon,
-        unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
+        unreadCount: item.href === "/communications" ? liveUnreadNotificationCount : undefined,
       })),
     ...(access
       ? [{
@@ -270,9 +338,9 @@ export function AppShell({
               >
                 <ApplicationIcon name={icon} />
                 <span>{label}</span>
-                {href === "/communications" && unreadNotificationCount > 0 ? (
-                  <span className="nav-unread-count" aria-label={`${unreadNotificationCount} unread notifications`}>
-                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                {href === "/communications" && liveUnreadNotificationCount > 0 ? (
+                  <span className="nav-unread-count" aria-label={`${liveUnreadNotificationCount} unread notifications`}>
+                    {liveUnreadNotificationCount > 99 ? "99+" : liveUnreadNotificationCount}
                   </span>
                 ) : null}
                 {href === "/admin/trial-requests" && liveNewTrialRequestCount > 0 ? (

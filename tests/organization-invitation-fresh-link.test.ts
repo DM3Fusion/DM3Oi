@@ -171,3 +171,38 @@ test("invitation verification pages use the canonical DM3Oi AuthCard", () => {
   assert.match(pending, /<AuthCard/);
   assert.doesNotMatch(pending, /<main className="public-main"/);
 });
+
+
+test("pending organization identities reach awaiting activation without gaining organization access", () => {
+  const proxy = source("proxy.ts");
+
+  assert.match(
+    proxy,
+    /\.eq\("is_active",false\)\.in\("status",\["INVITED","VERIFIED"\]\)/,
+  );
+  assert.match(
+    proxy,
+    /!hasActiveAccess&&hasPendingOrganizationAccess[\s\S]*\/account\/pending-activation/,
+  );
+  assert.match(
+    proxy,
+    /!hasActiveAccess[\s\S]*\/account\/unprovisioned/,
+  );
+});
+
+test("organization shell reconciles personal Inbox attention and open Users views", () => {
+  const shell = source("components/layout/app-shell.tsx");
+
+  assert.match(shell, /liveUnreadNotificationCount/);
+  assert.match(
+    shell,
+    /\.eq\("recipient_user_id", access\.user\.id\)/,
+  );
+  assert.match(shell, /window\.setInterval[\s\S]*30_000/);
+  assert.match(shell, /window\.addEventListener\("focus"/);
+  assert.match(shell, /visibilitychange/);
+  assert.match(
+    shell,
+    /pathname === "\/users" \|\| pathname\.startsWith\("\/users\/"\)[\s\S]*router\.refresh\(\)/,
+  );
+});

@@ -12,7 +12,25 @@ export async function proxy(request:NextRequest){
  const {data:{user}}=await supabase.auth.getUser();
  if(!user&&isProtected(pathname)){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
  if(user&&pathname==="/login")return NextResponse.redirect(new URL("/",request.url));
- if(user&&isProtected(pathname)&&pathname!=="/account/unprovisioned"){const [profile,platform,membership,portal]=await Promise.all([supabase.from("profiles").select("is_active").eq("id",user.id).maybeSingle(),supabase.from("platform_user_roles").select("id").eq("user_id",user.id).eq("role","SUPER_ADMIN").eq("is_active",true).limit(1),supabase.from("organization_members").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),supabase.from("customer_portal_users").select("id").eq("user_id",user.id).eq("is_active",true).limit(1)]);if(profile.data?.is_active===false||(!platform.data?.length&&!membership.data?.length&&!portal.data?.length))return NextResponse.redirect(new URL("/account/unprovisioned",request.url));}
+ if(user&&isProtected(pathname)){
+  const [profile,platform,activeMembership,pendingMembership,portal]=await Promise.all([
+   supabase.from("profiles").select("is_active").eq("id",user.id).maybeSingle(),
+   supabase.from("platform_user_roles").select("id").eq("user_id",user.id).eq("role","SUPER_ADMIN").eq("is_active",true).limit(1),
+   supabase.from("organization_members").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
+   supabase.from("organization_members").select("id,status").eq("user_id",user.id).eq("is_active",false).in("status",["INVITED","VERIFIED"]).limit(1),
+   supabase.from("customer_portal_users").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
+  ]);
+  const hasActiveAccess=Boolean(platform.data?.length||activeMembership.data?.length||portal.data?.length);
+  const hasPendingOrganizationAccess=Boolean(pendingMembership.data?.length);
+
+  if(profile.data?.is_active===false){
+   if(pathname!=="/account/unprovisioned")return NextResponse.redirect(new URL("/account/unprovisioned",request.url));
+  }else if(!hasActiveAccess&&hasPendingOrganizationAccess){
+   if(pathname!=="/account/pending-activation")return NextResponse.redirect(new URL("/account/pending-activation",request.url));
+  }else if(!hasActiveAccess){
+   if(pathname!=="/account/unprovisioned")return NextResponse.redirect(new URL("/account/unprovisioned",request.url));
+  }
+ }
  return response;
 }
 function isProtected(pathname:string){return !publicRoutes.some(route=>pathname===route||pathname.startsWith(`${route}/`));}
