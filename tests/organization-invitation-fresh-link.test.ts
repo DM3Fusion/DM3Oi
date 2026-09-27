@@ -25,7 +25,15 @@ test("fresh custom invitations enter the application before token verification",
   assert.notEqual(deliveredUrl, generatedActionLink);
 });
 
-test("only invite token hashes can be converted into application links", () => {
+test("only invitation-compatible token hashes can be converted into application links", () => {
+  assert.equal(
+    buildInvitationVerificationUrl({
+      redirectUrl: "https://dm3oi.com/auth/invite",
+      hashedToken: "hashed-magic-token",
+      verificationType: "magiclink",
+    }),
+    "https://dm3oi.com/auth/invite?token_hash=hashed-magic-token&type=magiclink",
+  );
   assert.throws(
     () =>
       buildInvitationVerificationUrl({
@@ -54,7 +62,8 @@ test("Barbara fresh-invite sequence establishes Auth before server reconciliatio
   assert.match(actions, /generated\.data\.properties\?\.hashed_token/);
   assert.match(actions, /getInvitationVerificationUrl/);
   assert.doesNotMatch(actions, /invitationUrl:\s*generated\.data\.properties\.action_link/);
-  assert.match(page, /verifyOtp\(\{token_hash:tokenHash,type:"invite"\}\)/);
+  assert.match(page, /verificationType==="invite"\|\|verificationType==="magiclink"/);
+  assert.match(page, /verifyOtp\(\{token_hash:tokenHash,type:verificationType\}\)/);
   assert.ok(page.indexOf("verifyOtp") < page.indexOf("getUser"));
   assert.ok(page.indexOf("getUser") < page.indexOf('window.location.replace("/auth/invite/complete")'));
   assert.ok(completion.indexOf("getUser") < completion.indexOf('rpc(\n    "verify_my_membership_invitation"'));
@@ -90,6 +99,8 @@ test("confirmed-but-INVITED organization identities remain resendable for lifecy
   assert.match(eligibility, /member\.status !== "INVITED"/);
   assert.match(eligibility, /return !error && Boolean\(data\?\.user\?\.email\)/);
   assert.match(resend, /!organizationId && \(targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at\)/);
+  assert.match(resend, /targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at[\s\S]*\? "magiclink"[\s\S]*: "invite"/);
+  assert.match(resend, /type: resendLinkType/);
   assert.doesNotMatch(
     resend,
     /if \(targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at\) return/,

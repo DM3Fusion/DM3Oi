@@ -800,15 +800,19 @@ export async function resendUserInviteAction(form: FormData) {
       targetUser.user_metadata,
       organizationName,
     );
+    const resendLinkType =
+      targetUser.email_confirmed_at || targetUser.last_sign_in_at
+        ? "magiclink"
+        : "invite";
     const generated = await admin.auth.admin.generateLink({
-      type: "invite",
+      type: resendLinkType,
       email: targetUser.email,
       options: { redirectTo: getInvitationRedirect(), data: resendData },
     });
     if (
       generated.error ||
       !generated.data.properties?.hashed_token ||
-      generated.data.properties.verification_type !== "invite"
+      generated.data.properties.verification_type !== resendLinkType
     ) {
       console.error("Invitation resend link generation failed", {
         code: generated.error?.code,

@@ -17,8 +17,8 @@ export default function InvitePage(){
   if(completionError){setAuthenticatedFailure(true);setError("Your account was authenticated, but organization invitation verification could not be completed. Contact your DM3Oi administrator before trying again.");return;}
   if(authError){setError("Invitation link expired or is invalid.");return;}
   const supabase=createClient({detectSessionInUrl:false});
-  const established=tokenHash&&verificationType==="invite"
-   ? await supabase.auth.verifyOtp({token_hash:tokenHash,type:"invite"})
+  const established=tokenHash&&(verificationType==="invite"||verificationType==="magiclink")
+   ? await supabase.auth.verifyOtp({token_hash:tokenHash,type:verificationType})
    : accessToken&&refreshToken
     ? await supabase.auth.setSession({access_token:accessToken,refresh_token:refreshToken})
     : null;
