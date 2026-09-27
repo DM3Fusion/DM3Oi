@@ -7721,7 +7721,7 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   justify-content: center;
   padding: 8px 14px;
   border: 1px solid #9aa5b1;
-  border-radius: 999px;
+  border-radius: 7px;
   background: #fff;
   color: #334155;
   font-size: 15px;
