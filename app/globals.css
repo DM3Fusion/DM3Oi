@@ -7691,3 +7691,6 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     max-width: none;
   }
 }
+
+.required-fields-legend{margin:0 0 12px;font-size:.82rem;color:#5b677a}
+.required-indicator{color:#c62828;font-weight:800}

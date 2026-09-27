@@ -20,7 +20,7 @@ export function CustomerForm() {
   const field = (key: keyof Values, label: string, type = "text") => {
     const required = key !== "name";
     return (
-    <label><span>{label}{!required ? <small> Optional</small> : null}</span><input name={key} type={type} required={required} value={values[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={Boolean(errors[key])} />{errors[key] ? <small className="field-error" role="alert">{errors[key]}</small> : null}</label>
+    <label><span>{label}{required ? <span className="required-indicator" aria-hidden="true"> *</span> : <small> Optional</small>}</span><input name={key} type={type} required={required} value={values[key]} onChange={(event) => update(key, event.target.value)} aria-invalid={Boolean(errors[key])} />{errors[key] ? <small className="field-error" role="alert">{errors[key]}</small> : null}</label>
     );
   };
   return (
@@ -30,8 +30,9 @@ export function CustomerForm() {
       setPending(false);
       if (!result.ok) { setValues({ ...initial, ...result.values }); setErrors(result.fieldErrors); setSummary(result.error); }
     }} className="entity-form">
+      <p className="required-fields-legend"><span className="required-indicator" aria-hidden="true">*</span> Required fields</p>
       <div className="form-grid">
-        <label><span>Customer Type</span><select name="type" required value={values.type} onChange={(event) => update("type", event.target.value)} aria-invalid={Boolean(errors.type)}><option value="INDIVIDUAL">INDIVIDUAL</option><option value="BUSINESS">BUSINESS</option></select>{errors.type ? <small className="field-error" role="alert">{errors.type}</small> : null}</label>
+        <label><span>Customer Type<span className="required-indicator" aria-hidden="true"> *</span></span><select name="type" required value={values.type} onChange={(event) => update("type", event.target.value)} aria-invalid={Boolean(errors.type)}><option value="INDIVIDUAL">INDIVIDUAL</option><option value="BUSINESS">BUSINESS</option></select>{errors.type ? <small className="field-error" role="alert">{errors.type}</small> : null}</label>
         {field("name", "Business / display name")}{field("firstName", "First name")}{field("lastName", "Last name")}
         {field("email","Email","email")}{field("phone","Phone","tel")}
         {field("streetAddress", "Street address")}{field("city", "City")}{field("state", "State")}{field("postalCode", "Postal code")}

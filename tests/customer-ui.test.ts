@@ -25,6 +25,13 @@ test("customer creation exposes valid types and requires the complete profile", 
   assert.match(form, /<select name="type" required/);
   assert.match(form, /Business \/ display name/);
   assert.match(form, /Notes <small>Optional<\/small>/);
+  assert.match(form, /required-fields-legend/);
+  assert.match(form, /required-fields-legend[\s\S]*?>\*<\/span> Required fields/);
+  assert.match(form, /required-indicator/);
+  assert.match(form, /Customer Type<span className="required-indicator"/);
+  assert.match(form, /required \? <span className="required-indicator"/);
+  assert.doesNotMatch(form, /Business \/ display name<span className="required-indicator"/);
+  assert.doesNotMatch(form, /Notes<span className="required-indicator"/);
   assert.match(page, /CustomerForm/);
   assert.match(validation, /normalizedValues\.type !== "INDIVIDUAL" && normalizedValues\.type !== "BUSINESS"/);
   for (const field of ["firstName", "lastName", "streetAddress", "city", "state", "postalCode"])
