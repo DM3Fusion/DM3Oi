@@ -180,6 +180,31 @@ test("organization name is server-derived for initial and reissued invitations",
   assert.doesNotMatch(newUserPage, /name="organizationName"/);
 });
 
+
+test("first organization invitation is not labeled as resend merely because Auth already exists", () => {
+  const organizationFlow = actions.slice(
+    actions.indexOf("export async function inviteOrganizationUserAction"),
+    actions.indexOf("export async function resendUserInviteAction"),
+  );
+
+  assert.match(
+    organizationFlow,
+    /resend: Boolean\(priorMembership\)/,
+  );
+  assert.match(
+    organizationFlow,
+    /operation: priorMembership \? "resendInvitation" : "sendInvitation"/,
+  );
+  assert.doesNotMatch(
+    organizationFlow,
+    /resend: Boolean\(existingAuthUser\)/,
+  );
+  assert.doesNotMatch(
+    organizationFlow,
+    /operation: existingAuthUser \? "resendInvitation" : "sendInvitation"/,
+  );
+});
+
 test("manual resend distinguishes organization and platform metadata", () => {
   const resendFlow = actions.slice(
     actions.indexOf("export async function resendUserInviteAction"),

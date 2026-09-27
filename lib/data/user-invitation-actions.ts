@@ -640,7 +640,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
   let invitationTransportSent = false;
   if (invitationUrl) {
     const delivery = await sendOrganizationInvitationEmail({
-      resend: Boolean(existingAuthUser),
+      resend: Boolean(priorMembership),
       organizationId: activeOrganization.id,
       organizationName: activeOrganization.name,
       membershipId,
@@ -653,7 +653,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
     });
     if (!delivery.ok) {
       console.error("Organization user invitation delivery failed", {
-        operation: existingAuthUser ? "resendInvitation" : "sendInvitation",
+        operation: priorMembership ? "resendInvitation" : "sendInvitation",
         organizationId: activeOrganization.id,
         membershipId,
         code: delivery.errorCode,
