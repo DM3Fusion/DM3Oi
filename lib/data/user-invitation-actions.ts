@@ -768,7 +768,8 @@ export async function resendUserInviteAction(form: FormData) {
   const { data: target, error: lookupError } = await admin.auth.admin.getUserById(targetUserId);
   const targetUser = target?.user;
   if (lookupError || !targetUser?.email) return { ok: false, error: "The invitation could not be resent." };
-  if (targetUser.email_confirmed_at || targetUser.last_sign_in_at) return { ok: false, error: "This user has already completed account activation." };
+  if (!organizationId && (targetUser.email_confirmed_at || targetUser.last_sign_in_at))
+    return { ok: false, error: "This user has already completed account activation." };
   if (organizationId && membership && organizationName) {
     const { data: profile, error: profileLookupError } = await admin
       .from("profiles")
@@ -891,6 +892,8 @@ export async function getInvitationEligibility(userId: string, organizationId?: 
         admin.from("platform_user_roles").select("id").eq("user_id", userId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
       ]);
       if (!member || member.status !== "INVITED" || (!access.isSuperAdmin && platformRole)) return false;
+      const { data, error } = await admin.auth.admin.getUserById(userId);
+      return !error && Boolean(data?.user?.email);
     }
     const { data, error } = await admin.auth.admin.getUserById(userId);
     const user = data?.user;

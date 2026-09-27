@@ -76,16 +76,24 @@ test("invitation completion is public to the access guard and failures stay expl
   assert.doesNotMatch(completion, /return invitationRedirect\(request, "\/account\/unprovisioned"\)/);
 });
 
-test("confirmed-but-INVITED identities remain ineligible for resend rather than hiding the lifecycle bug", () => {
+test("confirmed-but-INVITED organization identities remain resendable for lifecycle recovery", () => {
   const actions = source("lib/data/user-invitation-actions.ts");
   const eligibility = actions.slice(
     actions.indexOf("export async function getInvitationEligibility"),
     actions.indexOf("export async function updateUserProfileAction"),
   );
+  const resend = actions.slice(
+    actions.indexOf("export async function resendUserInviteAction"),
+    actions.indexOf("export async function getInvitationEligibility"),
+  );
 
   assert.match(eligibility, /member\.status !== "INVITED"/);
-  assert.match(eligibility, /!user\?\.email_confirmed_at/);
-  assert.match(eligibility, /!user\?\.last_sign_in_at/);
+  assert.match(eligibility, /return !error && Boolean\(data\?\.user\?\.email\)/);
+  assert.match(resend, /!organizationId && \(targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at\)/);
+  assert.doesNotMatch(
+    resend,
+    /if \(targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at\) return/,
+  );
 });
 
 test("OTP reconciliation and INVITED to VERIFIED to ACTIVE lifecycle remain intact", () => {
