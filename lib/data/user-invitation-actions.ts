@@ -419,8 +419,8 @@ export async function inviteOrganizationUserAction(form: FormData) {
     const resolvedLastName =
       profile?.last_name?.trim() || lastName;
     const resolvedDisplayName =
-      profile?.display_name?.trim() ||
       `${resolvedFirstName} ${resolvedLastName}`.trim() ||
+      profile?.display_name?.trim() ||
       displayName;
     const resolvedTitle =
       profile?.title?.trim() || title || null;
@@ -600,26 +600,10 @@ export async function inviteOrganizationUserAction(form: FormData) {
             existingAuthUser.user_metadata,
             activeOrganization.name,
           ),
-          first_name:
-            typeof existingAuthUser.user_metadata?.first_name === "string" &&
-            existingAuthUser.user_metadata.first_name.trim()
-              ? existingAuthUser.user_metadata.first_name
-              : firstName,
-          last_name:
-            typeof existingAuthUser.user_metadata?.last_name === "string" &&
-            existingAuthUser.user_metadata.last_name.trim()
-              ? existingAuthUser.user_metadata.last_name
-              : lastName,
-          display_name:
-            typeof existingAuthUser.user_metadata?.display_name === "string" &&
-            existingAuthUser.user_metadata.display_name.trim()
-              ? existingAuthUser.user_metadata.display_name
-              : displayName,
-          title:
-            typeof existingAuthUser.user_metadata?.title === "string" &&
-            existingAuthUser.user_metadata.title.trim()
-              ? existingAuthUser.user_metadata.title
-              : title || null,
+          first_name: firstName,
+          last_name: lastName,
+          display_name: displayName,
+          title: title || null,
         },
       },
     });

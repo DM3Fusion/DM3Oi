@@ -21,8 +21,6 @@ export function resolvePendingInviteIdentityRepair(input: {
 }) {
   const email = input.authEmail.trim().toLowerCase();
   const currentDisplayName = input.profile?.display_name?.trim() ?? "";
-  if (currentDisplayName && currentDisplayName.toLowerCase() !== email)
-    return null;
 
   const firstName =
     input.profile?.first_name?.trim() ||
@@ -41,12 +39,15 @@ export function resolvePendingInviteIdentityRepair(input: {
   ].filter(Boolean).join(" ");
   const displayName =
     profileDerivedName ||
-    (metadataDisplayName && metadataDisplayName.toLowerCase() !== email
-      ? metadataDisplayName
-      : metadataDerivedName);
+    metadataDerivedName ||
+    (currentDisplayName && currentDisplayName.toLowerCase() !== email
+      ? currentDisplayName
+      : metadataDisplayName && metadataDisplayName.toLowerCase() !== email
+        ? metadataDisplayName
+        : "");
   if (!displayName || displayName.toLowerCase() === email) return null;
 
-  return {
+  const repaired = {
     email: input.profile?.email?.trim().toLowerCase() || email,
     first_name: firstName || null,
     last_name: lastName || null,
@@ -56,6 +57,25 @@ export function resolvePendingInviteIdentityRepair(input: {
       metadataText(input.userMetadata, "title") ||
       null,
   };
+
+  const current = {
+    email: input.profile?.email?.trim().toLowerCase() || email,
+    first_name: input.profile?.first_name?.trim() || null,
+    last_name: input.profile?.last_name?.trim() || null,
+    display_name: input.profile?.display_name?.trim() || null,
+    title: input.profile?.title?.trim() || null,
+  };
+
+  if (
+    repaired.email === current.email &&
+    repaired.first_name === current.first_name &&
+    repaired.last_name === current.last_name &&
+    repaired.display_name === current.display_name &&
+    repaired.title === current.title
+  )
+    return null;
+
+  return repaired;
 }
 
 export function organizationUserDisplayName(profile: {

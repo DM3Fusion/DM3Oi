@@ -206,3 +206,33 @@ test("organization shell reconciles personal Inbox attention and open Users view
     /pathname === "\/users" \|\| pathname\.startsWith\("\/users\/"\)[\s\S]*router\.refresh\(\)/,
   );
 });
+
+
+test("organization invitation structured names outrank stale display-name metadata", () => {
+  const actions = source("lib/data/user-invitation-actions.ts");
+  const repair = source("lib/data/pending-invite-identity.ts");
+  const migration = source(
+    "supabase/migrations/20260927130000_dm3oi_invitation_structured_name_precedence.sql",
+  );
+
+  assert.match(
+    actions,
+    /profile\?\.first_name\?\.trim\(\) \|\| firstName[\s\S]*profile\?\.last_name\?\.trim\(\) \|\| lastName/,
+  );
+  assert.match(
+    actions,
+    /`\$\{resolvedFirstName\} \$\{resolvedLastName\}`\.trim\(\)[\s\S]*profile\?\.display_name/,
+  );
+  assert.match(
+    actions,
+    /first_name: firstName,[\s\S]*last_name: lastName,[\s\S]*display_name: displayName/,
+  );
+  assert.match(
+    repair,
+    /const displayName =[\s\S]*profileDerivedName \|\|[\s\S]*metadataDerivedName/,
+  );
+  assert.match(
+    migration,
+    /concat_ws\(' ', repaired_first_name, repaired_last_name\)[\s\S]*repaired_display_name/,
+  );
+});
