@@ -1,0 +1,112 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+import { buildInvitationVerificationUrl } from "../lib/auth/invitation-verification-url.ts";
+
+const source = (path: string) => readFileSync(path, "utf8");
+
+test("fresh custom invitations enter the application before token verification", () => {
+  const generatedActionLink =
+    "https://project.supabase.co/auth/v1/verify?token=hashed-invite-token&type=invite&redirect_to=https%3A%2F%2Fdm3oi.com%2Fauth%2Finvite";
+  const deliveredUrl = buildInvitationVerificationUrl({
+    redirectUrl: "https://dm3oi.com/auth/invite",
+    hashedToken: "hashed-invite-token",
+    verificationType: "invite",
+  });
+
+  assert.equal(
+    new URL(generatedActionLink).searchParams.get("redirect_to"),
+    "https://dm3oi.com/auth/invite",
+  );
+  assert.equal(
+    deliveredUrl,
+    "https://dm3oi.com/auth/invite?token_hash=hashed-invite-token&type=invite",
+  );
+  assert.notEqual(deliveredUrl, generatedActionLink);
+});
+
+test("only invite token hashes can be converted into application links", () => {
+  assert.throws(
+    () =>
+      buildInvitationVerificationUrl({
+        redirectUrl: "https://dm3oi.com/auth/invite",
+        hashedToken: "hashed-token",
+        verificationType: "recovery",
+      }),
+    /INVITATION_LINK_INVALID/,
+  );
+  assert.throws(
+    () =>
+      buildInvitationVerificationUrl({
+        redirectUrl: "https://dm3oi.com/auth/invite",
+        hashedToken: " ",
+        verificationType: "invite",
+      }),
+    /INVITATION_LINK_INVALID/,
+  );
+});
+
+test("Barbara fresh-invite sequence establishes Auth before server reconciliation", () => {
+  const actions = source("lib/data/user-invitation-actions.ts");
+  const page = source("app/auth/invite/page.tsx");
+  const completion = source("app/auth/invite/complete/route.ts");
+
+  assert.match(actions, /generated\.data\.properties\?\.hashed_token/);
+  assert.match(actions, /getInvitationVerificationUrl/);
+  assert.doesNotMatch(actions, /invitationUrl:\s*generated\.data\.properties\.action_link/);
+  assert.match(page, /verifyOtp\(\{token_hash:tokenHash,type:"invite"\}\)/);
+  assert.ok(page.indexOf("verifyOtp") < page.indexOf("getUser"));
+  assert.ok(page.indexOf("getUser") < page.indexOf('window.location.replace("/auth/invite/complete")'));
+  assert.ok(completion.indexOf("getUser") < completion.indexOf('rpc(\n    "verify_my_membership_invitation"'));
+  assert.match(completion, /verifiedMembership\?\.length/);
+  assert.match(completion, /account\/pending-activation/);
+});
+
+test("invitation completion is public to the access guard and failures stay explicit", () => {
+  const proxy = source("proxy.ts");
+  const page = source("app/auth/invite/page.tsx");
+  const completion = source("app/auth/invite/complete/route.ts");
+  const callback = source("app/auth/callback/route.ts");
+
+  assert.match(proxy, /"\/auth\/invite"/);
+  assert.match(proxy, /pathname\.startsWith\(`\$\{route\}\/`\)/);
+  assert.match(completion, /auth\/invite\?error=membership_verification/);
+  assert.match(callback, /auth\/invite\?error=membership_verification/);
+  assert.match(page, /organization invitation verification could not be completed/);
+  assert.doesNotMatch(completion, /return invitationRedirect\(request, "\/account\/unprovisioned"\)/);
+});
+
+test("confirmed-but-INVITED identities remain ineligible for resend rather than hiding the lifecycle bug", () => {
+  const actions = source("lib/data/user-invitation-actions.ts");
+  const eligibility = actions.slice(
+    actions.indexOf("export async function getInvitationEligibility"),
+    actions.indexOf("export async function updateUserProfileAction"),
+  );
+
+  assert.match(eligibility, /member\.status !== "INVITED"/);
+  assert.match(eligibility, /!user\?\.email_confirmed_at/);
+  assert.match(eligibility, /!user\?\.last_sign_in_at/);
+});
+
+test("OTP reconciliation and INVITED to VERIFIED to ACTIVE lifecycle remain intact", () => {
+  const otp = source("lib/auth/actions.ts");
+  const verification = source(
+    "supabase/migrations/20260927120000_dm3oi_invitation_verification_activation.sql",
+  );
+  const activation = source(
+    "supabase/migrations/20260925150000_dm3oi_remove_public_user_role.sql",
+  );
+
+  assert.match(otp, /verifyOtp\(\{email,token,type:"email"\}\)/);
+  assert.match(otp, /verify_my_membership_invitation/);
+  assert.match(verification, /actor uuid := auth\.uid\(\)/);
+  assert.match(verification, /status = 'VERIFIED'/);
+  assert.doesNotMatch(
+    verification.slice(
+      verification.indexOf("create or replace function public.verify_my_membership_invitation"),
+      verification.indexOf("revoke all on function public.verify_my_membership_invitation"),
+    ),
+    /set[\s\S]{0,80}status = 'ACTIVE'/,
+  );
+  assert.match(activation, /when 'ACTIVATE'[\s\S]*membership\.status <> 'VERIFIED'/);
+});

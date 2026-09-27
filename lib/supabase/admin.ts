@@ -1,5 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
+import type { GenerateLinkProperties } from "@supabase/supabase-js";
+import { buildInvitationVerificationUrl } from "@/lib/auth/invitation-verification-url";
 import { requireSupabaseEnvironment } from "@/lib/config/env";
 import type { Database } from "@/types/database.generated";
 
@@ -23,4 +25,17 @@ export function getInvitationRedirect() {
     configured ||
     (vercel ? `https://${vercel}` : "https://dm3oi.com");
   return `${origin.replace(/\/$/, "")}/auth/invite`;
+}
+
+export function getInvitationVerificationUrl(
+  properties: Pick<
+    GenerateLinkProperties,
+    "hashed_token" | "verification_type"
+  >,
+) {
+  return buildInvitationVerificationUrl({
+    redirectUrl: getInvitationRedirect(),
+    hashedToken: properties.hashed_token,
+    verificationType: properties.verification_type,
+  });
 }

@@ -70,7 +70,9 @@ export async function GET(request: NextRequest) {
       details: error.details,
       hint: error.hint,
     });
-    return invitationRedirect(request, "/account/unprovisioned");
+    return NextResponse.redirect(
+      new URL("/auth/invite?error=membership_verification", request.url),
+    );
   }
 
   if (verifiedMembership?.length) {

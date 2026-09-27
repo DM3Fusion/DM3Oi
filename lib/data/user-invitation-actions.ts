@@ -3,7 +3,11 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSuperAdmin, getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
+import {
+  createAdminClient,
+  getInvitationRedirect,
+  getInvitationVerificationUrl,
+} from "@/lib/supabase/admin";
 import {
   assignableOrganizationUserRoles,
   isOrganizationUserRole,
@@ -191,14 +195,19 @@ export async function inviteUserAction(form: FormData) {
           data: organizationInvitationData,
         },
       });
-    if (generated.error || !generated.data.user || !generated.data.properties?.action_link) {
+    if (
+      generated.error ||
+      !generated.data.user ||
+      !generated.data.properties?.hashed_token ||
+      generated.data.properties.verification_type !== "invite"
+    ) {
       console.error("Auth user invitation link generation failed", {
         message: generated.error?.message,
       });
       go("/admin/users/new", "error", "The invitation could not be prepared.");
     }
     invitedUser = generated.data.user;
-    invitationUrl = generated.data.properties!.action_link;
+    invitationUrl = getInvitationVerificationUrl(generated.data.properties!);
   } else if (sendInvitation) {
     const invited = await admin.auth.admin.inviteUserByEmail(email, {
       redirectTo: getInvitationRedirect(),
@@ -444,7 +453,12 @@ export async function inviteOrganizationUserAction(form: FormData) {
           },
         },
       });
-    if (inviteError || !invited.user || !invited.properties?.action_link) {
+    if (
+      inviteError ||
+      !invited.user ||
+      !invited.properties?.hashed_token ||
+      invited.properties.verification_type !== "invite"
+    ) {
       console.error("Organization user invitation link generation failed", {
         code: inviteError?.code,
         message: inviteError?.message,
@@ -452,7 +466,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
       go(path, "error", "The invitation could not be prepared.");
     }
     userId = invited.user!.id;
-    invitationUrl = invited.properties!.action_link;
+    invitationUrl = getInvitationVerificationUrl(invited.properties!);
     createdUser = true;
     const { error: profileError } = await admin.from("profiles").upsert({
       id: userId,
@@ -609,7 +623,11 @@ export async function inviteOrganizationUserAction(form: FormData) {
         },
       },
     });
-    if (generated.error || !generated.data.properties?.action_link) {
+    if (
+      generated.error ||
+      !generated.data.properties?.hashed_token ||
+      generated.data.properties.verification_type !== "invite"
+    ) {
       if (priorMembership)
         await admin
           .from("organization_members")
@@ -633,7 +651,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
       });
       go(path, "error", "The invitation could not be prepared.");
     }
-    invitationUrl = generated.data.properties!.action_link;
+    invitationUrl = getInvitationVerificationUrl(generated.data.properties!);
   }
 
   let invitationTransportSent = false;
@@ -786,7 +804,11 @@ export async function resendUserInviteAction(form: FormData) {
       email: targetUser.email,
       options: { redirectTo: getInvitationRedirect(), data: resendData },
     });
-    if (generated.error || !generated.data.properties?.action_link) {
+    if (
+      generated.error ||
+      !generated.data.properties?.hashed_token ||
+      generated.data.properties.verification_type !== "invite"
+    ) {
       console.error("Invitation resend link generation failed", {
         code: generated.error?.code,
         message: generated.error?.message,
@@ -810,7 +832,7 @@ export async function resendUserInviteAction(form: FormData) {
       recipientFirstName: firstName || recipientName,
       recipientName,
       role: membership.role,
-      invitationUrl: generated.data.properties.action_link,
+      invitationUrl: getInvitationVerificationUrl(generated.data.properties),
     });
     if (!delivery.ok) {
       console.error("Invitation resend delivery failed", {
