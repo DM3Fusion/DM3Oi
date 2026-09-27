@@ -363,7 +363,7 @@ export function AppShell({
                       className={`settings-nav-parent ${settingsRouteActive ? "active" : ""}`.trim()}
                     >
                       <Link
-                        href="/settings/general"
+                        href="/settings/case-configuration"
                         onClick={() => {
                           setOpen(false);
                           setSettingsOpen(true);

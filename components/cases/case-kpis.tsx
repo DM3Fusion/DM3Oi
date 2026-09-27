@@ -7,9 +7,9 @@ interface CaseKpi { label: string; accessibleLabel: string; count: number; view?
 export function CaseKpis({ counts, filters, selectedView }: { counts: CaseDashboardCounts; filters: CaseRegisterFilters; selectedView?: CaseView }) {
   const kpis: CaseKpi[] = [
     { label: "Total Cases", accessibleLabel: "all", count: counts.total },
+    { label: "Overdue", accessibleLabel: "overdue", count: counts.overdue, view: "overdue" },
     { label: "In Progress", accessibleLabel: "in progress", count: counts.inProgress, view: "in-progress" },
     { label: "Waiting", accessibleLabel: "waiting", count: counts.waiting, view: "waiting" },
-    { label: "Overdue", accessibleLabel: "overdue", count: counts.overdue, view: "overdue" },
     { label: "Unassigned", accessibleLabel: "unassigned", count: counts.unassigned, view: "unassigned" },
     { label: "Completed", accessibleLabel: "completed", count: counts.completed, view: "completed" },
   ];
