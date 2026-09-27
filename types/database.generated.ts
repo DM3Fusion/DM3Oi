@@ -744,6 +744,7 @@ export type Database = {
           new_customer: Json
           organization_id: string
           priority: Database["public"]["Enums"]["priority_level"]
+          required_option_ids: Json
           staff_user_ids: string[]
           submission_key: string
           tax_year: number | null
@@ -765,6 +766,7 @@ export type Database = {
           new_customer?: Json
           organization_id: string
           priority?: Database["public"]["Enums"]["priority_level"]
+          required_option_ids?: Json
           staff_user_ids?: string[]
           submission_key: string
           tax_year?: number | null
@@ -786,6 +788,7 @@ export type Database = {
           new_customer?: Json
           organization_id?: string
           priority?: Database["public"]["Enums"]["priority_level"]
+          required_option_ids?: Json
           staff_user_ids?: string[]
           submission_key?: string
           tax_year?: number | null
@@ -1671,6 +1674,7 @@ export type Database = {
           question_group: string | null
           required: boolean
           require_all_options: boolean
+          track_required_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at: string
         }
@@ -1686,6 +1690,7 @@ export type Database = {
           question_group?: string | null
           required?: boolean
           require_all_options?: boolean
+          track_required_options?: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at?: string
         }
@@ -1701,6 +1706,7 @@ export type Database = {
           question_group?: string | null
           required?: boolean
           require_all_options?: boolean
+          track_required_options?: boolean
           response_type?: Database["public"]["Enums"]["question_response_type"]
           updated_at?: string
         }
@@ -2487,6 +2493,7 @@ export type Database = {
           question_group: string | null
           required: boolean
           require_all_options: boolean
+          track_required_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
           updated_at: string
         }
@@ -2939,6 +2946,7 @@ export type Database = {
           target_manager_user_id?: string
           target_organization_id: string
           target_priority: Database["public"]["Enums"]["priority_level"]
+          target_required_option_ids?: Json
           target_staff_user_ids?: string[]
           target_submission_key: string
           target_tax_year: number
@@ -3422,7 +3430,10 @@ export type Database = {
           target_question_id: string
           target_question_text: string
           target_required: boolean
+          target_require_all_options: boolean
           target_response_type: Database["public"]["Enums"]["question_response_type"]
+          target_track_required_options: boolean
+          target_question_group?: string | null
         }
         Returns: {
           active: boolean
@@ -3433,8 +3444,11 @@ export type Database = {
           id: string
           organization_id: string
           question_text: string
+          question_group: string | null
           required: boolean
+          require_all_options: boolean
           response_type: Database["public"]["Enums"]["question_response_type"]
+          track_required_options: boolean
           updated_at: string
         }
         SetofOptions: {

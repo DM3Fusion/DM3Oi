@@ -34,6 +34,8 @@ export default async function Page({ searchParams }: { searchParams: SearchParam
       .eq("organization_id", organizationId)
       .order("sort_order")
       .order("name"),
+    // The 234000 mapping table is not yet present in the checked-in generated types.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
       .from("organization_case_title_type_mappings")
       .select("case_title_id,case_type_id")

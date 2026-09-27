@@ -30,6 +30,7 @@ const question = (
   responseType,
   required,
   requireAllOptions: false,
+  trackRequiredOptions: false,
   group: null,
   displayOrder: 0,
   options,
@@ -69,6 +70,7 @@ const draft = (): GuidedCaseIntakeDraft => ({
   managerUserId: "",
   staffUserIds: ["staff-a"],
   answers: {},
+  requiredOptionIds: {},
   followUpTasks: [],
 });
 

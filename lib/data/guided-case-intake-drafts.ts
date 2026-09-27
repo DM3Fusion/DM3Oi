@@ -6,6 +6,7 @@ import type {
   GuidedCasePriority,
   GuidedIntakeAnswers,
   GuidedIntakeFollowUpTask,
+  GuidedIntakeRequiredOptionIds,
 } from "@/lib/guided-case-intake";
 import type { Json } from "@/types/database.generated";
 
@@ -85,6 +86,18 @@ const parseAnswers = (value: Json): GuidedIntakeAnswers => {
   return value;
 };
 
+const parseRequiredOptionIds = (value: Json): GuidedIntakeRequiredOptionIds => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([questionId, optionIds]) =>
+      Array.isArray(optionIds) &&
+      optionIds.every((optionId) => typeof optionId === "string")
+        ? [[questionId, optionIds as string[]]]
+        : [],
+    ),
+  );
+};
+
 const parseFollowUpTasks = (value: Json): GuidedIntakeFollowUpTask[] => {
   if (!Array.isArray(value)) return [];
   return value.flatMap((item) => {
@@ -156,7 +169,7 @@ export async function loadGuidedIntakeDraft(
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,follow_up_tasks,updated_at",
+      "id,submission_key,current_step,customer_mode,customer_id,new_customer,case_title_id,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
@@ -191,6 +204,7 @@ export async function loadGuidedIntakeDraft(
       managerUserId: data.manager_user_id ?? "",
       staffUserIds: data.staff_user_ids,
       answers: parseAnswers(data.answers),
+      requiredOptionIds: parseRequiredOptionIds(data.required_option_ids),
       followUpTasks: parseFollowUpTasks(data.follow_up_tasks),
     },
     newCustomer: {

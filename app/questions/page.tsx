@@ -132,6 +132,7 @@ function QuestionForm({
       <QuestionOptionsEditor
         initialResponseType={question?.response_type ?? "TEXT"}
         initialRequireAllOptions={question?.require_all_options ?? false}
+        initialTrackRequiredOptions={question?.track_required_options ?? false}
         initialOptions={
           question?.options.map((option) => ({
             id: option.id,

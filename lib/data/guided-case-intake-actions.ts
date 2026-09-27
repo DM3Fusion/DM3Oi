@@ -8,7 +8,9 @@ import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
   getMissingRequiredOptions,
+  guidedFollowUpTaskMatchesMissingOptions,
   canCompleteIntakeFollowUpTask,
+  validateGuidedRequiredOptionMap,
   validateGuidedCaseIntake,
   type GuidedCaseIntakeDraft,
 } from "@/lib/guided-case-intake";
@@ -53,16 +55,48 @@ export async function saveGuidedIntakeDraftAction(
   const evaluation = evaluateGuidedCaseIntake(
     configuration,
     input.draft.answers,
+    input.draft.requiredOptionIds,
   );
   const unstagedMissingRequirement = getMissingRequiredOptions(
     evaluation,
     input.draft.answers,
+    input.draft.requiredOptionIds,
   ).some(
     (requirement) =>
       !input.draft.followUpTasks.some(
         (task) => task.questionId === requirement.question.id,
       ),
   );
+  const requiredOptionErrors = validateGuidedRequiredOptionMap(
+    configuration.questions,
+    input.draft.answers,
+    input.draft.requiredOptionIds,
+  );
+  if (Object.keys(requiredOptionErrors).length) {
+    return {
+      ok: false,
+      error: "Required and received items must use active options from their Question.",
+    };
+  }
+  if (
+    new Set(input.draft.followUpTasks.map((task) => task.questionId)).size !==
+      input.draft.followUpTasks.length ||
+    input.draft.followUpTasks.some(
+      (task) =>
+        !guidedFollowUpTaskMatchesMissingOptions(
+          task,
+          evaluation,
+          input.draft.answers,
+          input.draft.requiredOptionIds,
+        ),
+    )
+  ) {
+    return {
+      ok: false,
+      error:
+        "A follow-up Task no longer matches the current missing required items. Review it and try again.",
+    };
+  }
   if (input.currentStep >= 2 && unstagedMissingRequirement) {
     return {
       ok: false,
@@ -108,6 +142,7 @@ export async function saveGuidedIntakeDraftAction(
     manager_user_id: input.draft.managerUserId || null,
     staff_user_ids: input.draft.staffUserIds,
     answers: input.draft.answers,
+    required_option_ids: input.draft.requiredOptionIds,
     follow_up_tasks: input.draft.followUpTasks,
   };
 
@@ -185,6 +220,7 @@ export async function createGuidedCaseAction(
   const creationPlan = buildGuidedIntakeCreationPlan(
     configuration,
     draft.answers,
+    draft.requiredOptionIds,
   );
   const supabase = await createClient();
   const { data: created, error } = await supabase.rpc(
@@ -201,6 +237,7 @@ export async function createGuidedCaseAction(
       target_manager_user_id: draft.managerUserId || undefined,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,
+      target_required_option_ids: draft.requiredOptionIds,
       target_follow_up_tasks: draft.followUpTasks,
     },
   );
@@ -217,7 +254,10 @@ export async function createGuidedCaseAction(
       error?.message.includes("invalid staff") ||
       error?.message.includes("intake response") ||
       error?.message.includes("intake question") ||
-      error?.message.includes("required intake response");
+      error?.message.includes("required intake response") ||
+      error?.message.includes("tracked") ||
+      error?.message.includes("required option") ||
+      error?.message.includes("missing requirements");
     return {
       ok: false,
       error: staleConfiguration

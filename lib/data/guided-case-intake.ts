@@ -85,6 +85,8 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .eq("is_active", true)
       .order("sort_order")
       .order("name"),
+    // The 234000 mapping table is not yet present in the checked-in generated types.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (admin as any)
       .from("organization_case_title_type_mappings")
       .select("case_title_id,case_type_id")
@@ -98,7 +100,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     supabase
       .from("organization_question_definitions")
       .select(
-        "id,question_text,description,response_type,required,require_all_options,question_group,display_order",
+        "id,question_text,description,response_type,required,require_all_options,track_required_options,question_group,display_order",
       )
       .eq("organization_id", organizationId)
       .eq("active", true)
@@ -252,6 +254,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
         responseType: question.response_type,
         required: question.required,
         requireAllOptions: question.require_all_options,
+        trackRequiredOptions: question.track_required_options,
         group: question.question_group as GuidedIntakeQuestion["group"],
         displayOrder: question.display_order,
         options: (options.data ?? [])

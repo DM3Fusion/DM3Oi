@@ -86,6 +86,7 @@ export async function saveQuestionAction(form: FormData) {
     target_response_type: responseType,
     target_required: form.get("required") === "on",
     target_require_all_options: form.get("requireAllOptions") === "on",
+    target_track_required_options: form.get("trackRequiredOptions") === "on",
     target_active: form.get("active") === "on",
     target_display_order: Number(text(form, "displayOrder") || 0),
     target_options: options,

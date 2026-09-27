@@ -13,6 +13,7 @@ import {
   getMissingRequiredOptions,
   isGuidedQuestionAnswerValid,
   isCaseTitleTypeCompatible,
+  reconcileGuidedIntakeFollowUpTasks,
   guidedCaseIntakeSteps,
   guidedQuestionGroups,
   guidedQuestionGroupLabels,
@@ -72,6 +73,8 @@ function QuestionField({
   value,
   error,
   onChange,
+  requiredOptionIds,
+  onRequiredChange,
 }: {
   question: GuidedIntakeQuestion & {
     effectiveRequired: boolean;
@@ -81,6 +84,8 @@ function QuestionField({
   value: Json | undefined;
   error?: string;
   onChange: (value: Json | undefined) => void;
+  requiredOptionIds: string[];
+  onRequiredChange: (optionId: string, required: boolean) => void;
 }) {
   const controlId = `intake-question-${question.id}`;
   const common = {
@@ -161,7 +166,49 @@ function QuestionField({
             typeof item === "string" && validOptionIds.has(item),
         )
       : [];
-    control = (
+    control = question.trackRequiredOptions ? (
+      <fieldset {...common} className="intake-required-options">
+        <legend className="sr-only">{question.text}</legend>
+        <div className="intake-required-options-heading" aria-hidden="true">
+          <span>Document / Item</span>
+          <span>Required</span>
+          <span>Received</span>
+        </div>
+        {question.options.map((option) => {
+          const isRequired = requiredOptionIds.includes(option.id);
+          return (
+            <div className="intake-required-option-row" key={option.id}>
+              <span>{option.label}</span>
+              <label>
+                <span className="sr-only">{option.label} required</span>
+                <input
+                  type="checkbox"
+                  checked={isRequired}
+                  onChange={(event) =>
+                    onRequiredChange(option.id, event.target.checked)
+                  }
+                />
+              </label>
+              <label>
+                <span className="sr-only">{option.label} received</span>
+                <input
+                  type="checkbox"
+                  checked={isRequired && selected.includes(option.id)}
+                  disabled={!isRequired}
+                  onChange={(event) =>
+                    onChange(
+                      event.target.checked
+                        ? [...selected, option.id]
+                        : selected.filter((id) => id !== option.id),
+                    )
+                  }
+                />
+              </label>
+            </div>
+          );
+        })}
+      </fieldset>
+    ) : (
       <fieldset {...common} className="intake-option-list">
         <legend className="sr-only">{question.text}</legend>
         {question.options.map((option) => (
@@ -223,7 +270,9 @@ function QuestionField({
                   : "intake-question-progress"
               }
             >
-              {selectedCount} of {question.options.length} selected
+              {question.trackRequiredOptions
+                ? `${selectedCount} of ${requiredOptionIds.length} required received`
+                : `${selectedCount} of ${question.options.length} selected`}
             </em>
           ) : question.effectiveRequired ? (
             <em
@@ -277,6 +326,7 @@ export function GuidedCaseIntake({
       managerUserId: "",
       staffUserIds: [],
       answers: {},
+      requiredOptionIds: {},
       followUpTasks: [],
     },
   );
@@ -306,8 +356,13 @@ export function GuidedCaseIntake({
     [configuration, customers],
   );
   const evaluation = useMemo(
-    () => evaluateGuidedCaseIntake(scopedConfiguration, draft.answers),
-    [scopedConfiguration, draft.answers],
+    () =>
+      evaluateGuidedCaseIntake(
+        scopedConfiguration,
+        draft.answers,
+        draft.requiredOptionIds,
+      ),
+    [scopedConfiguration, draft.answers, draft.requiredOptionIds],
   );
   const visibleQuestions = evaluation.questions.filter(
     (question) => question.applicable,
@@ -353,6 +408,7 @@ export function GuidedCaseIntake({
   const missingRequirements = getMissingRequiredOptions(
     evaluation,
     draft.answers,
+    draft.requiredOptionIds,
   );
   const activeFollowUpRequirement = missingRequirements.find(
     (item) => item.question.id === followUpQuestionId,
@@ -390,18 +446,85 @@ export function GuidedCaseIntake({
 
   const updateAnswer = (questionId: string, value: Json | undefined) => {
     const question = configuration.questions.find((item) => item.id === questionId);
-    const answerRemainsValid = question
-      ? isGuidedQuestionAnswerValid(question, value)
-      : false;
     setDraft((current) => ({
       ...current,
-      answers: { ...current.answers, [questionId]: value },
-      followUpTasks: current.followUpTasks.map((task) =>
-        task.questionId === questionId && !answerRemainsValid
-          ? { ...task, completed: false }
-          : task,
-      ),
+      ...(() => {
+        const answers = { ...current.answers, [questionId]: value };
+        const nextEvaluation = evaluateGuidedCaseIntake(
+          scopedConfiguration,
+          answers,
+          current.requiredOptionIds,
+        );
+        const answerRemainsValid = question
+          ? isGuidedQuestionAnswerValid(
+              question,
+              value,
+              current.requiredOptionIds[questionId],
+            )
+          : false;
+        return {
+          answers,
+          followUpTasks: reconcileGuidedIntakeFollowUpTasks(
+            current.followUpTasks.map((task) =>
+              task.questionId === questionId && !answerRemainsValid
+                ? { ...task, completed: false }
+                : task,
+            ),
+            nextEvaluation,
+            answers,
+            current.requiredOptionIds,
+          ),
+        };
+      })(),
     }));
+    setErrors((current) => ({
+      ...current,
+      [`question.${questionId}`]: "",
+    }));
+    setFormError(null);
+  };
+  const updateRequiredOption = (
+    questionId: string,
+    optionId: string,
+    required: boolean,
+  ) => {
+    setDraft((current) => {
+      const currentRequired = current.requiredOptionIds[questionId] ?? [];
+      const nextRequired = required
+        ? [...new Set([...currentRequired, optionId])]
+        : currentRequired.filter((id) => id !== optionId);
+      const existingAnswer = current.answers[questionId];
+      const received = Array.isArray(existingAnswer)
+        ? existingAnswer.filter(
+            (id): id is string =>
+              typeof id === "string" && nextRequired.includes(id),
+          )
+        : [];
+      const requiredOptionIds = {
+        ...current.requiredOptionIds,
+        [questionId]: nextRequired,
+      };
+      const answers = {
+        ...current.answers,
+        [questionId]: received.length ? received : undefined,
+      };
+      const nextEvaluation = evaluateGuidedCaseIntake(
+        scopedConfiguration,
+        answers,
+        requiredOptionIds,
+      );
+      return {
+        ...current,
+        requiredOptionIds,
+        answers,
+        followUpTasks: reconcileGuidedIntakeFollowUpTasks(
+          current.followUpTasks,
+          nextEvaluation,
+          answers,
+          requiredOptionIds,
+        ),
+      };
+    });
     setErrors((current) => ({
       ...current,
       [`question.${questionId}`]: "",
@@ -469,11 +592,11 @@ export function GuidedCaseIntake({
     if (step === 1)
       return validateGuidedCaseDetails(draft, scopedConfiguration);
     if (step === 2 || step === 3)
-      return validateGuidedIntakeQuestions(evaluation);
+      return validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds);
     return {
       ...validateGuidedCustomerStep(draft, scopedConfiguration),
       ...validateGuidedCaseDetails(draft, scopedConfiguration),
-      ...validateGuidedIntakeQuestions(evaluation),
+      ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
     };
   };
   const continueForward = () => {
@@ -995,7 +1118,7 @@ export function GuidedCaseIntake({
                     (task) => task.questionId === question.id,
                   );
                   return <div className="intake-question-with-follow-up" key={question.id}>
-                    <QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />
+                    <QuestionField question={question} value={draft.answers[question.id]} requiredOptionIds={draft.requiredOptionIds[question.id] ?? []} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} onRequiredChange={(optionId, required) => updateRequiredOption(question.id, optionId, required)} />
                     {missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>{staged ? "Update Follow-up Task" : "Create Follow-up Task"}</button></div> : null}
                   </div>;
                 })}
@@ -1012,7 +1135,7 @@ export function GuidedCaseIntake({
             <div className="intake-question-list">
               {unassigned.map((question) => {
                 const missing = missingRequirements.find((item) => item.question.id === question.id);
-                return <div className="intake-question-with-follow-up" key={question.id}><QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />{missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>Create Follow-up Task</button></div> : null}</div>;
+                return <div className="intake-question-with-follow-up" key={question.id}><QuestionField question={question} value={draft.answers[question.id]} requiredOptionIds={draft.requiredOptionIds[question.id] ?? []} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} onRequiredChange={(optionId, required) => updateRequiredOption(question.id, optionId, required)} />{missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>Create Follow-up Task</button></div> : null}</div>;
               })}
             </div>
           </section>

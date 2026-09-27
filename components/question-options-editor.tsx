@@ -30,10 +30,12 @@ export function QuestionOptionsEditor({
   initialResponseType,
   initialOptions,
   initialRequireAllOptions,
+  initialTrackRequiredOptions,
 }: {
   initialResponseType: ResponseType;
   initialOptions: InitialOption[];
   initialRequireAllOptions: boolean;
+  initialTrackRequiredOptions: boolean;
 }) {
   const nextKey = useRef(0);
   const [responseType, setResponseType] =
@@ -46,6 +48,9 @@ export function QuestionOptionsEditor({
   );
   const [requireAllOptions, setRequireAllOptions] = useState(
     initialRequireAllOptions,
+  );
+  const [trackRequiredOptions, setTrackRequiredOptions] = useState(
+    initialTrackRequiredOptions,
   );
 
   const isSelect =
@@ -109,6 +114,14 @@ export function QuestionOptionsEditor({
 
       <input
         type="hidden"
+        name="trackRequiredOptions"
+        value={
+          responseType === "MULTI_SELECT" && trackRequiredOptions ? "on" : ""
+        }
+      />
+
+      <input
+        type="hidden"
         name="optionsJson"
         value={JSON.stringify(
           options.map((option, index) => ({
@@ -126,14 +139,38 @@ export function QuestionOptionsEditor({
           <input
             type="checkbox"
             checked={requireAllOptions}
-            onChange={(event) =>
-              setRequireAllOptions(event.currentTarget.checked)
-            }
+            disabled={trackRequiredOptions}
+            onChange={(event) => {
+              setRequireAllOptions(event.currentTarget.checked);
+              if (event.currentTarget.checked) setTrackRequiredOptions(false);
+            }}
           />
           <span>
             Require all displayed options
             <small>
               The question is complete only after every displayed item is selected.
+            </small>
+          </span>
+        </label>
+      ) : null}
+
+      {responseType === "MULTI_SELECT" ? (
+        <label className="checkbox-label full question-require-all-options">
+          <input
+            type="checkbox"
+            checked={trackRequiredOptions}
+            disabled={requireAllOptions}
+            onChange={(event) => {
+              setTrackRequiredOptions(event.currentTarget.checked);
+              if (event.currentTarget.checked) setRequireAllOptions(false);
+            }}
+          />
+          <span>
+            Determine required items during intake
+            <small>
+              Staff selects which displayed items are required for each Case.
+              Every required item must then be marked received before intake can
+              continue.
             </small>
           </span>
         </label>

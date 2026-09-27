@@ -71,6 +71,7 @@ export type GuidedIntakeQuestion = {
   responseType: GuidedQuestionResponseType;
   required: boolean;
   requireAllOptions: boolean;
+  trackRequiredOptions: boolean;
   group: GuidedQuestionGroup | null;
   displayOrder: number;
   options: GuidedIntakeOption[];
@@ -100,6 +101,7 @@ export type GuidedIntakeConfiguration = {
 };
 
 export type GuidedIntakeAnswers = Record<string, Json | undefined>;
+export type GuidedIntakeRequiredOptionIds = Record<string, string[]>;
 
 export type GuidedIntakeFollowUpTask = {
   id: string;
@@ -124,6 +126,7 @@ export type GuidedCaseIntakeDraft = {
   managerUserId: string;
   staffUserIds: string[];
   answers: GuidedIntakeAnswers;
+  requiredOptionIds: GuidedIntakeRequiredOptionIds;
   followUpTasks: GuidedIntakeFollowUpTask[];
 };
 
@@ -168,6 +171,7 @@ const meaningfulText = (value: Json | undefined) =>
 export function isGuidedQuestionAnswerValid(
   question: GuidedIntakeQuestion,
   value: Json | undefined,
+  requiredOptionIds: string[] = [],
 ): boolean {
   if (value === undefined || value === null) return false;
   if (question.responseType === "YES_NO") return typeof value === "boolean";
@@ -201,6 +205,23 @@ export function isGuidedQuestionAnswerValid(
     return false;
   }
 
+  if (question.trackRequiredOptions) {
+    if (
+      requiredOptionIds.length === 0 ||
+      new Set(requiredOptionIds).size !== requiredOptionIds.length ||
+      requiredOptionIds.some((item) => !optionIds.has(item))
+    ) {
+      return false;
+    }
+
+    const selectedIds = new Set(selected);
+    return (
+      selectedIds.size === selected.length &&
+      selected.every((item) => requiredOptionIds.includes(item)) &&
+      requiredOptionIds.every((item) => selectedIds.has(item))
+    );
+  }
+
   if (!question.requireAllOptions) return true;
 
   const selectedIds = new Set(selected);
@@ -213,6 +234,7 @@ export function evaluateGuidedCaseIntake(
     "organizationId" | "questions" | "rules" | "actions"
   >,
   answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
 ): GuidedIntakeEvaluation {
   const result = evaluateCaseRules({
     organizationId: configuration.organizationId,
@@ -248,7 +270,11 @@ export function evaluateGuidedCaseIntake(
         applicable,
         effectiveRequired,
         answered: answers[question.id] !== undefined,
-        valid: isGuidedQuestionAnswerValid(question, answers[question.id]),
+        valid: isGuidedQuestionAnswerValid(
+          question,
+          answers[question.id],
+          requiredOptionIds[question.id],
+        ),
       };
     }),
     generatedTasks: result.effectiveTaskActions,
@@ -350,14 +376,14 @@ export function validateGuidedCaseDetails(
 export function getMissingRequiredOptions(
   evaluation: GuidedIntakeEvaluation,
   answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
 ) {
   return evaluation.questions.flatMap((question) => {
     if (
       !question.applicable ||
       !question.effectiveRequired ||
       question.responseType !== "MULTI_SELECT" ||
-      !question.requireAllOptions ||
-      question.valid
+      (!question.requireAllOptions && !question.trackRequiredOptions)
     )
       return [];
     const answer = answers[question.id];
@@ -368,11 +394,157 @@ export function getMissingRequiredOptions(
           )
         : [],
     );
+    const requiredIds = question.trackRequiredOptions
+      ? new Set(requiredOptionIds[question.id] ?? [])
+      : new Set(question.options.map((option) => option.id));
     const missingOptions = question.options.filter(
-      (option) => !selected.has(option.id),
+      (option) =>
+        requiredIds.has(option.id) &&
+        !selected.has(option.id),
     );
+    if (!missingOptions.length) return [];
     return [{ question, missingOptions }];
   });
+}
+
+export function reconcileGuidedIntakeFollowUpTasks(
+  tasks: GuidedIntakeFollowUpTask[],
+  evaluation: GuidedIntakeEvaluation,
+  answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds,
+) {
+  const missingByQuestion = new Map(
+    getMissingRequiredOptions(evaluation, answers, requiredOptionIds).map(
+      ({ question, missingOptions }) => [question.id, missingOptions],
+    ),
+  );
+  return tasks.flatMap((task) => {
+    const question = evaluation.questions.find(
+      (item) => item.id === task.questionId,
+    );
+    if (!question?.applicable || !question.effectiveRequired) return [];
+    const missingOptions = missingByQuestion.get(task.questionId) ?? [];
+    return [{
+      ...task,
+      missingOptionIds: missingOptions.map((option) => option.id),
+      missingOptionLabels: missingOptions.map((option) => option.label),
+      description: missingOptions.length
+        ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
+        : "All required documents have been received.",
+      completed:
+        missingOptions.length || !question?.valid ? false : task.completed,
+    }];
+  });
+}
+
+export function getTrackedRequiredOptionError(
+  question: GuidedIntakeQuestion,
+  requiredOptionIds: string[] | undefined,
+) {
+  if (!question.trackRequiredOptions) return null;
+  const optionIds = new Set(question.options.map((option) => option.id));
+  if (!Array.isArray(requiredOptionIds) || requiredOptionIds.length === 0)
+    return "Mark at least one displayed item as Required.";
+  if (
+    new Set(requiredOptionIds).size !== requiredOptionIds.length ||
+    requiredOptionIds.some((id) => !optionIds.has(id))
+  )
+    return "The required item selection is invalid.";
+  return null;
+}
+
+export function trackedReceivedOptionsAreValid(
+  question: GuidedIntakeQuestion,
+  answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds,
+) {
+  if (!question.trackRequiredOptions) return true;
+  const answer = answers[question.id];
+  if (answer === undefined) return true;
+  if (!Array.isArray(answer)) return false;
+  const received = answer.filter(
+    (option): option is string => typeof option === "string",
+  );
+  const required = new Set(requiredOptionIds[question.id] ?? []);
+  return (
+    received.length === answer.length &&
+    new Set(received).size === received.length &&
+    received.every((option) => required.has(option))
+  );
+}
+
+export function validateGuidedRequiredOptionMap(
+  questions: GuidedIntakeQuestion[],
+  answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds,
+): GuidedIntakeFieldErrors {
+  const errors: GuidedIntakeFieldErrors = {};
+  for (const [questionId, ids] of Object.entries(requiredOptionIds)) {
+    const question = questions.find((item) => item.id === questionId);
+    if (
+      !question ||
+      !question.trackRequiredOptions ||
+      question.responseType !== "MULTI_SELECT"
+    ) {
+      errors[`question.${questionId}`] =
+        "The required item selection is invalid.";
+      continue;
+    }
+    const optionIds = new Set(question.options.map((option) => option.id));
+    if (
+      !Array.isArray(ids) ||
+      new Set(ids).size !== ids.length ||
+      ids.some((id) => !optionIds.has(id)) ||
+      !trackedReceivedOptionsAreValid(question, answers, requiredOptionIds)
+    )
+      errors[`question.${questionId}`] =
+        "Required and received items must use active options from this question.";
+  }
+  for (const question of questions) {
+    if (
+      question.trackRequiredOptions &&
+      answers[question.id] !== undefined &&
+      !trackedReceivedOptionsAreValid(question, answers, requiredOptionIds) &&
+      !errors[`question.${question.id}`]
+    )
+      errors[`question.${question.id}`] =
+        "Received items must also be marked Required.";
+  }
+  return errors;
+}
+
+export function guidedFollowUpTaskMatchesMissingOptions(
+  task: GuidedIntakeFollowUpTask,
+  evaluation: GuidedIntakeEvaluation,
+  answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds,
+) {
+  const question = evaluation.questions.find(
+    (item) => item.id === task.questionId,
+  );
+  if (
+    !question ||
+    !question.applicable ||
+    !question.effectiveRequired ||
+    question.responseType !== "MULTI_SELECT" ||
+    (!question.requireAllOptions && !question.trackRequiredOptions) ||
+    task.title !== "Obtain missing required documents"
+  )
+    return false;
+  const missing = getMissingRequiredOptions(
+    evaluation,
+    answers,
+    requiredOptionIds,
+  ).find((item) => item.question.id === task.questionId)?.missingOptions ?? [];
+  return (
+    task.missingOptionIds.length === missing.length &&
+    task.missingOptionLabels.length === missing.length &&
+    missing.every(
+      (option, index) =>
+        task.missingOptionIds[index] === option.id &&
+        task.missingOptionLabels[index] === option.label,
+    )
+  );
 }
 
 export function canCompleteIntakeFollowUpTask(
@@ -388,10 +560,21 @@ export function canCompleteIntakeFollowUpTask(
 
 export function validateGuidedIntakeQuestions(
   evaluation: GuidedIntakeEvaluation,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
 ): GuidedIntakeFieldErrors {
   const errors: GuidedIntakeFieldErrors = {};
   for (const question of evaluation.questions) {
     if (!question.applicable) continue;
+    const trackedError = question.effectiveRequired
+      ? getTrackedRequiredOptionError(
+          question,
+          requiredOptionIds[question.id],
+        )
+      : null;
+    if (trackedError) {
+      errors[`question.${question.id}`] = trackedError;
+      continue;
+    }
     if (question.answered && !question.valid)
       errors[`question.${question.id}`] = "Enter a valid response.";
     else if (question.effectiveRequired && !question.valid)
@@ -404,21 +587,45 @@ export function validateGuidedCaseIntake(
   draft: GuidedCaseIntakeDraft,
   configuration: GuidedIntakeConfiguration,
 ) {
-  const evaluation = evaluateGuidedCaseIntake(configuration, draft.answers);
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    draft.answers,
+    draft.requiredOptionIds,
+  );
   const fieldErrors: GuidedIntakeFieldErrors = {
     ...validateGuidedCustomerStep(draft, configuration),
     ...validateGuidedCaseDetails(draft, configuration),
-    ...validateGuidedIntakeQuestions(evaluation),
+    ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
+    ...validateGuidedRequiredOptionMap(
+      configuration.questions,
+      draft.answers,
+      draft.requiredOptionIds,
+    ),
   };
   const staffIds = new Set(configuration.staff.map((member) => member.id));
+  const followUpQuestionIds = new Set<string>();
   for (const task of draft.followUpTasks) {
-    if (!staffIds.has(task.assignedUserId))
+    if (followUpQuestionIds.has(task.questionId))
+      fieldErrors[`followUp.${task.id}`] =
+        "Only one follow-up Task may be staged for each Question.";
+    else if (
+      !guidedFollowUpTaskMatchesMissingOptions(
+        task,
+        evaluation,
+        draft.answers,
+        draft.requiredOptionIds,
+      )
+    )
+      fieldErrors[`followUp.${task.id}`] =
+        "The follow-up Task does not match the current missing items.";
+    else if (!staffIds.has(task.assignedUserId))
       fieldErrors[`followUp.${task.id}`] = "Select an active Staff assignee.";
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))
       fieldErrors[`followUp.${task.id}`] = "Select a valid due date.";
     else if (task.completed && !canCompleteIntakeFollowUpTask(task, evaluation))
       fieldErrors[`followUp.${task.id}`] =
         "Required documents must be received before completing this Task.";
+    followUpQuestionIds.add(task.questionId);
   }
   return { valid: Object.keys(fieldErrors).length === 0, fieldErrors, evaluation };
 }
@@ -429,8 +636,13 @@ export function buildGuidedIntakeCreationPlan(
     "organizationId" | "questions" | "rules" | "actions"
   >,
   answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
 ): GuidedIntakeCreationPlan {
-  const evaluation = evaluateGuidedCaseIntake(configuration, answers);
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    answers,
+    requiredOptionIds,
+  );
   const questions = evaluation.questions
     .filter((question) => question.applicable)
     .map((question) => ({
@@ -440,12 +652,18 @@ export function buildGuidedIntakeCreationPlan(
       responseType: question.responseType,
       required: question.effectiveRequired,
       displayOrder: question.displayOrder,
-      options: question.options.map((option) => ({
+      options: question.options
+        .filter(
+          (option) =>
+            !question.trackRequiredOptions ||
+            (requiredOptionIds[question.id] ?? []).includes(option.id),
+        )
+        .map((option) => ({
         id: option.id,
         label: option.label,
         value: option.value,
         displayOrder: option.displayOrder,
-      })),
+        })),
       response: answers[question.id],
     }));
   return {

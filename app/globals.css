@@ -7244,6 +7244,56 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   font-weight: 500;
 }
 
+.intake-required-options {
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.intake-required-options-heading,
+.intake-required-option-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px 84px;
+  align-items: center;
+}
+
+.intake-required-options-heading {
+  padding: 8px 12px;
+  background: #f3f6fa;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .45px;
+  text-transform: uppercase;
+}
+
+.intake-required-options-heading span:not(:first-child),
+.intake-required-option-row label {
+  text-align: center;
+}
+
+.intake-required-option-row {
+  min-height: 42px;
+  padding: 7px 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.intake-required-option-row input:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+@media(max-width:600px) {
+  .intake-required-options-heading,
+  .intake-required-option-row {
+    grid-template-columns: minmax(0, 1fr) 68px 68px;
+  }
+}
+
 .intake-question-title-row {
   display: flex;
   align-items: center;

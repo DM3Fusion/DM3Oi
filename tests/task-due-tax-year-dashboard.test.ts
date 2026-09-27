@@ -158,6 +158,7 @@ test("required complete-option questions expose missing items and cannot be sati
       responseType: "MULTI_SELECT",
       required: true,
       requireAllOptions: true,
+      trackRequiredOptions: false,
       group: "REQUIRED_DOCUMENTS",
       displayOrder: 0,
       options: [
