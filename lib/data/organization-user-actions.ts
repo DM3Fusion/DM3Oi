@@ -11,8 +11,8 @@ import type { Database } from "@/types/database.generated";
 
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();
-const go = (membershipId: string, key: "message" | "error", message: string): never =>
-  redirect(`/users/${membershipId}?${key}=${encodeURIComponent(message)}`);
+const go = (membershipId: string, key: "message" | "error", message: string, returnTo?: string): never =>
+  redirect(`${returnTo === "/users" ? "/users" : `/users/${membershipId}`}?${key}=${encodeURIComponent(message)}`);
 
 export async function updateOrganizationMembershipAction(form: FormData) {
   const membershipId = value(form, "membershipId");
@@ -98,12 +98,13 @@ export async function updateOrganizationMembershipAction(form: FormData) {
 export async function transitionOrganizationMembershipAction(form: FormData) {
   const membershipId = value(form, "membershipId");
   const requestedAction = value(form, "action").toUpperCase();
+  const returnTo = value(form, "returnTo") === "/users" ? "/users" : undefined;
 
   if (!membershipId)
-    return go(membershipId, "error", "Organization user not found.");
+    return go(membershipId, "error", "Organization user not found.", returnTo);
 
   if (!["ACTIVATE", "SUSPEND", "REACTIVATE", "REVOKE"].includes(requestedAction))
-    return go(membershipId, "error", "Select a valid lifecycle action.");
+    return go(membershipId, "error", "Select a valid lifecycle action.", returnTo);
 
   const access = await getAccessContext();
   if (
@@ -114,6 +115,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
       membershipId,
       "error",
       "You are not authorized to manage organization users.",
+      returnTo,
     );
 
   const supabase = await createClient();
@@ -126,7 +128,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
     .maybeSingle();
 
   if (!membership)
-    return go(membershipId, "error", "Organization user not found.");
+    return go(membershipId, "error", "Organization user not found.", returnTo);
 
   if (
     !isOrganizationUserRole(membership.role) ||
@@ -136,6 +138,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
       membershipId,
       "error",
       "You are not authorized to change this user's lifecycle state.",
+      returnTo,
     );
 
   const lifecycleTargetRole = membership.role as
@@ -160,6 +163,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
       membershipId,
       "error",
       "You are not authorized to change this user's lifecycle state.",
+      returnTo,
     );
 
   const { error } = await supabase.rpc("transition_organization_membership", {
@@ -173,6 +177,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
         membershipId,
         "error",
         "This user still has active operational responsibility. Reassign their open cases, tasks, case assignments, or service requests before revoking access.",
+        returnTo,
       );
 
     if (error.message.toLowerCase().includes("not authorized"))
@@ -180,6 +185,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
         membershipId,
         "error",
         "You are not authorized to change this user's lifecycle state.",
+        returnTo,
       );
 
     console.error("Organization membership lifecycle update failed", {
@@ -195,6 +201,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
       membershipId,
       "error",
       "Organization access could not be updated.",
+      returnTo,
     );
   }
 
@@ -212,5 +219,6 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
     membershipId,
     "message",
     messages[requestedAction] ?? "Organization access updated.",
+    returnTo,
   );
 }

@@ -57,6 +57,9 @@ test("organization detail exposes only membership controls to managers", () => {
   assert.match(detail, /Organization role/);
   assert.match(detail, /Membership status/);
   assert.match(detail, /Invitation state/);
+  assert.match(detail, /\{access\.activeOrganization\.name\} Membership/);
+  assert.match(detail, /Activate User/);
+  assert.match(detail, /canConfigureOrganizationRole/);
   assert.match(detail, /updateOrganizationMembershipAction/);
   assert.match(detail, /ResendInviteButton/);
   assert.doesNotMatch(detail, /Platform role|SUPER ADMIN|password|security/i);

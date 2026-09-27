@@ -24,24 +24,53 @@ export function resolvePendingInviteIdentityRepair(input: {
   if (currentDisplayName && currentDisplayName.toLowerCase() !== email)
     return null;
 
-  const firstName = metadataText(input.userMetadata, "first_name");
-  const lastName = metadataText(input.userMetadata, "last_name");
+  const firstName =
+    input.profile?.first_name?.trim() ||
+    metadataText(input.userMetadata, "first_name");
+  const lastName =
+    input.profile?.last_name?.trim() ||
+    metadataText(input.userMetadata, "last_name");
   const metadataDisplayName = metadataText(input.userMetadata, "display_name");
-  const derivedName = [firstName, lastName].filter(Boolean).join(" ");
+  const profileDerivedName = [
+    input.profile?.first_name?.trim(),
+    input.profile?.last_name?.trim(),
+  ].filter(Boolean).join(" ");
+  const metadataDerivedName = [
+    metadataText(input.userMetadata, "first_name"),
+    metadataText(input.userMetadata, "last_name"),
+  ].filter(Boolean).join(" ");
   const displayName =
-    metadataDisplayName && metadataDisplayName.toLowerCase() !== email
+    profileDerivedName ||
+    (metadataDisplayName && metadataDisplayName.toLowerCase() !== email
       ? metadataDisplayName
-      : derivedName;
+      : metadataDerivedName);
   if (!displayName || displayName.toLowerCase() === email) return null;
 
   return {
     email: input.profile?.email?.trim().toLowerCase() || email,
-    first_name: input.profile?.first_name?.trim() || firstName || null,
-    last_name: input.profile?.last_name?.trim() || lastName || null,
+    first_name: firstName || null,
+    last_name: lastName || null,
     display_name: displayName,
     title:
       input.profile?.title?.trim() ||
       metadataText(input.userMetadata, "title") ||
       null,
   };
+}
+
+export function organizationUserDisplayName(profile: {
+  display_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+}) {
+  const email = profile.email?.trim() ?? "";
+  const displayName = profile.display_name?.trim() ?? "";
+  if (displayName && displayName.toLowerCase() !== email.toLowerCase())
+    return displayName;
+  const fullName = [profile.first_name, profile.last_name]
+    .map((part) => part?.trim() ?? "")
+    .filter(Boolean)
+    .join(" ");
+  return fullName || email || "Unnamed user";
 }

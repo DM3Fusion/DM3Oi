@@ -10,13 +10,16 @@ import {
   transitionOrganizationMembershipAction,
 } from "@/lib/data/organization-user-actions";
 import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
-import { ORGANIZATION_USER_ROLES } from "@/lib/data/user-provisioning";
+import { ORGANIZATION_USER_ROLES, isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
 import { OrganizationUserProfileEditor } from "@/components/organization-user-profile-editor";
 import { ApplicationIcon } from "@/components/application-icon";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
+import { organizationUserDisplayName } from "@/lib/data/pending-invite-identity";
 
 export default async function Page({
   params,
@@ -36,7 +39,7 @@ export default async function Page({
   const { data: membership } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,status,joined_at,updated_at,profiles(id,email,display_name,title,avatar_path,avatar_updated_at)",
+      "id,user_id,role,is_active,status,joined_at,updated_at,profiles(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at)",
     )
     .eq("id", membershipId)
     .eq("organization_id", access.activeOrganization.id)
@@ -50,8 +53,16 @@ export default async function Page({
   const [profile] = membershipProfile
     ? await attachAuthorizedAvatarUrls([membershipProfile])
     : [];
-  const name = profile?.display_name || profile?.email || "Unnamed user";
+  const name = organizationUserDisplayName(profile ?? {});
   const canManage = hasPermission(access, "MANAGE_USERS");
+  const canManageTarget =
+    canManage &&
+    isOrganizationUserRole(membership.role) &&
+    canConfigureOrganizationRole(
+      access.activeOrganization.role,
+      membership.role,
+      access.isSuperAdmin,
+    );
   const canViewUserAccess=
     hasPermission(access,"VIEW_SETTINGS") &&
     hasPermission(access,"MANAGE_ROLE_PERMISSIONS");
@@ -87,8 +98,8 @@ export default async function Page({
               size="lg"
             />
             <span>
-              <h2>Organization membership</h2>
-              <p>Access applies only to the active organization.</p>
+              <h2>{access.activeOrganization.name} Membership</h2>
+              <p>Access applies only to this organization.</p>
             </span>
           </span>
           <span className="user-detail-actions">
@@ -150,15 +161,17 @@ export default async function Page({
             <div>
               <dt>Invitation state</dt>
               <dd>
-                {invitationEligible
-                  ? "Pending invitation"
-                  : "No invitation action required"}
+                {membership.status === "INVITED"
+                  ? "Invitation pending"
+                  : membership.status === "VERIFIED"
+                    ? "Verified — awaiting activation"
+                    : "—"}
               </dd>
             </div>
           ) : null}
         </dl>
       </section>
-      {canManage ? (
+      {canManageTarget ? (
         <section className="panel detail-section">
           <div className="section-head">
             <div>
@@ -192,7 +205,9 @@ export default async function Page({
               <form action={transitionOrganizationMembershipAction}>
                 <input type="hidden" name="membershipId" value={membership.id} />
                 <input type="hidden" name="action" value="ACTIVATE" />
-                <button className="primary-button">Activate access</button>
+                <PendingSubmitButton className="primary-button" pendingLabel="Activating…">
+                  Activate User
+                </PendingSubmitButton>
               </form>
             ) : null}
 

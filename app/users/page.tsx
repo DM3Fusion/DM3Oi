@@ -11,21 +11,27 @@ import { NavigableRow } from "@/components/navigable-row";
 import Link from "next/link";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
+import { hasPermission } from "@/lib/auth/permissions";
+import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
+import { transitionOrganizationMembershipAction } from "@/lib/data/organization-user-actions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { organizationUserDisplayName } from "@/lib/data/pending-invite-identity";
 const requireInternalContext = () => requirePermission("VIEW_USERS");
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; message?: string }>;
+  searchParams: Promise<{ q?: string; message?: string; error?: string }>;
 }) {
   const context = await requireInternalContext();
   const { activeOrganization: org } = context;
   const canAddUser = canInviteOrganizationUsers(context);
+  const canManageUsers = hasPermission(context, "MANAGE_USERS");
   const supabase = await createClient();
   const { data: members } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,status,joined_at,profiles(id,email,display_name,title,avatar_path,avatar_updated_at)",
+      "id,user_id,role,is_active,status,joined_at,profiles(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at)",
     )
     .eq("organization_id", org.id)
     .order("joined_at");
@@ -66,6 +72,9 @@ export default async function Page({
       {query.message ? (
         <div className="success-alert page-notice">{query.message}</div>
       ) : null}
+      {query.error ? (
+        <div className="form-alert page-notice" role="alert">{query.error}</div>
+      ) : null}
       <UrlSearch
         q={q}
         label="Search organization users"
@@ -94,8 +103,15 @@ export default async function Page({
                   const profile = membershipProfile
                     ? profilesById.get(membershipProfile.id) ?? membershipProfile
                     : null;
-                  const name =
-                    profile?.display_name || profile?.email || "Unnamed user";
+                  const name = organizationUserDisplayName(profile ?? {});
+                  const canActivate =
+                    m.status === "VERIFIED" &&
+                    canManageUsers &&
+                    canConfigureOrganizationRole(
+                      org.role,
+                      m.role,
+                      context.isSuperAdmin,
+                    );
                   return (
                     <NavigableRow
                       key={m.id}
@@ -133,11 +149,24 @@ export default async function Page({
                         <Badge value={m.status ?? (m.is_active ? "ACTIVE" : "SUSPENDED")} />
                       </td>
                       <td>
-                        {eligible.find(([id]) => id === m.user_id)?.[1] ? (
+                        {m.status === "INVITED" && eligible.find(([id]) => id === m.user_id)?.[1] ? (
                           <ResendInviteButton
                             userId={m.user_id}
                             organizationId={org.id}
                           />
+                        ) : canActivate ? (
+                          <form action={transitionOrganizationMembershipAction}>
+                            <input type="hidden" name="membershipId" value={m.id} />
+                            <input type="hidden" name="action" value="ACTIVATE" />
+                            <input type="hidden" name="returnTo" value="/users" />
+                            <PendingSubmitButton
+                              className="primary-button"
+                              pendingLabel="Activating…"
+                              aria-label={`Activate ${name}`}
+                            >
+                              Activate
+                            </PendingSubmitButton>
+                          </form>
                         ) : (
                           "—"
                         )}

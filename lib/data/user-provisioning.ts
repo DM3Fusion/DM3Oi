@@ -5,11 +5,11 @@ export const ORGANIZATION_USER_ROLES = [
   "STAFF_USER",
 ] as const;
 
-export function isOrganizationUserRole(value: string) {
+export type OrganizationUserRole = (typeof ORGANIZATION_USER_ROLES)[number];
+
+export function isOrganizationUserRole(value: string): value is OrganizationUserRole {
   return ORGANIZATION_USER_ROLES.some((role) => role === value);
 }
-
-export type OrganizationUserRole = (typeof ORGANIZATION_USER_ROLES)[number];
 
 export function assignableOrganizationUserRoles(
   actorRole: OrganizationUserRole,

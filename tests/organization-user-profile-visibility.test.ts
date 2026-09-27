@@ -34,7 +34,7 @@ test("organization Users surfaces intentionally include non-active membership ro
   assert.match(usersPage, /from\("organization_members"\)/);
   assert.match(
     usersPage,
-    /profiles\(id,email,display_name,title,avatar_path,avatar_updated_at\)/,
+    /profiles\(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at\)/,
   );
   assert.match(usersPage, /m\.status/);
   assert.doesNotMatch(
@@ -48,7 +48,7 @@ test("organization Users surfaces intentionally include non-active membership ro
   assert.match(detailPage, /from\("organization_members"\)/);
   assert.match(
     detailPage,
-    /profiles\(id,email,display_name,title,avatar_path,avatar_updated_at\)/,
+    /profiles\(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at\)/,
   );
 });
 
