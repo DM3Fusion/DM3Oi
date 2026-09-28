@@ -356,3 +356,19 @@ test("Case Create Task uses an in-place modal with required Due Date", () => {
   assert.match(modal, /name="priority"/);
   assert.match(modal, /name="description"/);
 });
+
+test("Task Purpose projection grants authenticated callers the underlying Task Purpose column", () => {
+  const privilegeMigration = source(
+    "supabase/migrations/20260927202500_dm3oi_task_purpose_view_select_privilege.sql",
+  );
+
+  assert.match(
+    privilegeMigration,
+    /grant select\s*\(\s*task_purpose_id\s*\)\s*on public\.case_tasks\s*to authenticated/i,
+  );
+
+  assert.doesNotMatch(
+    privilegeMigration,
+    /grant select\s+on public\.case_tasks\s+to authenticated/i,
+  );
+});
