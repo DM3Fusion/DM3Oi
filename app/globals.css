@@ -7144,14 +7144,20 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
   .intake-step-tab {
     max-width: 100%;
-    min-height: clamp(54px, 10vw, 66px);
+    min-height: clamp(60px, 11vw, 72px);
     padding-right: 5px;
     padding-left: 5px;
     border-bottom: 1px solid #c7d0dc;
     border-radius: 6px;
   }
 
+  .intake-stepper li > .intake-step-tab > span {
+    font-size: 10px;
+  }
+
   .intake-stepper li > .intake-step-tab > b {
+    font-size: 13px;
+    line-height: 1.18;
     overflow-wrap: anywhere;
   }
 }

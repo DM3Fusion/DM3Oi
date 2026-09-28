@@ -29,9 +29,17 @@ test("phone step navigation is an equal-width three-column two-row grid", () => 
   assert.match(finalPhoneRule, /\.intake-stepper li\s*\{[\s\S]*min-width:\s*0/);
   assert.match(
     finalPhoneRule,
-    /\.intake-step-tab\s*\{[\s\S]*max-width:\s*100%[\s\S]*min-height:\s*clamp\(54px, 10vw, 66px\)/,
+    /\.intake-step-tab\s*\{[\s\S]*max-width:\s*100%[\s\S]*min-height:\s*clamp\(60px, 11vw, 72px\)/,
   );
   assert.match(finalPhoneRule, /border-bottom:\s*1px solid #c7d0dc/);
+  assert.match(
+    finalPhoneRule,
+    /> span\s*\{[\s\S]*font-size:\s*10px/,
+  );
+  assert.match(
+    finalPhoneRule,
+    /> b\s*\{[\s\S]*font-size:\s*13px[\s\S]*line-height:\s*1\.18/,
+  );
   assert.match(finalPhoneRule, /overflow-wrap:\s*anywhere/);
   assert.doesNotMatch(finalPhoneRule, /overflow-x:\s*(?:auto|scroll)/);
 });
