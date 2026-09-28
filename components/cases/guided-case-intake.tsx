@@ -20,6 +20,11 @@ import {
   guidedQuestionGroups,
   guidedQuestionGroupLabels,
   guidedCasePriorities,
+  getGuidedCaseTypesForCustomerMode,
+  getGuidedCaseTaxYearOptions,
+  reconcileGuidedCaseSelection,
+  reconcileGuidedCaseTaxYear,
+  resolveGuidedDraftCustomerMode,
   validateGuidedCaseDetails,
   validateGuidedCustomerStep,
   validateGuidedIntakeQuestions,
@@ -305,22 +310,20 @@ export function GuidedCaseIntake({
   const router = useRouter();
   const [step, setStep] = useState(initialStep);
   const [customers, setCustomers] = useState(configuration.customers);
-  const [customerMode, setCustomerMode] = useState<"existing" | "new">(
-    initialDraft?.customerId
-      ? "existing"
-      : initialCustomerMode ??
-          (configuration.customers.length ? "existing" : "new"),
+  const initialResolvedCustomerMode = resolveGuidedDraftCustomerMode(
+    initialDraft?.customerId ?? "",
+    initialCustomerMode,
+    configuration.customers.length ? "existing" : "new",
   );
-  const [caseCustomerMode, setCaseCustomerMode] = useState<"existing" | "new">(
-    initialCustomerMode ??
-      (configuration.customers.length ? "existing" : "new"),
+  const [customerMode, setCustomerMode] = useState<"existing" | "new">(
+    initialResolvedCustomerMode,
   );
   const [customerSearch, setCustomerSearch] = useState("");
-  const [draft, setDraft] = useState<GuidedCaseIntakeDraft>(
-    initialDraft ?? {
+  const [draft, setDraft] = useState<GuidedCaseIntakeDraft>(() => {
+    const source = initialDraft ?? {
       submissionKey,
       customerId: "",
-      taxYear: configuration.currentTaxYear,
+      taxYear: null,
       description: "",
       caseTypeId: "",
       priority: configuration.defaultPriority,
@@ -330,8 +333,18 @@ export function GuidedCaseIntake({
       requiredOptionIds: {},
       followUpTasks: [],
       portalOnboarding: unresolvedPortalOnboarding(),
-    },
-  );
+    };
+    return {
+      ...source,
+      ...reconcileGuidedCaseSelection(
+        source.caseTypeId,
+        source.taxYear,
+        initialResolvedCustomerMode,
+        configuration.caseTypes,
+        configuration.currentTaxYear,
+      ),
+    };
+  });
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -376,63 +389,25 @@ export function GuidedCaseIntake({
   const visibleQuestions = evaluation.questions.filter(
     (question) => question.applicable,
   );
-  const availableCustomers = useMemo(() => {
-    if (
-      draft.taxYear === null ||
-      !Number.isInteger(draft.taxYear) ||
-      draft.taxYear < 1900 ||
-      draft.taxYear > 2200
-    ) {
-      return [];
-    }
-    const unavailableCustomerIds = new Set(
-      configuration.customerCaseYears
-        .filter((item) => item.taxYear === draft.taxYear)
-        .map((item) => item.customerId),
-    );
-    return customers.filter(
-      (customer) => !unavailableCustomerIds.has(customer.id),
-    );
-  }, [configuration.customerCaseYears, customers, draft.taxYear]);
-
   const selectedCustomer = customers.find(
     (customer) => customer.id === draft.customerId,
   );
-  const availableCaseTypes = useMemo(() => {
-    const requiredCustomerMode =
-      caseCustomerMode === "new" ? "NEW" : "EXISTING";
-
-    return configuration.caseTypes.filter((item) => {
-      if (
-        item.customerMode !== "ANY" &&
-        item.customerMode !== requiredCustomerMode
-      )
-        return false;
-
-      if (
-        item.taxYearRule === "CURRENT_YEAR" &&
-        draft.taxYear !== configuration.currentTaxYear
-      )
-        return false;
-
-      if (
-        item.taxYearRule === "PRIOR_YEAR_REQUIRED" &&
-        (draft.taxYear === null ||
-          draft.taxYear >= configuration.currentTaxYear)
-      )
-        return false;
-
-      return true;
-    });
-  }, [
-    caseCustomerMode,
-    configuration.caseTypes,
-    configuration.currentTaxYear,
-    draft.taxYear,
-  ]);
+  const availableCaseTypes = useMemo(
+    () =>
+      getGuidedCaseTypesForCustomerMode(
+        configuration.caseTypes,
+        customerMode,
+      ),
+    [configuration.caseTypes, customerMode],
+  );
 
   const selectedType = configuration.caseTypes.find(
     (item) => item.id === draft.caseTypeId,
+  );
+  const selectableTaxYears = getGuidedCaseTaxYearOptions(
+    selectedType,
+    configuration.taxYearOptions,
+    configuration.currentTaxYear,
   );
   const selectedManager = configuration.managers.find(
     (item) => item.id === draft.managerUserId,
@@ -513,7 +488,6 @@ export function GuidedCaseIntake({
   }, [draft.customerId, portalPromptEnabled]);
 
   const selectCustomer = (customerId: string) => {
-    setCaseCustomerMode("existing");
     setPortalStatus(null);
     setPortalError(null);
     setPortalPending(Boolean(customerId) && portalPromptEnabled);
@@ -530,6 +504,35 @@ export function GuidedCaseIntake({
     setFormError(null);
   };
 
+  const changeCustomerMode = (nextMode: "existing" | "new") => {
+    if (nextMode === customerMode) return;
+    setCustomerMode(nextMode);
+    setCustomerSearch("");
+    setPortalStatus(null);
+    setPortalError(null);
+    setPortalPending(false);
+    setDraft((current) => ({
+      ...current,
+      customerId: "",
+      portalOnboarding: unresolvedPortalOnboarding(),
+      ...reconcileGuidedCaseSelection(
+        current.caseTypeId,
+        current.taxYear,
+        nextMode,
+        configuration.caseTypes,
+        configuration.currentTaxYear,
+      ),
+    }));
+    setErrors((current) => ({
+      ...current,
+      customerId: "",
+      caseTypeId: "",
+      taxYear: "",
+      portalOnboarding: "",
+    }));
+    setFormError(null);
+  };
+
   const updateDraft = <K extends keyof GuidedCaseIntakeDraft>(
     key: K,
     value: GuidedCaseIntakeDraft[K],
@@ -540,56 +543,34 @@ export function GuidedCaseIntake({
   };
 
   const updateTaxYear = (taxYear: number | null) => {
-    const selectedCustomerBecomesUnavailable =
-      Boolean(draft.customerId) &&
-      taxYear !== null &&
-      Number.isInteger(taxYear) &&
-      taxYear >= 1900 &&
-      taxYear <= 2200 &&
-      configuration.customerCaseYears.some(
-        (item) =>
-          item.customerId === draft.customerId &&
-          item.taxYear === taxYear,
-      );
-
-    setPortalStatus(null);
-    setPortalError(null);
-    setPortalPending(false);
     setDraft((current) => ({
       ...current,
       taxYear,
-      customerId: selectedCustomerBecomesUnavailable
-        ? ""
-        : current.customerId,
-      portalOnboarding: selectedCustomerBecomesUnavailable
-        ? unresolvedPortalOnboarding()
-        : current.portalOnboarding,
     }));
     setErrors((current) => ({
       ...current,
       taxYear: "",
-      customerId: selectedCustomerBecomesUnavailable
-        ? "This Customer already has a Case for the selected tax year."
-        : current.customerId,
-      portalOnboarding: selectedCustomerBecomesUnavailable
-        ? ""
-        : current.portalOnboarding,
     }));
-    setFormError(
-      selectedCustomerBecomesUnavailable
-        ? "Select a Customer without a Case for the selected tax year."
-        : null,
-    );
+    setFormError(null);
   };
 
   const updateCaseType = (caseTypeId: string) => {
+    const caseType = configuration.caseTypes.find(
+      (item) => item.id === caseTypeId,
+    );
     setDraft((current) => ({
       ...current,
       caseTypeId,
+      taxYear: reconcileGuidedCaseTaxYear(
+        caseType,
+        current.taxYear,
+        configuration.currentTaxYear,
+      ),
     }));
     setErrors((current) => ({
       ...current,
       caseTypeId: "",
+      taxYear: "",
     }));
     setFormError(null);
   };
@@ -692,7 +673,11 @@ export function GuidedCaseIntake({
     if (step === 0)
       return validateGuidedCustomerStep(draft, scopedConfiguration);
     if (step === 1)
-      return validateGuidedCaseDetails(draft, scopedConfiguration);
+      return validateGuidedCaseDetails(
+        draft,
+        scopedConfiguration,
+        customerMode,
+      );
     if (step === 2)
       return validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds);
     if (step === 3)
@@ -704,7 +689,11 @@ export function GuidedCaseIntake({
       };
     return {
       ...validateGuidedCustomerStep(draft, scopedConfiguration),
-      ...validateGuidedCaseDetails(draft, scopedConfiguration),
+      ...validateGuidedCaseDetails(
+        draft,
+        scopedConfiguration,
+        customerMode,
+      ),
       ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
       ...(!portalResolved
         ? { portalOnboarding: "Resolve Customer Portal onboarding." }
@@ -829,14 +818,12 @@ export function GuidedCaseIntake({
     }
 
     setCustomers((current) => [...current, result.customer]);
-    setCaseCustomerMode("new");
     setPortalPending(portalPromptEnabled);
     setDraft((current) => ({
       ...current,
       customerId: result.customer.id,
       portalOnboarding: unresolvedPortalOnboarding(),
     }));
-    setCustomerMode("existing");
     setErrors({});
     setFormError(null);
     setPending(false);
@@ -865,7 +852,7 @@ export function GuidedCaseIntake({
 
     const result = await saveGuidedIntakeDraftAction({
       currentStep: step,
-      customerMode: caseCustomerMode,
+      customerMode,
       draft,
       newCustomer: {
         ...customerValues,
@@ -898,59 +885,26 @@ export function GuidedCaseIntake({
   };
 
   const renderCustomer = () => {
-    const filtered = availableCustomers.filter((customer) =>
+    const filtered = customers.filter((customer) =>
       `${customer.customerNumber} ${customer.name}`
         .toLowerCase()
         .includes(customerSearch.trim().toLowerCase()),
     );
-    const taxYearReady =
-      draft.taxYear !== null &&
-      Number.isInteger(draft.taxYear) &&
-      draft.taxYear >= 1900 &&
-      draft.taxYear <= 2200;
     return (
       <div className="intake-step-content">
-        <label className="intake-tax-year">
-          <span>Tax Year</span>
-          <select
-            required
-            value={draft.taxYear ?? ""}
-            onChange={(event) =>
-              updateTaxYear(
-                event.target.value === "" ? null : Number(event.target.value),
-              )
-            }
-            aria-invalid={Boolean(errors.taxYear)}
-          >
-            <option value="">Select a Tax Year</option>
-            {configuration.taxYearOptions.map((taxYear) => (
-              <option key={taxYear} value={taxYear}>
-                {taxYear}
-              </option>
-            ))}
-          </select>
-          {fieldError(errors, "taxYear")}
-        </label>
         {configuration.canCreateCustomer ? (
           <div className="intake-mode-switch" role="group" aria-label="Customer source">
             <button
               type="button"
               className={customerMode === "existing" ? "active" : ""}
-              onClick={() => {
-                setCustomerMode("existing");
-                setCaseCustomerMode("existing");
-              }}
+              onClick={() => changeCustomerMode("existing")}
             >
               Existing Customer
             </button>
             <button
               type="button"
               className={customerMode === "new" ? "active" : ""}
-              onClick={() => {
-                setCustomerMode("new");
-                setCaseCustomerMode("new");
-                selectCustomer("");
-              }}
+              onClick={() => changeCustomerMode("new")}
             >
               Create New
             </button>
@@ -965,7 +919,6 @@ export function GuidedCaseIntake({
                 value={customerSearch}
                 onChange={(event) => setCustomerSearch(event.target.value)}
                 placeholder="Search by name or Customer number"
-                disabled={!taxYearReady}
               />
             </label>
             <label>
@@ -974,13 +927,8 @@ export function GuidedCaseIntake({
                 value={draft.customerId}
                 onChange={(event) => selectCustomer(event.target.value)}
                 aria-invalid={Boolean(errors.customerId)}
-                disabled={!taxYearReady}
               >
-                <option value="">
-                  {taxYearReady
-                    ? "Select a Customer"
-                    : "Select a Tax Year first"}
-                </option>
+                <option value="">Select a Customer</option>
                 {filtered.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.customerNumber} — {customer.name}
@@ -1170,6 +1118,33 @@ export function GuidedCaseIntake({
           onChange={(event) => updateDraft("description", event.target.value)}
         />
       </label>
+      {selectedType?.taxYearRule === "CURRENT_YEAR" ? (
+        <p className="intake-note">
+          Tax Year: <strong>{configuration.currentTaxYear}</strong>
+        </p>
+      ) : selectedType ? (
+        <label>
+          <span>Tax Year</span>
+          <select
+            required
+            value={draft.taxYear ?? ""}
+            onChange={(event) =>
+              updateTaxYear(
+                event.target.value === "" ? null : Number(event.target.value),
+              )
+            }
+            aria-invalid={Boolean(errors.taxYear)}
+          >
+            <option value="">Select a Tax Year</option>
+            {selectableTaxYears.map((taxYear) => (
+              <option key={taxYear} value={taxYear}>
+                {taxYear}
+              </option>
+            ))}
+          </select>
+          {fieldError(errors, "taxYear")}
+        </label>
+      ) : null}
       <label>
         <span>Priority</span>
         <select
@@ -1621,7 +1596,9 @@ export function GuidedCaseIntake({
             className="primary-button"
             onClick={
               step === 0 && customerMode === "new"
-                ? createNewCustomerAndContinue
+                ? draft.customerId
+                  ? continueForward
+                  : createNewCustomerAndContinue
                 : continueForward
             }
             disabled={
@@ -1638,7 +1615,7 @@ export function GuidedCaseIntake({
                 : undefined
             }
           >
-            {pending && step === 0 && customerMode === "new"
+            {pending && step === 0 && customerMode === "new" && !draft.customerId
               ? "Creating Customer…"
               : "Continue"}
           </button>
@@ -1652,7 +1629,7 @@ export function GuidedCaseIntake({
               setFormError(null);
               const result = await createGuidedCaseAction(
                 draft,
-                caseCustomerMode,
+                customerMode,
               );
               if (!result.ok) {
                 setPending(false);

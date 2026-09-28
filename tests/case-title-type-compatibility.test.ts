@@ -20,7 +20,7 @@ const intake = fs.readFileSync(
 const settings = fs.readFileSync(
   "app/settings/case-configuration/page.tsx",
   "utf8",
-);
+) + fs.readFileSync("components/case-configuration-editor.tsx", "utf8");
 
 const configuration = {
   currentTaxYear: 2026,

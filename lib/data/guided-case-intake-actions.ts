@@ -254,7 +254,7 @@ export type CreateGuidedCaseResult =
 
 const firstInvalidStep = (fieldErrors: Record<string, string>) => {
   const keys = Object.keys(fieldErrors);
-  if (keys.some((key) => key === "customerId" || key === "taxYear")) return 0;
+  if (keys.some((key) => key === "customerId")) return 0;
   if (keys.some((key) => !key.startsWith("question."))) return 1;
   return 2;
 };

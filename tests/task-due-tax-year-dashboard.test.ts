@@ -169,19 +169,15 @@ test("one Customer per tax year is enforced by Guided Intake and the database", 
   );
 
   assert.match(loader, /from\("cases"\)[\s\S]*select\("customer_id,tax_year"\)/);
-  assert.match(intake, /availableCustomers[\s\S]*item\.taxYear === draft\.taxYear/);
-  assert.match(intake, /Select a Tax Year first/);
-  assert.match(
-    intake,
-    /This Customer already has a Case for the selected tax year/,
-  );
+  assert.doesNotMatch(intake, /availableCustomers/);
+  assert.doesNotMatch(intake, /Select a Tax Year first/);
   assert.match(
     intake,
     /\["Tax Year", draft\.taxYear \?\? "Not selected", 0\]/,
   );
   assert.match(
     action,
-    /key === "customerId" \|\| key === "taxYear"\)\) return 0/,
+    /key === "customerId"\)\) return 0[\s\S]*return 1/,
   );
   assert.match(
     action,
@@ -212,7 +208,7 @@ test("Case tax year is nullable for history but required at both creation RPC bo
   assert.match(migration, /valid Case tax year is required/);
   assert.match(migration, /create function public\.create_case_workflow[\s\S]*target_tax_year integer/);
   assert.match(migration, /create function public\.create_guided_case_intake[\s\S]*target_tax_year integer/);
-  assert.match(source("components/cases/guided-case-intake.tsx"), /<span>Tax Year<\/span>[\s\S]*<select[\s\S]*configuration\.taxYearOptions/);
+  assert.match(source("components/cases/guided-case-intake.tsx"), /selectedType\?\.taxYearRule === "CURRENT_YEAR"[\s\S]*<span>Tax Year<\/span>[\s\S]*selectableTaxYears/);
   assert.match(source("app/cases/[caseId]/page.tsx"), /<dt>Tax year<\/dt>[\s\S]*item\.tax_year \?\? "—"/);
 });
 

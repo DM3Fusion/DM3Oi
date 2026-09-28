@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
+  getGuidedCaseTypesForCustomerMode,
+  getGuidedCaseTaxYearOptions,
   isGuidedQuestionAnswerValid,
+  reconcileGuidedCaseSelection,
+  reconcileGuidedCaseTaxYear,
+  resolveGuidedDraftCustomerMode,
   validateGuidedCaseDetails,
   validateGuidedCaseIntake,
   validateGuidedCustomerStep,
@@ -79,6 +84,192 @@ const draft = (): GuidedCaseIntakeDraft => ({
   requiredOptionIds: {},
   followUpTasks: [],
   portalOnboarding: { resolution: "UNRESOLVED" },
+});
+
+const configuredCaseTypes: GuidedIntakeConfiguration["caseTypes"] = [
+  {
+    id: "cash-new",
+    name: "Cash Advance - New Customer",
+    customerMode: "NEW",
+    taxYearRule: "CURRENT_YEAR",
+  },
+  {
+    id: "none-new",
+    name: "No Advance - New Customer",
+    customerMode: "NEW",
+    taxYearRule: "CURRENT_YEAR",
+  },
+  {
+    id: "prior-new",
+    name: "Prior-Year - New Customer",
+    customerMode: "NEW",
+    taxYearRule: "PRIOR_YEAR_REQUIRED",
+  },
+  {
+    id: "cash-existing",
+    name: "Cash Advance - Existing Customer",
+    customerMode: "EXISTING",
+    taxYearRule: "CURRENT_YEAR",
+  },
+  {
+    id: "none-existing",
+    name: "No Advance - Existing Customer",
+    customerMode: "EXISTING",
+    taxYearRule: "CURRENT_YEAR",
+  },
+  {
+    id: "prior-existing",
+    name: "Prior-Year - Existing Customer",
+    customerMode: "EXISTING",
+    taxYearRule: "PRIOR_YEAR_REQUIRED",
+  },
+  {
+    id: "any",
+    name: "General",
+    customerMode: "ANY",
+    taxYearRule: "ANY_YEAR",
+  },
+];
+
+test("Case Type eligibility uses only the authoritative existing Customer mode", () => {
+  const names = getGuidedCaseTypesForCustomerMode(
+    configuredCaseTypes,
+    "existing",
+  ).map((item) => item.name);
+  assert.deepEqual(names, [
+    "Cash Advance - Existing Customer",
+    "No Advance - Existing Customer",
+    "Prior-Year - Existing Customer",
+    "General",
+  ]);
+  assert.equal(names.some((name) => name.includes("New Customer")), false);
+});
+
+test("Case Type eligibility uses only the authoritative new Customer mode", () => {
+  const names = getGuidedCaseTypesForCustomerMode(
+    configuredCaseTypes,
+    "new",
+  ).map((item) => item.name);
+  assert.deepEqual(names, [
+    "Cash Advance - New Customer",
+    "No Advance - New Customer",
+    "Prior-Year - New Customer",
+    "General",
+  ]);
+  assert.equal(names.some((name) => name.includes("Existing Customer")), false);
+});
+
+test("CURRENT_YEAR Case Types force the organization-local current year", () => {
+  assert.equal(
+    reconcileGuidedCaseTaxYear(configuredCaseTypes[0], null, 2026),
+    2026,
+  );
+  assert.equal(
+    reconcileGuidedCaseTaxYear(configuredCaseTypes[0], 2024, 2026),
+    2026,
+  );
+  assert.deepEqual(
+    getGuidedCaseTaxYearOptions(
+      configuredCaseTypes[0],
+      [2026, 2025, 2024],
+      2026,
+    ),
+    [],
+  );
+});
+
+test("PRIOR_YEAR_REQUIRED offers prior years only and clears incompatible years", () => {
+  const priorType = configuredCaseTypes[2];
+  assert.deepEqual(
+    getGuidedCaseTaxYearOptions(priorType, [2026, 2025, 2024, 1899], 2026),
+    [2025, 2024],
+  );
+  assert.equal(reconcileGuidedCaseTaxYear(priorType, 2026, 2026), null);
+  assert.equal(reconcileGuidedCaseTaxYear(priorType, 2025, 2026), 2025);
+  assert.equal(reconcileGuidedCaseTaxYear(priorType, 1899, 2026), null);
+});
+
+test("ANY_YEAR offers current and prior years and requires a valid selection", () => {
+  const anyType = configuredCaseTypes[6];
+  assert.deepEqual(
+    getGuidedCaseTaxYearOptions(anyType, [2027, 2026, 2025, 1899], 2026),
+    [2026, 2025],
+  );
+  assert.equal(reconcileGuidedCaseTaxYear(anyType, null, 2026), null);
+  assert.equal(reconcileGuidedCaseTaxYear(anyType, 2026, 2026), 2026);
+  assert.equal(reconcileGuidedCaseTaxYear(anyType, 2025, 2026), 2025);
+});
+
+test("changing Case Type reconciles a tax year against the new rule", () => {
+  assert.deepEqual(
+    reconcileGuidedCaseSelection(
+      "cash-existing",
+      2024,
+      "existing",
+      configuredCaseTypes,
+      2026,
+    ),
+    { caseTypeId: "cash-existing", taxYear: 2026 },
+  );
+  assert.deepEqual(
+    reconcileGuidedCaseSelection(
+      "prior-existing",
+      2026,
+      "existing",
+      configuredCaseTypes,
+      2026,
+    ),
+    { caseTypeId: "prior-existing", taxYear: null },
+  );
+});
+
+test("changing Customer mode clears an incompatible Case Type and tax year", () => {
+  assert.deepEqual(
+    reconcileGuidedCaseSelection(
+      "cash-existing",
+      2026,
+      "new",
+      configuredCaseTypes,
+      2026,
+    ),
+    { caseTypeId: "", taxYear: null },
+  );
+});
+
+test("draft Customer mode restoration prioritizes a materialized Customer", () => {
+  assert.equal(resolveGuidedDraftCustomerMode("customer-a", "new", "new"), "existing");
+  assert.equal(resolveGuidedDraftCustomerMode("", "new", "existing"), "new");
+  assert.equal(resolveGuidedDraftCustomerMode("", "existing", "new"), "existing");
+});
+
+test("Guided Intake UI keeps one Customer mode across navigation and moves Tax Year to Case Details", () => {
+  const intake = source("components/cases/guided-case-intake.tsx");
+  const customerStep = intake.slice(
+    intake.indexOf("const renderCustomer"),
+    intake.indexOf("const renderDetails"),
+  );
+  const detailsStep = intake.slice(
+    intake.indexOf("const renderDetails"),
+    intake.indexOf("const renderQuestions"),
+  );
+
+  assert.doesNotMatch(intake, /caseCustomerMode/);
+  assert.match(intake, /getGuidedCaseTypesForCustomerMode\([\s\S]*customerMode/);
+  assert.match(intake, /validateGuidedCaseDetails\([\s\S]*customerMode/);
+  assert.match(intake, /customerMode === "new"[\s\S]*draft\.customerId[\s\S]*continueForward/);
+  assert.doesNotMatch(customerStep, /<span>Tax Year<\/span>/);
+  assert.doesNotMatch(customerStep, /Select a Tax Year first/);
+  assert.match(detailsStep, /selectedType\?\.taxYearRule === "CURRENT_YEAR"/);
+  assert.match(detailsStep, /Tax Year: <strong>\{configuration\.currentTaxYear\}/);
+  assert.match(detailsStep, /<span>Tax Year<\/span>[\s\S]*selectableTaxYears/);
+});
+
+test("draft loading restores materialized Customers as existing without changing stored rows", () => {
+  const loader = source("lib/data/guided-case-intake-drafts.ts");
+  const action = source("lib/data/guided-case-intake-actions.ts");
+  assert.match(loader, /customerMode: data\.customer_id[\s\S]*\? "existing"/);
+  assert.match(action, /input\.draft\.customerId[\s\S]*input\.draft\.taxYear !== null[\s\S]*canonicalSubmissionKey/);
+  assert.match(action, /onConflict: "organization_id,created_by_user_id,submission_key"/);
 });
 
 test("Customer step cannot advance without an active organization Customer", () => {

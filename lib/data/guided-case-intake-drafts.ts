@@ -193,7 +193,11 @@ export async function loadGuidedIntakeDraft(
     id: data.id,
     submissionKey: data.submission_key,
     currentStep: data.current_step,
-    customerMode: data.customer_mode === "new" ? "new" : "existing",
+    customerMode: data.customer_id
+      ? "existing"
+      : data.customer_mode === "new"
+        ? "new"
+        : "existing",
     draft: {
       submissionKey: data.submission_key,
       customerId: data.customer_id ?? "",

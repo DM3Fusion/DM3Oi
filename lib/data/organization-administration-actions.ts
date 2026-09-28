@@ -111,6 +111,9 @@ export async function saveCustomerPortalSettings(form: FormData) {
 }
 
 const caseConfigurationPath = "/settings/case-configuration";
+type ConfigurationSaveResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 export async function saveCaseTitle(form: FormData) {
   const access = await getAccessContext();
@@ -154,17 +157,18 @@ export async function saveCaseTitle(form: FormData) {
   redirect(`${caseConfigurationPath}?message=Case%20Title%20saved`);
 }
 
-export async function saveCaseType(form: FormData) {
+async function persistCaseType(form: FormData): Promise<ConfigurationSaveResult> {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
   if (!organizationId || !ok(access))
-    redirect(`${caseConfigurationPath}?error=Not%20authorized`);
+    return { ok: false, error: "Not authorized" };
   const name = String(form.get("name") ?? "").trim();
   const sortOrder = Number(form.get("sortOrder") ?? 0);
   if (!name || name.length > 120 || !Number.isInteger(sortOrder) || sortOrder < 0)
-    redirect(
-      `${caseConfigurationPath}?error=Enter%20a%20valid%20Case%20Type%20and%20order`,
-    );
+    return {
+      ok: false,
+      error: "Enter a valid Case Type and order",
+    };
   const supabase = await createClient();
   const customerMode = String(form.get("customerMode") ?? "ANY");
   const taxYearRule = String(form.get("taxYearRule") ?? "ANY_YEAR");
@@ -172,9 +176,7 @@ export async function saveCaseType(form: FormData) {
     !["ANY", "NEW", "EXISTING"].includes(customerMode) ||
     !["ANY_YEAR", "CURRENT_YEAR", "PRIOR_YEAR_REQUIRED"].includes(taxYearRule)
   )
-    redirect(
-      `${caseConfigurationPath}?error=Select%20valid%20Case%20Type%20behavior`,
-    );
+    return { ok: false, error: "Select valid Case Type behavior" };
   const payload = {
     organization_id: organizationId,
     name,
@@ -199,11 +201,25 @@ export async function saveCaseType(form: FormData) {
       code: result.error.code,
       message: result.error.message,
     });
-    redirect(
-      `${caseConfigurationPath}?error=Active%20Case%20Type%20names%20must%20be%20unique`,
-    );
+    return {
+      ok: false,
+      error: "Active Case Type names must be unique",
+    };
   }
   revalidatePath(caseConfigurationPath);
+  return { ok: true };
+}
+
+export async function saveCaseTypeInModal(form: FormData) {
+  return persistCaseType(form);
+}
+
+export async function saveCaseType(form: FormData) {
+  const result = await persistCaseType(form);
+  if (!result.ok)
+    redirect(
+      `${caseConfigurationPath}?error=${encodeURIComponent(result.error)}`,
+    );
   redirect(`${caseConfigurationPath}?message=Case%20Type%20saved`);
 }
 export async function saveCaseTypeMappings(form: FormData) {
@@ -262,19 +278,22 @@ export async function saveCaseTypeMappings(form: FormData) {
   );
 }
 
-export async function saveTaskPurpose(form: FormData) {
+async function persistTaskPurpose(
+  form: FormData,
+): Promise<ConfigurationSaveResult> {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
   if (!organizationId || !ok(access))
-    redirect(`${caseConfigurationPath}?error=Not%20authorized`);
+    return { ok: false, error: "Not authorized" };
 
   const label = String(form.get("label") ?? "").trim();
   const description = String(form.get("description") ?? "").trim() || null;
   const sortOrder = Number(form.get("sortOrder") ?? 0);
   if (!label || label.length > 160 || !Number.isInteger(sortOrder) || sortOrder < 0)
-    redirect(
-      `${caseConfigurationPath}?error=Enter%20a%20valid%20Task%20Purpose%20and%20order`,
-    );
+    return {
+      ok: false,
+      error: "Enter a valid Task Purpose and order",
+    };
 
   const supabase = await createClient();
   const payload = {
@@ -302,13 +321,27 @@ export async function saveTaskPurpose(form: FormData) {
       code: result.error.code,
       message: result.error.message,
     });
-    redirect(
-      `${caseConfigurationPath}?error=Active%20Task%20Purpose%20labels%20must%20be%20unique`,
-    );
+    return {
+      ok: false,
+      error: "Active Task Purpose labels must be unique",
+    };
   }
 
   revalidatePath(caseConfigurationPath);
   revalidatePath("/cases");
+  return { ok: true };
+}
+
+export async function saveTaskPurposeInModal(form: FormData) {
+  return persistTaskPurpose(form);
+}
+
+export async function saveTaskPurpose(form: FormData) {
+  const result = await persistTaskPurpose(form);
+  if (!result.ok)
+    redirect(
+      `${caseConfigurationPath}?error=${encodeURIComponent(result.error)}`,
+    );
   redirect(`${caseConfigurationPath}?message=Task%20Purpose%20saved`);
 }
 

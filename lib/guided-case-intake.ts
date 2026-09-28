@@ -115,6 +115,96 @@ export type GuidedIntakeConfiguration = {
   canAssign: boolean;
 };
 
+export type GuidedCustomerMode = "existing" | "new";
+export type GuidedCaseType = GuidedIntakeConfiguration["caseTypes"][number];
+
+export function guidedCaseTypeMatchesCustomerMode(
+  caseType: Pick<GuidedCaseType, "customerMode">,
+  customerMode: GuidedCustomerMode,
+) {
+  return (
+    caseType.customerMode === "ANY" ||
+    caseType.customerMode ===
+      (customerMode === "new" ? "NEW" : "EXISTING")
+  );
+}
+
+export function getGuidedCaseTypesForCustomerMode(
+  caseTypes: GuidedCaseType[],
+  customerMode: GuidedCustomerMode,
+) {
+  return caseTypes.filter((caseType) =>
+    guidedCaseTypeMatchesCustomerMode(caseType, customerMode),
+  );
+}
+
+export function reconcileGuidedCaseTaxYear(
+  caseType: Pick<GuidedCaseType, "taxYearRule"> | undefined,
+  taxYear: number | null,
+  currentTaxYear: number,
+): number | null {
+  if (!caseType) return null;
+  if (caseType.taxYearRule === "CURRENT_YEAR") return currentTaxYear;
+
+  const validYear =
+    Number.isInteger(taxYear) &&
+    (taxYear ?? 0) >= 1900 &&
+    (taxYear ?? 0) <= currentTaxYear;
+  if (!validYear) return null;
+  if (
+    caseType.taxYearRule === "PRIOR_YEAR_REQUIRED" &&
+    taxYear === currentTaxYear
+  ) {
+    return null;
+  }
+  return taxYear;
+}
+
+export function getGuidedCaseTaxYearOptions(
+  caseType: Pick<GuidedCaseType, "taxYearRule"> | undefined,
+  taxYearOptions: number[],
+  currentTaxYear: number,
+) {
+  if (!caseType || caseType.taxYearRule === "CURRENT_YEAR") return [];
+  return taxYearOptions.filter(
+    (taxYear) =>
+      Number.isInteger(taxYear) &&
+      taxYear >= 1900 &&
+      taxYear <= currentTaxYear &&
+      (caseType.taxYearRule === "ANY_YEAR" || taxYear < currentTaxYear),
+  );
+}
+
+export function reconcileGuidedCaseSelection(
+  caseTypeId: string,
+  taxYear: number | null,
+  customerMode: GuidedCustomerMode,
+  caseTypes: GuidedCaseType[],
+  currentTaxYear: number,
+) {
+  const caseType = caseTypes.find((item) => item.id === caseTypeId);
+  if (!caseType || !guidedCaseTypeMatchesCustomerMode(caseType, customerMode)) {
+    return { caseTypeId: "", taxYear: null };
+  }
+  return {
+    caseTypeId,
+    taxYear: reconcileGuidedCaseTaxYear(
+      caseType,
+      taxYear,
+      currentTaxYear,
+    ),
+  };
+}
+
+export function resolveGuidedDraftCustomerMode(
+  customerId: string,
+  storedMode: GuidedCustomerMode | undefined,
+  fallback: GuidedCustomerMode,
+): GuidedCustomerMode {
+  if (customerId) return "existing";
+  return storedMode ?? fallback;
+}
+
 export type GuidedIntakeAnswers = Record<string, Json | undefined>;
 export type GuidedIntakeRequiredOptionIds = Record<string, string[]>;
 
@@ -344,7 +434,7 @@ export function validateGuidedCaseDetails(
     | "staff"
     | "canAssign"
   >,
-  customerMode: "existing" | "new" = "existing",
+  customerMode: GuidedCustomerMode = "existing",
 ): GuidedIntakeFieldErrors {
   const errors: GuidedIntakeFieldErrors = {};
 
@@ -364,12 +454,7 @@ export function validateGuidedCaseDetails(
   if (!caseType) {
     errors.caseTypeId = "Select an active Case Type.";
   } else {
-    const requiredCustomerMode = customerMode === "new" ? "NEW" : "EXISTING";
-
-    if (
-      caseType.customerMode !== "ANY" &&
-      caseType.customerMode !== requiredCustomerMode
-    ) {
+    if (!guidedCaseTypeMatchesCustomerMode(caseType, customerMode)) {
       errors.caseTypeId =
         customerMode === "new"
           ? "Select a Case Type configured for a new Customer."
@@ -640,7 +725,7 @@ export function validateGuidedIntakeQuestions(
 export function validateGuidedCaseIntake(
   draft: GuidedCaseIntakeDraft,
   configuration: GuidedIntakeConfiguration,
-  customerMode: "existing" | "new" = "existing",
+  customerMode: GuidedCustomerMode = "existing",
 ) {
   const evaluation = evaluateGuidedCaseIntake(
     configuration,

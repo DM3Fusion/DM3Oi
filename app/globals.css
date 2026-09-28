@@ -7829,3 +7829,242 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-template-columns:1fr;
   }
 }
+
+/* Case Configuration keeps data and editing contained within each card. */
+.case-configuration-section{
+  min-width:0;
+  overflow:hidden;
+}
+.case-configuration-section .section-head>div{
+  min-width:0;
+}
+.case-configuration-section .section-head>.primary-button{
+  flex:none;
+}
+.case-configuration-list{
+  min-width:0;
+  overflow:hidden;
+  border:1px solid var(--line);
+  border-radius:8px;
+}
+.case-configuration-row{
+  display:grid;
+  min-width:0;
+  align-items:center;
+  gap:14px;
+  padding:14px 16px;
+  border-bottom:1px solid #e7ecf1;
+  color:#536277;
+  transition:background-color .15s ease;
+}
+.case-type-list .case-configuration-row{
+  grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(0,.65fr) minmax(0,.45fr) auto;
+}
+.task-purpose-list .case-configuration-row{
+  grid-template-columns:minmax(0,2fr) minmax(0,.7fr) minmax(0,.45fr) auto;
+}
+.case-configuration-row:last-child{
+  border-bottom:0;
+}
+.case-configuration-row:not(.case-configuration-header):hover{
+  background:#f6f8fa;
+}
+.case-configuration-row>*{
+  min-width:0;
+}
+.case-configuration-header{
+  background:#fafbfc;
+  color:#718096;
+  font-size:12px;
+  font-weight:750;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.case-configuration-primary strong,
+.case-configuration-primary small{
+  display:block;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.case-configuration-primary strong{
+  color:#263548;
+  font-weight:700;
+}
+.case-configuration-primary small{
+  margin-top:3px;
+  color:var(--muted);
+  line-height:1.45;
+}
+.case-configuration-field-label{
+  display:none;
+  margin-bottom:3px;
+  color:#718096;
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+}
+.case-configuration-edit{
+  justify-self:end;
+}
+.case-configuration-edit .text-button{
+  min-height:36px;
+  border-radius:6px;
+  padding:7px 9px;
+  font-weight:750;
+}
+.case-configuration-edit .text-button:hover{
+  background:#e9eef4;
+}
+.case-configuration-edit .text-button:focus-visible,
+.case-configuration-dialog button:focus-visible{
+  outline:2px solid #40506a;
+  outline-offset:2px;
+}
+.case-configuration-dialog{
+  width:min(700px,calc(100vw - 32px));
+  max-height:calc(100vh - 32px);
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:0;
+  color:var(--ink);
+  box-shadow:0 20px 55px rgba(16,24,40,.22);
+}
+.case-configuration-dialog::backdrop{
+  background:rgba(16,35,63,.38);
+}
+.case-configuration-form{
+  display:grid;
+  gap:18px;
+  padding:24px;
+}
+.case-configuration-form header,
+.case-configuration-form footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.case-configuration-form header h2,
+.case-configuration-form header p{
+  margin:0;
+}
+.case-configuration-form header h2{
+  margin-top:4px;
+}
+.case-configuration-form fieldset{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px;
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0;
+}
+.case-configuration-form label{
+  display:grid;
+  min-width:0;
+  gap:6px;
+}
+.case-configuration-form label.full{
+  grid-column:1/-1;
+}
+.case-configuration-form label>span{
+  color:#52677d;
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.case-configuration-form input,
+.case-configuration-form select,
+.case-configuration-form textarea{
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  border:1px solid #d7dee7;
+  border-radius:6px;
+  background:#fff;
+  padding:10px 11px;
+  color:var(--ink);
+}
+.case-configuration-form textarea{
+  resize:vertical;
+}
+.case-configuration-form footer{
+  justify-content:flex-end;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.case-configuration-form button:disabled,
+.case-configuration-form fieldset:disabled{
+  cursor:wait;
+  opacity:.7;
+}
+
+@media(max-width:1000px){
+  .case-configuration-header{
+    display:none;
+  }
+  .case-type-list .case-configuration-row,
+  .task-purpose-list .case-configuration-row{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    align-items:start;
+  }
+  .case-configuration-primary{
+    grid-column:1/-1;
+  }
+  .case-configuration-field-label{
+    display:block;
+  }
+  .case-configuration-edit{
+    align-self:end;
+    justify-self:end;
+  }
+}
+
+@media(max-width:600px){
+  .case-configuration-section .section-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .case-configuration-section .section-head>.primary-button{
+    width:100%;
+    justify-content:center;
+  }
+  .case-type-list .case-configuration-row,
+  .task-purpose-list .case-configuration-row{
+    grid-template-columns:minmax(0,1fr);
+    gap:12px;
+    padding:14px;
+  }
+  .case-configuration-primary,
+  .case-configuration-edit{
+    grid-column:auto;
+  }
+  .case-configuration-edit{
+    justify-self:start;
+  }
+  .case-configuration-dialog{
+    width:calc(100vw - 24px);
+    max-height:calc(100vh - 24px);
+  }
+  .case-configuration-form{
+    gap:16px;
+    padding:18px;
+  }
+  .case-configuration-form fieldset{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .case-configuration-form label.full{
+    grid-column:auto;
+  }
+  .case-configuration-form footer{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .case-configuration-form footer button{
+    justify-content:center;
+  }
+}
