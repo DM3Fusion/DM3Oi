@@ -372,3 +372,32 @@ test("Task Purpose projection grants authenticated callers the underlying Task P
     /grant select\s+on public\.case_tasks\s+to authenticated/i,
   );
 });
+
+test("organization Case Task projection grants only its remaining required Task columns", () => {
+  const privilegeMigration = source(
+    "supabase/migrations/20260927204000_dm3oi_case_tasks_view_select_privileges.sql",
+  );
+
+  for (const column of [
+    "blocking",
+    "completed_by_user_id",
+    "created_by_user_id",
+    "intake_follow_up_id",
+    "intake_question_definition_id",
+    "intake_requirement_context",
+    "priority",
+    "source_rule_action_id",
+  ]) {
+    assert.match(privilegeMigration, new RegExp(`\\b${column}\\b`, "i"));
+  }
+
+  assert.match(
+    privilegeMigration,
+    /grant select\s*\([\s\S]*?\)\s*on public\.case_tasks\s*to authenticated/i,
+  );
+
+  assert.doesNotMatch(
+    privilegeMigration,
+    /grant select\s+on public\.case_tasks\s+to authenticated/i,
+  );
+});
