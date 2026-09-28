@@ -15,17 +15,19 @@ const css = source("app/globals.css");
 test("phone shell exposes semantic primary navigation with the established destinations", () => {
   assert.match(applicationNavigation, /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/);
   assert.match(shell, /href: "\/account",[\s\S]*?label: "More"/);
-  assert.match(shell, /<MobileBottomNavigation items=\{mobileNavigation\}/);
+  assert.match(shell, /<MobileBottomNavigation[\s\S]*items=\{mobileNavigation\}/);
   assert.match(navigation, /aria-label="Primary mobile navigation"/);
   assert.match(navigation, /const matchesPath/);
   assert.match(navigation, /activePrefixes\.some\(\(prefix\) => matchesPath\(pathname, prefix\)\)/);
   assert.match(navigation, /aria-current=\{active \? "page" : undefined\}/);
 });
 
-test("More remains active for its secondary destinations while linking back to the More hub", () => {
+test("More remains active for secondary destinations while opening the shell panel", () => {
   assert.match(shell, /href: "\/account",[\s\S]*label: "More",[\s\S]*activePrefixes:/);
-  assert.match(shell, /mobileSecondaryNavigation\(access, false\)\.map\(\(item\) => item\.href\)/);
-  assert.match(navigation, /href=\{href\}/);
+  assert.match(shell, /const secondaryNavigation = access[\s\S]*mobileSecondaryNavigation\(access, platformContext\)/);
+  assert.match(shell, /\.\.\.secondaryNavigation\.map\(\(item\) => item\.href\)/);
+  assert.match(navigation, /opensPanel = false/);
+  assert.match(navigation, /aria-expanded=\{moreOpen\}/);
   assert.match(navigation, /activePrefixes = \[\]/);
   assert.match(navigation, /isActive\(pathname, href, activePrefixes\)/);
   assert.match(

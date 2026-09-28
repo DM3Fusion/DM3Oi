@@ -227,6 +227,9 @@ export function AppShell({
     : [];
 
   const settingsRouteActive = pathname.startsWith("/settings");
+  const secondaryNavigation = access
+    ? mobileSecondaryNavigation(access, platformContext)
+    : [];
 
   const mobileNavigation = [
     ...nav
@@ -242,17 +245,16 @@ export function AppShell({
           href: "/account",
           label: "More",
           icon: "account" as const,
+          opensPanel: true,
           unreadCount: platformContext ? liveNewTrialRequestCount : undefined,
           activePrefixes: platformContext
             ? [
                 "/account",
-                ...mobileSecondaryNavigation(access, true).map(
-                  (item) => item.href,
-                ),
+                ...secondaryNavigation.map((item) => item.href),
               ]
             : [
                 "/account",
-                ...mobileSecondaryNavigation(access, false).map((item) => item.href),
+                ...secondaryNavigation.map((item) => item.href),
                 ...(hasPermission(access, "VIEW_SETTINGS") ? ["/settings"] : []),
               ],
         }]
@@ -484,7 +486,12 @@ export function AppShell({
           </div>
         ) : null}
         <main>{children}</main>
-        <MobileBottomNavigation items={mobileNavigation} />
+        <MobileBottomNavigation
+          items={mobileNavigation}
+          moreItems={secondaryNavigation}
+          settingsItems={platformContext ? [] : settingsNavigation}
+          applicationVersionLabel={applicationVersionLabel}
+        />
       </div>
     </div>
   );

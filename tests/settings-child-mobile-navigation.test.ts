@@ -1,20 +1,13 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 import { authorizedOrganizationSettingsNavigation } from "../lib/application-navigation.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
-const component = source("components/settings-mobile-subnavigation.tsx");
 const shell = source("components/layout/app-shell.tsx");
+const mobileNavigation = source("components/layout/mobile-bottom-navigation.tsx");
+const applicationNavigation = source("lib/application-navigation.ts");
 const css = source("app/globals.css");
-const childCssStart = css.indexOf(
-  "/* Settings child-page phone subnavigation. */",
-);
-const childCssEnd = css.indexOf(
-  "/* DM3Oi product shell",
-  childCssStart,
-);
-const childCss = css.slice(childCssStart, childCssEnd);
 const childPages = [
   "app/settings/case-configuration/page.tsx",
   "app/settings/case-lifecycle/page.tsx",
@@ -22,7 +15,51 @@ const childPages = [
   "app/settings/user-access/page.tsx",
 ];
 
-test("shared Settings children preserve permission-filtered destinations", () => {
+test("Settings child pages contain no page-level Settings navigation", () => {
+  assert.equal(existsSync("components/settings-mobile-subnavigation.tsx"), false);
+
+  for (const path of childPages) {
+    const page = source(path);
+    assert.match(page, /<PageHeader/);
+    assert.doesNotMatch(page, /SettingsMobileSubnavigation/);
+    assert.doesNotMatch(page, /authorizedOrganizationSettingsNavigation/);
+  }
+
+  const caseConfiguration = source(childPages[0]);
+  assert.match(
+    caseConfiguration,
+    /<PageHeader[\s\S]*?description="Manage Case Types and Task Purposes used by your organization\."[\s\S]*?\/>\s*\{query\.error[\s\S]*?<CaseConfigurationEditor/,
+  );
+});
+
+test("phone More opens shell-level secondary navigation instead of navigating to Account", () => {
+  assert.match(shell, /label: "More",[\s\S]*opensPanel: true/);
+  assert.match(
+    shell,
+    /<MobileBottomNavigation[\s\S]*moreItems=\{secondaryNavigation\}[\s\S]*settingsItems=\{platformContext \? \[\] : settingsNavigation\}/,
+  );
+  assert.match(mobileNavigation, /aria-label="More navigation"/);
+  assert.match(mobileNavigation, /aria-label="Secondary mobile navigation"/);
+  assert.match(mobileNavigation, /aria-expanded=\{moreOpen\}/);
+  assert.match(mobileNavigation, /aria-controls=\{panelId\}/);
+  assert.match(mobileNavigation, /className="mobile-navigation-scrim"/);
+});
+
+test("phone navigation renders the shared permission-filtered Settings hierarchy", () => {
+  assert.match(shell, /authorizedOrganizationSettingsNavigation\(access\)/);
+  assert.match(mobileNavigation, /item\.href === "\/settings\/case-configuration"/);
+  assert.match(mobileNavigation, /className="mobile-settings-nav-group"/);
+  assert.match(mobileNavigation, /className="mobile-settings-subnav"/);
+  assert.match(mobileNavigation, /settingsItems\.map\(\(settingsItem\) =>/);
+  assert.match(
+    mobileNavigation,
+    /pathname === settingsItem\.href \|\|\s*pathname\.startsWith\(`\$\{settingsItem\.href\}\/`\)/,
+  );
+  assert.match(
+    mobileNavigation,
+    /aria-current=\{childActive \? "page" : undefined\}/,
+  );
+
   const all = authorizedOrganizationSettingsNavigation({
     isSuperAdmin: false,
     internalAccess: true,
@@ -32,110 +69,84 @@ test("shared Settings children preserve permission-filtered destinations", () =>
       "MANAGE_ROLE_PERMISSIONS",
     ]),
   });
-
   assert.deepEqual(
     all.map(({ href, label }) => ({ href, label })),
     [
-      {
-        href: "/settings/case-configuration",
-        label: "Case Configuration",
-      },
+      { href: "/settings/case-configuration", label: "Case Configuration" },
       { href: "/settings/case-lifecycle", label: "Case Lifecycle" },
       { href: "/settings/customer-portal", label: "Customer Portal" },
       { href: "/settings/user-access", label: "User Access" },
     ],
   );
+});
 
+test("Settings parent targets Case Configuration and remains active throughout Settings", () => {
+  assert.match(
+    applicationNavigation,
+    /\.filter\(\(item\) => item\.href === "\/settings"\)[\s\S]*href: "\/settings\/case-configuration"/,
+  );
+  assert.match(
+    mobileNavigation,
+    /settingsParent\s*\? pathname\.startsWith\("\/settings"\)/,
+  );
+  assert.match(
+    mobileNavigation,
+    /href=\{item\.href\}[\s\S]*className=\{`mobile-settings-nav-parent\$\{active \? " active" : ""\}`\}/,
+  );
+});
+
+test("Settings child permissions continue to hide unauthorized destinations", () => {
   const limited = authorizedOrganizationSettingsNavigation({
     isSuperAdmin: false,
     internalAccess: true,
     activeOrganization: { role: "STAFF_USER" },
     effectivePermissions: new Set(["MANAGE_ROLE_PERMISSIONS"]),
   });
-  assert.deepEqual(limited.map((item) => item.href), [
-    "/settings/user-access",
-  ]);
+  assert.deepEqual(limited.map((item) => item.href), ["/settings/user-access"]);
+  assert.match(
+    applicationNavigation,
+    /organizationSettingsNavigation\.filter\(\(item\) => hasPermission\(context, item\.permission\)\)/,
+  );
 });
 
-test("every Settings child renders the mobile subnavigation after its PageHeader", () => {
-  for (const path of childPages) {
-    const page = source(path);
-    const header = page.indexOf("<PageHeader");
-    const subnavigation = page.indexOf("<SettingsMobileSubnavigation");
-
-    assert.ok(header >= 0, `${path} must retain its PageHeader`);
-    assert.ok(
-      subnavigation > header,
-      `${path} must place mobile Settings navigation after its PageHeader`,
-    );
-    assert.match(page, /authorizedOrganizationSettingsNavigation\(/);
-  }
+test("mobile Settings hierarchy uses shell navigation styling and cyan active states", () => {
+  assert.match(css, /\.mobile-more-panel\{[^}]*position:fixed[^}]*z-index:22/);
+  assert.match(
+    css,
+    /\.mobile-settings-subnav\{[^}]*border-left:1px solid #cfd8e3/,
+  );
+  assert.match(
+    css,
+    /\.mobile-settings-nav-parent\.active\{[^}]*box-shadow:inset 3px 0 var\(--dm3oi-cyan\)/,
+  );
+  assert.match(
+    css,
+    /\.mobile-settings-subnav>a\.active\{[^}]*background:#e7f8fb[^}]*box-shadow:inset 3px 0 var\(--dm3oi-cyan\)[^}]*color:#087d88/,
+  );
+  assert.doesNotMatch(css, /settings-mobile-subnavigation/);
 });
 
-test("mobile Settings child links expose active and accessible state", () => {
-  assert.match(component, /usePathname\(\)/);
+test("desktop Settings hierarchy remains unchanged", () => {
+  assert.match(shell, /className="settings-nav-group"/);
+  assert.match(shell, /className="settings-nav-parent-link"/);
+  assert.match(shell, /className="settings-subnav"/);
+  assert.match(shell, /setSettingsOpen\(true\)/);
   assert.match(
-    component,
-    /pathname === item\.href \|\| pathname\.startsWith\(`\$\{item\.href\}\/`\)/,
-  );
-  assert.match(component, /aria-label="Settings sections"/);
-  assert.match(
-    component,
-    /href="\/settings\/case-configuration"[\s\S]*className="settings-mobile-subnavigation-parent active"/,
-  );
-  assert.match(component, /className="settings-mobile-subnav"/);
-  assert.doesNotMatch(component, /className="panel settings-mobile-subnavigation"/);
-  assert.match(component, /aria-current=\{active \? "page" : undefined\}/);
-  assert.match(component, /active \? " active" : ""/);
-  assert.match(component, /<Link[\s\S]*href=\{item\.href\}/);
-});
-
-test("mobile Settings child CSS is phone-only contained and touch-friendly", () => {
-  assert.match(
-    childCss,
-    /\.settings-mobile-subnavigation\{display:none\}/,
-  );
-  assert.match(
-    childCss,
-    /@media\(max-width:600px\)\{\.settings-mobile-subnavigation\{[^}]*display:grid[^}]*width:100%[^}]*max-width:100%[^}]*min-width:0[^}]*overflow:hidden/,
-  );
-  assert.match(
-    childCss,
-    /\.settings-mobile-subnav\{[^}]*display:grid[^}]*min-width:0[^}]*margin:2px 0 0 18px[^}]*padding-left:12px[^}]*border-left:1px solid #cfd8e3/,
-  );
-  assert.match(
-    childCss,
-    /\.settings-mobile-subnavigation-link\{[^}]*grid-template-columns:18px minmax\(0,1fr\) 15px[^}]*min-width:0[^}]*min-height:44px/,
-  );
-  assert.match(
-    childCss,
-    /\.settings-mobile-subnavigation-link:focus-visible\{[^}]*outline:/,
-  );
-  assert.match(
-    childCss,
-    /\.settings-mobile-subnavigation-link\.active\{[^}]*background:#e7f8fb[^}]*box-shadow:inset 3px 0 var\(--dm3oi-cyan\)[^}]*color:#087d88/,
-  );
-  assert.doesNotMatch(childCss, /overflow-x:auto|white-space:nowrap/);
-  assert.doesNotMatch(childCss, /\.settings-mobile-subnavigation\{[^}]*border-radius|\.settings-mobile-subnavigation\{[^}]*background:#fff/);
-});
-
-test("desktop Settings hierarchy and landing cards remain independent", () => {
-  const landing = source("app/settings/page.tsx");
-  const navigation = source("lib/application-navigation.ts");
-
-  assert.match(
-    navigation,
-    /organizationAdministrationNavigation = \[[\s\S]*href: "\/settings", label: "Settings"/,
-  );
-  assert.match(shell, /href="\/settings\/case-configuration"/);
-  assert.match(
-    source("app/globals.css"),
+    css,
     /\.sidebar \.settings-subnav\{display:grid;gap:2px;margin:2px 0 5px 18px;padding-left:12px;border-left:1px solid #ffffff17\}/,
   );
-  assert.match(shell, /authorizedOrganizationSettingsNavigation\(access\)/);
+});
+
+test("mobile shell preserves primary destinations, Profile, and Sign Out", () => {
   assert.match(
-    landing,
-    /className="admin-card-grid settings-desktop-card-grid"/,
+    applicationNavigation,
+    /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/,
   );
-  assert.match(landing, /className="panel admin-config-card"/);
+  assert.match(
+    applicationNavigation,
+    /href: "\/account\/profile",\s*label: "Profile"/,
+  );
+  assert.match(mobileNavigation, /action=\{signOutAction\}/);
+  assert.match(mobileNavigation, /Sign Out/);
+  assert.match(mobileNavigation, /aria-label="Primary mobile navigation"/);
 });

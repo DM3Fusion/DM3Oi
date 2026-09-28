@@ -5,9 +5,7 @@ import {
   type TaskPurposeConfiguration,
 } from "@/components/case-configuration-editor";
 import { PageHeader } from "@/components/ui";
-import { SettingsMobileSubnavigation } from "@/components/settings-mobile-subnavigation";
 import { getAccessContext } from "@/lib/auth/context";
-import { authorizedOrganizationSettingsNavigation } from "@/lib/application-navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -89,10 +87,6 @@ export default async function Page({
         title="Case Configuration"
         description="Manage Case Types and Task Purposes used by your organization."
       />
-      <SettingsMobileSubnavigation
-        items={authorizedOrganizationSettingsNavigation(access)}
-      />
-
       {query.error ? (
         <div className="form-alert page-notice">{query.error}</div>
       ) : null}
