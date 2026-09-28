@@ -1,85 +1,31 @@
 import { Badge } from "@/components/ui";
-import { saveCaseResponseAction } from "@/lib/data/question-actions";
 import type { EvaluatedCaseQuestion } from "@/lib/data/question-repository";
-import { PendingSubmitButton } from "@/components/pending-submit-button";
-type Option = { id?: string; label: string; value: string };
+
+type Option = {
+  id?: string;
+  label: string;
+  value: string;
+};
+
 const scalar = (value: unknown) =>
   typeof value === "string" ||
   typeof value === "number" ||
   typeof value === "boolean"
     ? String(value)
     : "";
-export function CaseQuestions({
-  caseId,
-  questions,
-}: {
-  caseId: string;
-  questions: EvaluatedCaseQuestion[];
-}) {
-  const required = questions.filter((q) => q.applicable && q.effectiveRequired);
-  const answered = required.filter((q) => q.response).length;
+
+const optionLabel = (options: Option[], value: unknown) => {
+  const normalized = scalar(value);
   return (
-    <section className="panel detail-section">
-      <div className="section-head">
-        <div>
-          <h2>Questions / Responses</h2>
-          <p>Snapshot requirements preserved for this case</p>
-        </div>
-        <span className="count-pill">
-          {required.length} required · {answered} answered ·{" "}
-          {required.length - answered} remaining
-        </span>
-      </div>
-      {questions.length ? (
-        <div className="case-question-list">
-          {questions.map((q) => {
-            const options = Array.isArray(q.options_snapshot)
-              ? (q.options_snapshot as unknown as Option[])
-              : [];
-            return (
-              <article
-                className={!q.applicable ? "not-applicable" : q.effectiveRequired && !q.response ? "unanswered" : ""}
-                key={q.id}
-              >
-                <div>
-                  <b>{q.question_text}</b>
-                  <p>{q.description}</p>
-                  <span className={!q.applicable ? "optional" : q.effectiveRequired ? "required" : "optional"}>
-                    {!q.applicable ? "Not applicable" : q.effectiveRequired ? "Required" : "Optional"}
-                  </span>{" "}
-                  <Badge value={q.response ? "ANSWERED" : "UNANSWERED"} />
-                </div>
-                {q.applicable ? <form
-                  action={saveCaseResponseAction}
-                  className="question-response-form"
-                >
-                  <input type="hidden" name="caseId" value={caseId} />
-                  <input type="hidden" name="caseQuestionId" value={q.id} />
-                  <input
-                    type="hidden"
-                    name="responseType"
-                    value={q.response_type}
-                  />
-                  <ResponseInput
-                    type={q.response_type}
-                    options={options}
-                    value={q.response?.response_value}
-                  />
-                  <PendingSubmitButton pendingLabel="Saving…">Save</PendingSubmitButton>
-                </form> : <p className="question-applicability-note">This Question is not currently applicable.</p>}
-              </article>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="no-results">
-          No questions were applicable when this case was created.
-        </div>
-      )}
-    </section>
+    options.find(
+      (option) =>
+        option.id === normalized ||
+        option.value === normalized,
+    )?.label ?? normalized
   );
-}
-function ResponseInput({
+};
+
+function ResponseDisplay({
   type,
   options,
   value,
@@ -88,63 +34,150 @@ function ResponseInput({
   options: Option[];
   value: unknown;
 }) {
-  if (type === "LONG_TEXT")
+  if (value === null || value === undefined || value === "") {
+    return <span className="case-question-response-empty">No response</span>;
+  }
+
+  if (type === "YES_NO") {
     return (
-      <textarea
-        name="response"
-        rows={3}
-        defaultValue={scalar(value)}
-        required
-      />
-    );
-  if (type === "YES_NO")
-    return (
-      <select name="response" defaultValue={scalar(value)} required>
-        <option value="" disabled>
-          Select…
-        </option>
-        <option value="true">Yes</option>
-        <option value="false">No</option>
-      </select>
-    );
-  if (type === "SINGLE_SELECT")
-    return (
-      <select name="response" defaultValue={scalar(value)} required>
-        <option value="" disabled>
-          Select…
-        </option>
-        {options.map((o) => (
-          <option key={o.id ?? o.value} value={o.id ?? o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
-    );
-  if (type === "MULTI_SELECT") {
-    const selected = Array.isArray(value) ? value : [];
-    return (
-      <div className="response-options">
-        {options.map((o) => {
-          const stableValue = o.id ?? o.value;
-          return <label key={stableValue}>
-            <input
-              type="checkbox"
-              name="response"
-              value={stableValue}
-              defaultChecked={selected.includes(stableValue)}
-            />
-            {o.label}
-          </label>;
-        })}
-      </div>
+      <span className="case-question-response-value">
+        {value === true || value === "true" ? "Yes" : "No"}
+      </span>
     );
   }
+
+  if (type === "MULTI_SELECT") {
+    const selected = Array.isArray(value) ? value : [];
+
+    if (!selected.length) {
+      return <span className="case-question-response-empty">No response</span>;
+    }
+
+    return (
+      <ul className="case-question-response-list">
+        {selected.map((item) => (
+          <li key={String(item)}>{optionLabel(options, item)}</li>
+        ))}
+      </ul>
+    );
+  }
+
+  if (type === "SINGLE_SELECT") {
+    return (
+      <span className="case-question-response-value">
+        {optionLabel(options, value)}
+      </span>
+    );
+  }
+
   return (
-    <input
-      name="response"
-      type={type === "DATE" ? "date" : type === "NUMBER" ? "number" : "text"}
-      defaultValue={scalar(value)}
-      required
-    />
+    <span className="case-question-response-value">
+      {scalar(value)}
+    </span>
+  );
+}
+
+export function CaseQuestions({
+  questions,
+}: {
+  questions: EvaluatedCaseQuestion[];
+}) {
+  const required = questions.filter(
+    (question) =>
+      question.applicable &&
+      question.effectiveRequired,
+  );
+  const answered = required.filter(
+    (question) => question.response,
+  ).length;
+
+  return (
+    <section className="panel detail-section">
+      <div className="section-head">
+        <div>
+          <h2>Questions / Responses</h2>
+          <p>
+            Intake responses preserved from the validated Case workflow.
+          </p>
+        </div>
+        <span className="count-pill">
+          {required.length} required · {answered} answered ·{" "}
+          {required.length - answered} remaining
+        </span>
+      </div>
+
+      {questions.length ? (
+        <div className="case-question-list">
+          {questions.map((question) => {
+            const options = Array.isArray(question.options_snapshot)
+              ? (question.options_snapshot as unknown as Option[])
+              : [];
+
+            return (
+              <article
+                className={
+                  !question.applicable
+                    ? "not-applicable"
+                    : question.effectiveRequired && !question.response
+                      ? "unanswered"
+                      : ""
+                }
+                key={question.id}
+              >
+                <div>
+                  <b>{question.question_text}</b>
+                  <p>{question.description}</p>
+                  <span
+                    className={
+                      !question.applicable
+                        ? "optional"
+                        : question.effectiveRequired
+                          ? "required"
+                          : "optional"
+                    }
+                  >
+                    {!question.applicable
+                      ? "Not applicable"
+                      : question.effectiveRequired
+                        ? "Required"
+                        : "Optional"}
+                  </span>{" "}
+                  <Badge
+                    value={
+                      question.response
+                        ? "ANSWERED"
+                        : "UNANSWERED"
+                    }
+                  />
+                </div>
+
+                {question.applicable ? (
+                  <div
+                    className="case-question-response-readonly"
+                    aria-label="Validated response"
+                  >
+                    <small>Validated response</small>
+                    <ResponseDisplay
+                      type={question.response_type}
+                      options={options}
+                      value={question.response?.response_value}
+                    />
+                  </div>
+                ) : (
+                  <p className="question-applicability-note">
+                    This Question was not applicable when this Case was
+                    validated.
+                  </p>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="no-results">
+          No questions were applicable when this Case was created.
+        </div>
+      )}
+    </section>
   );
 }

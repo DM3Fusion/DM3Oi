@@ -8163,3 +8163,47 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   }
 }
 @media(max-width:600px){.mobile-bottom-navigation>button{min-height:64px;gap:5px;font-size:15px;letter-spacing:0}}
+
+.case-question-response-readonly{
+  display:grid;
+  gap:6px;
+  min-width:0;
+  padding:12px 14px;
+  border:1px solid #dfe6ed;
+  border-radius:7px;
+  background:#f8fafc;
+}
+.case-question-response-readonly>small{
+  color:#52677d;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.case-question-response-value{
+  color:#10233f;
+  font-size:16px;
+  font-weight:650;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+.case-question-response-empty{
+  color:var(--muted);
+  font-size:15px;
+  font-style:italic;
+}
+.case-question-response-list{
+  display:grid;
+  gap:5px;
+  margin:0;
+  padding-left:20px;
+  color:#10233f;
+  font-size:16px;
+  font-weight:650;
+}
+@media(max-width:600px){
+  .case-question-response-readonly{
+    padding:12px;
+  }
+}

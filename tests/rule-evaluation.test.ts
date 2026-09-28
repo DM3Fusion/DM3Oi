@@ -137,6 +137,10 @@ test("Case integration remains server-authorized evaluation-only UI", () => {
   assert.match(synchronization, /\.from\("rule_actions"\)[\s\S]*?\.select\("id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking,task_due_in_days"\)[\s\S]*?\.is\("retired_at", null\)/);
   assert.match(ui, /Not applicable/);
   assert.match(ui, /effectiveRequired/);
+  assert.match(ui, /Validated response/);
+  assert.doesNotMatch(ui, /saveCaseResponseAction/);
+  assert.doesNotMatch(ui, /question-response-form/);
+  assert.doesNotMatch(ui, /<form/);
   assert.match(actions, /revalidatePath\(`\/cases\/\$\{saved\.case_id\}`\)/);
   assert.doesNotMatch(repository + ui, /insert\([\s\S]*case_tasks|\.from\("case_tasks"\)/);
 });

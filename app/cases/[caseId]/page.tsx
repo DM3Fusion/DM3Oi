@@ -137,7 +137,7 @@ export default async function Page({
       </div>
       <div className="detail-grid">
         <div className="detail-main">
-          <CaseQuestions caseId={item.id} questions={questions} />
+          <CaseQuestions questions={questions} />
           <section className="panel detail-section">
             <div className="section-head">
               <h2>Case Overview</h2>
