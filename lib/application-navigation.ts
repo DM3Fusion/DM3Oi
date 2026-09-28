@@ -28,6 +28,13 @@ export const organizationAdministrationNavigation = [
   { href: "/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
+export const organizationSettingsNavigation = [
+  { href: "/settings/case-configuration", label: "Case Configuration", icon: "cases", permission: "VIEW_ADMINISTRATION" },
+  { href: "/settings/case-lifecycle", label: "Case Lifecycle", icon: "status", permission: "VIEW_ADMINISTRATION" },
+  { href: "/settings/customer-portal", label: "Customer Portal", icon: "customers", permission: "VIEW_ADMINISTRATION" },
+  { href: "/settings/user-access", label: "User Access", icon: "users", permission: "MANAGE_ROLE_PERMISSIONS" },
+] as const satisfies readonly ApplicationNavigationItem[];
+
 export const platformNavigation = [
   { href: "/", label: "Back Office", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
@@ -46,6 +53,9 @@ export const authorizedOrganizationNavigation = (context: PermissionContext) =>
 
 export const authorizedOrganizationAdministrationNavigation = (context: PermissionContext) =>
   organizationAdministrationNavigation.filter((item) => hasPermission(context, item.permission));
+
+export const authorizedOrganizationSettingsNavigation = (context: PermissionContext) =>
+  organizationSettingsNavigation.filter((item) => hasPermission(context, item.permission));
 
 export function mobileSecondaryNavigation(context: PermissionContext, platformContext: boolean) {
   const profileNavigation = {
@@ -77,7 +87,12 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     organizationSecondary.filter((item) => item.href === href),
   );
   const users = administration.filter((item) => item.href === "/users");
-  const settings = administration.filter((item) => item.href === "/settings");
+  const settings = administration
+    .filter((item) => item.href === "/settings")
+    .map((item) => ({
+      ...item,
+      href: "/settings/case-configuration",
+    }));
 
   return [
     ...orderedSecondary,

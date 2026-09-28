@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { UserAccessMatrix } from "@/components/user-access-matrix";
+import { SettingsMobileSubnavigation } from "@/components/settings-mobile-subnavigation";
 import { getAccessContext } from "@/lib/auth/context";
+import { authorizedOrganizationSettingsNavigation } from "@/lib/application-navigation";
 import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
 import {
   configurableOrganizationRoles,
@@ -120,6 +122,9 @@ export default async function Page({
         eyebrow="Settings"
         title="User Access"
         description="Control what organization roles can access and manage."
+      />
+      <SettingsMobileSubnavigation
+        items={authorizedOrganizationSettingsNavigation(access)}
       />
       <UserAccessMatrix
         navigationRows={[...navigationRows]}

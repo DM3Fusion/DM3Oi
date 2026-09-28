@@ -28,6 +28,10 @@ test("More remains active for its secondary destinations while linking back to t
   assert.match(navigation, /href=\{href\}/);
   assert.match(navigation, /activePrefixes = \[\]/);
   assert.match(navigation, /isActive\(pathname, href, activePrefixes\)/);
+  assert.match(
+    shell,
+    /hasPermission\(access, "VIEW_SETTINGS"\) \? \["\/settings"\] : \[\]/,
+  );
 });
 
 test("mobile destinations derive from the existing effective-permission navigation", () => {
@@ -142,8 +146,18 @@ test("mobile More orders authorized organization destinations without bypassing 
     "/questions",
     "/users",
     "/account/profile",
-    "/settings",
+    "/settings/case-configuration",
   ]);
+  assert.deepEqual(navigation.at(-1), {
+    href: "/settings/case-configuration",
+    label: "Settings",
+    icon: "settings",
+    permission: "VIEW_SETTINGS",
+  });
+  assert.match(
+    applicationNavigation,
+    /\{ href: "\/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" \}/,
+  );
 });
 
 test("Customer Portal bypasses every internal mobile navigation surface", () => {

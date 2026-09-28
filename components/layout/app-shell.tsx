@@ -17,6 +17,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import {
   authorizedOrganizationAdministrationNavigation,
   authorizedOrganizationNavigation,
+  authorizedOrganizationSettingsNavigation,
   mobilePrimaryDestinations,
   mobileSecondaryNavigation,
   platformNavigation,
@@ -221,34 +222,7 @@ export function AppShell({
               },
             ]
           : []),
-        ...(hasPermission(access, "VIEW_ADMINISTRATION")
-          ? [
-              {
-                href: "/settings/case-configuration",
-                label: "Case Configuration",
-                icon: "cases" as const,
-              },
-              {
-                href: "/settings/case-lifecycle",
-                label: "Case Lifecycle",
-                icon: "status" as const,
-              },
-              {
-                href: "/settings/customer-portal",
-                label: "Customer Portal",
-                icon: "customers" as const,
-              },
-            ]
-          : []),
-        ...(hasPermission(access, "MANAGE_ROLE_PERMISSIONS")
-          ? [
-              {
-                href: "/settings/user-access",
-                label: "User Access",
-                icon: "users" as const,
-              },
-            ]
-          : []),
+        ...authorizedOrganizationSettingsNavigation(access),
       ]
     : [];
 
@@ -279,6 +253,7 @@ export function AppShell({
             : [
                 "/account",
                 ...mobileSecondaryNavigation(access, false).map((item) => item.href),
+                ...(hasPermission(access, "VIEW_SETTINGS") ? ["/settings"] : []),
               ],
         }]
       : []),
