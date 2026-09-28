@@ -5,6 +5,7 @@ import { safeInternalPath } from "@/lib/auth/redirects";
 import type { Database } from "@/types/database.generated";
 import { getMyPendingOrganizationMembership } from "@/lib/auth/pending-organization-membership";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out"];
+const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction","/api/analytics/presence"]);
 export async function proxy(request:NextRequest){
  let response=NextResponse.next({request}); const env=getPublicEnvironment(); const pathname=request.nextUrl.pathname;
  if(pathname==="/auth/callback") return response;
@@ -34,5 +35,5 @@ export async function proxy(request:NextRequest){
  }
  return response;
 }
-function isProtected(pathname:string){return !publicRoutes.some(route=>pathname===route||pathname.startsWith(`${route}/`));}
+function isProtected(pathname:string){return !publicAnalyticsRoutes.has(pathname)&&!publicRoutes.some(route=>pathname===route||pathname.startsWith(`${route}/`));}
 export const config={matcher:["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]};
