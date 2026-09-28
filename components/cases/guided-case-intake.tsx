@@ -1353,14 +1353,6 @@ export function GuidedCaseIntake({
               >
                 {portalPending ? "Sending…" : "Resend Invitation"}
               </button>
-              <button
-                type="button"
-                className="text-button"
-                disabled={portalPending}
-                onClick={() => void setPortalNotRequired(true)}
-              >
-                Not Required for This Case
-              </button>
             </div>
           </>
         ) : null}
@@ -1431,7 +1423,6 @@ export function GuidedCaseIntake({
     );
     return (
       <div className="intake-requirements intake-step-content">
-        {renderPortalOnboarding()}
         <h3>Required Intake Answers</h3>
         {requiredQuestions.length ? (
           <ul>
@@ -1460,6 +1451,7 @@ export function GuidedCaseIntake({
         {hiddenQuestions.length ? (
           <p className="intake-note">{hiddenQuestions.length} conditional question{hiddenQuestions.length === 1 ? " is" : "s are"} currently non-applicable and will not block creation.</p>
         ) : null}
+        {renderPortalOnboarding()}
       </div>
     );
   };

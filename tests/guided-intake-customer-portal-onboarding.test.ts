@@ -307,6 +307,71 @@ test("Guided Intake uses explicit actions and Customer creation/Case creation ne
   );
 });
 
+test("Step 4 places its single Portal requirement after ordinary requirements and before navigation", () => {
+  const component = source("components/cases/guided-case-intake.tsx");
+  const requirementsStart = component.indexOf("const renderRequirements = () =>");
+  const reviewStart = component.indexOf("const renderReview = () =>", requirementsStart);
+  const requirements = component.slice(requirementsStart, reviewStart);
+  const contentPosition = component.indexOf("{content}", reviewStart);
+  const navigationPosition = component.indexOf(
+    '<div className="form-actions intake-actions">',
+    contentPosition,
+  );
+
+  assert.ok(requirementsStart >= 0 && reviewStart > requirementsStart);
+  assert.equal(requirements.match(/renderPortalOnboarding\(\)/g)?.length, 1);
+  assert.ok(
+    requirements.indexOf("Required Intake Answers") <
+      requirements.indexOf("Generated Tasks"),
+  );
+  assert.ok(
+    requirements.indexOf("Generated Tasks") <
+      requirements.indexOf("Missing-document Follow-up Tasks"),
+  );
+  assert.ok(
+    requirements.indexOf("Missing-document Follow-up Tasks") <
+      requirements.indexOf("renderPortalOnboarding()"),
+  );
+  assert.ok(contentPosition >= 0 && navigationPosition > contentPosition);
+});
+
+test("Portal exception remains unresolved-only while resolved states keep their intended controls", () => {
+  const component = source("components/cases/guided-case-intake.tsx");
+  const portalStart = component.indexOf("const renderPortalOnboarding = () =>");
+  const requirementsStart = component.indexOf("const renderRequirements = () =>", portalStart);
+  const portalRenderer = component.slice(portalStart, requirementsStart);
+  const activeStart = portalRenderer.indexOf('{state === "ACTIVE" ? (');
+  const sentStart = portalRenderer.indexOf(
+    '{state === "INVITATION_SENT" ? (',
+    activeStart,
+  );
+  const unresolvedStart = portalRenderer.indexOf(
+    '{state === "NOT_CONFIGURED"',
+    sentStart,
+  );
+  const sentBranch = portalRenderer.slice(sentStart, unresolvedStart);
+  const activeBranch = portalRenderer.slice(activeStart, sentStart);
+  const notRequiredStart = portalRenderer.lastIndexOf(
+    '{state === "NOT_REQUIRED" ? (',
+  );
+  const notRequiredBranch = portalRenderer.slice(notRequiredStart);
+
+  assert.match(portalRenderer, /state === "INVITATION_SENT"[\s\S]*\? "Invitation Sent"/);
+  assert.match(sentBranch, /Sent to <strong>/);
+  assert.match(sentBranch, /Resend Invitation/);
+  assert.doesNotMatch(sentBranch, /Not Required for This Case/);
+  assert.match(activeBranch, /No action required/);
+  assert.doesNotMatch(activeBranch, /Not Required for This Case/);
+  assert.match(
+    portalRenderer.slice(unresolvedStart, notRequiredStart),
+    /Send Portal Invitation[\s\S]*Not Required for This Case/,
+  );
+  assert.match(notRequiredBranch, /Portal access will not block this intake/);
+  assert.match(notRequiredBranch, /Undo \/ Reconsider/);
+  assert.doesNotMatch(notRequiredBranch, />\s*Not Required for This Case\s*<\/button>/);
+  assert.match(portalRenderer, /disabled=\{portalPending\}/);
+});
+
 test("draft persistence, settings UI, and lifecycle cascades are wired", () => {
   const actions = source("lib/data/guided-case-intake-actions.ts");
   const drafts = source("lib/data/guided-case-intake-drafts.ts");
