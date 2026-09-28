@@ -172,48 +172,45 @@ export function CaseConfigurationEditor({
           </button>
         </div>
 
-        <div className="case-configuration-list case-type-list" role="table" aria-label="Case Types">
-          <div className="case-configuration-row case-configuration-header" role="row">
-            <span role="columnheader">Case Type</span>
-            <span role="columnheader">Customer</span>
-            <span role="columnheader">Tax Year</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader">Order</span>
-            <span role="columnheader">Edit</span>
+        <div className="case-configuration-list case-type-list" aria-label="Case Types">
+          <div className="case-configuration-row case-configuration-header" aria-hidden="true">
+            <span>Case Type</span>
+            <span>Customer</span>
+            <span>Tax Year</span>
+            <span>Status</span>
+            <span>Order</span>
           </div>
           {caseTypes.map((item) => (
-            <div className="case-configuration-row" role="row" key={item.id}>
-              <div className="case-configuration-primary" role="cell">
+            <button
+              type="button"
+              className="case-configuration-row case-configuration-data-row"
+              key={item.id}
+              aria-label={`Edit Case Type ${item.name}`}
+              aria-haspopup="dialog"
+              onClick={() => openCaseType(item)}
+            >
+              <span className="case-configuration-primary">
                 <span className="case-configuration-field-label">Case Type</span>
                 <strong>{item.name}</strong>
                 {item.description ? <small>{item.description}</small> : null}
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Customer</span>
                 <span>{customerModeLabel(item.customerMode)}</span>
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Tax Year</span>
                 <span>{taxYearRuleLabel(item.taxYearRule)}</span>
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Status</span>
                 <span>{item.isActive ? "Active" : "Inactive"}</span>
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Order</span>
                 <span>{item.sortOrder}</span>
-              </div>
-              <div className="case-configuration-edit" role="cell">
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => openCaseType(item)}
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
+              </span>
+            </button>
           ))}
         </div>
       </section>
@@ -237,38 +234,35 @@ export function CaseConfigurationEditor({
           </button>
         </div>
 
-        <div className="case-configuration-list task-purpose-list" role="table" aria-label="Task Purposes">
-          <div className="case-configuration-row case-configuration-header" role="row">
-            <span role="columnheader">Task Purpose</span>
-            <span role="columnheader">Status</span>
-            <span role="columnheader">Order</span>
-            <span role="columnheader">Edit</span>
+        <div className="case-configuration-list task-purpose-list" aria-label="Task Purposes">
+          <div className="case-configuration-row case-configuration-header" aria-hidden="true">
+            <span>Task Purpose</span>
+            <span>Status</span>
+            <span>Order</span>
           </div>
           {taskPurposes.map((item) => (
-            <div className="case-configuration-row" role="row" key={item.id}>
-              <div className="case-configuration-primary" role="cell">
+            <button
+              type="button"
+              className="case-configuration-row case-configuration-data-row"
+              key={item.id}
+              aria-label={`Edit Task Purpose ${item.label}`}
+              aria-haspopup="dialog"
+              onClick={() => openTaskPurpose(item)}
+            >
+              <span className="case-configuration-primary">
                 <span className="case-configuration-field-label">Task Purpose</span>
                 <strong>{item.label}</strong>
                 {item.description ? <small>{item.description}</small> : null}
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Status</span>
                 <span>{item.isActive ? "Active" : "Inactive"}</span>
-              </div>
-              <div role="cell">
+              </span>
+              <span>
                 <span className="case-configuration-field-label">Order</span>
                 <span>{item.sortOrder}</span>
-              </div>
-              <div className="case-configuration-edit" role="cell">
-                <button
-                  type="button"
-                  className="text-button"
-                  onClick={() => openTaskPurpose(item)}
-                >
-                  Edit
-                </button>
-              </div>
-            </div>
+              </span>
+            </button>
           ))}
         </div>
       </section>

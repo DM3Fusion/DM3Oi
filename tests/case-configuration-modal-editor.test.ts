@@ -7,6 +7,10 @@ const page = source("app/settings/case-configuration/page.tsx");
 const editor = source("components/case-configuration-editor.tsx");
 const actions = source("lib/data/organization-administration-actions.ts");
 const css = source("app/globals.css");
+const listMarkup = editor.slice(
+  editor.indexOf('<section className="panel detail-section case-configuration-section">'),
+  editor.indexOf("<dialog"),
+);
 
 test("Case Type create and edit use one in-application modal instead of inline forms", () => {
   assert.match(page, /CaseConfigurationEditor/);
@@ -60,6 +64,33 @@ test("Task Purpose create and edit share a modal and preserve stable IDs", () =>
   assert.match(actions, /purposeId[\s\S]*\.eq\("id", purposeId\)/);
 });
 
+test("data rows replace separate Edit columns and actions", () => {
+  assert.doesNotMatch(listMarkup, /<span[^>]*>Edit<\/span>/);
+  assert.doesNotMatch(listMarkup, /className="case-configuration-edit"/);
+  assert.doesNotMatch(listMarkup, /className="text-button"/);
+  assert.doesNotMatch(css, /\.case-configuration-edit/);
+  assert.match(
+    css,
+    /\.case-type-list \.case-configuration-row\{[\s\S]*grid-template-columns:[^;]+;\s*\}/,
+  );
+  assert.match(
+    css,
+    /\.task-purpose-list \.case-configuration-row\{[\s\S]*grid-template-columns:[^;]+;\s*\}/,
+  );
+});
+
+test("Case Type and Task Purpose rows are native dialog-opening controls", () => {
+  assert.match(
+    listMarkup,
+    /<button[\s\S]*className="case-configuration-row case-configuration-data-row"[\s\S]*aria-label=\{`Edit Case Type \$\{item\.name\}`\}[\s\S]*aria-haspopup="dialog"[\s\S]*onClick=\{\(\) => openCaseType\(item\)\}/,
+  );
+  assert.match(
+    listMarkup,
+    /<button[\s\S]*className="case-configuration-row case-configuration-data-row"[\s\S]*aria-label=\{`Edit Task Purpose \$\{item\.label\}`\}[\s\S]*aria-haspopup="dialog"[\s\S]*onClick=\{\(\) => openTaskPurpose\(item\)\}/,
+  );
+  assert.doesNotMatch(listMarkup, /tabIndex=\{-1\}|disabled=/);
+});
+
 test("modal saves remain in context, retain failures, and prevent duplicate submission", () => {
   assert.match(editor, /if \(!result\.ok\) \{[\s\S]*setError\(result\.error\)[\s\S]*return;/);
   assert.match(editor, /caseTypeDialog\.current\?\.close\(\)[\s\S]*router\.refresh\(\)/);
@@ -79,8 +110,9 @@ test("configuration rows are card-contained, hoverable, focusable, and responsiv
   assert.match(css, /\.case-configuration-section\{[\s\S]*min-width:0;[\s\S]*overflow:hidden;/);
   assert.match(css, /\.case-configuration-list\{[\s\S]*overflow:hidden;/);
   assert.match(css, /\.case-configuration-row>\*\{[\s\S]*min-width:0;/);
-  assert.match(css, /case-configuration-row:not\(\.case-configuration-header\):hover[\s\S]*background:#f6f8fa/);
-  assert.match(css, /\.case-configuration-edit \.text-button:focus-visible/);
+  assert.match(css, /\.case-configuration-data-row\{[\s\S]*width:100%;[\s\S]*cursor:pointer;/);
+  assert.match(css, /\.case-configuration-data-row:hover\{[\s\S]*background:#edf2f7/);
+  assert.match(css, /\.case-configuration-data-row:focus-visible\{[\s\S]*outline:2px solid #40506a/);
   assert.match(css, /overflow-wrap:anywhere/);
   assert.match(css, /@media\(max-width:1000px\)[\s\S]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:600px\)[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
