@@ -16,14 +16,17 @@ export function SettingsMobileSubnavigation({
 
   return (
     <nav
-      className="panel settings-mobile-subnavigation"
+      className="settings-mobile-subnavigation"
       aria-label="Settings sections"
     >
-      <div className="settings-mobile-subnavigation-parent">
+      <Link
+        href="/settings/case-configuration"
+        className="settings-mobile-subnavigation-parent active"
+      >
         <ApplicationIcon name="settings" />
         <span>Settings</span>
-      </div>
-      <div className="settings-mobile-subnavigation-list">
+      </Link>
+      <div className="settings-mobile-subnav">
         {items.map((item) => {
           const active =
             pathname === item.href || pathname.startsWith(`${item.href}/`);
