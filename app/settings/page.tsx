@@ -44,6 +44,9 @@ export default async function Page() {
       hasPermission(access, card.permission) &&
       (card.href !== "/settings/general" || access?.isSuperAdmin),
   );
+  const mobileCards = cards.filter(
+    (card) => card.href !== "/settings/general",
+  );
   return (
     <>
       <PageHeader
@@ -51,15 +54,37 @@ export default async function Page() {
         title="Settings"
       />
       {cards.length ? (
-        <div className="admin-card-grid">
-          {cards.map(({ title, description, href }) => (
-            <Link href={href} className="panel admin-config-card" key={href}>
-              <h2>{title}</h2>
-              <p>{description}</p>
-              <span className="admin-card-action">Manage <ApplicationIcon name="forward" /></span>
-            </Link>
-          ))}
-        </div>
+        <>
+          <div className="admin-card-grid settings-desktop-card-grid">
+            {cards.map(({ title, description, href }) => (
+              <Link href={href} className="panel admin-config-card" key={href}>
+                <h2>{title}</h2>
+                <p>{description}</p>
+                <span className="admin-card-action">Manage <ApplicationIcon name="forward" /></span>
+              </Link>
+            ))}
+          </div>
+          {mobileCards.length ? (
+            <nav
+              className="panel settings-mobile-navigation"
+              aria-label="Settings navigation"
+            >
+              <ul className="settings-mobile-navigation-list">
+                {mobileCards.map(({ title, href }) => (
+                  <li key={href}>
+                    <Link
+                      href={href}
+                      className="settings-mobile-navigation-link"
+                    >
+                      <span>{title}</span>
+                      <ApplicationIcon name="forward" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ) : null}
+        </>
       ) : (
         <EmptyFoundation
           icon="settings"

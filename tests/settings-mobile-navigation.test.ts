@@ -1,0 +1,85 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+const source = (path: string) => readFileSync(path, "utf8");
+const page = source("app/settings/page.tsx");
+const css = source("app/globals.css");
+const cssStart = css.indexOf(
+  "/* Settings landing-page phone navigation. */",
+);
+const cssEnd = css.indexOf(
+  "/* DM3Oi product shell",
+  cssStart,
+);
+const settingsCss = css.slice(cssStart, cssEnd);
+const mobileMarkup = page.slice(
+  page.indexOf('<nav\n              className="panel settings-mobile-navigation"'),
+  page.indexOf("</nav>"),
+);
+
+test("desktop Settings cards remain the non-phone presentation", () => {
+  assert.match(
+    page,
+    /className="admin-card-grid settings-desktop-card-grid"/,
+  );
+  assert.match(page, /className="panel admin-config-card"/);
+  assert.match(page, /<p>\{description\}<\/p>/);
+  assert.match(page, /className="admin-card-action">Manage/);
+});
+
+test("phone Settings navigation is semantic compact and accessible", () => {
+  assert.match(page, /<nav[\s\S]*aria-label="Settings navigation"/);
+  assert.match(page, /className="settings-mobile-navigation-list"/);
+  assert.match(page, /className="settings-mobile-navigation-link"/);
+  assert.match(mobileMarkup, /<span>\{title\}<\/span>/);
+  assert.match(mobileMarkup, /<ApplicationIcon name="forward" \/>/);
+  assert.doesNotMatch(mobileMarkup, /description|Manage/);
+});
+
+test("phone navigation retains the four requested permission-filtered destinations", () => {
+  const expected = [
+    ["Case Configuration", "/settings/case-configuration"],
+    ["Case Lifecycle", "/settings/case-lifecycle"],
+    ["Customer Portal", "/settings/customer-portal"],
+    ["User Access", "/settings/user-access"],
+  ];
+
+  for (const [label, href] of expected) {
+    assert.match(page, new RegExp(`title: "${label}"`));
+    assert.match(page, new RegExp(`href: "${href}"`));
+  }
+
+  assert.match(
+    page,
+    /const mobileCards = cards\.filter\([\s\S]*card\.href !== "\/settings\/general"/,
+  );
+  assert.match(page, /mobileCards\.map\(\(\{ title, href \}\) =>/);
+});
+
+test("phone CSS swaps cards for a contained touch-friendly navigation", () => {
+  assert.match(settingsCss, /\.settings-mobile-navigation\{display:none\}/);
+  assert.match(
+    settingsCss,
+    /@media\(max-width:600px\)\{\.settings-desktop-card-grid\{display:none\}/,
+  );
+  assert.match(
+    settingsCss,
+    /\.settings-mobile-navigation\{[^}]*display:block[^}]*width:100%[^}]*max-width:100%[^}]*min-width:0[^}]*overflow:hidden/,
+  );
+  assert.match(
+    settingsCss,
+    /\.settings-mobile-navigation-link\{[^}]*display:flex[^}]*width:100%[^}]*min-width:0[^}]*min-height:56px/,
+  );
+  assert.match(
+    settingsCss,
+    /\.settings-mobile-navigation-link:focus-visible\{[^}]*outline:/,
+  );
+});
+
+test("Settings phone CSS does not target shared shell or global surfaces", () => {
+  assert.doesNotMatch(
+    settingsCss,
+    /(?:^|})\s*(?:main|\.main-column|\.sidebar|\.mobile-bottom-navigation|\.panel|\.detail-section|table)(?:[,{])/,
+  );
+});
