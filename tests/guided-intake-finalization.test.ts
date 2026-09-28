@@ -19,6 +19,10 @@ test("Step 6 calls the canonical current-model Portal-aware RPC signature", () =
 
   assert.match(rpcCall, /target_customer_mode: customerMode/);
   assert.match(rpcCall, /target_tax_year: draft\.taxYear!/);
+  assert.match(
+    rpcCall,
+    /target_manager_user_id: draft\.managerUserId \|\| null/,
+  );
   assert.match(rpcCall, /target_follow_up_tasks: draft\.followUpTasks/);
   assert.match(rpcCall, /target_portal_onboarding: draft\.portalOnboarding/);
   assert.doesNotMatch(rpcCall, /target_case_title_id/);

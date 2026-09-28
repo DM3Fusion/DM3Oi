@@ -412,7 +412,7 @@ export async function createGuidedCaseAction(
       target_case_type_id: draft.caseTypeId,
       target_priority: guidedCasePriority(draft.priority),
       target_tax_year: draft.taxYear!,
-      target_manager_user_id: draft.managerUserId || undefined,
+      target_manager_user_id: draft.managerUserId || null,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,
       target_follow_up_tasks: draft.followUpTasks,
