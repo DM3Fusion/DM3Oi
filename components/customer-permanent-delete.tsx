@@ -8,6 +8,9 @@ import {
   type CustomerDeletionPreview,
 } from "@/lib/data/customer-permanent-deletion-actions";
 
+const eligibilityRequestError =
+  "Customer dependency checks could not be completed. Refresh the page and try again.";
+
 export function CustomerPermanentDelete({
   customerId,
   customerName,
@@ -29,16 +32,20 @@ export function CustomerPermanentDelete({
     setChecking(true);
     setError(null);
 
-    const result = await getCustomerDeletionPreviewAction(customerId);
+    try {
+      const result = await getCustomerDeletionPreviewAction(customerId);
 
-    if (!result.ok) {
-      setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      setPreview(result.preview);
+    } catch {
+      setError(eligibilityRequestError);
+    } finally {
       setChecking(false);
-      return;
     }
-
-    setPreview(result.preview);
-    setChecking(false);
   };
 
   const deleteCustomer = async () => {
@@ -54,20 +61,31 @@ export function CustomerPermanentDelete({
     setDeleting(true);
     setError(null);
 
-    const result = await permanentlyDeleteCustomerAction(customerId);
+    try {
+      const result = await permanentlyDeleteCustomerAction(customerId);
 
-    if (!result.ok) {
-      setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+
+        try {
+          const refreshed = await getCustomerDeletionPreviewAction(customerId);
+          if (refreshed.ok) setPreview(refreshed.preview);
+        } catch {
+          // Preserve the deletion error; a fresh page load can re-run preflight.
+        }
+
+        return;
+      }
+
+      router.push("/customers");
+      router.refresh();
+    } catch {
+      setError(
+        "The Customer could not be permanently deleted. Refresh the page and recheck dependencies before trying again.",
+      );
+    } finally {
       setDeleting(false);
-
-      const refreshed = await getCustomerDeletionPreviewAction(customerId);
-      if (refreshed.ok) setPreview(refreshed.preview);
-
-      return;
     }
-
-    router.push("/customers");
-    router.refresh();
   };
 
   return (
