@@ -104,9 +104,10 @@ test("permanent deletion retains explicit eligibility and confirmation gates", (
   );
 });
 
-test("deployment skew protection uses the same build SHA as the version label", () => {
+test("deployment skew protection uses a bounded build SHA prefix", () => {
   assert.match(
     nextConfig,
-    /deploymentId: process\.env\.VERCEL_GIT_COMMIT_SHA/,
+    /deploymentId: process\.env\.VERCEL_GIT_COMMIT_SHA\?\.slice\(0, 32\)/,
   );
+  assert.doesNotMatch(nextConfig, /deploymentId:\s*["'][0-9a-f]+["']/i);
 });
