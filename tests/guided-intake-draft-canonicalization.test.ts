@@ -7,6 +7,7 @@ const source = (path: string) => readFileSync(path, "utf8");
 const component = source("components/cases/guided-case-intake.tsx");
 const loader = source("lib/data/guided-case-intake.ts");
 const actions = source("lib/data/guided-case-intake-actions.ts");
+const finalizationErrors = source("lib/guided-case-finalization.ts");
 const page = source("app/cases/new/page.tsx");
 const draftMigration = source(
   "supabase/migrations/20260925210000_dm3oi_guided_intake_drafts.sql",
@@ -109,7 +110,10 @@ test("later Customer and Tax Year Case uniqueness remains server enforced", () =
     caseUniquenessMigration,
     /create unique index cases_one_customer_per_tax_year[\s\S]*organization_id,customer_id,tax_year/,
   );
-  assert.match(actions, /Customer already has a Case for this tax year/);
+  assert.match(
+    finalizationErrors,
+    /customer already has a case for this tax year[\s\S]*A Case already exists for this Customer and Tax Year/,
+  );
   assert.match(
     caseModelMigration,
     /guided_case_intake_drafts_one_customer_year_per_creator/,

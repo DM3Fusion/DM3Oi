@@ -164,6 +164,7 @@ test("one Customer per tax year is enforced by Guided Intake and the database", 
   const intake = source("components/cases/guided-case-intake.tsx");
   const loader = source("lib/data/guided-case-intake.ts");
   const action = source("lib/data/guided-case-intake-actions.ts");
+  const finalizationErrors = source("lib/guided-case-finalization.ts");
   const uniqueness = source(
     "supabase/migrations/20260927150000_dm3oi_one_case_per_customer_tax_year.sql",
   );
@@ -180,8 +181,8 @@ test("one Customer per tax year is enforced by Guided Intake and the database", 
     /key === "customerId"\)\) return 0[\s\S]*return 1/,
   );
   assert.match(
-    action,
-    /Customer already has a Case for this tax year/,
+    finalizationErrors,
+    /customer already has a case for this tax year[\s\S]*A Case already exists for this Customer and Tax Year/,
   );
   assert.match(
     uniqueness,

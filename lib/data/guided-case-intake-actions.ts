@@ -30,6 +30,7 @@ import {
   getCustomerPortalOnboardingStatus,
   provisionCustomerPortalAccess,
 } from "@/lib/data/customer-portal-provisioning-service";
+import { mapGuidedCaseFinalizationError } from "@/lib/guided-case-finalization";
 
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
@@ -414,57 +415,24 @@ export async function createGuidedCaseAction(
       target_manager_user_id: draft.managerUserId || undefined,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,
-      target_required_option_ids: draft.requiredOptionIds,
       target_follow_up_tasks: draft.followUpTasks,
       target_portal_onboarding: draft.portalOnboarding,
     },
   );
   if (error || !created) {
     console.error("Guided Case Intake creation failed", {
+      operation: "create_guided_case_intake",
       organizationId: access.activeOrganization!.id,
+      submissionKey: draft.submissionKey,
+      customerId: draft.customerId,
+      caseTypeId: draft.caseTypeId,
+      taxYear: draft.taxYear,
       code: error?.code,
       message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
     });
-    const duplicateCustomerTaxYear =
-      error?.message.includes("Customer already has a Case for this tax year") ||
-      (error?.code === "23505" &&
-        error?.message.includes("cases_one_customer_per_tax_year"));
-    if (duplicateCustomerTaxYear) {
-      return {
-        ok: false,
-        error:
-          "This Customer already has a Case for the selected tax year.",
-        fieldErrors: {
-          customerId:
-            "Select another Customer or choose a different tax year.",
-        },
-        step: 0,
-      };
-    }
-    const staleConfiguration =
-      error?.message.includes("invalid Case Type") ||
-      error?.message.includes("Case Type requires") ||
-      error?.message.includes("Case Type is not valid") ||
-      error?.message.includes("invalid manager") ||
-      error?.message.includes("invalid staff") ||
-      error?.message.includes("intake response") ||
-      error?.message.includes("intake question") ||
-      error?.message.includes("required intake response") ||
-      error?.message.includes("tracked") ||
-      error?.message.includes("required option") ||
-      error?.message.includes("missing requirements") ||
-      error?.message.includes("Customer Portal onboarding");
-    return {
-      ok: false,
-      error: staleConfiguration
-        ? "Intake configuration changed. Review the affected step and try again."
-        : error?.message.includes("not authorized") ||
-            error?.message.includes("permission")
-          ? "You are no longer authorized to create or assign this Case."
-          : "The Case could not be created. Please try again.",
-      fieldErrors: {},
-      step: staleConfiguration ? 1 : 5,
-    };
+    return { ok: false, ...mapGuidedCaseFinalizationError(error) };
   }
   revalidatePath("/");
   revalidatePath("/cases");
