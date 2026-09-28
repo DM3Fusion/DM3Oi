@@ -2,11 +2,15 @@ import "server-only";
 import type { User } from "@supabase/supabase-js";
 import { getIdentityCategory } from "@/lib/auth/identity-category";
 import type { CustomerPortalOnboardingStatus } from "@/lib/customer-portal-onboarding";
+import {
+  canReuseCustomerPortalStatus,
+  customerPortalRelationFailureMessage,
+  isUsableCustomerPortalEmail,
+  type CustomerPortalProvisioningIntent,
+} from "@/lib/customer-portal-provisioning";
 import { customerPortalInvitationMetadata } from "@/lib/data/customer-portal-invitation-metadata";
 import { sendCustomerPortalInvitationEmail } from "@/lib/data/customer-portal-invitation-email-service";
 import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";
-
-const validEmail = (email: string) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email);
 
 export class CustomerPortalProvisioningError extends Error {
   constructor(public readonly safeMessage: string) {
@@ -122,7 +126,7 @@ export async function getCustomerPortalOnboardingStatus(input: {
       email,
       "Customer Portal is disabled for this organization.",
     );
-  if (!email || !validEmail(email))
+  if (!email || !isUsableCustomerPortalEmail(email))
     return unavailable(
       input.customerId,
       email,
@@ -262,7 +266,7 @@ export async function provisionCustomerPortalAccess(input: {
   organizationName: string;
   customerId: string;
   actorUserId: string;
-  intent: "ENABLE" | "SEND" | "RESEND";
+  intent: CustomerPortalProvisioningIntent;
 }): Promise<CustomerPortalOnboardingStatus> {
   const admin = createAdminClient();
   const { data: customer, error: customerError } = await admin
@@ -276,7 +280,7 @@ export async function provisionCustomerPortalAccess(input: {
   const email = customer.email?.trim().toLowerCase() ?? "";
   if (customer.status !== "ACTIVE")
     throw new CustomerPortalProvisioningError("This Customer is inactive.");
-  if (!validEmail(email))
+  if (!isUsableCustomerPortalEmail(email))
     throw new CustomerPortalProvisioningError(
       "Add a valid Customer email before enabling Portal Access.",
     );
@@ -290,6 +294,14 @@ export async function provisionCustomerPortalAccess(input: {
     throw new CustomerPortalProvisioningError(
       "Customer Portal is disabled for this organization.",
     );
+
+  const currentStatus = await getCustomerPortalOnboardingStatus({
+    organizationId: input.organizationId,
+    customerId: input.customerId,
+    actorUserId: input.actorUserId,
+  });
+  if (canReuseCustomerPortalStatus(input.intent, currentStatus))
+    return currentStatus;
 
   const { data: links, error: linkError } = await admin
     .from("customer_portal_users")
@@ -418,24 +430,30 @@ export async function provisionCustomerPortalAccess(input: {
             .eq("user_id", authUser.id)
             .maybeSingle()
         ).data;
-  const relation = existingLink
-    ? await admin
-        .from("customer_portal_users")
-        .update({ is_active: true })
-        .eq("id", existingLink.id)
-    : await admin.from("customer_portal_users").insert({
-        organization_id: input.organizationId,
-        customer_id: input.customerId,
-        user_id: authUser.id,
-        is_active: true,
-      });
-  if (relation.error)
+  const relation = await admin.from("customer_portal_users").upsert(
+    {
+      organization_id: input.organizationId,
+      customer_id: input.customerId,
+      user_id: authUser.id,
+      is_active: true,
+    },
+    { onConflict: "organization_id,customer_id,user_id" },
+  );
+  if (relation.error) {
+    console.error("Customer Portal relation provisioning failed", {
+      operation: existingLink ? "reactivatePortalRelation" : "linkPortalIdentity",
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+      code: relation.error.code,
+      message: relation.error.message,
+    });
     throw new CustomerPortalProvisioningError(
-      "Portal access could not be provisioned.",
+      customerPortalRelationFailureMessage(relation.error),
     );
+  }
 
   if (invitationUrl) {
-    const { data: prior } = await admin
+    const { data: prior, error: priorError } = await admin
       .from("customer_portal_invitations")
       .select("id,send_count,sent_at")
       .eq("organization_id", input.organizationId)
@@ -445,6 +463,18 @@ export async function provisionCustomerPortalAccess(input: {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
+    if (priorError) {
+      console.error("Customer Portal invitation lifecycle lookup failed", {
+        operation: "lookupInvitationLifecycle",
+        organizationId: input.organizationId,
+        customerId: input.customerId,
+        code: priorError.code,
+        message: priorError.message,
+      });
+      throw new CustomerPortalProvisioningError(
+        "The invitation lifecycle could not be checked. Refresh and try again.",
+      );
+    }
     const pendingValues = {
       organization_id: input.organizationId,
       customer_id: input.customerId,
@@ -453,7 +483,7 @@ export async function provisionCustomerPortalAccess(input: {
       status: "PENDING",
       updated_by_user_id: input.actorUserId,
     };
-    const pending = prior
+    let pending = prior
       ? await admin
           .from("customer_portal_invitations")
           .update(pendingValues)
@@ -465,6 +495,18 @@ export async function provisionCustomerPortalAccess(input: {
           .insert({ ...pendingValues, created_by_user_id: input.actorUserId })
           .select("id,send_count,sent_at")
           .single();
+    if (!prior && pending.error?.code === "23505") {
+      const concurrent = await admin
+        .from("customer_portal_invitations")
+        .update(pendingValues)
+        .eq("organization_id", input.organizationId)
+        .eq("customer_id", input.customerId)
+        .eq("user_id", authUser.id)
+        .eq("recipient_email", email)
+        .select("id,send_count,sent_at")
+        .single();
+      pending = concurrent;
+    }
     if (pending.error || !pending.data)
       throw new CustomerPortalProvisioningError(
         "The invitation lifecycle could not be recorded.",

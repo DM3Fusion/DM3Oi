@@ -59,7 +59,10 @@ test("Customer Portal reissues preserve metadata and refresh authoritative brand
   assert.match(portalService, /authUser\.email_confirmed_at[\s\S]*authUser\.last_sign_in_at/);
   assert.match(portalService, /authUser = generated\.data\.user/);
   assert.match(portalService, /linked\?\.user_id === authUser\.id/);
-  assert.match(portalService, /existingLink[\s\S]*update\(\{ is_active: true \}\)[\s\S]*insert/);
+  assert.match(
+    portalService,
+    /from\("customer_portal_users"\)\.upsert\([\s\S]*onConflict: "organization_id,customer_id,user_id"/,
+  );
 });
 
 test("branded Customer Portal email has exact authoritative copy and HTML/plain-text CTA", () => {
@@ -149,7 +152,9 @@ test("portal invitation branding is server-derived and grants no access", () => 
 });
 
 test("delivery failure preserves prepared access, reports failure, and logs no invitation URL", () => {
-  const relationWrite = portalService.indexOf("const relation = existingLink");
+  const relationWrite = portalService.indexOf(
+    'from("customer_portal_users").upsert',
+  );
   const delivery = portalService.indexOf("sendCustomerPortalInvitationEmail({");
   assert.ok(relationWrite >= 0 && delivery > relationWrite);
   assert.match(portalService, /Customer Portal access was prepared, but the invitation email could not be sent\./);

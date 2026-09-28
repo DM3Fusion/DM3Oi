@@ -6,6 +6,11 @@ import {
   portalOnboardingResolvedForIntake,
   type CustomerPortalOnboardingStatus,
 } from "../lib/customer-portal-onboarding.ts";
+import {
+  canReuseCustomerPortalStatus,
+  customerPortalRelationFailureMessage,
+  isUsableCustomerPortalEmail,
+} from "../lib/customer-portal-provisioning.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
 const customerId = "customer-a";
@@ -185,6 +190,105 @@ test("provisioning records SENT only after delivery and reconciles activation on
   assert.match(service, /status: "ACTIVATED"/);
   assert.match(service, /activated_at: invitation\.activated_at \?\? now/);
   assert.doesNotMatch(service, /invitationUrl[\s\S]*customer_portal_invitations[\s\S]*invitationUrl:/);
+});
+
+test("Guided Intake reuses authoritative active and sent states idempotently", () => {
+  assert.equal(canReuseCustomerPortalStatus("SEND", status("ACTIVE")), true);
+  assert.equal(
+    canReuseCustomerPortalStatus("SEND", status("INVITATION_SENT")),
+    true,
+  );
+  assert.equal(
+    canReuseCustomerPortalStatus("RESEND", status("INVITATION_SENT")),
+    false,
+  );
+  assert.equal(
+    canReuseCustomerPortalStatus("SEND", status("NOT_CONFIGURED")),
+    false,
+  );
+});
+
+test("Guided Intake rejects missing and malformed Customer email before provisioning", () => {
+  for (const email of ["", "   ", "customer", "customer@", "@example.com"])
+    assert.equal(isUsableCustomerPortalEmail(email), false);
+  assert.equal(isUsableCustomerPortalEmail(" customer@example.com "), true);
+});
+
+test("portal relation failures produce useful safe messages without provider details", () => {
+  assert.equal(
+    customerPortalRelationFailureMessage({
+      code: "42501",
+      message: "permission denied for table customer_portal_users",
+    }),
+    "Customer Portal provisioning is temporarily unavailable. Contact a platform administrator.",
+  );
+  assert.equal(
+    customerPortalRelationFailureMessage({
+      code: "23514",
+      message: "identity already has active internal access",
+    }),
+    "This email belongs to an internal DM3Oi user and cannot be used for Customer Portal access.",
+  );
+  assert.equal(
+    customerPortalRelationFailureMessage({
+      code: "XX000",
+      message: "sensitive database detail",
+    }),
+    "Customer Portal access could not be linked. Refresh and try again.",
+  );
+});
+
+test("service-role portal writes and invitation lifecycle are least-privilege and race-safe", () => {
+  const migration = source(
+    "supabase/migrations/20260928100000_dm3oi_customer_portal_provisioning_service_role.sql",
+  );
+  const service = source("lib/data/customer-portal-provisioning-service.ts");
+  assert.match(
+    migration,
+    /grant select, insert, update[\s\S]*public\.customer_portal_users[\s\S]*to service_role/,
+  );
+  assert.doesNotMatch(
+    migration,
+    /grant[\s\S]*delete[\s\S]*customer_portal_users/,
+  );
+  assert.match(
+    migration,
+    /create unique index customer_portal_invitations_identity_email_key[\s\S]*organization_id,[\s\S]*customer_id,[\s\S]*user_id,[\s\S]*recipient_email/,
+  );
+  assert.match(
+    service,
+    /from\("customer_portal_users"\)\.upsert\([\s\S]*onConflict: "organization_id,customer_id,user_id"/,
+  );
+  assert.match(service, /pending\.error\?\.code === "23505"/);
+  assert.match(
+    service,
+    /\.eq\("organization_id", input\.organizationId\)[\s\S]*\.eq\("customer_id", input\.customerId\)[\s\S]*\.eq\("user_id", authUser\.id\)[\s\S]*\.eq\("recipient_email", email\)/,
+  );
+});
+
+test("Guided Intake invitation action retains authorization, tenant scope, and authoritative refresh", () => {
+  const actions = source("lib/data/guided-case-intake-actions.ts");
+  const intakeLoader = source("lib/data/guided-case-intake.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+  const service = source("lib/data/customer-portal-provisioning-service.ts");
+  assert.match(intakeLoader, /hasPermission\(access, "CREATE_CASE"\)/);
+  assert.match(intakeLoader, /hasPermission\(access, "VIEW_CUSTOMERS"\)/);
+  assert.match(
+    actions,
+    /configuration\.customers\.some\(\(customer\) => customer\.id === customerId\)/,
+  );
+  assert.match(
+    service,
+    /from\("customers"\)[\s\S]*eq\("organization_id", input\.organizationId\)[\s\S]*eq\("id", input\.customerId\)/,
+  );
+  assert.match(service, /Add a valid Customer email before enabling Portal Access/);
+  assert.match(service, /canReuseCustomerPortalStatus\(input\.intent, currentStatus\)/);
+  assert.match(actions, /return \{ ok: true, status \}/);
+  assert.match(component, /setPortalStatus\(result\.status\)/);
+  assert.match(
+    component,
+    /result\.status\.state === "ACTIVE"[\s\S]*resolution: "ACTIVE"[\s\S]*resolution: "INVITATION_SENT"/,
+  );
 });
 
 test("Guided Intake uses explicit actions and Customer creation/Case creation never send", () => {
