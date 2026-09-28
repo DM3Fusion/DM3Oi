@@ -11,6 +11,10 @@ import {
   type EmailMessage,
   type EmailProvider,
 } from "../lib/email/delivery.ts";
+import {
+  defaultEmailTemplates,
+  renderEmailTemplate,
+} from "../lib/email/templates.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
 const portalAction = source("lib/data/customer-portal-provisioning-actions.ts");
@@ -84,6 +88,25 @@ test("branded Customer Portal email has exact authoritative copy and HTML/plain-
   assert.match(email.text, /People\. Work\. Progress\. Intelligence\./);
   assert.match(email.html ?? "", /Access Customer Portal/);
   assert.match(email.html ?? "", /href="https:\/\/auth\.example\/verify\?token=sensitive&amp;next=%3Cportal%3E"/);
+});
+
+test("tracked Customer Portal invitation keeps its raw URL clickable and contained", () => {
+  const invitationUrl =
+    "https://auth.example/verify?token=very-long-sensitive-token&redirect_to=https%3A%2F%2Fdm3oi.com%2Fauth%2Finvite%2Fcomplete";
+  const email = renderEmailTemplate(defaultEmailTemplates.CUSTOMER_PORTAL_INVITATION, {
+    organization_name: "Fobbs Quality Signs",
+    recipient_first_name: "Jordan",
+    recipient_name: "Jordan Customer",
+    recipient_email: "customer@example.com",
+    action_url: invitationUrl,
+  });
+
+  assert.match(email.html, />Open DM3Oi<\/a>/);
+  assert.match(
+    email.html,
+    /<a href="https:\/\/auth\.example\/verify\?token=very-long-sensitive-token&amp;redirect_to=https%3A%2F%2Fdm3oi\.com%2Fauth%2Finvite%2Fcomplete" style="display:inline-block;max-width:100%;overflow-wrap:anywhere;word-break:break-word;color:#17233c">https:\/\/auth\.example\/verify\?token=very-long-sensitive-token&amp;redirect_to=https%3A%2F%2Fdm3oi\.com%2Fauth%2Finvite%2Fcomplete<\/a>/,
+  );
+  assert.match(email.text, new RegExp(invitationUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 });
 
 test("Fastmail application provider receives both HTML and plain-text content", async () => {

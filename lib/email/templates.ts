@@ -145,10 +145,17 @@ export function renderEmailTemplate(
   const opening = applyVariables(template.opening_message, variables, false).trim();
   const closing = applyVariables(template.closing_message, variables, false).trim();
   const openingHtml = applyVariables(template.opening_message, variables, true).trim();
-  const closingHtml = applyVariables(template.closing_message, variables, true).trim();
   const actionUrl = String(variables.action_url ?? "").trim();
+  const safeActionUrl = escapeHtml(actionUrl);
+  let closingHtml = applyVariables(template.closing_message, variables, true).trim();
+  if (template.template_key === "CUSTOMER_PORTAL_INVITATION" && actionUrl) {
+    closingHtml = closingHtml.replace(
+      safeActionUrl,
+      `<a href="${safeActionUrl}" style="display:inline-block;max-width:100%;overflow-wrap:anywhere;word-break:break-word;color:#17233c">${safeActionUrl}</a>`,
+    );
+  }
   const action = actionUrl
-    ? `<p style="margin:24px 0"><a href="${escapeHtml(actionUrl)}" style="display:inline-block;border-radius:7px;background:#18b8d9;color:#102039;padding:13px 20px;font-weight:700;text-decoration:none">Open DM3Oi</a></p>`
+    ? `<p style="margin:24px 0"><a href="${safeActionUrl}" style="display:inline-block;border-radius:7px;background:#18b8d9;color:#102039;padding:13px 20px;font-weight:700;text-decoration:none">Open DM3Oi</a></p>`
     : "";
   return {
     subject,
