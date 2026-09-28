@@ -40,6 +40,7 @@ const profileName = (profile: {
 export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   access: NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
   configuration: GuidedIntakeConfiguration;
+  draftCustomerIds: string[];
 }> {
   const access = await getAccessContext();
   if (
@@ -54,6 +55,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   const admin = createAdminClient();
   const [
     customers,
+    draftCustomers,
     customerCaseYears,
     caseTypes,
     members,
@@ -71,6 +73,12 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
       .order("name"),
+    supabase
+      .from("guided_case_intake_drafts")
+      .select("customer_id")
+      .eq("organization_id", organizationId)
+      .eq("created_by_user_id", access.user.id)
+      .not("customer_id", "is", null),
     admin
       .from("cases")
       .select("customer_id,tax_year")
@@ -135,6 +143,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   ]);
   const error =
     customers.error ??
+    draftCustomers.error ??
     customerCaseYears.error ??
     caseTypes.error ??
     members.error ??
@@ -217,6 +226,13 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   );
   return {
     access,
+    draftCustomerIds: [
+      ...new Set(
+        (draftCustomers.data ?? []).flatMap((draft) =>
+          draft.customer_id ? [draft.customer_id] : [],
+        ),
+      ),
+    ],
     configuration: {
       organizationId,
       customers: (customers.data ?? []).flatMap((customer) =>

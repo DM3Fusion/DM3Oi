@@ -1,4 +1,5 @@
 "use server";
+import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -15,6 +16,7 @@ import {
   type GuidedCaseIntakeDraft,
 } from "@/lib/guided-case-intake";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CustomerCreationValues } from "@/lib/customer-validation";
 import type { GuidedIntakeNewCustomerDraft } from "@/lib/data/guided-case-intake-drafts";
 import {
@@ -41,6 +43,30 @@ export type SaveGuidedIntakeDraftInput = {
   customerMode: "existing" | "new";
   draft: GuidedCaseIntakeDraft;
   newCustomer: GuidedIntakeNewCustomerDraft;
+};
+
+const canonicalCustomerDraftSubmissionKey = (
+  organizationId: string,
+  creatorId: string,
+  customerId: string,
+  previousCaseSubmissionKey: string,
+) => {
+  const bytes = createHash("sha256")
+    .update(
+      `guided-intake-customer-v1:${organizationId}:${creatorId}:${customerId}:${previousCaseSubmissionKey}`,
+    )
+    .digest()
+    .subarray(0, 16);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const value = bytes.toString("hex");
+  return [
+    value.slice(0, 8),
+    value.slice(8, 12),
+    value.slice(12, 16),
+    value.slice(16, 20),
+    value.slice(20),
+  ].join("-");
 };
 
 export async function saveGuidedIntakeDraftAction(
@@ -140,11 +166,79 @@ export async function saveGuidedIntakeDraftAction(
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [existingSession, customerDrafts, latestCustomerCase] =
+    await Promise.all([
+      supabase
+        .from("guided_case_intake_drafts")
+        .select("id,submission_key,customer_id")
+        .eq("organization_id", organizationId)
+        .eq("created_by_user_id", access.user.id)
+        .eq("submission_key", input.draft.submissionKey)
+        .maybeSingle(),
+      input.draft.customerId
+        ? supabase
+            .from("guided_case_intake_drafts")
+            .select("id,submission_key,current_step,updated_at")
+            .eq("organization_id", organizationId)
+            .eq("created_by_user_id", access.user.id)
+            .eq("customer_id", input.draft.customerId)
+            .order("updated_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+      input.draft.customerId
+        ? admin
+            .from("cases")
+            .select("intake_submission_key")
+            .eq("organization_id", organizationId)
+            .eq("created_by_user_id", access.user.id)
+            .eq("customer_id", input.draft.customerId)
+            .not("intake_submission_key", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
+    ]);
+
+  const draftLookupError =
+    existingSession.error ?? customerDrafts.error ?? latestCustomerCase.error;
+  if (draftLookupError) {
+    console.error("Guided Intake draft canonical lookup failed", {
+      organizationId,
+      code: draftLookupError.code,
+      message: draftLookupError.message,
+    });
+    return {
+      ok: false,
+      error: "The intake draft could not be saved. Please try again.",
+    };
+  }
+
+  const resumesCustomerDraft = (customerDrafts.data ?? []).some(
+    (draft) => draft.submission_key === input.draft.submissionKey,
+  );
+  if ((customerDrafts.data?.length ?? 0) > 0 && !resumesCustomerDraft) {
+    return {
+      ok: false,
+      error:
+        "An unfinished intake already exists for this Customer. Resume the existing draft from Cases → Draft Intakes.",
+    };
+  }
+
+  const canonicalSubmissionKey =
+    input.draft.customerId && !existingSession.data
+      ? canonicalCustomerDraftSubmissionKey(
+          organizationId,
+          access.user.id,
+          input.draft.customerId,
+          latestCustomerCase.data?.intake_submission_key ?? "no-prior-case",
+        )
+      : input.draft.submissionKey;
 
   const payload = {
     organization_id: organizationId,
     created_by_user_id: access.user.id,
-    submission_key: input.draft.submissionKey,
+    submission_key: canonicalSubmissionKey,
     current_step: input.currentStep,
     customer_mode: input.customerMode,
     customer_id: input.draft.customerId || null,
@@ -169,56 +263,28 @@ export async function saveGuidedIntakeDraftAction(
     portal_onboarding: portalOnboarding,
   };
 
-  let canonicalSubmissionKey = input.draft.submissionKey;
-
-  if (
-    input.draft.customerId &&
-    input.draft.taxYear !== null &&
-    Number.isInteger(input.draft.taxYear)
-  ) {
-    const existingDraft = await supabase
-      .from("guided_case_intake_drafts")
-      .select("id,submission_key")
-      .eq("organization_id", organizationId)
-      .eq("created_by_user_id", access.user.id)
-      .eq("customer_id", input.draft.customerId)
-      .eq("tax_year", input.draft.taxYear)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (existingDraft.error) {
-      console.error("Guided Intake canonical draft lookup failed", {
-        organizationId,
-        code: existingDraft.error.code,
-        message: existingDraft.error.message,
-      });
-      return {
-        ok: false,
-        error: "The intake draft could not be saved. Please try again.",
-      };
-    }
-
-    if (existingDraft.data?.submission_key) {
-      canonicalSubmissionKey = existingDraft.data.submission_key;
-    }
-  }
-
-  const { data, error } = await supabase
-    .from("guided_case_intake_drafts")
-    .upsert(
-      {
-        ...payload,
-        submission_key: canonicalSubmissionKey,
-      },
-      {
-        onConflict: "organization_id,created_by_user_id,submission_key",
-      },
-    )
-    .select("id")
-    .single();
+  const { data, error } = existingSession.data
+    ? await supabase
+        .from("guided_case_intake_drafts")
+        .upsert(payload, {
+          onConflict: "organization_id,created_by_user_id,submission_key",
+        })
+        .select("id")
+        .single()
+    : await supabase
+        .from("guided_case_intake_drafts")
+        .insert(payload)
+        .select("id")
+        .single();
 
   if (error || !data) {
+    if (error?.code === "23505" && input.draft.customerId) {
+      return {
+        ok: false,
+        error:
+          "An unfinished intake already exists for this Customer. Resume the existing draft from Cases → Draft Intakes.",
+      };
+    }
     console.error("Guided Intake draft save failed", {
       organizationId,
       code: error?.code,
@@ -231,6 +297,7 @@ export async function saveGuidedIntakeDraftAction(
   }
 
   revalidatePath("/cases");
+  revalidatePath("/cases/new");
   return { ok: true, draftId: data.id };
 }
 
@@ -401,6 +468,7 @@ export async function createGuidedCaseAction(
   }
   revalidatePath("/");
   revalidatePath("/cases");
+  revalidatePath("/cases/new");
   revalidatePath("/customers");
   revalidatePath(`/cases/${created.id}`);
   return { ok: true, caseId: created.id, caseNumber: created.case_number };
@@ -569,5 +637,6 @@ export async function deleteGuidedIntakeDraftAction(
   }
 
   revalidatePath("/cases");
+  revalidatePath("/cases/new");
   return { ok: true };
 }

@@ -16,8 +16,10 @@ export default async function Page({
   searchParams: Promise<{ draft?: string }>;
 }) {
   let configuration;
+  let draftCustomerIds;
   try {
-    ({ configuration } = await loadGuidedCaseIntakeConfiguration());
+    ({ configuration, draftCustomerIds } =
+      await loadGuidedCaseIntakeConfiguration());
   } catch (error) {
     if (
       error instanceof GuidedCaseIntakeDataError &&
@@ -44,6 +46,7 @@ export default async function Page({
       />
       <GuidedCaseIntake
         configuration={configuration}
+        draftCustomerIds={draftCustomerIds}
         submissionKey={savedDraft?.submissionKey ?? randomUUID()}
         initialDraft={savedDraft?.draft}
         initialStep={savedDraft?.currentStep}

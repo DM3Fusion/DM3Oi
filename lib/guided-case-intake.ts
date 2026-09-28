@@ -118,6 +118,19 @@ export type GuidedIntakeConfiguration = {
 export type GuidedCustomerMode = "existing" | "new";
 export type GuidedCaseType = GuidedIntakeConfiguration["caseTypes"][number];
 
+export function getGuidedIntakeSelectableCustomers(
+  customers: GuidedIntakeCustomer[],
+  draftCustomerIds: string[],
+  resumedCustomerId = "",
+) {
+  const unavailableCustomerIds = new Set(draftCustomerIds);
+  return customers.filter(
+    (customer) =>
+      customer.id === resumedCustomerId ||
+      !unavailableCustomerIds.has(customer.id),
+  );
+}
+
 export function guidedCaseTypeMatchesCustomerMode(
   caseType: Pick<GuidedCaseType, "customerMode">,
   customerMode: GuidedCustomerMode,

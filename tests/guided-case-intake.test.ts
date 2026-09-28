@@ -268,7 +268,7 @@ test("draft loading restores materialized Customers as existing without changing
   const loader = source("lib/data/guided-case-intake-drafts.ts");
   const action = source("lib/data/guided-case-intake-actions.ts");
   assert.match(loader, /customerMode: data\.customer_id[\s\S]*\? "existing"/);
-  assert.match(action, /input\.draft\.customerId[\s\S]*input\.draft\.taxYear !== null[\s\S]*canonicalSubmissionKey/);
+  assert.match(action, /input\.draft\.customerId[\s\S]*canonicalCustomerDraftSubmissionKey/);
   assert.match(action, /onConflict: "organization_id,created_by_user_id,submission_key"/);
 });
 

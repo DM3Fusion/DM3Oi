@@ -22,6 +22,7 @@ import {
   guidedCasePriorities,
   getGuidedCaseTypesForCustomerMode,
   getGuidedCaseTaxYearOptions,
+  getGuidedIntakeSelectableCustomers,
   reconcileGuidedCaseSelection,
   reconcileGuidedCaseTaxYear,
   resolveGuidedDraftCustomerMode,
@@ -47,6 +48,7 @@ import {
 
 type Props = {
   configuration: GuidedIntakeConfiguration;
+  draftCustomerIds: string[];
   submissionKey: string;
   initialDraft?: GuidedCaseIntakeDraft;
   initialStep?: number;
@@ -301,6 +303,7 @@ function QuestionField({
 
 export function GuidedCaseIntake({
   configuration,
+  draftCustomerIds,
   submissionKey,
   initialDraft,
   initialStep = 0,
@@ -388,6 +391,15 @@ export function GuidedCaseIntake({
   );
   const visibleQuestions = evaluation.questions.filter(
     (question) => question.applicable,
+  );
+  const selectableCustomers = useMemo(
+    () =>
+      getGuidedIntakeSelectableCustomers(
+        customers,
+        draftCustomerIds,
+        initialDraft?.customerId,
+      ),
+    [customers, draftCustomerIds, initialDraft?.customerId],
   );
   const selectedCustomer = customers.find(
     (customer) => customer.id === draft.customerId,
@@ -885,7 +897,7 @@ export function GuidedCaseIntake({
   };
 
   const renderCustomer = () => {
-    const filtered = customers.filter((customer) =>
+    const filtered = selectableCustomers.filter((customer) =>
       `${customer.customerNumber} ${customer.name}`
         .toLowerCase()
         .includes(customerSearch.trim().toLowerCase()),
