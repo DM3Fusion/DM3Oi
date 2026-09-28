@@ -144,6 +144,7 @@ export async function getCustomerDeletionPreviewAction(
 
 export async function permanentlyDeleteCustomerAction(
   customerId: string,
+  confirmation: string,
 ): Promise<
   | { ok: true }
   | {
@@ -157,6 +158,13 @@ export async function permanentlyDeleteCustomerAction(
     return {
       ok: false,
       error: "You are not authorized to permanently delete this Customer.",
+    };
+  }
+
+  if (confirmation !== "DELETE") {
+    return {
+      ok: false,
+      error: "Type DELETE exactly to confirm permanent Customer deletion.",
     };
   }
 

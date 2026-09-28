@@ -10,6 +10,7 @@ const migration = source(
   "supabase/migrations/20260926223000_dm3oi_super_admin_permanent_customer_delete.sql",
 );
 const nextConfig = source("next.config.ts");
+const css = source("app/globals.css");
 
 test("Customer deletion workflow remains SUPER_ADMIN-only", () => {
   assert.match(
@@ -20,7 +21,7 @@ test("Customer deletion workflow remains SUPER_ADMIN-only", () => {
   assert.match(migration, /not public\.is_super_admin\(actor\)/);
 });
 
-test("eligibility button invokes the intended action without form nesting", () => {
+test("eligibility button invokes the intended action outside the confirmation form", () => {
   assert.match(
     component,
     /type="button"[\s\S]*?onClick=\{\(\) => void checkEligibility\(\)\}[\s\S]*?Check Delete Eligibility/,
@@ -29,7 +30,8 @@ test("eligibility button invokes the intended action without form nesting", () =
     component,
     /const result = await getCustomerDeletionPreviewAction\(customerId\)/,
   );
-  assert.doesNotMatch(component, /<form|type="submit"/);
+  assert.equal((component.match(/<form/g) ?? []).length, 1);
+  assert.equal((component.match(/<\/form>/g) ?? []).length, 1);
 });
 
 test("customer ID and active organization context reach the scoped preview RPC", () => {
@@ -89,18 +91,91 @@ test("all protected Customer dependencies still block deletion", () => {
   assert.match(migration, /errcode='23514'/);
 });
 
-test("permanent deletion retains explicit eligibility and confirmation gates", () => {
-  assert.match(component, /if \(!preview\?\.eligible \|\| deleting\) return/);
-  assert.match(component, /const confirmed = window\.confirm/);
-  assert.match(component, /This action cannot be undone/);
-  assert.match(component, /if \(!confirmed\) return/);
+test("typed confirmation renders only in the eligible preview branch", () => {
+  const eligibleBranch = component.slice(
+    component.indexOf(": preview.eligible ? ("),
+    component.indexOf(") : (", component.indexOf(": preview.eligible ? (") + 1),
+  );
+
+  assert.match(eligibleBranch, /Type DELETE to confirm/);
+  assert.match(eligibleBranch, /name="confirmation"/);
+  assert.match(eligibleBranch, /value=\{confirmation\}/);
+  assert.match(eligibleBranch, /Delete Customer Permanently/);
+  assert.doesNotMatch(
+    component.slice(0, component.indexOf(": preview.eligible ? (")),
+    /name="confirmation"/,
+  );
+});
+
+test("only exact case-sensitive DELETE enables destructive submission", () => {
+  assert.match(component, /const expectedConfirmation = "DELETE"/);
   assert.match(
     component,
-    /await permanentlyDeleteCustomerAction\(customerId\)/,
+    /disabled=\{deleting \|\| confirmation !== expectedConfirmation\}/,
+  );
+  assert.match(
+    component,
+    /if \(confirmation !== expectedConfirmation\) \{[\s\S]*?setError\("Type DELETE exactly to confirm permanent Customer deletion\."\)[\s\S]*?return;/,
+  );
+
+  for (const invalid of ["", "D", "DEL", "delete", "Delete", "DELETE ", " DELETE"]) {
+    assert.notEqual(invalid, "DELETE");
+  }
+});
+
+test("Enter submission cannot bypass confirmation and pending gates", () => {
+  assert.match(
+    component,
+    /onSubmit=\{\(event\) => \{[\s\S]*?event\.preventDefault\(\);[\s\S]*?void deleteCustomer\(\);/,
+  );
+  assert.match(component, /if \(!preview\?\.eligible \|\| deleting\) return/);
+  assert.match(
+    component,
+    /await permanentlyDeleteCustomerAction\(\s*customerId,\s*confirmation,\s*\)/,
+  );
+  assert.match(component, /setDeleting\(true\)/);
+  assert.match(component, /finally \{[\s\S]*?setDeleting\(false\)/);
+});
+
+test("server rejects missing or incorrect confirmation before the deletion RPC", () => {
+  assert.match(
+    actions,
+    /permanentlyDeleteCustomerAction\(\s*customerId: string,\s*confirmation: string/,
+  );
+  const confirmationGate = actions.indexOf('if (confirmation !== "DELETE")');
+  const deleteRpc = actions.indexOf('"super_admin_permanently_delete_customer"');
+  assert.ok(confirmationGate > 0 && deleteRpc > confirmationGate);
+  assert.match(
+    actions,
+    /if \(confirmation !== "DELETE"\) \{[\s\S]*?ok: false,[\s\S]*?Type DELETE exactly to confirm permanent Customer deletion/,
+  );
+  assert.notEqual(undefined, "DELETE");
+  assert.notEqual("delete", "DELETE");
+});
+
+test("correct confirmation reaches the existing scoped deletion path", () => {
+  assert.match(
+    component,
+    /permanentlyDeleteCustomerAction\(\s*customerId,\s*confirmation/,
+  );
+  assert.match(
+    actions,
+    /if \(confirmation !== "DELETE"\)[\s\S]*?super_admin_permanently_delete_customer[\s\S]*?target_organization_id: context\.organizationId,[\s\S]*?target_customer_id: customerId/,
   );
   assert.match(
     migration,
     /super_admin_permanently_delete_customer[\s\S]*?for update[\s\S]*?delete from public\.customers[\s\S]*?where organization_id=target_organization_id\s+and id=target_customer_id/,
+  );
+});
+
+test("confirmation uses in-application responsive form UI without browser dialogs", () => {
+  assert.doesNotMatch(component, /window\.(?:confirm|prompt|alert)/);
+  assert.match(component, /cannot be undone/);
+  assert.match(component, /className="customer-delete-confirmation"/);
+  assert.match(css, /\.customer-delete-confirmation \{[\s\S]*?max-width: 34rem/);
+  assert.match(
+    css,
+    /@media \(max-width: 600px\) \{[\s\S]*?\.customer-delete-confirmation[\s\S]*?width: 100%/,
   );
 });
 

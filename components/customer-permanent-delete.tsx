@@ -10,6 +10,7 @@ import {
 
 const eligibilityRequestError =
   "Customer dependency checks could not be completed. Refresh the page and try again.";
+const expectedConfirmation = "DELETE";
 
 export function CustomerPermanentDelete({
   customerId,
@@ -24,6 +25,7 @@ export function CustomerPermanentDelete({
   const [preview, setPreview] = useState<CustomerDeletionPreview | null>(null);
   const [checking, setChecking] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmation, setConfirmation] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const checkEligibility = async () => {
@@ -51,18 +53,19 @@ export function CustomerPermanentDelete({
   const deleteCustomer = async () => {
     if (!preview?.eligible || deleting) return;
 
-    const confirmed = window.confirm(
-      `Permanently delete Customer ${customerNumber} — "${customerName}"?\n\n` +
-        "This action cannot be undone. Only the Customer record will be deleted.",
-    );
-
-    if (!confirmed) return;
+    if (confirmation !== expectedConfirmation) {
+      setError("Type DELETE exactly to confirm permanent Customer deletion.");
+      return;
+    }
 
     setDeleting(true);
     setError(null);
 
     try {
-      const result = await permanentlyDeleteCustomerAction(customerId);
+      const result = await permanentlyDeleteCustomerAction(
+        customerId,
+        confirmation,
+      );
 
       if (!result.ok) {
         setError(result.error);
@@ -122,14 +125,46 @@ export function CustomerPermanentDelete({
             eligible for permanent deletion.
           </div>
 
-          <button
-            type="button"
-            className="danger-button"
-            disabled={deleting}
-            onClick={() => void deleteCustomer()}
+          <form
+            className="customer-delete-confirmation"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void deleteCustomer();
+            }}
           >
-            {deleting ? "Deleting…" : "Delete Customer Permanently"}
-          </button>
+            <p>
+              Permanently deleting Customer {customerNumber} — “{customerName}”
+              cannot be undone.
+            </p>
+
+            <label>
+              <span>Type DELETE to confirm</span>
+              <input
+                type="text"
+                name="confirmation"
+                value={confirmation}
+                onChange={(event) => {
+                  setConfirmation(event.target.value);
+                  setError(null);
+                }}
+                autoComplete="off"
+                spellCheck={false}
+                aria-describedby="customer-delete-confirmation-warning"
+              />
+            </label>
+
+            <small id="customer-delete-confirmation-warning">
+              The confirmation is case-sensitive and must match exactly.
+            </small>
+
+            <button
+              type="submit"
+              className="secondary-button danger-button"
+              disabled={deleting || confirmation !== expectedConfirmation}
+            >
+              {deleting ? "Deleting…" : "Delete Customer Permanently"}
+            </button>
+          </form>
         </>
       ) : (
         <>
