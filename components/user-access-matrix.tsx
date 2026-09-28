@@ -44,8 +44,44 @@ export function UserAccessMatrix({
     setMessage(null);
     setError(null);
   };
-  const table = (title: string, rows: Row[]) => (
-    <section className="panel detail-section user-access-section">
+  const permissionControl = (
+    role: ConfigurableOrganizationRole,
+    row: Row,
+    id: string,
+  ) => {
+    const hierarchyEditable = editableRoles.includes(role);
+    const rolePermissionLocked =
+      row.permission === "MANAGE_ROLE_PERMISSIONS" &&
+      (role === "STAFF_MANAGER" || role === "STAFF_USER");
+    const editable = hierarchyEditable && !rolePermissionLocked;
+
+    return (
+      <>
+        <input
+          id={id}
+          type="checkbox"
+          checked={Boolean(values[role][row.permission])}
+          disabled={!editable}
+          aria-label={`Allow ${roleLabel(role)} to ${row.label}`}
+          aria-describedby={!editable ? `${id}-reason` : undefined}
+          onChange={(event) =>
+            update(role, row.permission, event.target.checked)
+          }
+        />
+        {!editable ? (
+          <span className="sr-only" id={`${id}-reason`}>
+            {rolePermissionLocked
+              ? "This role cannot administer organization access."
+              : role === "BUSINESS_OWNER"
+              ? "Business Owner authority is protected."
+              : "You cannot configure this role."}
+          </span>
+        ) : null}
+      </>
+    );
+  };
+  const table = (key: string, title: string, rows: Row[]) => (
+    <section className="panel detail-section user-access-section user-access-desktop-section">
       <h2>{title}</h2>
       <div className="user-access-scroll">
         <table className="user-access-table">
@@ -68,45 +104,20 @@ export function UserAccessMatrix({
             {rows.map((row) => (
               <tr key={row.permission}>
                 <th scope="row">{row.label}</th>
-                {roles.map((role) => {
-                  const hierarchyEditable = editableRoles.includes(role);
-                  const rolePermissionLocked =
-                    row.permission === "MANAGE_ROLE_PERMISSIONS" &&
-                    (role === "STAFF_MANAGER" || role === "STAFF_USER");
-                  const editable = hierarchyEditable && !rolePermissionLocked;
-                  const id = `${title}-${role}-${row.permission}`;
-                  return (
-                    <td
-                      className={
-                        focusedRole === role ? "user-access-focused" : undefined
-                      }
-                      key={role}
-                    >
-                      <input
-                        id={id}
-                        type="checkbox"
-                        checked={Boolean(values[role][row.permission])}
-                        disabled={!editable}
-                        aria-label={`Allow ${roleLabel(role)} to ${row.label}`}
-                        aria-describedby={
-                          !editable ? `${id}-reason` : undefined
-                        }
-                        onChange={(event) =>
-                          update(role, row.permission, event.target.checked)
-                        }
-                      />
-                      {!editable ? (
-                        <span className="sr-only" id={`${id}-reason`}>
-                          {rolePermissionLocked
-                            ? "This role cannot administer organization access."
-                            : role === "BUSINESS_OWNER"
-                            ? "Business Owner authority is protected."
-                            : "You cannot configure this role."}
-                        </span>
-                      ) : null}
-                    </td>
-                  );
-                })}
+                {roles.map((role) => (
+                  <td
+                    className={
+                      focusedRole === role ? "user-access-focused" : undefined
+                    }
+                    key={role}
+                  >
+                    {permissionControl(
+                      role,
+                      row,
+                      `desktop-${key}-${role}-${row.permission}`,
+                    )}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -116,8 +127,58 @@ export function UserAccessMatrix({
   );
   return (
     <>
-      {table("Navigation Access", navigationRows)}
-      {table("Management Access", managementRows)}
+      {table("navigation", "Navigation Access", navigationRows)}
+      {table("management", "Management Access", managementRows)}
+      <div className="user-access-mobile" aria-label="User Access by role">
+        {roles.map((role) => {
+          const headingId = `mobile-role-${role}`;
+
+          return (
+            <section
+              aria-labelledby={headingId}
+              className={`panel detail-section user-access-mobile-role${
+                focusedRole === role ? " user-access-focused" : ""
+              }`}
+              key={role}
+            >
+              <h2 id={headingId}>{roleLabel(role)}</h2>
+              {[
+                {
+                  key: "navigation",
+                  title: "Navigation Access",
+                  rows: navigationRows,
+                },
+                {
+                  key: "management",
+                  title: "Management Access",
+                  rows: managementRows,
+                },
+              ].map((group) => (
+                <div className="user-access-mobile-group" key={group.key}>
+                  <h3>{group.title}</h3>
+                  <div className="user-access-mobile-permissions">
+                    {group.rows.map((row) => {
+                      const id = `mobile-${group.key}-${role}-${row.permission}`;
+
+                      return (
+                        <div
+                          className="user-access-mobile-permission"
+                          key={row.permission}
+                        >
+                          <label htmlFor={id}>{row.label}</label>
+                          <div className="user-access-mobile-control">
+                            {permissionControl(role, row, id)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </section>
+          );
+        })}
+      </div>
       {error ? (
         <div className="form-alert" role="alert">
           {error}
