@@ -1594,7 +1594,12 @@ export function GuidedCaseIntake({
       </ol>
       <header className="intake-step-heading">
         <p>Step {step + 1} of {guidedCaseIntakeSteps.length}</p>
-        <h2>{guidedCaseIntakeSteps[step]}</h2>
+        <h2>
+          {selectedCustomer
+            ? `Guided Intake for ${selectedCustomer.name}`
+            : "Guided Intake"}
+        </h2>
+        <h3>{guidedCaseIntakeSteps[step]}</h3>
       </header>
       {formError ? <div className="form-alert" role="alert">{formError}</div> : null}
       {content}
