@@ -116,13 +116,13 @@ test("successful reassignment changes only customer_id and records immutable sna
   assert.doesNotMatch(migration, /update public\.service_requests/);
 });
 
-test("Case Overview exposes an effective-permission control and otherwise stays read-only", () => {
+test("Case Overview keeps Customer identity read only", () => {
   assert.match(page, /<h2>Case Overview<\/h2>/);
-  assert.match(page, /hasPermission\(\s*access,\s*"REASSIGN_CASE_CUSTOMER"/);
-  assert.match(page, /<CaseCustomerReassignment/);
   assert.match(page, /<dt>Customer<\/dt>/);
-  assert.match(page, /customer\.status === "ACTIVE"/);
-  assert.match(page, /customer\.id !== item\.customer_id/);
+  assert.match(page, /<dd>\{item\.customer\?\.name \?\? "Unknown customer"\}<\/dd>/);
+  assert.doesNotMatch(page, /REASSIGN_CASE_CUSTOMER/);
+  assert.doesNotMatch(page, /CaseCustomerReassignment/);
+  assert.doesNotMatch(page, /Change Customer/);
   assert.match(page, /<section className="panel detail-section">[\s\S]*?<h2>Tasks<\/h2>/);
   assert.match(page, /<h2>Assignments<\/h2>/);
 });

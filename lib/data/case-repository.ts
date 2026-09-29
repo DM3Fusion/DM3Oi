@@ -27,6 +27,7 @@ import {
   requireOrganizationCustomers,
   type OrganizationCustomer,
 } from "@/lib/data/organization-customers";
+import { guidedCaseIntakeSteps } from "@/lib/guided-case-intake";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
 export type CaseRow = Views["organization_cases"]["Row"];
@@ -62,6 +63,11 @@ export interface LiveCase extends CaseRow {
   questions: EvaluatedCaseQuestion[];
   ruleEvaluation: CaseRuleEvaluation;
   progress: CaseReadiness;
+  intakeProgress: {
+    completedSteps: number;
+    totalSteps: number;
+    progressPercent: number;
+  } | null;
 }
 export interface StaffMember {
   membership: MemberRow;
@@ -104,6 +110,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     requestResult,
     settingsResult,
     platformAdminIds,
+    intakeResult,
   ] = await Promise.all([
     supabase
       .from("organization_cases")
@@ -147,6 +154,12 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       .eq("organization_id", organizationId)
       .maybeSingle(),
     getPlatformAdminUserIds(),
+    admin
+      .from("guided_case_intake_drafts")
+      .select("case_id,current_step")
+      .eq("organization_id", organizationId)
+      .not("case_id", "is", null)
+      .is("finalized_at", null),
   ]);
   const error =
     caseResult.error ??
@@ -154,7 +167,8 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     assignmentResult.error ??
     taskResult.error ??
     memberResult.error ??
-    activityResult.error;
+    activityResult.error ??
+    intakeResult.error;
   const requestError = (
     requestResult as {
       error?: {
@@ -202,6 +216,27 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
   const rawCases = caseResult.data ?? [];
+  const totalIntakeSteps = guidedCaseIntakeSteps.length;
+  const intakeProgressByCase = new Map(
+    (intakeResult.data ?? []).flatMap((row) => {
+      if (!row.case_id) return [];
+      const completedSteps = Math.min(
+        Math.max(row.current_step, 0),
+        totalIntakeSteps,
+      );
+      return [[
+        row.case_id,
+        {
+          completedSteps,
+          totalSteps: totalIntakeSteps,
+          progressPercent:
+            totalIntakeSteps > 0
+              ? Math.round((completedSteps / totalIntakeSteps) * 100)
+              : 0,
+        },
+      ]];
+    }),
+  );
 
   const profilePromise = profileIds.length
     ? supabase.from("profiles").select("*").in("id", profileIds)
@@ -254,6 +289,25 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     const staffIds = assignments
       .filter((a) => a.case_id === item.id && a.assignment_role === "STAFF")
       .map((a) => a.user_id);
+    const intakeProgress = intakeProgressByCase.get(item.id) ?? null;
+    const readiness = calculateCaseReadiness({
+      questions: questions.map((question) => ({
+        id: question.id,
+        label: question.question_text,
+        responseType: question.response_type,
+        responseValue: question.response?.response_value,
+        applicable: question.applicable,
+        effectiveRequired: question.effectiveRequired,
+      })),
+      tasks: itemTasks.map((task) => ({
+        id: task.id,
+        label: task.title,
+        status: task.status,
+        required: task.required,
+        blocking: task.blocking,
+      })),
+    });
+
     return {
       ...item,
       customer: customers.find((c) => c.id === item.customer_id) ?? null,
@@ -265,23 +319,16 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
       tasks: itemTasks,
       questions,
       ruleEvaluation,
-      progress: calculateCaseReadiness({
-        questions: questions.map((question) => ({
-          id: question.id,
-          label: question.question_text,
-          responseType: question.response_type,
-          responseValue: question.response?.response_value,
-          applicable: question.applicable,
-          effectiveRequired: question.effectiveRequired,
-        })),
-        tasks: itemTasks.map((task) => ({
-          id: task.id,
-          label: task.title,
-          status: task.status,
-          required: task.required,
-          blocking: task.blocking,
-        })),
-      }),
+      intakeProgress,
+      progress: intakeProgress
+        ? {
+            ...readiness,
+            progressPercent: intakeProgress.progressPercent,
+            ready: false,
+            completedUnits: intakeProgress.completedSteps,
+            totalUnits: intakeProgress.totalSteps,
+          }
+        : readiness,
     };
   });
   const staff: StaffMember[] = memberships.flatMap((membership) => {

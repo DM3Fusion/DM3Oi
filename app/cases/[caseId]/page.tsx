@@ -110,8 +110,9 @@ export default async function Page({
           <div>
             <span>Overall progress</span>
             <b>
-              {item.progress.completedUnits} of{" "}
-              {item.progress.totalUnits} required work items complete
+              {item.intakeProgress
+                ? `${item.intakeProgress.completedSteps} of ${item.intakeProgress.totalSteps} Guided Intake steps complete`
+                : `${item.progress.completedUnits} of ${item.progress.totalUnits} required work items complete`}
             </b>
           </div>
           <ProgressBar percentage={item.progress.progressPercent} />
@@ -395,10 +396,14 @@ export default async function Page({
               </div>
             )}
             <div className="progress-explainer">
-              <b>{item.progress.progressPercent}% complete</b>
+              <b>
+                {item.progress.progressPercent}%{" "}
+                {item.intakeProgress ? "intake complete" : "complete"}
+              </b>
               <span>
-                Completed required work ({item.progress.completedUnits}) ÷
-                currently applicable required work ({item.progress.totalUnits})
+                {item.intakeProgress
+                  ? `Guided Intake step ${item.intakeProgress.completedSteps} of ${item.intakeProgress.totalSteps}`
+                  : `Completed required work (${item.progress.completedUnits}) ÷ currently applicable required work (${item.progress.totalUnits})`}
               </span>
             </div>
           </section>
@@ -546,16 +551,22 @@ export default async function Page({
                 <p>{item.progress.progressPercent}% complete</p>
               </div>
               <span className={item.progress.ready ? "ready" : "not-ready"}>
-                {item.progress.ready ? "Ready" : "Not ready"}
+                {item.intakeProgress
+                  ? "Intake in progress"
+                  : item.progress.ready
+                    ? "Ready"
+                    : "Not ready"}
               </span>
             </div>
             <ProgressBar percentage={item.progress.progressPercent} />
             <b className="case-readiness-state">
-              {item.progress.ready
-                ? "Ready for completion"
-                : "Not ready for completion"}
+              {item.intakeProgress
+                ? "Finish Guided Intake before Case readiness is evaluated"
+                : item.progress.ready
+                  ? "Ready for completion"
+                  : "Not ready for completion"}
             </b>
-            {item.progress.remainingWork.length ? (
+            {!item.intakeProgress && item.progress.remainingWork.length ? (
               <div className="case-readiness-remaining">
                 <strong>Remaining</strong>
                 <ul>
@@ -579,6 +590,11 @@ export default async function Page({
                   </small>
                 ) : null}
               </div>
+            ) : item.intakeProgress ? (
+              <p className="case-readiness-complete">
+                Guided Intake is {item.intakeProgress.completedSteps} of{" "}
+                {item.intakeProgress.totalSteps} steps complete.
+              </p>
             ) : (
               <p className="case-readiness-complete">
                 All currently required work is complete.
