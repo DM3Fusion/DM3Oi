@@ -150,8 +150,8 @@ export default async function Page({
                 <dd>{item.case_type}</dd>
               </div>
               <div>
-                <dt>Dependents Claimed</dt>
-                <dd>{dependentsClaimed}</dd>
+                <dt>Tax Year</dt>
+                <dd>{item.tax_year ?? "—"}</dd>
               </div>
             </dl>
           </div>
@@ -194,8 +194,8 @@ export default async function Page({
                 <dd>{item.case_type}</dd>
               </div>
               <div>
-                <dt>Tax year</dt>
-                <dd>{item.tax_year ?? "—"}</dd>
+                <dt>Dependents Claimed</dt>
+                <dd>{dependentsClaimed}</dd>
               </div>
               <div>
                 <dt>Customer</dt>
