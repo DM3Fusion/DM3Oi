@@ -176,7 +176,7 @@ export async function updateTaskAction(data: FormData) {
     target_description: canManage ? text(data, "description") : existing.description,
     target_assigned_user_id: canAssign ? nullableUuid(text(data, "assignedUserId")) : nullableUuid(existing.assigned_user_id ?? ""),
     target_status: text(data, "status") as TaskStatus,
-    target_required: canManage ? data.get("requiredCheck") === "on" : existing.required,
+    target_required: existing.required,
     target_due_date: canManage ? dueDate : null,
   });
   if (error) {
@@ -322,20 +322,13 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
 export async function deleteTaskAction(data: FormData) {
   const caseId = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("delete_case_task", {
-    target_task_id: text(data, "taskId"),
-  });
-  if (error) {
-    console.error("Delete task failed", {
-      code: error.code,
-      message: error.message,
-    });
-    fail(`/cases/${caseId}`, friendly(error.message));
-  }
-  refreshCase(caseId);
-  redirect(`/cases/${caseId}?message=Task%20deleted.`);
+
+  fail(
+    `/cases/${caseId}`,
+    "Workflow Tasks cannot be deleted.",
+  );
 }
+
 export async function moveTaskAction(data: FormData) {
   const caseId = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");

@@ -9,7 +9,6 @@ import { getAccessContext } from "@/lib/auth/context";
 import { formatActivity } from "@/lib/activity-format";
 import { formatDate } from "@/lib/format";
 import {
-  deleteTaskAction,
   moveTaskAction,
   sendMissingDocumentsNoticeAction,
   setCaseAssignmentAction,
@@ -494,20 +493,6 @@ export default async function Page({
                             required={canManage}
                           />
                         </label>
-                        <label className="checkbox-label">
-                          <input
-                            type="checkbox"
-                            name="requiredCheck"
-                            defaultChecked={task.required}
-                            disabled={!canManage}
-                          />
-                          <span>Required task</span>
-                        </label>
-                        <input
-                          type="hidden"
-                          name="required"
-                          value={task.required ? "true" : "false"}
-                        />
                         <div className="mini-actions">
                           <PendingSubmitButton pendingLabel="Saving…">Save Task</PendingSubmitButton>
                         </div>
@@ -557,23 +542,6 @@ export default async function Page({
                               Move Down
                             </button>
                           </form>
-                          {!task.generated_by_rule && !task.generated_by_intake ? (
-                            <form action={deleteTaskAction}>
-                              <input
-                                type="hidden"
-                                name="caseId"
-                                value={item.id}
-                              />
-                              <input
-                                type="hidden"
-                                name="taskId"
-                                value={task.id}
-                              />
-                              <button className="danger-button" type="submit">
-                                Delete Task
-                              </button>
-                            </form>
-                          ) : null}
                         </div>
                       ) : null}
                     </div>
