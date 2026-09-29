@@ -1,5 +1,6 @@
 import { startOfOrganizationDay } from "./organization-timezone.ts";
 import type { CaseReadiness } from "./case-readiness.ts";
+import { isIncompleteCompatibilityCaseStatus } from "./case-lifecycle.ts";
 import type { Database } from "@/types/database.generated";
 
 type CaseStatus = Database["public"]["Enums"]["case_status"];
@@ -75,14 +76,8 @@ export type AttentionCase = {
   updatedAt: string;
 };
 
-const terminalCaseStatuses = new Set<CaseStatus>([
-  "COMPLETED",
-  "CLOSED",
-  "CANCELLED",
-]);
-
 export const isCurrentOperationalCase = (item: IntelligenceCase) =>
-  !terminalCaseStatuses.has(item.status);
+  isIncompleteCompatibilityCaseStatus(item.status);
 
 const normalizedManualTaskTitle = (value: string) =>
   value.trim().replace(/\s+/g, " ").toLowerCase();

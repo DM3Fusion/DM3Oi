@@ -1,4 +1,8 @@
 import type { LiveCase } from "./data/case-repository.ts";
+import {
+  ALL_CASE_LIFECYCLE_STATUSES,
+  isIncompleteCompatibilityCaseStatus,
+} from "./case-lifecycle.ts";
 import { matchesCaseFilter, normalizeCaseStatus } from "./operational-filters.ts";
 import { startOfOrganizationDay } from "./organization-timezone.ts";
 
@@ -22,20 +26,19 @@ export interface CaseDashboardCounts {
   completed: number;
 }
 
-const rawCaseStatuses: LiveCase["status"][] = ["NEW", "UNASSIGNED", "ASSIGNED", "IN_PROGRESS", "WAITING", "REVIEW", "COMPLETED", "CLOSED", "CANCELLED"];
-const terminalCaseStatuses: LiveCase["status"][] = ["COMPLETED", "CLOSED", "CANCELLED"];
-
 export const normalizeCaseView = (value?: string): CaseView | undefined =>
   caseViews.includes(value as CaseView) ? (value as CaseView) : undefined;
 
 export const normalizeRawCaseStatus = (value?: string): LiveCase["status"] | undefined =>
-  rawCaseStatuses.includes(value as LiveCase["status"]) ? (value as LiveCase["status"]) : undefined;
+  ALL_CASE_LIFECYCLE_STATUSES.includes(value as LiveCase["status"])
+    ? (value as LiveCase["status"])
+    : undefined;
 
 export const isCaseUnassigned = (item: LiveCase) =>
   !item.manager_user_id && item.assignedStaff.length === 0;
 
 export function isCaseOverdue(item: LiveCase, timezone: string, now = new Date()) {
-  if (!item.due_at || terminalCaseStatuses.includes(item.status)) return false;
+  if (!item.due_at || !isIncompleteCompatibilityCaseStatus(item.status)) return false;
   const dueAt = new Date(item.due_at);
   return !Number.isNaN(dueAt.getTime()) && dueAt < startOfOrganizationDay(now, timezone);
 }

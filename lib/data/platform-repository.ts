@@ -8,6 +8,7 @@ import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
 import { isEffectiveCustomerPortalAccess } from "@/lib/auth/customer-portal-effectiveness";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import type { Database } from "@/types/database.generated";
 import type { User } from "@supabase/supabase-js";
 import { requireOrganizationCustomers } from "@/lib/data/organization-customers";
@@ -182,7 +183,7 @@ export async function getPlatformAdministration() {
         openCases: data.cases.filter(
           (c) =>
             c.organization_id === org.id &&
-            !["COMPLETED", "CLOSED", "CANCELLED"].includes(c.status),
+            isIncompleteCompatibilityCaseStatus(c.status),
         ).length,
         customers: data.customers.filter((c) => c.organization_id === org.id)
           .length,
@@ -464,8 +465,7 @@ export async function getOrganizationAdministration(id: string) {
       (membership) => membership.role === "BUSINESS_ADMIN",
     ).length,
     openCases: organizationCases.filter(
-      (item) =>
-        !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status),
+      (item) => isIncompleteCompatibilityCaseStatus(item.status),
     ).length,
     customers: organizationCustomers.length,
     lastActivity:

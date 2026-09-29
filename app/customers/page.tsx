@@ -8,6 +8,7 @@ import { customerMatchesFilters, normalizeCustomerQuery, normalizeCustomerStatus
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 export const metadata = { title: "Customers" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string }> }) {
   const [data, query, access] = await Promise.all([getLiveOrganizationData(), searchParams, getAccessContext()]);
@@ -60,7 +61,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
                     <td>
                       <Badge value={customer.status} />
                     </td>
-                    <td>{data.cases.filter((item) => item.customer_id === customer.id && !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status)).length}</td>
+                    <td>{data.cases.filter((item) => item.customer_id === customer.id && isIncompleteCompatibilityCaseStatus(item.status)).length}</td>
                   </NavigableRow>
                 ))}
               </tbody>

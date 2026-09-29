@@ -1,5 +1,6 @@
 import "server-only";
 
+import { INCOMPLETE_COMPATIBILITY_CASE_STATUSES } from "@/lib/case-lifecycle";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type Assignee = {
@@ -41,7 +42,7 @@ export async function getOrganizationUserWorkload(
       .from("cases")
       .select("id,manager_user_id,status")
       .eq("organization_id", organizationId)
-      .not("status", "in", "(COMPLETED,CLOSED)"),
+      .in("status", [...INCOMPLETE_COMPATIBILITY_CASE_STATUSES]),
     admin
       .from("case_assignments")
       .select("case_id")

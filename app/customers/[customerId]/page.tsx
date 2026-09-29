@@ -15,6 +15,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { CustomerPermanentDelete } from "@/components/customer-permanent-delete";
 import { requireOrganizationCustomer } from "@/lib/data/organization-customers";
 import { getCustomerMemberSince } from "@/lib/customer-tenure";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 
 export default async function Page({ params, searchParams }: { params: Promise<{ customerId: string }>; searchParams: Promise<{ message?: string; error?: string }> }) {
   const [{ customerId }, query, access] = await Promise.all([params, searchParams, getAccessContext()]);
@@ -24,7 +25,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const customer = requireOrganizationCustomer(customerRow);
   if (!customer) notFound();
   const [{ data: creator }, { data: cases }, { data: portalLinks }] = await Promise.all([customer.created_by_user_id ? supabase.from("profiles").select("*").eq("id", customer.created_by_user_id).maybeSingle() : Promise.resolve({ data: null }), supabase.from("organization_cases").select("id,status,tax_year").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id), supabase.from("customer_portal_users").select("id,user_id,is_active").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id).order("is_active", { ascending: false })]);
-  const openCases = (cases ?? []).filter((item) => !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status)).length;
+  const openCases = (cases ?? []).filter((item) => isIncompleteCompatibilityCaseStatus(item.status)).length;
   const memberSince = getCustomerMemberSince(cases ?? []);
   const portal = portalLinks?.[0];
   const portalStatus = await getCustomerPortalOnboardingStatus({ organizationId: access.activeOrganization.id, customerId: customer.id, actorUserId: access.user.id });

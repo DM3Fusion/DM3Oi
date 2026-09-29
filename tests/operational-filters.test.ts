@@ -32,7 +32,8 @@ test("due today uses organization-local day boundaries when UTC dates differ", (
 
 test("case aggregate filters match dashboard workflow groups and reject invalid values", () => {
   assert.equal(matchesCaseFilter(liveCase("REVIEW"), "in-progress"), true);
-  assert.equal(matchesCaseFilter(liveCase("CLOSED"), "completed"), true);
+  assert.equal(matchesCaseFilter(liveCase("COMPLETED"), "completed"), true);
+  assert.equal(matchesCaseFilter(liveCase("CLOSED"), "completed"), false);
   assert.equal(matchesCaseFilter(liveCase("CANCELLED"), "active"), false);
   assert.equal(normalizeCaseStatus("invalid"), undefined);
 });

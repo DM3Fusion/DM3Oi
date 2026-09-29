@@ -1,4 +1,8 @@
 import type { LiveCase, TaskRow } from "./data/case-repository.ts";
+import {
+  isCanonicalCompletedCaseStatus,
+  isIncompleteCompatibilityCaseStatus,
+} from "./case-lifecycle.ts";
 import { startOfOrganizationDay } from "./organization-timezone.ts";
 
 export const taskStatuses = ["not-started", "in-progress", "blocked", "completed", "not-applicable"] as const;
@@ -51,10 +55,10 @@ export function matchesTaskSearch(task: TaskRow, caseNumber: string, query: stri
 
 export function matchesCaseFilter(item: LiveCase, status?: CaseStatusFilter) {
   if (!status) return true;
-  if (status === "active") return !["COMPLETED", "CLOSED", "CANCELLED"].includes(item.status);
+  if (status === "active") return isIncompleteCompatibilityCaseStatus(item.status);
   if (status === "new") return item.status === "NEW";
   if (status === "assigned") return ["UNASSIGNED", "ASSIGNED"].includes(item.status);
   if (status === "in-progress") return ["IN_PROGRESS", "REVIEW"].includes(item.status);
   if (status === "waiting") return item.status === "WAITING";
-  return ["COMPLETED", "CLOSED"].includes(item.status);
+  return isCanonicalCompletedCaseStatus(item.status);
 }

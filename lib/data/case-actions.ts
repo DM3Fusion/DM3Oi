@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAccessContext, requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creation";
+import { isCanonicalActiveCaseStatus } from "@/lib/case-lifecycle";
 import type { Database } from "@/types/database.generated";
 type CaseStatus = Database["public"]["Enums"]["case_status"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];
@@ -68,11 +69,15 @@ export async function reassignCaseCustomerAction(input: {
 
 export async function transitionCaseStatusAction(data: FormData) {
   const id = text(data, "caseId");
+  const status = text(data, "status") as CaseStatus;
   await requirePermission("WORK_CASES");
+  if (!isCanonicalActiveCaseStatus(status)) {
+    fail(`/cases/${id}`, "Select an active Case status.");
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("transition_case_status", {
     target_case_id: id,
-    target_status: text(data, "status") as CaseStatus,
+    target_status: status,
   });
   if (error) {
     console.error("Case status update failed", {

@@ -24,17 +24,11 @@ import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
 import { CreateTaskModal } from "@/components/cases/create-task-modal";
 import { createClient } from "@/lib/supabase/server";
-const statuses = [
-  "NEW",
-  "UNASSIGNED",
-  "ASSIGNED",
-  "IN_PROGRESS",
-  "WAITING",
-  "REVIEW",
-  "COMPLETED",
-  "CLOSED",
-  "CANCELLED",
-] as const;
+import {
+  CANONICAL_ACTIVE_CASE_STATUSES,
+  isCanonicalActiveCaseStatus,
+  isIncompleteCompatibilityCaseStatus,
+} from "@/lib/case-lifecycle";
 const taskStatuses = [
   "NOT_STARTED",
   "IN_PROGRESS",
@@ -87,9 +81,6 @@ export default async function Page({
     access,
     "REASSIGN_CASE_CUSTOMER",
   );
-  const permittedStatuses = canAssignCases
-    ? statuses
-    : (["IN_PROGRESS", "WAITING", "REVIEW"] as const);
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
   );
@@ -194,7 +185,7 @@ export default async function Page({
                 <dd>{formatDate(item.updated_at)}</dd>
               </div>
             </dl>
-            {canWorkCases ? <form
+            {canWorkCases && isIncompleteCompatibilityCaseStatus(item.status) ? <form
               action={transitionCaseStatusAction}
               className="inline-control"
             >
@@ -202,7 +193,12 @@ export default async function Page({
               <label>
                 <span>Change status</span>
                 <select name="status" defaultValue={item.status}>
-                  {permittedStatuses.map((value) => (
+                  {!isCanonicalActiveCaseStatus(item.status) ? (
+                    <option value={item.status} disabled>
+                      {item.status.replaceAll("_", " ")} (current)
+                    </option>
+                  ) : null}
+                  {CANONICAL_ACTIVE_CASE_STATUSES.map((value) => (
                     <option key={value} value={value}>
                       {value.replaceAll("_", " ")}
                     </option>

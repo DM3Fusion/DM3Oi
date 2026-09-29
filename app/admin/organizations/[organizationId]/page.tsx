@@ -19,6 +19,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { SuperAdminOrganizationReset } from "@/components/super-admin-organization-reset";
 import { SuperAdminOrganizationDelete } from "@/components/super-admin-organization-delete";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -62,15 +63,14 @@ export default async function Page({
   const drilldown = (query as { drilldown?: string }).drilldown;
   const year = Number((query as { year?: string }).year) || runtimeYear();
   const activity = (query as { activity?: string }).activity ?? "all";
-  const terminal = ["COMPLETED", "CLOSED", "CANCELLED"];
   const yearStart = Date.UTC(year, 0, 1);
   const yearEnd = Date.UTC(year + 1, 0, 1);
   const activityStart = activity === "7" ? runtimeNow() - 7 * 86400000 : activity === "30" ? runtimeNow() - 30 * 86400000 : activity === "90" ? runtimeNow() - 90 * 86400000 : activity === "year" ? yearStart : 0;
   const inRange = (value: string) => (query as { year?: string }).year === "all" || (Date.parse(value) >= yearStart && Date.parse(value) < yearEnd);
-  const activeCases = cases.filter((item) => !terminal.includes(item.status) && inRange(item.created_at) && (!activityStart || Date.parse(item.updated_at) >= activityStart));
+  const activeCases = cases.filter((item) => isIncompleteCompatibilityCaseStatus(item.status) && inRange(item.created_at) && (!activityStart || Date.parse(item.updated_at) >= activityStart));
   const filteredCustomers = customers.filter((item) => inRange(item.created_at) && (!activityStart || Date.parse(item.updated_at) >= activityStart));
   const years = [...new Set([...cases, ...customers].map((item) => new Date(item.created_at).getUTCFullYear()))].sort((a, b) => b - a);
-  const openStatuses = [...new Set(cases.filter((item) => !terminal.includes(item.status)).map((item) => item.status))];
+  const openStatuses = [...new Set(cases.filter((item) => isIncompleteCompatibilityCaseStatus(item.status)).map((item) => item.status))];
   const selectedStatus = (query as { status?: string }).status ?? "all";
   const displayedCases = selectedStatus === "all" ? activeCases : activeCases.filter((item) => item.status === selectedStatus);
   return (

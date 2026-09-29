@@ -45,7 +45,7 @@ test("case KPI counts use the full supplied authorized population and establishe
     waiting: 1,
     overdue: 1,
     unassigned: 1,
-    completed: 2,
+    completed: 1,
   });
 });
 

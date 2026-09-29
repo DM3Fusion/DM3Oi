@@ -29,10 +29,11 @@ test("organization administration exposes live activity drilldowns",()=>{
   assert.match(page, /Last activity/);
   assert.match(row, /target: "cases" \| "customers"/);
   assert.match(row, /params\.set\("drilldown", target\)/);
-  assert.match(page, /COMPLETED.*CLOSED.*CANCELLED/);
+  assert.match(page, /isIncompleteCompatibilityCaseStatus/);
   assert.match(page, /This calendar year/);
   assert.match(repository, /lastActivity/);
   assert.match(repository, /openCases: data\.cases\.filter/);
+  assert.match(repository, /isIncompleteCompatibilityCaseStatus/);
 });
 test("summary drilldown rows preserve full-width button layout",()=>{
   const css = readFileSync("app/globals.css", "utf8");
