@@ -498,21 +498,30 @@ export default async function Page({
                         </div>
                       </form>
                       {task.generated_by_intake &&
-                      task.status !== "COMPLETED" &&
-                      task.status !== "NOT_APPLICABLE" ? (
-                        <form
-                          action={sendMissingDocumentsNoticeAction}
-                          className="mini-actions"
-                        >
-                          <input type="hidden" name="caseId" value={item.id} />
-                          <input type="hidden" name="taskId" value={task.id} />
-                          <PendingSubmitButton
-                            className="secondary-button"
-                            pendingLabel="Sending…"
+                      task.status === "NOT_STARTED" ? (
+                        <div className="task-notice-action">
+                          <form
+                            action={sendMissingDocumentsNoticeAction}
+                            className="mini-actions"
                           >
-                            Send Notice
-                          </PendingSubmitButton>
-                        </form>
+                            <input type="hidden" name="caseId" value={item.id} />
+                            <input type="hidden" name="taskId" value={task.id} />
+                            <PendingSubmitButton
+                              className="secondary-button task-notice-button"
+                              pendingLabel="Sending…"
+                            >
+                              Send Notice
+                            </PendingSubmitButton>
+                          </form>
+                          <span className="task-notice-help">
+                            Send Notice to Customer to start task
+                          </span>
+                        </div>
+                      ) : task.generated_by_intake &&
+                        task.status === "IN_PROGRESS" ? (
+                        <div className="task-notice-sent">
+                          <span>Email Sent</span>
+                        </div>
                       ) : null}
                       {canManage ? (
                         <div className="task-actions">
