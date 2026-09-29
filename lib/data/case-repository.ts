@@ -67,6 +67,7 @@ export interface LiveCase extends CaseRow {
     completedSteps: number;
     totalSteps: number;
     progressPercent: number;
+    answers: Record<string, unknown>;
   } | null;
 }
 export interface StaffMember {
@@ -156,7 +157,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     getPlatformAdminUserIds(),
     admin
       .from("guided_case_intake_drafts")
-      .select("case_id,current_step")
+      .select("case_id,current_step,answers")
       .eq("organization_id", organizationId)
       .not("case_id", "is", null)
       .is("finalized_at", null),
@@ -224,6 +225,13 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
         Math.max(row.current_step, 0),
         totalIntakeSteps,
       );
+      const answers =
+        row.answers &&
+        typeof row.answers === "object" &&
+        !Array.isArray(row.answers)
+          ? (row.answers as Record<string, unknown>)
+          : {};
+
       return [[
         row.case_id,
         {
@@ -233,6 +241,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
             totalIntakeSteps > 0
               ? Math.round((completedSteps / totalIntakeSteps) * 100)
               : 0,
+          answers,
         },
       ]];
     }),

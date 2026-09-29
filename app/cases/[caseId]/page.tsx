@@ -53,13 +53,28 @@ export default async function Page({
   // Temporary schema bridge until generated Supabase types include
   // organization_task_purposes.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const purposeResult = await (supabase as any)
+  const purposeQuery = (supabase as any)
     .from("organization_task_purposes")
     .select("id,label")
     .eq("organization_id", data.organizationId)
     .eq("is_active", true)
     .order("sort_order")
     .order("label");
+
+  const dependentsQuestionQuery = supabase
+    .from("question_definitions")
+    .select("id")
+    .eq("organization_id", data.organizationId)
+    .eq("question_text", "Are dependents being claimed?")
+    .eq("response_type", "YES_NO")
+    .eq("active", true)
+    .limit(1)
+    .maybeSingle();
+
+  const [purposeResult, dependentsQuestionResult] = await Promise.all([
+    purposeQuery,
+    dependentsQuestionQuery,
+  ]);
   if (purposeResult.error) {
     console.error("Task Purpose query failed", {
       organizationId: data.organizationId,
@@ -73,6 +88,38 @@ export default async function Page({
     label: string;
   }>;
   const questions = item.questions;
+
+  if (dependentsQuestionResult.error) {
+    console.error("Dependents Question lookup failed", {
+      organizationId: data.organizationId,
+      code: dependentsQuestionResult.error.code,
+      message: dependentsQuestionResult.error.message,
+    });
+  }
+
+  const finalizedDependentsQuestion = questions.find(
+    (question) =>
+      question.response_type === "YES_NO" &&
+      question.question_text.trim().toLowerCase() ===
+        "are dependents being claimed?",
+  );
+
+  const dependentsQuestionId =
+    finalizedDependentsQuestion?.id ??
+    ((dependentsQuestionResult.data as { id?: string } | null)?.id ?? null);
+
+  const dependentsValue =
+    item.intakeProgress && dependentsQuestionId
+      ? item.intakeProgress.answers[dependentsQuestionId]
+      : finalizedDependentsQuestion?.response?.response_value;
+
+  const dependentsClaimed =
+    dependentsValue === true || dependentsValue === "true"
+      ? "Yes"
+      : dependentsValue === false || dependentsValue === "false"
+        ? "No"
+        : "—";
+
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
   const canWorkCases = hasPermission(access, "WORK_CASES");
@@ -100,6 +147,16 @@ export default async function Page({
             <p>
               {item.customer?.name ?? "Unknown customer"} · {item.case_type}
             </p>
+            <dl className="detail-summary-facts">
+              <div>
+                <dt>Case Type</dt>
+                <dd>{item.case_type}</dd>
+              </div>
+              <div>
+                <dt>Dependents Claimed</dt>
+                <dd>{dependentsClaimed}</dd>
+              </div>
+            </dl>
           </div>
           <div className="detail-badges">
             <Badge value={item.status} />
