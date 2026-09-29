@@ -143,10 +143,7 @@ export default async function Page({
         <div className="detail-title">
           <div>
             <span className="eyebrow">{item.case_number}</span>
-            <h1>{item.title}</h1>
-            <p>
-              {item.customer?.name ?? "Unknown customer"} · {item.case_type}
-            </p>
+            <h1>{item.customer?.name ?? "Unknown customer"}</h1>
             <dl className="detail-summary-facts">
               <div>
                 <dt>Case Type</dt>
