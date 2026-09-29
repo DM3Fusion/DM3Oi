@@ -445,17 +445,6 @@ export default async function Page({
                 No tasks are associated with this Case.
               </div>
             )}
-            <div className="progress-explainer">
-              <b>
-                {item.progress.progressPercent}%{" "}
-                {item.intakeProgress ? "intake complete" : "complete"}
-              </b>
-              <span>
-                {item.intakeProgress
-                  ? `Guided Intake step ${item.intakeProgress.completedSteps} of ${item.intakeProgress.totalSteps}`
-                  : `Completed required work (${item.progress.completedUnits}) ÷ currently applicable required work (${item.progress.totalUnits})`}
-              </span>
-            </div>
           </section>
           <section className="panel detail-section">
             <div className="section-head">
@@ -594,63 +583,54 @@ export default async function Page({
               </p>
             )}
           </section>
-          <section className="panel case-readiness-panel">
-            <div className="case-readiness-heading">
-              <div>
-                <h3>Case Readiness</h3>
-                <p>{item.progress.progressPercent}% complete</p>
+          {!item.intakeProgress ? (
+            <section className="panel case-readiness-panel">
+              <div className="case-readiness-heading">
+                <div>
+                  <h3>Case Readiness</h3>
+                  <p>{item.progress.progressPercent}% complete</p>
+                </div>
+                <span className={item.progress.ready ? "ready" : "not-ready"}>
+                  {item.progress.ready ? "Ready" : "Not ready"}
+                </span>
               </div>
-              <span className={item.progress.ready ? "ready" : "not-ready"}>
-                {item.intakeProgress
-                  ? "Intake in progress"
-                  : item.progress.ready
-                    ? "Ready"
-                    : "Not ready"}
-              </span>
-            </div>
-            <ProgressBar percentage={item.progress.progressPercent} />
-            <b className="case-readiness-state">
-              {item.intakeProgress
-                ? "Finish Guided Intake before Case readiness is evaluated"
-                : item.progress.ready
+              <ProgressBar percentage={item.progress.progressPercent} />
+              <b className="case-readiness-state">
+                {item.progress.ready
                   ? "Ready for completion"
                   : "Not ready for completion"}
-            </b>
-            {!item.intakeProgress && item.progress.remainingWork.length ? (
-              <div className="case-readiness-remaining">
-                <strong>Remaining</strong>
-                <ul>
-                  {item.progress.remainingWork.slice(0, 5).map((work) => (
-                    <li key={`${work.kind}-${work.id}`}>
-                      <span>{work.label}</span>
-                      <small>
-                        {work.kind === "QUESTION"
-                          ? "Question"
-                          : work.blocked
-                            ? "Blocked task"
-                            : "Task"}
-                      </small>
-                    </li>
-                  ))}
-                </ul>
-                {item.progress.remainingWork.length > 5 ? (
-                  <small className="case-readiness-more">
-                    +{item.progress.remainingWork.length - 5} more required work
-                    items
-                  </small>
-                ) : null}
-              </div>
-            ) : item.intakeProgress ? (
-              <p className="case-readiness-complete">
-                Guided Intake is {item.intakeProgress.completedSteps} of{" "}
-                {item.intakeProgress.totalSteps} steps complete.
-              </p>
-            ) : (
-              <p className="case-readiness-complete">
-                All currently required work is complete.
-              </p>
-            )}
-          </section>
+              </b>
+              {item.progress.remainingWork.length ? (
+                <div className="case-readiness-remaining">
+                  <strong>Remaining</strong>
+                  <ul>
+                    {item.progress.remainingWork.slice(0, 5).map((work) => (
+                      <li key={`${work.kind}-${work.id}`}>
+                        <span>{work.label}</span>
+                        <small>
+                          {work.kind === "QUESTION"
+                            ? "Question"
+                            : work.blocked
+                              ? "Blocked task"
+                              : "Task"}
+                        </small>
+                      </li>
+                    ))}
+                  </ul>
+                  {item.progress.remainingWork.length > 5 ? (
+                    <small className="case-readiness-more">
+                      +{item.progress.remainingWork.length - 5} more required work
+                      items
+                    </small>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="case-readiness-complete">
+                  All currently required work is complete.
+                </p>
+              )}
+            </section>
+          ) : null}
         </aside>
       </div>
     </>
