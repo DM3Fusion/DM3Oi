@@ -59,7 +59,7 @@ test("Dashboard KPI cards remain text only and two by two per row on phone", () 
 test("Dashboard metric-summary cards center labels values and supporting metrics only", () => {
   assert.match(css, /Dashboard metric-summary cards share one centered label\/value\/supporting-metric treatment\./);
   assert.match(css, /\.intelligence-kpi\{align-items:center;text-align:center\}/);
-  for (const label of ["Ready Cases", "Not Ready", "Blocked Cases", "Average Progress"]) {
+  for (const label of ["Ready Cases", "Not Ready", "Completed Cases", "Average Progress"]) {
     assert.match(intelligence, new RegExp(`label="${label}"`));
   }
   assert.match(intelligence, /<small>\{label\}<\/small>[\s\S]*<strong>\{value\}<\/strong>[\s\S]*<span>\{detail\}<\/span>/);

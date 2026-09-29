@@ -303,7 +303,12 @@ test("Dashboard renders compact actionable intelligence without exposing it to C
   assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
   for (const text of ["Operational Intelligence", "Readiness Distribution", "Top Bottlenecks", "Cases Needing Attention", "Rule Activity"]) assert.match(component, new RegExp(text));
   for (const emptyState of ["All currently required work is complete.", "No Cases currently have blocked required work.", "No current Cases need completion attention", "No active Rules are currently affecting Cases."]) assert.match(component, new RegExp(emptyState));
-  assert.match(component, /\/tasks\?status=blocked/);
+  assert.match(component, /label="Completed Cases"/);
+  assert.match(component, /value=\{readiness\.completedCases\}/);
+  assert.match(component, /\/cases\?status=completed/);
+  assert.match(component, /released for external processing/);
+  assert.match(component, /Top blocked work/);
+  assert.match(component, /Cases carrying blocked work/);
   assert.match(component, /`\/cases\/\$\{item\.id\}`/);
   assert.match(component, /\/questions\?view=rules/);
   assert.doesNotMatch(component, />\{rule\.ruleId\}</);

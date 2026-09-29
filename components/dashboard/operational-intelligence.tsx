@@ -153,7 +153,7 @@ export function OperationalIntelligenceSection({
       <div className="intelligence-kpis">
         <IntelligenceKpi href={capabilities.viewCases ? "/cases" : null} tone="tone-green" label="Ready Cases" value={readiness.readyCases} detail={`of ${readiness.totalCurrentCases} current Cases`} />
         <IntelligenceKpi href={capabilities.viewCases ? "/cases" : null} tone="tone-amber" label="Not Ready" value={readiness.notReadyCases} detail="current completion requirements" />
-        {capabilities.viewTasks ? <IntelligenceKpi href="/tasks?status=blocked" tone="tone-red" label="Blocked Cases" value={intelligence.blockedWork.caseCount} detail={`${intelligence.blockedWork.taskCount} blocked Tasks`} /> : null}
+        <IntelligenceKpi href={capabilities.viewCases ? "/cases?status=completed" : null} tone="tone-violet" label="Completed Cases" value={readiness.completedCases} detail="released for external processing" />
         <IntelligenceKpi href={capabilities.viewCases ? "/cases" : null} tone="tone-blue" label="Average Progress" value={`${readiness.averageProgress}%`} detail={`${readiness.completedCases} completed Cases excluded`} />
       </div>
 
