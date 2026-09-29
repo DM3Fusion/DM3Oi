@@ -190,16 +190,16 @@ export default async function Page({
             </p>
             <dl className="overview-grid case-overview-grid">
               <div>
+                <dt>Customer</dt>
+                <dd>{item.customer?.name ?? "Unknown customer"}</dd>
+              </div>
+              <div>
                 <dt>Case type</dt>
                 <dd>{item.case_type}</dd>
               </div>
               <div>
                 <dt>Dependents Claimed</dt>
                 <dd>{dependentsClaimed}</dd>
-              </div>
-              <div>
-                <dt>Customer</dt>
-                <dd>{item.customer?.name ?? "Unknown customer"}</dd>
               </div>
               <div>
                 <dt>Opened</dt>
