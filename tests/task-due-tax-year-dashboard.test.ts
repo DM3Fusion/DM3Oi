@@ -292,7 +292,7 @@ test("required complete-option questions expose missing items and cannot be sati
   assert.equal(canCompleteIntakeFollowUpTask(task, resolved), true);
 });
 
-test("Guided Intake stages follow-ups without orphan Tasks and materializes provenance atomically", () => {
+test("Guided Intake follow-up Tasks preserve intake provenance and finalize atomically", () => {
   const component = source("components/cases/guided-case-intake.tsx");
   const actions = source("lib/data/guided-case-intake-actions.ts");
   assert.match(component, /className="task-modal"/);

@@ -16,6 +16,7 @@ import {
   validateGuidedCustomerStep,
   validateGuidedCaseIntake,
   type GuidedCaseIntakeDraft,
+  type GuidedIntakeFollowUpTask,
 } from "@/lib/guided-case-intake";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -314,6 +315,96 @@ const guidedCasePriority = (
   priority === "URGENT"
     ? priority
     : "NORMAL";
+
+export type UpsertGuidedIntakeFollowUpTaskResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function upsertGuidedIntakeFollowUpTaskAction(
+  draft: GuidedCaseIntakeDraft,
+  task: GuidedIntakeFollowUpTask,
+): Promise<UpsertGuidedIntakeFollowUpTaskResult> {
+  const { access, configuration } =
+    await loadGuidedCaseIntakeConfiguration();
+
+  if (!draft.caseId) {
+    return {
+      ok: false,
+      error: "Establish the Case before creating a follow-up Task.",
+    };
+  }
+
+  const evaluation = evaluateGuidedCaseIntake(
+    configuration,
+    draft.answers,
+    draft.requiredOptionIds,
+  );
+
+  if (
+    !guidedFollowUpTaskMatchesMissingOptions(
+      task,
+      evaluation,
+      draft.answers,
+      draft.requiredOptionIds,
+    )
+  ) {
+    return {
+      ok: false,
+      error: "The follow-up Task no longer matches the missing required items.",
+    };
+  }
+
+  if (
+    !configuration.staff.some((member) => member.id === task.assignedUserId)
+  ) {
+    return {
+      ok: false,
+      error: "Select an active Staff assignee.",
+    };
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate)) {
+    return {
+      ok: false,
+      error: "Select a valid Due Date.",
+    };
+  }
+
+  const supabase = await createClient();
+  // Temporary RPC signature bridge until generated Supabase types are refreshed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc(
+    "upsert_guided_intake_follow_up_task",
+    {
+      target_organization_id: access.activeOrganization!.id,
+      target_submission_key: draft.submissionKey,
+      target_follow_up: task,
+    },
+  );
+
+  if (error) {
+    console.error("Guided Intake follow-up Task persistence failed", {
+      organizationId: access.activeOrganization!.id,
+      submissionKey: draft.submissionKey,
+      caseId: draft.caseId,
+      followUpId: task.id,
+      code: error.code,
+      message: error.message,
+    });
+    return {
+      ok: false,
+      error: "The follow-up Task could not be saved. Please try again.",
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/cases");
+  revalidatePath("/cases/new");
+  revalidatePath(`/cases/${draft.caseId}`);
+
+  return { ok: true };
+}
 
 export type CreateGuidedCaseResult =
   | { ok: true; caseId: string; caseNumber: string }

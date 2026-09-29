@@ -10,6 +10,7 @@ import {
   loadGuidedIntakePortalStatusAction,
   sendGuidedIntakePortalInvitationAction,
   setGuidedIntakePortalNotRequiredAction,
+  upsertGuidedIntakeFollowUpTaskAction,
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
@@ -632,9 +633,9 @@ export function GuidedCaseIntake({
     setFollowUpQuestionId(questionId);
     followUpDialog.current?.showModal();
   };
-  const stageFollowUpTask = (event: FormEvent<HTMLFormElement>) => {
+  const saveFollowUpTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!activeFollowUpRequirement) return;
+    if (!activeFollowUpRequirement || pending) return;
     const form = new FormData(event.currentTarget);
     const assignedUserId = String(form.get("assignedUserId") ?? "");
     const dueDate = String(form.get("dueDate") ?? "");
@@ -659,6 +660,17 @@ export function GuidedCaseIntake({
       dueDate,
       completed: false,
     };
+
+    setPending(true);
+    setFormError(null);
+    const result = await upsertGuidedIntakeFollowUpTaskAction(draft, task);
+    setPending(false);
+
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+
     updateDraft(
       "followUpTasks",
       existing
@@ -1295,7 +1307,7 @@ export function GuidedCaseIntake({
                   );
                   return <div className="intake-question-with-follow-up" key={question.id}>
                     <QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />
-                    {missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>{staged ? "Update Follow-up Task" : "Create Follow-up Task"}</button></div> : null}
+                    {missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>{staged ? "Update Task" : "Create Follow-up Task"}</button></div> : null}
                   </div>;
                 })}
               </div>
@@ -1465,7 +1477,7 @@ export function GuidedCaseIntake({
           </ul>
         ) : <p className="intake-note">No Rule-generated Tasks apply.</p>}
         <h3>Missing-document Follow-up Tasks</h3>
-        {draft.followUpTasks.length ? <ul>{draft.followUpTasks.map((task) => <li key={task.id} className={task.completed ? "satisfied" : "outstanding"}><strong>{task.completed ? "Completed" : "Staged"}</strong><span>{task.title}<small>{task.missingOptionLabels.join(", ")} · Due {task.dueDate}</small></span>{!task.completed ? <button type="button" className="text-button" onClick={() => completeFollowUpTask(task)}>Complete Task</button> : null}</li>)}</ul> : <p className="intake-note">No missing-document follow-up Tasks have been staged.</p>}
+        {draft.followUpTasks.length ? <ul>{draft.followUpTasks.map((task) => <li key={task.id} className={task.completed ? "satisfied" : "outstanding"}><strong>{task.completed ? "Completed" : "Open"}</strong><span>{task.title}<small>{task.missingOptionLabels.join(", ")} · Due {task.dueDate}</small></span>{!task.completed ? <button type="button" className="text-button" onClick={() => completeFollowUpTask(task)}>Complete Task</button> : null}</li>)}</ul> : <p className="intake-note">No missing-document follow-up Tasks have been created.</p>}
         {hiddenQuestions.length ? (
           <p className="intake-note">{hiddenQuestions.length} conditional question{hiddenQuestions.length === 1 ? " is" : "s are"} currently non-applicable and will not block creation.</p>
         ) : null}
@@ -1528,7 +1540,7 @@ export function GuidedCaseIntake({
         followUpDialog.current?.close();
       }}
     >
-      <form className="task-modal-form" onSubmit={stageFollowUpTask}>
+      <form className="task-modal-form" onSubmit={saveFollowUpTask}>
         <header>
           <div><p className="eyebrow">Guided Intake</p><h2>Create Follow-up Task</h2></div>
           <button type="button" className="rule-dialog-close" aria-label="Close follow-up Task modal" onClick={() => followUpDialog.current?.close()}><span aria-hidden>×</span></button>
@@ -1537,7 +1549,7 @@ export function GuidedCaseIntake({
         <div className="intake-modal-context"><b>Outstanding requirements</b><p>{activeFollowUpRequirement?.missingOptions.map((option) => option.label).join(", ")}</p></div>
         <label><span>Assigned to</span><select name="assignedUserId" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.assignedUserId ?? ""}><option value="">Select Staff</option>{configuration.staff.map((member) => <option value={member.id} key={member.id}>{member.name}</option>)}</select></label>
         <label><span>Due Date</span><input type="date" name="dueDate" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.dueDate ?? ""} /></label>
-        <footer><button type="button" className="secondary-button" onClick={() => followUpDialog.current?.close()}>Cancel</button><button className="primary-button">Stage Task</button></footer>
+        <footer><button type="button" className="secondary-button" onClick={() => followUpDialog.current?.close()}>Cancel</button><button className="primary-button" disabled={pending}>{pending ? "Saving…" : draft.followUpTasks.some((task) => task.questionId === followUpQuestionId) ? "Update Task" : "Create Task"}</button></footer>
       </form>
     </dialog>
     <section className="panel guided-case-intake">
