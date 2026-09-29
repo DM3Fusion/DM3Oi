@@ -17,7 +17,6 @@ import {
 } from "@/lib/data/case-actions";
 import { UserAvatar } from "@/components/user-avatar";
 import { CaseQuestions } from "@/components/cases/case-questions";
-import { CaseCustomerReassignment } from "@/components/cases/case-customer-reassignment";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { formatOrganizationDate, formatOrganizationDateTime, organizationDateInputValue } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
@@ -77,10 +76,6 @@ export default async function Page({
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
   const canWorkCases = hasPermission(access, "WORK_CASES");
-  const canReassignCaseCustomer = hasPermission(
-    access,
-    "REASSIGN_CASE_CUSTOMER",
-  );
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
   );
@@ -145,33 +140,10 @@ export default async function Page({
                 <dt>Tax year</dt>
                 <dd>{item.tax_year ?? "—"}</dd>
               </div>
-              {canReassignCaseCustomer && item.customer ? (
-                <CaseCustomerReassignment
-                  caseId={item.id}
-                  caseNumber={item.case_number}
-                  currentCustomer={{
-                    id: item.customer.id,
-                    name: item.customer.name,
-                    customerNumber: item.customer.customer_number,
-                  }}
-                  customers={data.customers
-                    .filter(
-                      (customer) =>
-                        customer.status === "ACTIVE" &&
-                        customer.id !== item.customer_id,
-                    )
-                    .map((customer) => ({
-                      id: customer.id,
-                      name: customer.name,
-                      customerNumber: customer.customer_number,
-                    }))}
-                />
-              ) : (
-                <div>
-                  <dt>Customer</dt>
-                  <dd>{item.customer?.name ?? "Unknown customer"}</dd>
-                </div>
-              )}
+              <div>
+                <dt>Customer</dt>
+                <dd>{item.customer?.name ?? "Unknown customer"}</dd>
+              </div>
               <div>
                 <dt>Opened</dt>
                 <dd>{formatDate(item.opened_at)}</dd>
