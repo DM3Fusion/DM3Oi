@@ -80,6 +80,10 @@ export async function saveCustomerPortalSettings(form: FormData) {
       portalSubmissionEnabled: form.get("portalSubmissionEnabled"),
       portalShowPriority: form.get("portalShowPriority"),
       portalOnboardingMode: form.get("portalOnboardingMode"),
+      secureDocumentSystemUrl: form.get("secureDocumentSystemUrl"),
+      documentSubmissionInstructions: form.get(
+        "documentSubmissionInstructions",
+      ),
     },
     organizationId,
     access.user.id,

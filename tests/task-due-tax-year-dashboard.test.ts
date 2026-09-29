@@ -210,7 +210,7 @@ test("Case tax year is nullable for history but required at both creation RPC bo
   assert.match(migration, /create function public\.create_case_workflow[\s\S]*target_tax_year integer/);
   assert.match(migration, /create function public\.create_guided_case_intake[\s\S]*target_tax_year integer/);
   assert.match(source("components/cases/guided-case-intake.tsx"), /selectedType\?\.taxYearRule === "CURRENT_YEAR"[\s\S]*<span>Tax Year<\/span>[\s\S]*selectableTaxYears/);
-  assert.match(source("app/cases/[caseId]/page.tsx"), /<dt>Tax year<\/dt>[\s\S]*item\.tax_year \?\? "—"/);
+  assert.match(source("app/cases/[caseId]/page.tsx"), /<dt>Tax Year<\/dt>[\s\S]*item\.tax_year \?\? "—"/);
 });
 
 test("new Tasks require a local Due Date while legacy null-due Tasks remain operable", () => {
@@ -343,15 +343,10 @@ test("Task Purpose migration preserves deployed RPC compatibility and generated 
   );
 });
 
-test("Case Create Task uses an in-place modal with required Due Date", () => {
+test("Case page does not expose manual Task creation", () => {
   const page = source("app/cases/[caseId]/page.tsx");
-  const modal = source("components/cases/create-task-modal.tsx");
-  assert.match(page, /<CreateTaskModal[\s\S]*?caseId=\{item\.id\}/);
+  assert.doesNotMatch(page, /<CreateTaskModal/);
   assert.doesNotMatch(page, /<details className="create-panel">/);
-  assert.match(modal, /dialog\.current\?\.showModal\(\)/);
-  assert.match(modal, /name="dueDate" required/);
-  assert.match(modal, /name="priority"/);
-  assert.match(modal, /name="description"/);
 });
 
 test("Task Purpose projection grants authenticated callers the underlying Task Purpose column", () => {

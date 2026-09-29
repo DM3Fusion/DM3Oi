@@ -1474,6 +1474,8 @@ export type Database = {
       organization_settings: {
         Row: {
           default_priority: Database["public"]["Enums"]["priority_level"]
+          document_submission_instructions: string | null
+          secure_document_system_url: string | null
           organization_id: string
           portal_enabled: boolean
           portal_onboarding_mode: string
@@ -1489,6 +1491,8 @@ export type Database = {
         }
         Insert: {
           default_priority?: Database["public"]["Enums"]["priority_level"]
+          document_submission_instructions?: string | null
+          secure_document_system_url?: string | null
           organization_id: string
           portal_enabled?: boolean
           portal_onboarding_mode?: string
@@ -1504,6 +1508,8 @@ export type Database = {
         }
         Update: {
           default_priority?: Database["public"]["Enums"]["priority_level"]
+          document_submission_instructions?: string | null
+          secure_document_system_url?: string | null
           organization_id?: string
           portal_enabled?: boolean
           portal_onboarding_mode?: string
@@ -3317,6 +3323,13 @@ created_at: string
         }
       }
       delete_case_task: { Args: { target_task_id: string }; Returns: undefined }
+      get_customer_portal_case_requirements: {
+        Args: { target_portal_access_id: string }
+        Returns: {
+          case_number: string
+          missing_documents: Json
+        }[]
+      }
       get_case_progress: {
         Args: { target_case_id: string }
         Returns: {
@@ -3383,6 +3396,10 @@ created_at: string
       is_valid_organization_actor: {
         Args: { target_organization_id: string; target_user_id: string }
         Returns: boolean
+      }
+      mark_intake_requirement_notice_sent: {
+        Args: { target_task_id: string }
+        Returns: Database["public"]["Tables"]["case_tasks"]["Row"]
       }
       mark_all_notifications_read: {
         Args: { target_organization_id: string }

@@ -8,6 +8,11 @@ export interface CustomerPortalCaseSummary {
   progress_percent: number;
 }
 
+export interface CustomerPortalCaseRequirement {
+  case_number: string;
+  missing_documents: string[];
+}
+
 export class CustomerPortalCaseDataError extends Error {
   constructor() {
     super("Customer Portal case information is temporarily unavailable.");
@@ -29,4 +34,39 @@ export async function getCustomerPortalCases(portalAccessId: string) {
     throw new CustomerPortalCaseDataError();
   }
   return (data ?? []) as CustomerPortalCaseSummary[];
+}
+
+
+export async function getCustomerPortalCaseRequirements(
+  portalAccessId: string,
+): Promise<CustomerPortalCaseRequirement[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "get_customer_portal_case_requirements",
+    { target_portal_access_id: portalAccessId },
+  );
+
+  if (error) {
+    console.error("Customer Portal case requirements query failed", {
+      code: error.code,
+      message: error.message,
+    });
+    throw new CustomerPortalCaseDataError();
+  }
+
+  return (data ?? []).flatMap((row) => {
+    const documents = Array.isArray(row.missing_documents)
+      ? row.missing_documents.filter(
+          (item): item is string =>
+            typeof item === "string" && item.trim().length > 0,
+        )
+      : [];
+
+    return documents.length
+      ? [{
+          case_number: row.case_number,
+          missing_documents: documents,
+        }]
+      : [];
+  });
 }

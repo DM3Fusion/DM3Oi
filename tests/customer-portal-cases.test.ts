@@ -21,6 +21,9 @@ test("portal Case RPC derives its actor and tenant/customer scope from an active
   assert.match(migration, /customer\.id=access\.customer_id[\s\S]*customer\.organization_id=access\.organization_id[\s\S]*customer\.status='ACTIVE'/);
   assert.match(migration, /coalesce\(settings\.portal_enabled,true\)/);
   assert.doesNotMatch(migration, /target_(?:organization|customer|user|case)_id/);
+  assert.match(component, /href=\{secureDocumentSystemUrl\}/);
+  assert.match(component, /target="_blank"/);
+  assert.match(component, /rel="noopener noreferrer"/);
 });
 
 test("portal Case selection rejects cross-customer and cross-organization rows", () => {
@@ -83,7 +86,7 @@ test("portal Case UI has distinct zero, one, and multiple Case presentations", (
 });
 
 test("portal Case cards are non-navigational, responsive, and precede Service Request KPIs", () => {
-  assert.doesNotMatch(component, /<Link|href=|\/portal\/cases/);
+  assert.doesNotMatch(component, /<Link|\/portal\/cases/);
   const caseIndex = home.indexOf("<PortalCaseSummaries");
   const requestKpiIndex = home.indexOf('className="portal-summary-cards"');
   assert.ok(caseIndex > home.indexOf("Welcome Back!") && caseIndex < requestKpiIndex);

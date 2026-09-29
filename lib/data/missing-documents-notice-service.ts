@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getApplicationBaseUrl } from "@/lib/config/application-url";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CustomerPortalProvisioningError,
   provisionCustomerPortalAccess,
@@ -53,6 +54,52 @@ export async function sendMissingDocumentsNotice(input: {
     );
   }
 
+  const admin = createAdminClient();
+  const settingsResult = await admin
+    .from("organization_settings")
+    .select(
+      "secure_document_system_url,document_submission_instructions",
+    )
+    .eq("organization_id", input.organizationId)
+    .maybeSingle();
+
+  if (settingsResult.error) {
+    console.error("Missing documents routing settings lookup failed", {
+      organizationId: input.organizationId,
+      code: settingsResult.error.code,
+      message: settingsResult.error.message,
+    });
+    throw new MissingDocumentsNoticeError(
+      "Document submission settings could not be loaded.",
+    );
+  }
+
+  const secureDocumentSystemUrl =
+    settingsResult.data?.secure_document_system_url?.trim() ?? "";
+  const documentSubmissionInstructions =
+    settingsResult.data?.document_submission_instructions?.trim() ?? "";
+
+  if (!secureDocumentSystemUrl || !documentSubmissionInstructions) {
+    throw new MissingDocumentsNoticeError(
+      "Configure the Secure Document System URL and Document Submission Instructions in Customer Portal settings before sending this notice.",
+    );
+  }
+
+  let secureUrl: URL;
+  try {
+    secureUrl = new URL(secureDocumentSystemUrl);
+  } catch {
+    throw new MissingDocumentsNoticeError(
+      "The configured Secure Document System URL is invalid.",
+    );
+  }
+
+  if (secureUrl.protocol !== "https:") {
+    throw new MissingDocumentsNoticeError(
+      "The configured Secure Document System URL must use HTTPS.",
+    );
+  }
+
   const firstName =
     input.customerName.trim().split(/\s+/)[0] || "Customer";
 
@@ -74,6 +121,8 @@ export async function sendMissingDocumentsNotice(input: {
       recipient_email: recipientEmail,
       case_number: input.caseNumber,
       missing_documents: input.missingDocuments,
+      secure_document_system_url: secureUrl.toString(),
+      document_submission_instructions: documentSubmissionInstructions,
       action_url: `${baseUrl.replace(/\/$/, "")}/portal`,
     },
   });

@@ -21,6 +21,8 @@ export type CustomerPortalSettingsInput = {
   portalSubmissionEnabled: unknown;
   portalShowPriority: unknown;
   portalOnboardingMode: unknown;
+  secureDocumentSystemUrl?: unknown;
+  documentSubmissionInstructions?: unknown;
 };
 
 type ParseResult<T> =
@@ -108,6 +110,8 @@ export function buildCustomerPortalSettingsWrite(
     | "portal_onboarding_mode"
     | "portal_submission_enabled"
     | "portal_show_priority"
+    | "secure_document_system_url"
+    | "document_submission_instructions"
     | "updated_by"
   >
 > {
@@ -117,6 +121,10 @@ export function buildCustomerPortalSettingsWrite(
   );
   const portalShowPriority = booleanField(input.portalShowPriority);
   const portalOnboardingMode = text(input.portalOnboardingMode);
+  const secureDocumentSystemUrl = text(input.secureDocumentSystemUrl);
+  const documentSubmissionInstructions = text(
+    input.documentSubmissionInstructions,
+  );
 
   if (
     portalEnabled === null ||
@@ -129,6 +137,48 @@ export function buildCustomerPortalSettingsWrite(
     return { ok: false, error: "Select valid Customer Portal settings." };
   }
 
+  if (secureDocumentSystemUrl.length > 2048) {
+    return {
+      ok: false,
+      error: "Secure Document System URL is too long.",
+    };
+  }
+
+  if (secureDocumentSystemUrl) {
+    try {
+      const parsedUrl = new URL(secureDocumentSystemUrl);
+      if (parsedUrl.protocol !== "https:") {
+        return {
+          ok: false,
+          error: "Secure Document System URL must use HTTPS.",
+        };
+      }
+    } catch {
+      return {
+        ok: false,
+        error: "Enter a valid Secure Document System URL.",
+      };
+    }
+  }
+
+  if (documentSubmissionInstructions.length > 4000) {
+    return {
+      ok: false,
+      error: "Document Submission Instructions are too long.",
+    };
+  }
+
+  if (
+    Boolean(secureDocumentSystemUrl) !==
+    Boolean(documentSubmissionInstructions)
+  ) {
+    return {
+      ok: false,
+      error:
+        "Configure both the Secure Document System URL and Document Submission Instructions, or leave both blank.",
+    };
+  }
+
   return {
     ok: true,
     value: {
@@ -137,6 +187,9 @@ export function buildCustomerPortalSettingsWrite(
       portal_onboarding_mode: portalOnboardingMode,
       portal_submission_enabled: portalSubmissionEnabled,
       portal_show_priority: portalShowPriority,
+      secure_document_system_url: secureDocumentSystemUrl || null,
+      document_submission_instructions:
+        documentSubmissionInstructions || null,
       updated_by: updatedBy,
     },
   };

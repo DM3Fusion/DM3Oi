@@ -59,6 +59,7 @@ test("platform template catalog is bounded to DM3Oi transactional messages", () 
     "ORGANIZATION_USER_INVITATION",
     "ORGANIZATION_USER_INVITATION_RESEND",
     "CUSTOMER_PORTAL_INVITATION",
+    "MISSING_DOCUMENTS_NOTICE",
     "SIGN_IN_CODE",
     "NEW_SERVICE_REQUEST_NOTIFICATION",
   ]);

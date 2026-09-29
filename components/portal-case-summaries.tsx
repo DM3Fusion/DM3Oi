@@ -1,25 +1,56 @@
-import type { CustomerPortalCaseSummary } from "@/lib/data/customer-portal-case-repository";
+import type {
+  CustomerPortalCaseRequirement,
+  CustomerPortalCaseSummary,
+} from "@/lib/data/customer-portal-case-repository";
 
 const safePercentage = (value: number) =>
   Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 
-export function PortalCaseSummaries({ cases }: { cases: CustomerPortalCaseSummary[] }) {
+type Props = {
+  cases: CustomerPortalCaseSummary[];
+  requirements: CustomerPortalCaseRequirement[];
+  organizationName: string;
+  secureDocumentSystemUrl: string | null;
+  documentSubmissionInstructions: string | null;
+};
+
+export function PortalCaseSummaries({
+  cases,
+  requirements,
+  organizationName,
+  secureDocumentSystemUrl,
+  documentSubmissionInstructions,
+}: Props) {
   if (!cases.length) {
     return (
-      <section className="portal-case-empty" aria-labelledby="portal-cases-heading">
+      <section
+        className="portal-case-empty"
+        aria-labelledby="portal-cases-heading"
+      >
         <h2 id="portal-cases-heading">No active cases</h2>
         <p>You don’t currently have any work in progress.</p>
       </section>
     );
   }
 
+  const requirementByCase = new Map(
+    requirements.map((item) => [item.case_number, item]),
+  );
   const singular = cases.length === 1;
+
   return (
-    <section className="portal-case-section" aria-labelledby="portal-cases-heading">
-      <h2 id="portal-cases-heading">{singular ? "Your Case" : "Active Cases"}</h2>
+    <section
+      className="portal-case-section"
+      aria-labelledby="portal-cases-heading"
+    >
+      <h2 id="portal-cases-heading">
+        {singular ? "Your Case" : "Active Cases"}
+      </h2>
       <div className={`portal-case-grid${singular ? " single" : ""}`}>
         {cases.map((item) => {
           const percentage = safePercentage(item.progress_percent);
+          const requirement = requirementByCase.get(item.case_number);
+
           return (
             <article className="portal-case-card" key={item.case_number}>
               <div className="portal-case-heading">
@@ -27,8 +58,11 @@ export function PortalCaseSummaries({ cases }: { cases: CustomerPortalCaseSummar
                   <strong>{item.service_label || item.case_number}</strong>
                   <span>{item.case_number}</span>
                 </div>
-                <span className="portal-case-status">{item.customer_status}</span>
+                <span className="portal-case-status">
+                  {item.customer_status}
+                </span>
               </div>
+
               <div className="portal-case-progress-copy">
                 <strong>{percentage}% Complete</strong>
               </div>
@@ -43,6 +77,60 @@ export function PortalCaseSummaries({ cases }: { cases: CustomerPortalCaseSummar
               >
                 <span style={{ width: `${percentage}%` }} />
               </div>
+
+              {requirement ? (
+                <section
+                  className="portal-case-requirement"
+                  aria-label={`Action required for ${item.case_number}`}
+                >
+                  <div className="portal-case-requirement-label">
+                    Action Required
+                  </div>
+                  <h3>Documents Needed</h3>
+                  <ul>
+                    {requirement.missing_documents.map((document) => (
+                      <li key={document}>{document}</li>
+                    ))}
+                  </ul>
+
+                  <div className="portal-case-privacy-notice">
+                    <strong>Privacy Notice</strong>
+                    <p>
+                      For your privacy, do not send documents, tax records,
+                      identification, or other sensitive information through
+                      DM3Oi or a DM3Oi email reply.
+                    </p>
+                    <p>
+                      You must use the secure document system required by{" "}
+                      {organizationName} or follow the document-submission
+                      instructions below.
+                    </p>
+                  </div>
+
+                  {documentSubmissionInstructions ? (
+                    <div className="portal-document-instructions">
+                      <strong>How to Provide Your Documents</strong>
+                      <p>{documentSubmissionInstructions}</p>
+                    </div>
+                  ) : null}
+
+                  {secureDocumentSystemUrl ? (
+                    <a
+                      className="primary-button portal-secure-document-link"
+                      href={secureDocumentSystemUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open Secure Document System
+                    </a>
+                  ) : null}
+
+                  <small className="portal-external-system-note">
+                    Opens the organization&apos;s external secure document
+                    system outside DM3Oi.
+                  </small>
+                </section>
+              ) : null}
             </article>
           );
         })}

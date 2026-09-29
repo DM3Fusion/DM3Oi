@@ -140,6 +140,8 @@ test("Customer Portal payload owns no defaults or organization fields", () => {
     portal_submission_enabled: true,
     portal_show_priority: false,
     portal_onboarding_mode: "MANUAL_ONLY",
+    secure_document_system_url: null,
+    document_submission_instructions: null,
     updated_by: "actor-id",
   });
   for (const unrelatedField of [
