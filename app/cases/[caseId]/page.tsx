@@ -9,7 +9,6 @@ import { getAccessContext } from "@/lib/auth/context";
 import { formatActivity } from "@/lib/activity-format";
 import { formatDate } from "@/lib/format";
 import {
-  moveTaskAction,
   sendMissingDocumentsNoticeAction,
   setCaseAssignmentAction,
   transitionCaseStatusAction,
@@ -329,7 +328,7 @@ export default async function Page({
             </div>
             {item.tasks.length ? (
               <div className="task-list">
-                {item.tasks.map((task, index) => (
+                {item.tasks.map((task) => (
                   <details className="task-record" key={task.id}>
                     <summary className="task-record-summary">
                       <span
@@ -523,36 +522,7 @@ export default async function Page({
                           <span>Email Sent</span>
                         </div>
                       ) : null}
-                      {canManage ? (
-                        <div className="task-actions">
-                          <form action={moveTaskAction}>
-                            <input
-                              type="hidden"
-                              name="caseId"
-                              value={item.id}
-                            />
-                            <input
-                              type="hidden"
-                              name="taskId"
-                              value={task.id}
-                            />
-                            <button
-                              name="direction"
-                              value="UP"
-                              disabled={index === 0}
-                            >
-                              Move Up
-                            </button>
-                            <button
-                              name="direction"
-                              value="DOWN"
-                              disabled={index === item.tasks.length - 1}
-                            >
-                              Move Down
-                            </button>
-                          </form>
-                        </div>
-                      ) : null}
+
                     </div>
                   </details>
                 ))}

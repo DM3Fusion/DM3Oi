@@ -79,6 +79,17 @@ export async function sendMissingDocumentsNotice(input: {
   });
 
   if (!delivery.ok) {
+    console.error("Missing documents email delivery failed", {
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+      caseId: input.caseId,
+      recipientEmail,
+      transport: delivery.transport,
+      audit: delivery.audit,
+      errorCode: delivery.errorCode,
+      safeMessage: delivery.safeMessage,
+    });
+
     throw new MissingDocumentsNoticeError(
       "Customer Portal access was prepared, but the missing-documents notice could not be sent.",
     );

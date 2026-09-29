@@ -332,21 +332,13 @@ export async function deleteTaskAction(data: FormData) {
 export async function moveTaskAction(data: FormData) {
   const caseId = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");
-  const supabase = await createClient();
-  const { error } = await supabase.rpc("move_case_task", {
-    target_task_id: text(data, "taskId"),
-    target_direction: text(data, "direction"),
-  });
-  if (error) {
-    console.error("Move task failed", {
-      code: error.code,
-      message: error.message,
-    });
-    fail(`/cases/${caseId}`, friendly(error.message));
-  }
-  refreshCase(caseId);
-  redirect(`/cases/${caseId}`);
+
+  fail(
+    `/cases/${caseId}`,
+    "Workflow Tasks cannot be manually reordered.",
+  );
 }
+
 export async function createCustomerAction(data: FormData) {
   const values = {
     type: String(data.get("type") ?? ""),
