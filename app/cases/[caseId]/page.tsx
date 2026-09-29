@@ -60,19 +60,20 @@ export default async function Page({
     .order("sort_order")
     .order("label");
 
-  const dependentsQuestionQuery = supabase
+  const qualifierQuestionsQuery = supabase
     .from("question_definitions")
-    .select("id")
+    .select("id,question_text")
     .eq("organization_id", data.organizationId)
-    .eq("question_text", "Are dependents being claimed?")
     .eq("response_type", "YES_NO")
     .eq("active", true)
-    .limit(1)
-    .maybeSingle();
+    .in("question_text", [
+      "Are dependents being claimed?",
+      "Is self-employment or business income involved?",
+    ]);
 
-  const [purposeResult, dependentsQuestionResult] = await Promise.all([
+  const [purposeResult, qualifierQuestionsResult] = await Promise.all([
     purposeQuery,
-    dependentsQuestionQuery,
+    qualifierQuestionsQuery,
   ]);
   if (purposeResult.error) {
     console.error("Task Purpose query failed", {
@@ -88,13 +89,15 @@ export default async function Page({
   }>;
   const questions = item.questions;
 
-  if (dependentsQuestionResult.error) {
-    console.error("Dependents Question lookup failed", {
+  if (qualifierQuestionsResult.error) {
+    console.error("Case qualifier Question lookup failed", {
       organizationId: data.organizationId,
-      code: dependentsQuestionResult.error.code,
-      message: dependentsQuestionResult.error.message,
+      code: qualifierQuestionsResult.error.code,
+      message: qualifierQuestionsResult.error.message,
     });
   }
+
+  const qualifierDefinitions = qualifierQuestionsResult.data ?? [];
 
   const finalizedDependentsQuestion = questions.find(
     (question) =>
@@ -105,7 +108,11 @@ export default async function Page({
 
   const dependentsQuestionId =
     finalizedDependentsQuestion?.id ??
-    ((dependentsQuestionResult.data as { id?: string } | null)?.id ?? null);
+    qualifierDefinitions.find(
+      (question) =>
+        question.question_text === "Are dependents being claimed?",
+    )?.id ??
+    null;
 
   const dependentsValue =
     item.intakeProgress && dependentsQuestionId
@@ -118,6 +125,57 @@ export default async function Page({
       : dependentsValue === false || dependentsValue === "false"
         ? "No"
         : "—";
+
+  const finalizedSelfEmploymentQuestion = questions.find(
+    (question) =>
+      question.response_type === "YES_NO" &&
+      question.question_text.trim().toLowerCase() ===
+        "is self-employment or business income involved?",
+  );
+
+  const selfEmploymentQuestionId =
+    finalizedSelfEmploymentQuestion?.id ??
+    qualifierDefinitions.find(
+      (question) =>
+        question.question_text ===
+        "Is self-employment or business income involved?",
+    )?.id ??
+    null;
+
+  const selfEmploymentValue =
+    item.intakeProgress && selfEmploymentQuestionId
+      ? item.intakeProgress.answers[selfEmploymentQuestionId]
+      : finalizedSelfEmploymentQuestion?.response?.response_value;
+
+  const hasSelfEmployment =
+    selfEmploymentValue === true || selfEmploymentValue === "true";
+
+  const openedLocalDate = organizationDateInputValue(
+    item.opened_at,
+    data.timezone,
+  );
+  const updatedLocalDate = organizationDateInputValue(
+    item.updated_at,
+    data.timezone,
+  );
+
+  const inclusiveDurationDays = (() => {
+    const parseLocalDate = (value: string) => {
+      const [year, month, day] = value.split("-").map(Number);
+      return Date.UTC(year, month - 1, day);
+    };
+
+    if (!openedLocalDate || !updatedLocalDate) return null;
+
+    const difference =
+      Math.floor(
+        (parseLocalDate(updatedLocalDate) -
+          parseLocalDate(openedLocalDate)) /
+          86_400_000,
+      ) + 1;
+
+    return Math.max(1, difference);
+  })();
 
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
@@ -187,32 +245,58 @@ export default async function Page({
             <p className="description">
               {item.description || "No description provided."}
             </p>
-            <dl className="overview-grid case-overview-grid">
-              <div>
-                <dt>Customer</dt>
-                <dd>{item.customer?.name ?? "Unknown customer"}</dd>
-              </div>
-              <div>
-                <dt>Case type</dt>
-                <dd>{item.case_type}</dd>
-              </div>
-              <div>
-                <dt>Dependents Claimed</dt>
-                <dd>{dependentsClaimed}</dd>
-              </div>
-              <div>
-                <dt>Opened</dt>
-                <dd>{formatDate(item.opened_at)}</dd>
-              </div>
-              <div>
-                <dt>Manager</dt>
-                <dd>{displayName(item.manager)}</dd>
-              </div>
-              <div>
-                <dt>Last updated</dt>
-                <dd>{formatDate(item.updated_at)}</dd>
-              </div>
-            </dl>
+            <div className="case-overview-profile">
+              <h3>Customer / Return Profile</h3>
+              <dl className="overview-grid case-overview-grid">
+                <div>
+                  <dt>Customer</dt>
+                  <dd>{item.customer?.name ?? "Unknown customer"}</dd>
+                </div>
+                <div>
+                  <dt>Case type</dt>
+                  <dd>{item.case_type}</dd>
+                </div>
+                <div>
+                  <dt>Dependents Claimed</dt>
+                  <dd>{dependentsClaimed}</dd>
+                </div>
+                {hasSelfEmployment ? (
+                  <div>
+                    <dt>Self-Employment / Business Income</dt>
+                    <dd>Yes</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+
+            <div className="case-timing-card">
+              <h3>Case Timing</h3>
+              <dl className="case-timing-grid">
+                <div>
+                  <dt>Opened</dt>
+                  <dd>
+                    {formatOrganizationDate(item.opened_at, data.timezone)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Last Updated</dt>
+                  <dd>
+                    {formatOrganizationDate(item.updated_at, data.timezone)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>Duration</dt>
+                  <dd>
+                    {inclusiveDurationDays === null
+                      ? "—"
+                      : `${inclusiveDurationDays} ${
+                          inclusiveDurationDays === 1 ? "day" : "days"
+                        }`}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
             {canWorkCases && isIncompleteCompatibilityCaseStatus(item.status) ? <form
               action={transitionCaseStatusAction}
               className="inline-control"
