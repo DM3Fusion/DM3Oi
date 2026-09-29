@@ -54,16 +54,18 @@ export function CaseTable({
               </td>
               {!compact && <td>{displayName(item.manager)}</td>}
               <td>
-                <div className="avatar-stack">
+                <div className="case-assigned-staff">
                   {item.assignedStaff.length ? (
                     item.assignedStaff.map((profile) => (
-                      <UserAvatar
-                        key={profile.id}
-                        displayName={displayName(profile)}
-                        email={profile.email}
-                        src={profile.avatarUrl}
-                        size="sm"
-                      />
+                      <div className="case-assigned-staff-person" key={profile.id}>
+                        <UserAvatar
+                          displayName={displayName(profile)}
+                          email={profile.email}
+                          src={profile.avatarUrl}
+                          size="sm"
+                        />
+                        <span>{displayName(profile)}</span>
+                      </div>
                     ))
                   ) : (
                     <em>Unassigned</em>

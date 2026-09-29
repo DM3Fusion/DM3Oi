@@ -8207,3 +8207,8 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     padding:12px;
   }
 }
+
+.case-assigned-staff{display:flex;flex-direction:column;gap:5px;min-width:120px}
+.case-assigned-staff-person{display:flex;align-items:center;gap:7px;min-width:0}
+.case-assigned-staff-person span{font-size:10px;font-weight:650;color:#263548;white-space:nowrap}
+.case-assigned-staff>em{font-size:10px;color:var(--muted)}
