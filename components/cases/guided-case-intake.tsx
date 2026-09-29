@@ -3,8 +3,9 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  createGuidedCaseAction,
+  finalizeGuidedCaseAction,
   createInlineIntakeCustomerAction,
+  materializeGuidedCaseAction,
   saveGuidedIntakeDraftAction,
   loadGuidedIntakePortalStatusAction,
   sendGuidedIntakePortalInvitationAction,
@@ -325,6 +326,7 @@ export function GuidedCaseIntake({
   const [draft, setDraft] = useState<GuidedCaseIntakeDraft>(() => {
     const source = initialDraft ?? {
       submissionKey,
+      caseId: null,
       customerId: "",
       taxYear: null,
       description: "",
@@ -766,7 +768,7 @@ export function GuidedCaseIntake({
     }));
     setErrors((current) => ({ ...current, portalOnboarding: "" }));
   };
-  const continueForward = () => {
+  const continueForward = async () => {
     const blockers = validateStep();
     setErrors(blockers);
     if (Object.keys(blockers).length) {
@@ -774,6 +776,22 @@ export function GuidedCaseIntake({
       return;
     }
     setFormError(null);
+
+    if (step === 1) {
+      setPending(true);
+      const result = await materializeGuidedCaseAction(draft, customerMode);
+      setPending(false);
+      if (!result.ok) {
+        setErrors(result.fieldErrors);
+        setFormError(result.error);
+        if (result.step !== 1) setStep(result.step);
+        return;
+      }
+      setDraft((current) => ({ ...current, caseId: result.caseId }));
+      setStep(2);
+      return;
+    }
+
     setStep((current) => Math.min(current + 1, guidedCaseIntakeSteps.length - 1));
   };
 
@@ -1527,6 +1545,7 @@ export function GuidedCaseIntake({
         {guidedCaseIntakeSteps.map((label, index) => {
           const completed = index < step;
           const current = index === step;
+          const identityLocked = Boolean(draft.caseId) && index < 2;
 
           return (
             <li
@@ -1537,16 +1556,18 @@ export function GuidedCaseIntake({
               <button
                 type="button"
                 className="intake-step-tab"
-                disabled={!completed}
+                disabled={!completed || identityLocked}
                 onClick={() => {
-                  if (!completed) return;
+                  if (!completed || identityLocked) return;
                   setStep(index);
                   setErrors({});
                   setFormError(null);
                 }}
                 aria-label={
-                  completed
+                  completed && !identityLocked
                     ? `Go back to ${label}`
+                    : identityLocked
+                      ? `${label}, Case identity is already established`
                     : current
                       ? `${label}, current step`
                       : `${label}, not yet available`
@@ -1567,17 +1588,19 @@ export function GuidedCaseIntake({
       {content}
       <div className="form-actions intake-actions">
         <div className="intake-actions-left">
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={saveAndContinueLater}
-            disabled={pending}
-          >
-            {pending ? "Saving…" : "Save and Continue Later"}
-          </button>
-          {step === 0 ? (
+          {step >= 2 ? (
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={saveAndContinueLater}
+              disabled={pending}
+            >
+              {pending ? "Saving…" : "Save and Continue Later"}
+            </button>
+          ) : null}
+          {step === 0 || (Boolean(draft.caseId) && step === 2) ? (
             <Link className="intake-cancel-button" href="/cases">
-              Cancel
+              {draft.caseId ? "Exit Intake" : "Cancel"}
             </Link>
           ) : (
             <button
@@ -1631,7 +1654,7 @@ export function GuidedCaseIntake({
             onClick={async () => {
               setPending(true);
               setFormError(null);
-              const result = await createGuidedCaseAction(
+              const result = await finalizeGuidedCaseAction(
                 draft,
                 customerMode,
               );
@@ -1642,10 +1665,10 @@ export function GuidedCaseIntake({
                 if (result.step !== 5) setStep(result.step);
                 return;
               }
-              router.push(`/cases/${result.caseId}?message=${encodeURIComponent(`Case ${result.caseNumber} created.`)}`);
+              router.push(`/cases/${result.caseId}?message=${encodeURIComponent(`Case ${result.caseNumber} intake finalized.`)}`);
             }}
           >
-            {pending ? "Creating Case…" : "Create Case"}
+            {pending ? "Finalizing Intake…" : "Finish Intake"}
           </button>
         )}
       </div>

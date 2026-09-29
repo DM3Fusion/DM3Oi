@@ -803,6 +803,7 @@ export type Database = {
       guided_case_intake_drafts: {
         Row: {
           answers: Json
+          case_id: string | null
           case_title_id: string | null
           case_type_id: string | null
           created_at: string
@@ -812,6 +813,7 @@ export type Database = {
           customer_mode: string
           description: string
           follow_up_tasks: Json
+          finalized_at: string | null
           id: string
           manager_user_id: string | null
           new_customer: Json
@@ -826,6 +828,7 @@ export type Database = {
         }
         Insert: {
           answers?: Json
+          case_id?: string | null
           case_title_id?: string | null
           case_type_id?: string | null
           created_at?: string
@@ -835,6 +838,7 @@ export type Database = {
           customer_mode?: string
           description?: string
           follow_up_tasks?: Json
+          finalized_at?: string | null
           id?: string
           manager_user_id?: string | null
           new_customer?: Json
@@ -849,6 +853,7 @@ export type Database = {
         }
         Update: {
           answers?: Json
+          case_id?: string | null
           case_title_id?: string | null
           case_type_id?: string | null
           created_at?: string
@@ -858,6 +863,7 @@ export type Database = {
           customer_mode?: string
           description?: string
           follow_up_tasks?: Json
+          finalized_at?: string | null
           id?: string
           manager_user_id?: string | null
           new_customer?: Json
@@ -871,6 +877,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "guided_case_intake_drafts_organization_id_case_id_fkey"
+            columns: ["organization_id", "case_id"]
+            isOneToOne: true
+            referencedRelation: "cases"
+            referencedColumns: ["organization_id", "id"]
+          },
           {
             foreignKeyName: "guided_case_intake_drafts_created_by_user_id_fkey"
             columns: ["created_by_user_id"]

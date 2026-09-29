@@ -11,26 +11,42 @@ export type GuidedCaseFinalizationFailure = {
 
 export function mapGuidedCaseFinalizationError(
   error: GuidedCaseFinalizationError | null,
+  phase: "materialize" | "finalize" = "finalize",
 ): GuidedCaseFinalizationFailure {
   const message = error?.message?.toLowerCase() ?? "";
 
   if (
     message.includes("customer already has a case for this tax year") ||
+    message.includes("customer already has an unrelated case for this tax year") ||
+    message.includes("unfinished intake already exists") ||
     (error?.code === "23505" &&
       message.includes("cases_one_customer_per_tax_year"))
   ) {
     return {
-      error: "A Case already exists for this Customer and Tax Year.",
+      error:
+        "A Case already exists for this Customer and Tax Year. Open the existing Case or resume its Guided Intake.",
       fieldErrors: {
-        customerId: "Select another Customer or choose a different Tax Year.",
+        customerId: "Open the existing Case or resume its Guided Intake.",
       },
-      step: 0,
+      step: 1,
+    };
+  }
+
+  if (
+    message.includes("has not been materialized") ||
+    message.includes("case linkage is invalid") ||
+    message.includes("case identity does not match")
+  ) {
+    return {
+      error: "This Guided Intake is not linked to its authoritative Case.",
+      fieldErrors: { caseTypeId: "Re-establish the Case from Case Details." },
+      step: 1,
     };
   }
 
   if (message.includes("customer portal onboarding")) {
     return {
-      error: "Customer Portal access must be resolved before creating this Case.",
+      error: "Customer Portal access must be resolved before finishing this intake.",
       fieldErrors: {
         portalOnboarding: "Customer Portal onboarding is unresolved.",
       },
@@ -74,6 +90,7 @@ export function mapGuidedCaseFinalizationError(
     message.includes("invalid staff") ||
     message.includes("assignment permission") ||
     message.includes("duplicate staff assignment") ||
+    message.includes("assignment changed") ||
     message.includes("assigned staff member is required")
   ) {
     return {
@@ -113,15 +130,21 @@ export function mapGuidedCaseFinalizationError(
     message.includes("permission")
   ) {
     return {
-      error: "You are no longer authorized to create or assign this Case.",
+      error:
+        phase === "materialize"
+          ? "You are no longer authorized to establish or assign this Case."
+          : "You are no longer authorized to finalize this Case.",
       fieldErrors: {},
-      step: 5,
+      step: phase === "materialize" ? 1 : 5,
     };
   }
 
   return {
-    error: "The Case could not be created. Please try again.",
+    error:
+      phase === "materialize"
+        ? "The Case could not be established. Please try again."
+        : "The Guided Intake could not be finalized. Please try again.",
     fieldErrors: {},
-    step: 5,
+    step: phase === "materialize" ? 1 : 5,
   };
 }

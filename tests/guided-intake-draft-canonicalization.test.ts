@@ -63,17 +63,15 @@ test("Customer search operates only on the already-eligible Customer set", () =>
   );
 });
 
-test("draft deletion and Case creation invalidate fresh-intake eligibility", () => {
+test("draft deletion and finalization invalidate fresh-intake eligibility safely", () => {
   const deleteAction = actions.slice(
     actions.indexOf("export async function deleteGuidedIntakeDraftAction"),
   );
   assert.match(deleteAction, /\.from\("guided_case_intake_drafts"\)[\s\S]*\.delete\(\)/);
   assert.match(deleteAction, /revalidatePath\("\/cases\/new"\)/);
-  assert.match(
-    caseModelMigration,
-    /delete from public\.guided_case_intake_drafts[\s\S]*submission_key=target_submission_key/,
-  );
-  assert.match(actions, /createGuidedCaseAction[\s\S]*revalidatePath\("\/cases\/new"\)/);
+  assert.match(deleteAction, /\.is\("case_id", null\)/);
+  assert.match(loader, /\.is\("finalized_at", null\)/);
+  assert.match(actions, /finalizeGuidedCaseAction[\s\S]*revalidatePath\("\/cases\/new"\)/);
 });
 
 test("historical Cases do not participate in draft-based Step 1 exclusion", () => {

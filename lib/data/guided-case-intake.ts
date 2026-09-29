@@ -78,6 +78,7 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       .select("customer_id")
       .eq("organization_id", organizationId)
       .eq("created_by_user_id", access.user.id)
+      .is("finalized_at", null)
       .not("customer_id", "is", null),
     admin
       .from("cases")

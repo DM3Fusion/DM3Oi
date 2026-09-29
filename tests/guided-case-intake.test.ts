@@ -73,6 +73,7 @@ const baseConfiguration = (): GuidedIntakeConfiguration => ({
 
 const draft = (): GuidedCaseIntakeDraft => ({
   submissionKey: "00000000-0000-4000-8000-000000000001",
+  caseId: null,
   customerId: "customer-a",
   taxYear: 2025,
   description: "Details",

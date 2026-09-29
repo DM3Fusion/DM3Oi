@@ -47,7 +47,7 @@ test("authoritative response and Rule mutations synchronize Tasks while Case ren
   assert.match(responseActions, /save_case_question_response[\s\S]*synchronizeCaseRuleTasks/);
   assert.match(responseActions, /organizationId: saved\.organization_id[\s\S]*caseId: saved\.case_id/);
   assert.match(ruleActions, /save_rule_definition[\s\S]*synchronizeOrganizationRuleTasks/);
-  assert.match(guidedActions, /create_guided_case_intake/);
+  assert.match(guidedActions, /finalize_guided_case_intake/);
   assert.match(guidedMigration, /action\.action_type='CREATE_TASK'[\s\S]*source_rule_id,source_rule_action_id/);
   assert.doesNotMatch(repository + page, /synchronizeCaseRuleTasks|synchronizeOrganizationRuleTasks|synchronize_case_rule_tasks/);
 });

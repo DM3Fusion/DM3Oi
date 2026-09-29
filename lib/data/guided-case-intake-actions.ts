@@ -12,6 +12,8 @@ import {
   guidedFollowUpTaskMatchesMissingOptions,
   canCompleteIntakeFollowUpTask,
   validateGuidedRequiredOptionMap,
+  validateGuidedCaseDetails,
+  validateGuidedCustomerStep,
   validateGuidedCaseIntake,
   type GuidedCaseIntakeDraft,
 } from "@/lib/guided-case-intake";
@@ -177,6 +179,7 @@ export async function saveGuidedIntakeDraftAction(
         .eq("organization_id", organizationId)
         .eq("created_by_user_id", access.user.id)
         .eq("submission_key", input.draft.submissionKey)
+        .is("finalized_at", null)
         .maybeSingle(),
       input.draft.customerId
         ? supabase
@@ -185,6 +188,7 @@ export async function saveGuidedIntakeDraftAction(
             .eq("organization_id", organizationId)
             .eq("created_by_user_id", access.user.id)
             .eq("customer_id", input.draft.customerId)
+            .is("finalized_at", null)
             .order("updated_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
       input.draft.customerId
@@ -327,7 +331,89 @@ const firstInvalidStep = (fieldErrors: Record<string, string>) => {
   return 2;
 };
 
-export async function createGuidedCaseAction(
+export async function materializeGuidedCaseAction(
+  draft: GuidedCaseIntakeDraft,
+  customerMode: "existing" | "new",
+): Promise<CreateGuidedCaseResult> {
+  const { access, configuration } =
+    await loadGuidedCaseIntakeConfiguration();
+  const fieldErrors = {
+    ...validateGuidedCustomerStep(draft, configuration),
+    ...validateGuidedCaseDetails(draft, configuration, customerMode),
+  };
+
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      draft.submissionKey,
+    )
+  ) {
+    return {
+      ok: false,
+      error: "This intake session is invalid. Refresh and try again.",
+      fieldErrors: {},
+      step: 0,
+    };
+  }
+
+  if (Object.keys(fieldErrors).length) {
+    return {
+      ok: false,
+      error: "Complete the highlighted Case details before continuing.",
+      fieldErrors,
+      step: firstInvalidStep(fieldErrors),
+    };
+  }
+
+  const supabase = await createClient();
+  // Temporary signature bridge until generated RPC types include Milestone 2.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: materialized, error } = await (supabase as any).rpc(
+    "materialize_guided_case_intake",
+    {
+      target_organization_id: access.activeOrganization!.id,
+      target_submission_key: draft.submissionKey,
+      target_customer_id: draft.customerId,
+      target_customer_mode: customerMode,
+      target_description: draft.description.trim(),
+      target_case_type_id: draft.caseTypeId,
+      target_priority: guidedCasePriority(draft.priority),
+      target_tax_year: draft.taxYear!,
+      target_manager_user_id: draft.managerUserId || null,
+      target_staff_user_ids: draft.staffUserIds,
+    },
+  );
+
+  if (error || !materialized) {
+    console.error("Guided Case Intake materialization failed", {
+      operation: "materialize_guided_case_intake",
+      organizationId: access.activeOrganization!.id,
+      submissionKey: draft.submissionKey,
+      customerId: draft.customerId,
+      caseTypeId: draft.caseTypeId,
+      taxYear: draft.taxYear,
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    });
+    return {
+      ok: false,
+      ...mapGuidedCaseFinalizationError(error, "materialize"),
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/cases");
+  revalidatePath("/cases/new");
+  revalidatePath(`/cases/${materialized.id}`);
+  return {
+    ok: true,
+    caseId: materialized.id,
+    caseNumber: materialized.case_number,
+  };
+}
+
+export async function finalizeGuidedCaseAction(
   draft: GuidedCaseIntakeDraft,
   customerMode: "existing" | "new",
 ): Promise<CreateGuidedCaseResult> {
@@ -339,6 +425,14 @@ export async function createGuidedCaseAction(
       error: "This intake session is invalid. Refresh and try again.",
       fieldErrors: {},
       step: 0,
+    };
+  }
+  if (!draft.caseId) {
+    return {
+      ok: false,
+      error: "Return to Case Details and establish the Case before finishing intake.",
+      fieldErrors: { caseTypeId: "The Case has not been established." },
+      step: 1,
     };
   }
   const validation = validateGuidedCaseIntake(
@@ -402,7 +496,7 @@ export async function createGuidedCaseAction(
   // Temporary RPC signature bridge until generated Supabase types are refreshed.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: created, error } = await (supabase as any).rpc(
-    "create_guided_case_intake",
+    "finalize_guided_case_intake",
     {
       target_organization_id: access.activeOrganization!.id,
       target_submission_key: draft.submissionKey,
@@ -420,8 +514,8 @@ export async function createGuidedCaseAction(
     },
   );
   if (error || !created) {
-    console.error("Guided Case Intake creation failed", {
-      operation: "create_guided_case_intake",
+    console.error("Guided Case Intake finalization failed", {
+      operation: "finalize_guided_case_intake",
       organizationId: access.activeOrganization!.id,
       submissionKey: draft.submissionKey,
       customerId: draft.customerId,
@@ -579,6 +673,7 @@ export async function deleteGuidedIntakeDraftAction(
     .delete()
     .eq("organization_id", organizationId)
     .eq("id", draftId)
+    .is("case_id", null)
     .select("id")
     .maybeSingle();
 

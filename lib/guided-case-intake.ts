@@ -16,7 +16,7 @@ export const guidedCaseIntakeSteps = [
   "Intake Questions",
   "Requirements",
   "Review",
-  "Create Case",
+  "Finish Intake",
 ] as const;
 
 export const guidedCasePriorities = [
@@ -235,6 +235,7 @@ export type GuidedIntakeFollowUpTask = {
 
 export type GuidedCaseIntakeDraft = {
   submissionKey: string;
+  caseId: string | null;
   customerId: string;
   taxYear: number | null;
   description: string;

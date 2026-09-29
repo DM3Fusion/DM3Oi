@@ -33,6 +33,7 @@ export type GuidedIntakeSavedDraft = {
 
 export type GuidedIntakeDraftSummary = {
   id: string;
+  caseId: string | null;
   currentStep: number;
   customerId: string;
   customerName: string;
@@ -170,11 +171,12 @@ export async function loadGuidedIntakeDraft(
   const { data, error } = await supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,submission_key,current_step,customer_mode,customer_id,new_customer,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
+      "id,submission_key,case_id,current_step,customer_mode,customer_id,new_customer,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
     .eq("created_by_user_id", access.user.id)
+    .is("finalized_at", null)
     .maybeSingle();
 
   if (error) {
@@ -192,7 +194,9 @@ export async function loadGuidedIntakeDraft(
   return {
     id: data.id,
     submissionKey: data.submission_key,
-    currentStep: data.current_step,
+    currentStep: data.case_id
+      ? Math.max(2, data.current_step)
+      : Math.min(1, data.current_step),
     customerMode: data.customer_id
       ? "existing"
       : data.customer_mode === "new"
@@ -200,6 +204,7 @@ export async function loadGuidedIntakeDraft(
         : "existing",
     draft: {
       submissionKey: data.submission_key,
+      caseId: data.case_id,
       customerId: data.customer_id ?? "",
       taxYear: data.tax_year,
       description: data.description,
@@ -242,9 +247,10 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
   let query = supabase
     .from("guided_case_intake_drafts")
     .select(
-      "id,current_step,customer_id,tax_year,case_type_id,created_by_user_id,updated_at",
+      "id,case_id,current_step,customer_id,tax_year,case_type_id,created_by_user_id,updated_at",
     )
-    .eq("organization_id", organizationId);
+    .eq("organization_id", organizationId)
+    .is("finalized_at", null);
 
   if (!canManageOrganizationDrafts) {
     query = query.eq("created_by_user_id", access.user.id);
@@ -317,6 +323,7 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
 
     return {
       id: row.id,
+      caseId: row.case_id,
       currentStep: row.current_step,
       customerId: row.customer_id ?? "",
       customerName: row.customer_id
@@ -328,7 +335,8 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
       taxYear: row.tax_year,
       createdByUserId: row.created_by_user_id,
       canResume: canCreate && ownsDraft,
-      canDelete: canDelete && (ownsDraft || canManageOrganizationDrafts),
+      canDelete:
+        !row.case_id && canDelete && (ownsDraft || canManageOrganizationDrafts),
       updatedAt: row.updated_at,
     };
   });

@@ -6,15 +6,11 @@ import { mapGuidedCaseFinalizationError } from "../lib/guided-case-finalization.
 const source = (path: string) => readFileSync(path, "utf8");
 const action = source("lib/data/guided-case-intake-actions.ts");
 const finalization = source(
-  "supabase/migrations/20260928110000_dm3oi_guided_intake_finalization_rpc.sql",
+  "supabase/migrations/20260928130000_dm3oi_guided_intake_case_persistence.sql",
 );
-const caseModel = source(
-  "supabase/migrations/20260927160000_dm3oi_guided_intake_case_model.sql",
-);
-
-test("Step 6 calls the canonical current-model Portal-aware RPC signature", () => {
+test("Step 6 calls the linked-Case Portal-aware finalization RPC", () => {
   const rpcCall = action.match(
-    /\.rpc\(\s*"create_guided_case_intake",[\s\S]*?\n\s*\},\s*\n\s*\);/,
+    /\.rpc\(\s*"finalize_guided_case_intake",[\s\S]*?\n\s*\},\s*\n\s*\);/,
   )?.[0] ?? "";
 
   assert.match(rpcCall, /target_customer_mode: customerMode/);
@@ -34,15 +30,11 @@ test("Step 6 calls the canonical current-model Portal-aware RPC signature", () =
 });
 
 test("canonical finalization preserves current Case Type and Tax Year rules", () => {
-  assert.match(caseModel, /semantic_type\.customer_mode/);
-  assert.match(caseModel, /tax_year_rule='CURRENT_YEAR'[\s\S]*target_tax_year<>current_tax_year/);
-  assert.match(caseModel, /tax_year_rule='PRIOR_YEAR_REQUIRED'[\s\S]*target_tax_year>=current_tax_year/);
-  assert.match(caseModel, /target_tax_year is null or target_tax_year not between 1900 and 2200/);
-  assert.match(caseModel, /Customer already has a Case for this tax year/);
-  assert.match(
-    finalization,
-    /from public\.create_guided_case_intake\([\s\S]*target_customer_mode[\s\S]*target_tax_year[\s\S]*target_follow_up_tasks[\s\S]*\);/,
-  );
+  assert.match(finalization, /semantic_type\.customer_mode/);
+  assert.match(finalization, /tax_year_rule='CURRENT_YEAR'[\s\S]*target_tax_year<>current_tax_year/);
+  assert.match(finalization, /tax_year_rule='PRIOR_YEAR_REQUIRED'[\s\S]*target_tax_year>=current_tax_year/);
+  assert.match(finalization, /target_tax_year is null or target_tax_year not between 1900 and 2200/);
+  assert.match(finalization, /Customer already has an unrelated Case for this tax year/);
 });
 
 test("Portal ACTIVE, SENT, and NOT_REQUIRED resolve while unresolved fails closed", () => {
@@ -64,31 +56,36 @@ test("Portal ACTIVE, SENT, and NOT_REQUIRED resolve while unresolved fails close
   );
 });
 
-test("only the Portal-aware overload remains callable by authenticated users", () => {
+test("legacy deployment signature delegates to the linked-Case finalizer", () => {
   assert.match(
     finalization,
-    /revoke all on function public\.create_guided_case_intake\([\s\S]*uuid,uuid\[\],jsonb,jsonb\s*\)[\s\S]*from public,anon,authenticated/,
+    /create or replace function public\.create_guided_case_intake\([\s\S]*perform public\.materialize_guided_case_intake\([\s\S]*from public\.finalize_guided_case_intake\(/,
   );
   assert.match(
     finalization,
-    /grant execute on function public\.create_guided_case_intake\([\s\S]*uuid,uuid\[\],jsonb,jsonb,jsonb\s*\) to authenticated/,
+    /grant execute on function public\.finalize_guided_case_intake\([\s\S]*uuid,uuid\[\],jsonb,jsonb,jsonb[\s\S]*to authenticated/,
+  );
+  assert.match(
+    finalization,
+    /revoke all on function public\.create_guided_case_intake\([\s\S]*from public,anon;[\s\S]*grant execute on function public\.create_guided_case_intake/,
   );
 });
 
-test("atomic model boundary retains validation, generated Tasks, draft completion, and retry reuse", () => {
-  assert.match(caseModel, /invalid Case Type/);
-  assert.match(caseModel, /invalid manager/);
-  assert.match(caseModel, /invalid staff assignment/);
-  assert.match(caseModel, /required intake response is missing/);
-  assert.match(caseModel, /action\.action_type='CREATE_TASK'/);
-  assert.match(caseModel, /insert into public\.case_tasks/);
-  assert.match(
-    caseModel,
-    /if found then[\s\S]*delete from public\.guided_case_intake_drafts[\s\S]*return created_case/,
+test("atomic linked-Case boundary retains validation, Tasks, and retry reuse", () => {
+  assert.match(finalization, /invalid Case Type/);
+  assert.match(finalization, /invalid manager/);
+  assert.match(finalization, /invalid staff assignment/);
+  assert.match(finalization, /required intake response is missing/);
+  assert.match(finalization, /action\.action_type='CREATE_TASK'/);
+  assert.match(finalization, /insert into public\.case_tasks/);
+  assert.match(finalization, /draft_row\.finalized_at is not null[\s\S]*return item/);
+  const canonicalFinalizer = finalization.slice(
+    finalization.indexOf("create function public.finalize_guided_case_intake"),
+    finalization.indexOf("create or replace function public.create_guided_case_intake"),
   );
-  assert.match(
-    caseModel,
-    /exception when unique_violation[\s\S]*intake_submission_key=target_submission_key[\s\S]*return created_case/,
+  assert.doesNotMatch(
+    canonicalFinalizer,
+    /insert into public\.cases/,
   );
 });
 
@@ -99,11 +96,12 @@ test("known finalization failures map to safe actionable messages", () => {
       message: "Customer already has a Case for this tax year",
     }),
     {
-      error: "A Case already exists for this Customer and Tax Year.",
+      error:
+        "A Case already exists for this Customer and Tax Year. Open the existing Case or resume its Guided Intake.",
       fieldErrors: {
-        customerId: "Select another Customer or choose a different Tax Year.",
+        customerId: "Open the existing Case or resume its Guided Intake.",
       },
-      step: 0,
+      step: 1,
     },
   );
   assert.equal(
@@ -120,7 +118,7 @@ test("known finalization failures map to safe actionable messages", () => {
   );
   assert.equal(
     mapGuidedCaseFinalizationError({ message: "Customer Portal onboarding is unresolved" }).error,
-    "Customer Portal access must be resolved before creating this Case.",
+    "Customer Portal access must be resolved before finishing this intake.",
   );
 });
 
@@ -131,12 +129,23 @@ test("unknown database failures stay private while diagnostics retain operation 
       message: "raw database implementation detail",
     }),
     {
-      error: "The Case could not be created. Please try again.",
+      error: "The Guided Intake could not be finalized. Please try again.",
       fieldErrors: {},
       step: 5,
     },
   );
-  assert.match(action, /operation: "create_guided_case_intake"/);
+  assert.deepEqual(
+    mapGuidedCaseFinalizationError(
+      { code: "XX000", message: "raw database implementation detail" },
+      "materialize",
+    ),
+    {
+      error: "The Case could not be established. Please try again.",
+      fieldErrors: {},
+      step: 1,
+    },
+  );
+  assert.match(action, /operation: "finalize_guided_case_intake"/);
   assert.match(action, /submissionKey: draft\.submissionKey/);
   assert.match(action, /customerId: draft\.customerId/);
   assert.match(action, /caseTypeId: draft\.caseTypeId/);
