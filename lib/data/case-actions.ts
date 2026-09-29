@@ -148,7 +148,7 @@ export async function updateTaskAction(data: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await (supabase as any)
     .from("case_tasks")
-    .select("title,description,assigned_user_id,required,due_at,task_purpose_id,source_rule_action_id")
+    .select("title,description,assigned_user_id,required,due_at,task_purpose_id,source_rule_action_id,intake_follow_up_id")
     .eq("id", taskId)
     .eq("organization_id", context.activeOrganization.id)
     .maybeSingle();
@@ -162,9 +162,12 @@ export async function updateTaskAction(data: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).rpc("update_case_task", {
     target_task_id: taskId,
-    target_task_purpose_id: canManage
-      ? (text(data, "taskPurposeId") || null)
-      : existing.task_purpose_id,
+    target_task_purpose_id:
+      canManage &&
+      existing.source_rule_action_id === null &&
+      existing.intake_follow_up_id === null
+        ? (text(data, "taskPurposeId") || null)
+        : existing.task_purpose_id,
     target_title: canManage ? text(data, "title") : existing.title,
     target_description: canManage ? text(data, "description") : existing.description,
     target_assigned_user_id: canAssign ? nullableUuid(text(data, "assignedUserId")) : nullableUuid(existing.assigned_user_id ?? ""),

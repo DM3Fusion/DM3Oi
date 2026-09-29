@@ -370,39 +370,60 @@ export default async function Page({
                       <form action={updateTaskAction} className="mini-form">
                         <input type="hidden" name="caseId" value={item.id} />
                         <input type="hidden" name="taskId" value={task.id} />
-                        <label>
-                          <span>Task Purpose</span>
-                          <select
-                            name="taskPurposeId"
-                            defaultValue={
-                              (task as unknown as { task_purpose_id?: string | null })
-                                .task_purpose_id ?? ""
-                            }
-                            disabled={!canManage || task.generated_by_rule}
-                            required={canManage && !task.generated_by_rule}
-                          >
-                            <option value="">
-                              {task.generated_by_rule
-                                ? "System-generated"
-                                : "Select purpose…"}
-                            </option>
-                            {taskPurposes.map((purpose) => (
-                              <option key={purpose.id} value={purpose.id}>
-                                {purpose.label}
-                              </option>
-                            ))}
-                          </select>
-                          {!canManage || task.generated_by_rule ? (
+                        {task.generated_by_rule || task.generated_by_intake ? (
+                          <label>
+                            <span>Task Purpose</span>
+                            <input
+                              value={
+                                (task as unknown as {
+                                  task_purpose_label?: string | null;
+                                }).task_purpose_label ?? "System-generated"
+                              }
+                              readOnly
+                            />
                             <input
                               type="hidden"
                               name="taskPurposeId"
                               value={
-                                (task as unknown as { task_purpose_id?: string | null })
-                                  .task_purpose_id ?? ""
+                                (task as unknown as {
+                                  task_purpose_id?: string | null;
+                                }).task_purpose_id ?? ""
                               }
                             />
-                          ) : null}
-                        </label>
+                          </label>
+                        ) : (
+                          <label>
+                            <span>Task Purpose</span>
+                            <select
+                              name="taskPurposeId"
+                              defaultValue={
+                                (task as unknown as {
+                                  task_purpose_id?: string | null;
+                                }).task_purpose_id ?? ""
+                              }
+                              disabled={!canManage}
+                              required={canManage}
+                            >
+                              <option value="">Select purpose…</option>
+                              {taskPurposes.map((purpose) => (
+                                <option key={purpose.id} value={purpose.id}>
+                                  {purpose.label}
+                                </option>
+                              ))}
+                            </select>
+                            {!canManage ? (
+                              <input
+                                type="hidden"
+                                name="taskPurposeId"
+                                value={
+                                  (task as unknown as {
+                                    task_purpose_id?: string | null;
+                                  }).task_purpose_id ?? ""
+                                }
+                              />
+                            ) : null}
+                          </label>
+                        )}
                         <label>
                           <span>Title</span>
                           <input
