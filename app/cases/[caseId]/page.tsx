@@ -178,7 +178,9 @@ export default async function Page({
       </div>
       <div className="detail-grid">
         <div className="detail-main">
-          <CaseQuestions questions={questions} />
+          {!item.intakeProgress ? (
+            <CaseQuestions questions={questions} />
+          ) : null}
           <section className="panel detail-section">
             <div className="section-head">
               <h2>Case Overview</h2>
