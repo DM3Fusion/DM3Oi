@@ -6,6 +6,10 @@ import { getAccessContext, requirePermission } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creation";
 import { isCanonicalActiveCaseStatus } from "@/lib/case-lifecycle";
+import {
+  MissingDocumentsNoticeError,
+  sendMissingDocumentsNotice,
+} from "@/lib/data/missing-documents-notice-service";
 import type { Database } from "@/types/database.generated";
 type CaseStatus = Database["public"]["Enums"]["case_status"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];
@@ -148,7 +152,7 @@ export async function updateTaskAction(data: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing } = await (supabase as any)
     .from("case_tasks")
-    .select("title,description,assigned_user_id,required,due_at,task_purpose_id,source_rule_action_id,intake_follow_up_id")
+    .select("title,description,assigned_user_id,status,required,due_at,task_purpose_id,source_rule_action_id,intake_follow_up_id")
     .eq("id", taskId)
     .eq("organization_id", context.activeOrganization.id)
     .maybeSingle();
@@ -185,6 +189,136 @@ export async function updateTaskAction(data: FormData) {
   refreshCase(caseId);
   redirect(`/cases/${caseId}?message=Task%20updated.`);
 }
+export async function sendMissingDocumentsNoticeAction(data: FormData) {
+  const caseId = text(data, "caseId");
+  const taskId = text(data, "taskId");
+  const context = await requirePermission("WORK_TASKS");
+  const organization = context.activeOrganization;
+  const supabase = await createClient();
+
+  // Temporary schema bridge until generated Supabase types include
+  // Guided Intake Task provenance.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: task, error: taskError } = await (supabase as any)
+    .from("case_tasks")
+    .select(
+      "id,case_id,status,intake_follow_up_id,intake_requirement_context,description",
+    )
+    .eq("id", taskId)
+    .eq("organization_id", organization.id)
+    .eq("case_id", caseId)
+    .maybeSingle();
+
+  if (taskError || !task?.intake_follow_up_id) {
+    fail(`/cases/${caseId}`, "The Requirements Task is not available.");
+  }
+
+  if (task.status === "COMPLETED" || task.status === "NOT_APPLICABLE") {
+    fail(`/cases/${caseId}`, "This Requirements Task no longer needs a notice.");
+  }
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from("cases")
+    .select("id,case_number,customer_id")
+    .eq("id", caseId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (caseError || !caseRow) {
+    fail(`/cases/${caseId}`, "The Case is not available.");
+  }
+  const currentCase = caseRow!;
+
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("id,name,email,status")
+    .eq("id", currentCase.customer_id)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (customerError || !customer) {
+    fail(`/cases/${caseId}`, "The Customer is not available.");
+  }
+  const currentCustomer = customer!;
+
+  const requirementContext = task.intake_requirement_context as
+    | { missing_option_labels?: unknown }
+    | null;
+
+  const missingDocuments = Array.isArray(
+    requirementContext?.missing_option_labels,
+  )
+    ? requirementContext.missing_option_labels
+        .filter(
+          (value: unknown): value is string =>
+            typeof value === "string",
+        )
+        .join(", ")
+    : task.description
+        .replace(/^Outstanding requirements:\s*/i, "")
+        .trim();
+
+  try {
+    await sendMissingDocumentsNotice({
+      organizationId: organization.id,
+      organizationName: organization.name,
+      customerId: currentCustomer.id,
+      customerName: currentCustomer.name,
+      customerEmail: currentCustomer.email,
+      caseId,
+      caseNumber: currentCase.case_number,
+      missingDocuments: missingDocuments || "Required documents",
+      actorUserId: context.user.id,
+    });
+  } catch (error) {
+    console.error("Missing documents notice failed", {
+      organizationId: organization.id,
+      caseId,
+      taskId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    fail(
+      `/cases/${caseId}`,
+      error instanceof MissingDocumentsNoticeError
+        ? error.safeMessage
+        : "The Customer notice could not be sent.",
+    );
+  }
+
+  // Temporary RPC bridge until generated Supabase types include this function.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: statusError } = await (supabase as any).rpc(
+    "mark_intake_requirement_notice_sent",
+    {
+      target_task_id: taskId,
+    },
+  );
+
+  refreshCase(caseId);
+  revalidatePath("/communications");
+
+  if (statusError) {
+    console.error("Requirements Task notice status update failed", {
+      code: statusError.code,
+      message: statusError.message,
+      taskId,
+    });
+
+    redirect(
+      `/cases/${caseId}?message=${encodeURIComponent(
+        "Notice sent. Task status could not be refreshed automatically.",
+      )}`,
+    );
+  }
+
+  redirect(
+    `/cases/${caseId}?message=${encodeURIComponent(
+      `Notice sent to ${currentCustomer.email}.`,
+    )}`,
+  );
+}
+
 export async function deleteTaskAction(data: FormData) {
   const caseId = text(data, "caseId");
   await requirePermission("MANAGE_TASKS");

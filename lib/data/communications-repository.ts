@@ -139,7 +139,9 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
               ? "Invitation sent"
               : delivery.template_key === "CUSTOMER_PORTAL_INVITATION"
                 ? "Customer Portal invitation sent"
-                : delivery.template_key === "NEW_SERVICE_REQUEST_NOTIFICATION"
+                : delivery.template_key === "MISSING_DOCUMENTS_NOTICE"
+                  ? "Missing documents notice sent"
+                  : delivery.template_key === "NEW_SERVICE_REQUEST_NOTIFICATION"
                   ? "New Service Request notification sent"
                   : "Email sent",
       message: delivery.delivery_status === "FAILED" && delivery.error_summary

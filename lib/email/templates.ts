@@ -2,6 +2,7 @@ export const emailTemplateKeys = [
   "ORGANIZATION_USER_INVITATION",
   "ORGANIZATION_USER_INVITATION_RESEND",
   "CUSTOMER_PORTAL_INVITATION",
+  "MISSING_DOCUMENTS_NOTICE",
   "SIGN_IN_CODE",
   "NEW_SERVICE_REQUEST_NOTIFICATION",
 ] as const;
@@ -46,6 +47,29 @@ export const emailTemplateDefinitions: Array<{
     sampleVariables: { organization_name: "Example Organization", recipient_first_name: "Jordan", recipient_name: "Jordan Customer", recipient_email: "jordan@example.com", action_url: "https://dm3oi.com/auth/invite" },
   },
   {
+    key: "MISSING_DOCUMENTS_NOTICE",
+    title: "Missing Documents Notice",
+    description: "Sent when a Customer must provide required Case documents.",
+    allowedVariables: [
+      "organization_name",
+      "recipient_first_name",
+      "recipient_name",
+      "recipient_email",
+      "case_number",
+      "missing_documents",
+      "action_url",
+    ],
+    sampleVariables: {
+      organization_name: "Example Organization",
+      recipient_first_name: "Jordan",
+      recipient_name: "Jordan Customer",
+      recipient_email: "jordan@example.com",
+      case_number: "CASE-000123",
+      missing_documents: "W-2, Form 1099",
+      action_url: "https://dm3oi.com/portal",
+    },
+  },
+  {
     key: "SIGN_IN_CODE",
     title: "Sign-In Code",
     description: "Preview and test copy for the Supabase-managed email-code flow.",
@@ -79,6 +103,14 @@ export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
     subject_template: "{{organization_name}} invited you to their Customer Portal",
     opening_message: "Hello {{recipient_first_name}}, {{organization_name}} has invited you to access their Customer Portal, powered by DM3Oi™ Operational Intelligence.",
     closing_message: "Access the Customer Portal: {{action_url}}",
+  },
+  MISSING_DOCUMENTS_NOTICE: {
+    template_key: "MISSING_DOCUMENTS_NOTICE",
+    subject_template: "Documents needed for {{case_number}}",
+    opening_message:
+      "Hello {{recipient_first_name}}, {{organization_name}} is waiting for the following document(s) to continue your Case: {{missing_documents}}.",
+    closing_message:
+      "Please use the Customer Portal to provide the requested information: {{action_url}}",
   },
   SIGN_IN_CODE: {
     template_key: "SIGN_IN_CODE",

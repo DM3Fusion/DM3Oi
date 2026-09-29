@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format";
 import {
   deleteTaskAction,
   moveTaskAction,
+  sendMissingDocumentsNoticeAction,
   setCaseAssignmentAction,
   transitionCaseStatusAction,
   updateTaskAction,
@@ -460,14 +461,29 @@ export default async function Page({
                           </select>
                           {!canManage ? <input type="hidden" name="assignedUserId" value={task.assigned_user_id ?? ""} /> : null}
                         </label>
-                        <label>
-                          <span>Status</span>
-                          <select name="status" defaultValue={task.status}>
-                            {taskStatuses.map((value) => (
-                              <option key={value}>{value}</option>
-                            ))}
-                          </select>
-                        </label>
+                        {task.generated_by_rule || task.generated_by_intake ? (
+                          <label>
+                            <span>Status</span>
+                            <input
+                              value={task.status.replaceAll("_", " ")}
+                              readOnly
+                            />
+                            <input
+                              type="hidden"
+                              name="status"
+                              value={task.status}
+                            />
+                          </label>
+                        ) : (
+                          <label>
+                            <span>Status</span>
+                            <select name="status" defaultValue={task.status}>
+                              {taskStatuses.map((value) => (
+                                <option key={value}>{value}</option>
+                              ))}
+                            </select>
+                          </label>
+                        )}
                         <label>
                           <span>Due date</span>
                           <input
@@ -496,6 +512,23 @@ export default async function Page({
                           <PendingSubmitButton pendingLabel="Saving…">Save Task</PendingSubmitButton>
                         </div>
                       </form>
+                      {task.generated_by_intake &&
+                      task.status !== "COMPLETED" &&
+                      task.status !== "NOT_APPLICABLE" ? (
+                        <form
+                          action={sendMissingDocumentsNoticeAction}
+                          className="mini-actions"
+                        >
+                          <input type="hidden" name="caseId" value={item.id} />
+                          <input type="hidden" name="taskId" value={task.id} />
+                          <PendingSubmitButton
+                            className="secondary-button"
+                            pendingLabel="Sending…"
+                          >
+                            Send Notice
+                          </PendingSubmitButton>
+                        </form>
+                      ) : null}
                       {canManage ? (
                         <div className="task-actions">
                           <form action={moveTaskAction}>
