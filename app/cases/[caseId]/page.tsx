@@ -503,21 +503,23 @@ export default async function Page({
                               Move Down
                             </button>
                           </form>
-                          {!task.generated_by_rule ? <form action={deleteTaskAction}>
-                            <input
-                              type="hidden"
-                              name="caseId"
-                              value={item.id}
-                            />
-                            <input
-                              type="hidden"
-                              name="taskId"
-                              value={task.id}
-                            />
-                            <button className="danger-button" type="submit">
-                              Delete Task
-                            </button>
-                          </form> : null}
+                          {!task.generated_by_rule && !task.generated_by_intake ? (
+                            <form action={deleteTaskAction}>
+                              <input
+                                type="hidden"
+                                name="caseId"
+                                value={item.id}
+                              />
+                              <input
+                                type="hidden"
+                                name="taskId"
+                                value={task.id}
+                              />
+                              <button className="danger-button" type="submit">
+                                Delete Task
+                              </button>
+                            </form>
+                          ) : null}
                         </div>
                       ) : null}
                     </div>
