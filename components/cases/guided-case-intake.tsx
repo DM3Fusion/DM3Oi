@@ -358,6 +358,7 @@ export function GuidedCaseIntake({
   });
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [followUpError, setFollowUpError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
   const [noticeSentFollowUpIds, setNoticeSentFollowUpIds] =
     useState<Set<string>>(
@@ -643,6 +644,7 @@ export function GuidedCaseIntake({
   };
   const openFollowUpTask = (questionId: string) => {
     setFollowUpQuestionId(questionId);
+    setFollowUpError(null);
     followUpDialog.current?.showModal();
   };
   const saveFollowUpTask = async (event: FormEvent<HTMLFormElement>) => {
@@ -739,12 +741,33 @@ export function GuidedCaseIntake({
       );
       return;
     }
+
     updateDraft(
       "followUpTasks",
       draft.followUpTasks.map((item) =>
         item.id === task.id ? { ...item, completed: true } : item,
       ),
     );
+  };
+
+  const completeFollowUpTaskFromModal = (
+    task: GuidedIntakeFollowUpTask,
+  ) => {
+    if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
+      setFollowUpError(
+        "Mark every tracked required document as received before completing this Task.",
+      );
+      return;
+    }
+
+    setFollowUpError(null);
+    updateDraft(
+      "followUpTasks",
+      draft.followUpTasks.map((item) =>
+        item.id === task.id ? { ...item, completed: true } : item,
+      ),
+    );
+    followUpDialog.current?.close();
   };
   const validateStep = () => {
     if (step === 0)
@@ -1669,9 +1692,12 @@ export function GuidedCaseIntake({
               </div>
               <button
                 type="button"
-                className="rule-dialog-close"
+                className="rule-dialog-close task-modal-close"
                 aria-label="Close follow-up Task modal"
-                onClick={() => followUpDialog.current?.close()}
+                onClick={() => {
+                  setFollowUpError(null);
+                  followUpDialog.current?.close();
+                }}
               >
                 <span aria-hidden>×</span>
               </button>
@@ -1803,7 +1829,7 @@ export function GuidedCaseIntake({
                   type="button"
                   className="secondary-button task-complete-button"
                   disabled={pending}
-                  onClick={() => completeFollowUpTask(activeTask)}
+                  onClick={() => completeFollowUpTaskFromModal(activeTask)}
                 >
                   Complete Task
                 </button>
@@ -1819,11 +1845,20 @@ export function GuidedCaseIntake({
               </div>
             ) : null}
 
+            {followUpError ? (
+              <div className="task-modal-error" role="alert">
+                {followUpError}
+              </div>
+            ) : null}
+
             <footer>
               <button
                 type="button"
                 className="secondary-button"
-                onClick={() => followUpDialog.current?.close()}
+                onClick={() => {
+                  setFollowUpError(null);
+                  followUpDialog.current?.close();
+                }}
               >
                 Cancel
               </button>

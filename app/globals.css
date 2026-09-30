@@ -8497,3 +8497,42 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     padding:16px;
   }
 }
+
+/* Guided Intake Task modal validation and close control. */
+.task-modal-error{
+  margin-top:4px;
+  padding:10px 12px;
+  border:1px solid #fecaca;
+  border-radius:6px;
+  background:#fff1f2;
+  color:#991b1b;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.4;
+}
+
+.task-modal-form .task-modal-close{
+  display:inline-grid;
+  width:34px;
+  height:34px;
+  flex:none;
+  place-items:center;
+  padding:0;
+  border:1px solid #d7dee7;
+  border-radius:6px;
+  background:#fff;
+  color:#64748b;
+  font-size:24px;
+  line-height:1;
+}
+
+.task-modal-form .task-modal-close:hover{
+  border-color:#b8c3cf;
+  background:#f8fafc;
+  color:#334155;
+}
+
+.task-modal-form .task-modal-close:focus-visible{
+  outline:2px solid #94a3b8;
+  outline-offset:2px;
+}
