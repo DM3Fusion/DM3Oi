@@ -241,3 +241,29 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
     /Missing-document Follow-up Tasks[\s\S]{0,1200}onClick=\{\(\) => completeFollowUpTask/,
   );
 });
+
+test("Guided Intake draft identity protection uses a narrow Case lookup helper", () => {
+  const migration = source(
+    "supabase/migrations/20260930033000_dm3oi_guided_intake_draft_case_identity_lookup.sql",
+  );
+
+  assert.match(
+    migration,
+    /create function public\.guided_intake_case_identity_matches[\s\S]*security definer/,
+  );
+
+  assert.match(
+    migration,
+    /create or replace function public\.protect_guided_case_intake_draft_identity\(\)[\s\S]*guided_intake_case_identity_matches\(/,
+  );
+
+  assert.doesNotMatch(
+    migration,
+    /protect_guided_case_intake_draft_identity\(\)[\s\S]{0,120}security definer/,
+  );
+
+  assert.match(
+    migration,
+    /current_user not in \('postgres','supabase_admin','service_role'\)/,
+  );
+});
