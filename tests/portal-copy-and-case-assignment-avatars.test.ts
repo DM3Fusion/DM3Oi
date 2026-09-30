@@ -38,7 +38,11 @@ test("Case assignments use canonical profile avatars through one trusted batch",
   assert.match(repository, /profileIds = \[[\s\S]*memberships\.map\(\(row\) => row\.user_id\)/);
   assert.match(
     repository,
-    /const profiles\s*=\s*await attachAuthorizedAvatarUrls\(\s*\(profileResult\.data\s*\?\?\s*\[\]\)\.map\(\s*\(profile\)\s*=>\s*maskPlatformProfile\(\s*profile,\s*platformAdminIds\s*\),?\s*\),?\s*\)/,
+    /async function buildCaseRepositoryProfileDirectory[\s\S]*?const profiles\s*=\s*await attachAuthorizedAvatarUrls\([\s\S]*?maskPlatformProfile\(profile, platformAdminIds\)/,
+  );
+  assert.match(
+    repository,
+    /buildCaseRepositoryProfileDirectory\(\s*profileResult\.data \?\? \[\],\s*platformAdminIds,?\s*\)/,
   );
   assert.equal(
     (repository.match(/attachAuthorizedAvatarUrls\(/g) ?? []).length,

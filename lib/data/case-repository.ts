@@ -267,30 +267,13 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     throw new DataAccessError();
   }
 
-  const profiles = await attachAuthorizedAvatarUrls(
-    (profileResult.data ?? []).map((profile) =>
-      maskPlatformProfile(profile, platformAdminIds),
-    ),
+  const {
+    byProfile,
+    profileForOrganization,
+  } = await buildCaseRepositoryProfileDirectory(
+    profileResult.data ?? [],
+    platformAdminIds,
   );
-  const byProfile = new Map(profiles.map((row) => [row.id, row]));
-  const profileForOrganization = (id: string): AvatarProfileRow | null =>
-    platformAdminIds.has(id)
-      ? {
-          id,
-          display_name: ORGANIZATION_SUPPORT_IDENTITY,
-          first_name: null,
-          last_name: null,
-          email: null,
-          phone: null,
-          title: null,
-          is_active: true,
-          avatar_path: null,
-          avatar_updated_at: null,
-          avatarUrl: null,
-          created_at: "",
-          updated_at: "",
-        }
-      : (byProfile.get(id) ?? null);
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);
     const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;
@@ -381,6 +364,44 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     activeRules: ruleEvaluationBundle.activeRules,
   };
 }
+async function buildCaseRepositoryProfileDirectory(
+  profileRows: ProfileRow[],
+  platformAdminIds: Set<string>,
+) {
+  const profiles = await attachAuthorizedAvatarUrls(
+    profileRows.map((profile) =>
+      maskPlatformProfile(profile, platformAdminIds),
+    ),
+  );
+  const byProfile = new Map(profiles.map((row) => [row.id, row]));
+  const profileForOrganization = (
+    id: string,
+  ): AvatarProfileRow | null =>
+    platformAdminIds.has(id)
+      ? {
+          id,
+          display_name: ORGANIZATION_SUPPORT_IDENTITY,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null,
+          title: null,
+          is_active: true,
+          avatar_path: null,
+          avatar_updated_at: null,
+          avatarUrl: null,
+          created_at: "",
+          updated_at: "",
+        }
+      : (byProfile.get(id) ?? null);
+
+  return {
+    profiles,
+    byProfile,
+    profileForOrganization,
+  };
+}
+
 export async function getCasesRegisterData(): Promise<{
   organizationId: string;
   timezone: string;
@@ -523,33 +544,11 @@ export async function getCasesRegisterData(): Promise<{
     throw new DataAccessError();
   }
 
-  const profiles = await attachAuthorizedAvatarUrls(
-    (profileResult.data ?? []).map((profile) =>
-      maskPlatformProfile(profile, platformAdminIds),
-    ),
-  );
-  const byProfile = new Map(profiles.map((row) => [row.id, row]));
-
-  const profileForOrganization = (
-    id: string,
-  ): AvatarProfileRow | null =>
-    platformAdminIds.has(id)
-      ? {
-          id,
-          display_name: ORGANIZATION_SUPPORT_IDENTITY,
-          first_name: null,
-          last_name: null,
-          email: null,
-          phone: null,
-          title: null,
-          is_active: true,
-          avatar_path: null,
-          avatar_updated_at: null,
-          avatarUrl: null,
-          created_at: "",
-          updated_at: "",
-        }
-      : (byProfile.get(id) ?? null);
+  const { profileForOrganization } =
+    await buildCaseRepositoryProfileDirectory(
+      profileResult.data ?? [],
+      platformAdminIds,
+    );
 
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);

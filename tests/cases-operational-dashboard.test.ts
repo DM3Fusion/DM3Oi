@@ -88,7 +88,7 @@ test("Cases page derives stable KPI counts from the existing authorized organiza
   const countIndex = page.indexOf("getCaseDashboardCounts(data.cases");
   const filterIndex = page.indexOf("data.cases.filter");
   assert.ok(countIndex > -1 && countIndex < filterIndex);
-  assert.match(page, /getLiveOrganizationData\(\)/);
+  assert.match(page, /getCasesRegisterData\(\)/);
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)/);
   assert.match(page, /matchesCaseRegisterFilters\(item, filters, data\.timezone\)/);
