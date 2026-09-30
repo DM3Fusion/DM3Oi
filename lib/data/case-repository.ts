@@ -381,6 +381,241 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     activeRules: ruleEvaluationBundle.activeRules,
   };
 }
+export async function getCasesRegisterData(): Promise<{
+  organizationId: string;
+  timezone: string;
+  cases: LiveCase[];
+}> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [
+    caseResult,
+    customerResult,
+    assignmentResult,
+    taskResult,
+    settingsResult,
+    platformAdminIds,
+    intakeResult,
+  ] = await Promise.all([
+    supabase
+      .from("organization_cases")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false }),
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("name"),
+    supabase
+      .from("case_assignments")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("organization_case_tasks")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("sequence"),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    getPlatformAdminUserIds(),
+    admin
+      .from("guided_case_intake_drafts")
+      .select("case_id,current_step,answers")
+      .eq("organization_id", organizationId)
+      .not("case_id", "is", null)
+      .is("finalized_at", null),
+  ]);
+
+  const error =
+    caseResult.error ??
+    customerResult.error ??
+    assignmentResult.error ??
+    taskResult.error ??
+    settingsResult.error ??
+    intakeResult.error;
+
+  if (error) {
+    console.error("Cases register query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+    throw new DataAccessError();
+  }
+
+  const customers = requireOrganizationCustomers(customerResult.data ?? []);
+  const assignments = assignmentResult.data ?? [];
+  const tasks = taskResult.data ?? [];
+  const rawCases = caseResult.data ?? [];
+  const totalIntakeSteps = guidedCaseIntakeSteps.length;
+
+  const intakeProgressByCase = new Map(
+    (intakeResult.data ?? []).flatMap((row) => {
+      if (!row.case_id) return [];
+
+      const completedSteps = Math.min(
+        Math.max(row.current_step, 0),
+        totalIntakeSteps,
+      );
+      const answers =
+        row.answers &&
+        typeof row.answers === "object" &&
+        !Array.isArray(row.answers)
+          ? (row.answers as Record<string, unknown>)
+          : {};
+
+      return [[
+        row.case_id,
+        {
+          completedSteps,
+          totalSteps: totalIntakeSteps,
+          progressPercent:
+            totalIntakeSteps > 0
+              ? Math.round((completedSteps / totalIntakeSteps) * 100)
+              : 0,
+          answers,
+        },
+      ]];
+    }),
+  );
+
+  const profileIds = [
+    ...new Set(
+      rawCases
+        .flatMap((item) =>
+          item.manager_user_id ? [item.manager_user_id] : [],
+        )
+        .concat(assignments.map((assignment) => assignment.user_id)),
+    ),
+  ];
+
+  const profilePromise = profileIds.length
+    ? supabase.from("profiles").select("*").in("id", profileIds)
+    : Promise.resolve({ data: [], error: null });
+
+  const [profileResult, ruleEvaluationBundle] = await Promise.all([
+    profilePromise,
+    loadOrganizationCaseRuleEvaluationBundle(
+      organizationId,
+      rawCases.map((item) => item.id),
+    ),
+  ]);
+
+  if (profileResult.error) {
+    console.error("Cases register profile query failed", {
+      organizationId,
+      code: profileResult.error.code,
+      message: profileResult.error.message,
+    });
+    throw new DataAccessError();
+  }
+
+  const profiles = await attachAuthorizedAvatarUrls(
+    (profileResult.data ?? []).map((profile) =>
+      maskPlatformProfile(profile, platformAdminIds),
+    ),
+  );
+  const byProfile = new Map(profiles.map((row) => [row.id, row]));
+
+  const profileForOrganization = (
+    id: string,
+  ): AvatarProfileRow | null =>
+    platformAdminIds.has(id)
+      ? {
+          id,
+          display_name: ORGANIZATION_SUPPORT_IDENTITY,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null,
+          title: null,
+          is_active: true,
+          avatar_path: null,
+          avatar_updated_at: null,
+          avatarUrl: null,
+          created_at: "",
+          updated_at: "",
+        }
+      : (byProfile.get(id) ?? null);
+
+  const cases: LiveCase[] = rawCases.map((item) => {
+    const itemTasks = tasks.filter((task) => task.case_id === item.id);
+    const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;
+    const questions = evaluatedCaseQuestionsFrom(ruleEvaluation);
+    const staffIds = assignments
+      .filter(
+        (assignment) =>
+          assignment.case_id === item.id &&
+          assignment.assignment_role === "STAFF",
+      )
+      .map((assignment) => assignment.user_id);
+    const intakeProgress = intakeProgressByCase.get(item.id) ?? null;
+
+    const readiness = calculateCaseReadiness({
+      questions: questions.map((question) => ({
+        id: question.id,
+        label: question.question_text,
+        responseType: question.response_type,
+        responseValue: question.response?.response_value,
+        applicable: question.applicable,
+        effectiveRequired: question.effectiveRequired,
+      })),
+      tasks: itemTasks.map((task) => ({
+        id: task.id,
+        label: task.title,
+        status: task.status,
+        required: task.required,
+        blocking: task.blocking,
+      })),
+    });
+
+    return {
+      ...item,
+      customer:
+        customers.find((customer) => customer.id === item.customer_id) ?? null,
+      manager: item.manager_user_id
+        ? profileForOrganization(item.manager_user_id)
+        : null,
+      assignedStaff: staffIds.flatMap((id) => {
+        const profile = profileForOrganization(id);
+        return profile ? [profile] : [];
+      }),
+      tasks: itemTasks,
+      questions,
+      ruleEvaluation,
+      intakeProgress,
+      progress: intakeProgress
+        ? {
+            ...readiness,
+            progressPercent: intakeProgress.progressPercent,
+            ready: false,
+            completedUnits: intakeProgress.completedSteps,
+            totalUnits: intakeProgress.totalSteps,
+          }
+        : readiness,
+    };
+  });
+
+  return {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    cases,
+  };
+}
+
 export async function getLiveCase(caseId: string) {
   const data = await getLiveOrganizationData();
   const item = data.cases.find((candidate) => candidate.id === caseId) ?? null;

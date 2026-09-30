@@ -2,7 +2,7 @@ import { CasesRegister } from "@/components/cases/cases-register";
 import { CaseKpis } from "@/components/cases/case-kpis";
 import { PageHeader } from "@/components/ui";
 import Link from "next/link";
-import { getLiveOrganizationData } from "@/lib/data/case-repository";
+import { getCasesRegisterData } from "@/lib/data/case-repository";
 import { normalizeCaseStatus } from "@/lib/operational-filters";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -20,7 +20,11 @@ type Params = {
   view?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
-  const [data, filters, access] = await Promise.all([getLiveOrganizationData(), searchParams, getAccessContext()]);
+  const [data, filters, access] = await Promise.all([
+    getCasesRegisterData(),
+    searchParams,
+    getAccessContext(),
+  ]);
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
