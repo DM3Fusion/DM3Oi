@@ -670,7 +670,7 @@ export function GuidedCaseIntake({
       missingOptionLabels,
       assignedUserId,
       dueDate,
-      completed: false,
+      completed: existing?.completed ?? false,
     };
 
     setPending(true);
@@ -1705,7 +1705,11 @@ export function GuidedCaseIntake({
                   <select
                     name="assignedUserId"
                     required
-                    defaultValue={activeTask?.assignedUserId ?? ""}
+                    defaultValue={
+                      activeTask?.assignedUserId ||
+                      draft.staffUserIds[0] ||
+                      ""
+                    }
                   >
                     <option value="">Select Staff</option>
                     {configuration.staff.map((member) => (
@@ -1714,11 +1718,6 @@ export function GuidedCaseIntake({
                       </option>
                     ))}
                   </select>
-                  {activeTask ? (
-                    <small>
-                      Business Owners and Staff Managers may reassign this Task.
-                    </small>
-                  ) : null}
                 </>
               ) : (
                 <>
@@ -1767,16 +1766,23 @@ export function GuidedCaseIntake({
                     </span>
                   </>
                 ) : (
-                  <div className="task-notice-sent">
-                    <span>Document Request Sent</span>
+                  <div className="task-notice-sent-pill">
+                    <strong>Document Request Sent</strong>
                     {noticeSentAtByFollowUpId[activeTask.id] ? (
                       <small>
-                        Sent{" "}
                         {new Intl.DateTimeFormat("en-US", {
                           timeZone: configuration.timezone,
                           month: "short",
                           day: "numeric",
                           year: "numeric",
+                        }).format(
+                          new Date(
+                            noticeSentAtByFollowUpId[activeTask.id],
+                          ),
+                        )}
+                        {" · "}
+                        {new Intl.DateTimeFormat("en-US", {
+                          timeZone: configuration.timezone,
                           hour: "numeric",
                           minute: "2-digit",
                         }).format(
@@ -1795,15 +1801,14 @@ export function GuidedCaseIntake({
               <div className="task-notice-action">
                 <button
                   type="button"
-                  className="secondary-button"
+                  className="secondary-button task-complete-button"
                   disabled={pending}
                   onClick={() => completeFollowUpTask(activeTask)}
                 >
                   Complete Task
                 </button>
-                <span className="task-notice-help">
-                  Complete only after the requested documents have been verified
-                  in the organization&apos;s secure document system.
+                <span className="task-complete-help">
+                  Complete after documents are verified.
                 </span>
               </div>
             ) : null}
