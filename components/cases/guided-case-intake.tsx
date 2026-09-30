@@ -66,6 +66,7 @@ type Props = {
     notes: string;
   };
   initialNoticeSentFollowUpIds?: string[];
+  initialNoticeSentAtByFollowUpId?: Record<string, string>;
 };
 
 const fieldError = (errors: GuidedIntakeFieldErrors, key: string) =>
@@ -314,6 +315,7 @@ export function GuidedCaseIntake({
   initialCustomerMode,
   initialNewCustomer,
   initialNoticeSentFollowUpIds = [],
+  initialNoticeSentAtByFollowUpId = {},
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(initialStep);
@@ -361,6 +363,9 @@ export function GuidedCaseIntake({
     useState<Set<string>>(
       () => new Set(initialNoticeSentFollowUpIds),
     );
+  const [noticeSentAtByFollowUpId] = useState<Record<string, string>>(
+    initialNoticeSentAtByFollowUpId,
+  );
   const [portalPending, setPortalPending] = useState(
     configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE" &&
       Boolean(initialDraft?.customerId),
@@ -1695,18 +1700,43 @@ export function GuidedCaseIntake({
 
             <label>
               <span>Assigned to</span>
-              <select
-                name="assignedUserId"
-                required
-                defaultValue={activeTask?.assignedUserId ?? ""}
-              >
-                <option value="">Select Staff</option>
-                {configuration.staff.map((member) => (
-                  <option value={member.id} key={member.id}>
-                    {member.name}
-                  </option>
-                ))}
-              </select>
+              {configuration.canReassignFollowUpTasks || !activeTask ? (
+                <>
+                  <select
+                    name="assignedUserId"
+                    required
+                    defaultValue={activeTask?.assignedUserId ?? ""}
+                  >
+                    <option value="">Select Staff</option>
+                    {configuration.staff.map((member) => (
+                      <option value={member.id} key={member.id}>
+                        {member.name}
+                      </option>
+                    ))}
+                  </select>
+                  {activeTask ? (
+                    <small>
+                      Business Owners and Staff Managers may reassign this Task.
+                    </small>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <input
+                    value={
+                      configuration.staff.find(
+                        (member) => member.id === activeTask.assignedUserId,
+                      )?.name ?? "Assigned Staff"
+                    }
+                    readOnly
+                  />
+                  <input
+                    type="hidden"
+                    name="assignedUserId"
+                    value={activeTask.assignedUserId}
+                  />
+                </>
+              )}
             </label>
 
             <label>
@@ -1739,6 +1769,23 @@ export function GuidedCaseIntake({
                 ) : (
                   <div className="task-notice-sent">
                     <span>Document Request Sent</span>
+                    {noticeSentAtByFollowUpId[activeTask.id] ? (
+                      <small>
+                        Sent{" "}
+                        {new Intl.DateTimeFormat("en-US", {
+                          timeZone: configuration.timezone,
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        }).format(
+                          new Date(
+                            noticeSentAtByFollowUpId[activeTask.id],
+                          ),
+                        )}
+                      </small>
+                    ) : null}
                   </div>
                 )}
               </div>

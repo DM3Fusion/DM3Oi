@@ -29,6 +29,7 @@ export type GuidedIntakeSavedDraft = {
   draft: GuidedCaseIntakeDraft;
   newCustomer: GuidedIntakeNewCustomerDraft;
   noticeSentFollowUpIds: string[];
+  noticeSentAtByFollowUpId: Record<string, string>;
   updatedAt: string;
 };
 
@@ -192,25 +193,27 @@ export async function loadGuidedIntakeDraft(
 
   if (!data) return null;
 
-  const followUpTasks = parseFollowUpTasks(data.follow_up_tasks);
+  const parsedFollowUpTasks = parseFollowUpTasks(data.follow_up_tasks);
+  let followUpTasks = parsedFollowUpTasks;
   let noticeSentFollowUpIds: string[] = [];
+  const noticeSentAtByFollowUpId: Record<string, string> = {};
 
-  if (data.case_id && followUpTasks.length) {
+  if (data.case_id && parsedFollowUpTasks.length) {
     // Temporary schema bridge until generated Supabase types include
     // Guided Intake Task provenance.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: persistedTasks, error: persistedTaskError } = await (supabase as any)
       .from("case_tasks")
-      .select("intake_follow_up_id,status")
+      .select("id,intake_follow_up_id,status,assigned_user_id,due_at")
       .eq("organization_id", organizationId)
       .eq("case_id", data.case_id)
       .in(
         "intake_follow_up_id",
-        followUpTasks.map((task) => task.id),
+        parsedFollowUpTasks.map((task) => task.id),
       );
 
     if (persistedTaskError) {
-      console.error("Guided Intake Task notice state load failed", {
+      console.error("Guided Intake Task state load failed", {
         organizationId,
         draftId,
         caseId: data.case_id,
@@ -220,18 +223,103 @@ export async function loadGuidedIntakeDraft(
       throw new Error("Guided Intake draft is temporarily unavailable.");
     }
 
-    noticeSentFollowUpIds = (
-      (persistedTasks ?? []) as Array<{
-        intake_follow_up_id: string | null;
-        status: string;
-      }>
-    )
+    const persistedRows = (persistedTasks ?? []) as Array<{
+      id: string;
+      intake_follow_up_id: string | null;
+      status: string;
+      assigned_user_id: string | null;
+      due_at: string | null;
+    }>;
+
+    const persistedByFollowUpId = new Map(
+      persistedRows.flatMap((task) =>
+        task.intake_follow_up_id
+          ? [[task.intake_follow_up_id, task] as const]
+          : [],
+      ),
+    );
+
+    followUpTasks = parsedFollowUpTasks.map((task) => {
+      const persisted = persistedByFollowUpId.get(task.id);
+      if (!persisted) return task;
+
+      return {
+        ...task,
+        assignedUserId:
+          persisted.assigned_user_id ?? task.assignedUserId,
+        dueDate:
+          persisted.due_at?.slice(0, 10) ?? task.dueDate,
+        completed:
+          persisted.status === "COMPLETED",
+      };
+    });
+
+    noticeSentFollowUpIds = persistedRows
       .filter(
         (task) =>
           task.intake_follow_up_id &&
-          task.status === "IN_PROGRESS",
+          (
+            task.status === "IN_PROGRESS" ||
+            task.status === "COMPLETED"
+          ),
       )
       .map((task) => task.intake_follow_up_id as string);
+
+    // TASK_STARTED with customer_notice_sent=true is the durable audit
+    // event written after the missing-document email succeeds.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: activityRows, error: activityError } = await (supabase as any)
+      .from("organization_case_activity")
+      .select("event_type,event_data,created_at")
+      .eq("organization_id", organizationId)
+      .eq("case_id", data.case_id)
+      .eq("event_type", "TASK_STARTED")
+      .order("created_at", { ascending: true });
+
+    if (activityError) {
+      console.error("Guided Intake Task notice activity load failed", {
+        organizationId,
+        draftId,
+        caseId: data.case_id,
+        code: activityError.code,
+        message: activityError.message,
+      });
+      throw new Error("Guided Intake draft is temporarily unavailable.");
+    }
+
+    const taskIdToFollowUpId = new Map(
+      persistedRows.flatMap((task) =>
+        task.intake_follow_up_id
+          ? [[task.id, task.intake_follow_up_id] as const]
+          : [],
+      ),
+    );
+
+    for (const activity of (activityRows ?? []) as Array<{
+      event_data: unknown;
+      created_at: string;
+    }>) {
+      if (
+        !activity.event_data ||
+        typeof activity.event_data !== "object" ||
+        Array.isArray(activity.event_data)
+      ) {
+        continue;
+      }
+
+      const eventData = activity.event_data as Record<string, unknown>;
+      if (
+        eventData.customer_notice_sent !== true ||
+        typeof eventData.task_id !== "string"
+      ) {
+        continue;
+      }
+
+      const followUpId = taskIdToFollowUpId.get(eventData.task_id);
+      if (followUpId && !noticeSentAtByFollowUpId[followUpId]) {
+        noticeSentAtByFollowUpId[followUpId] = activity.created_at;
+      }
+    }
   }
 
   return {
@@ -267,6 +355,7 @@ export async function loadGuidedIntakeDraft(
       ...parseNewCustomer(data.new_customer),
     },
     noticeSentFollowUpIds,
+    noticeSentAtByFollowUpId,
     updatedAt: data.updated_at,
   };
 }

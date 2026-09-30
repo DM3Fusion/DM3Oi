@@ -113,6 +113,8 @@ export type GuidedIntakeConfiguration = {
   canViewCustomers: boolean;
   canCreateCustomer: boolean;
   canAssign: boolean;
+  canReassignFollowUpTasks: boolean;
+  timezone: string;
 };
 
 export type GuidedCustomerMode = "existing" | "new";

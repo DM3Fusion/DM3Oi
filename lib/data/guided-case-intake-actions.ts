@@ -375,6 +375,54 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   }
 
   const supabase = await createClient();
+
+  // Reassignment of an already-created Guided Intake follow-up Task is
+  // deliberately narrower than general Case assignment authority.
+  // Only a Business Owner or Staff Manager with ASSIGN_TASKS may change it.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: persistedTask, error: persistedTaskError } = await (supabase as any)
+    .from("case_tasks")
+    .select("assigned_user_id")
+    .eq("organization_id", access.activeOrganization!.id)
+    .eq("case_id", draft.caseId)
+    .eq("intake_follow_up_id", task.id)
+    .maybeSingle();
+
+  if (persistedTaskError) {
+    console.error("Guided Intake follow-up Task assignment lookup failed", {
+      organizationId: access.activeOrganization!.id,
+      caseId: draft.caseId,
+      followUpId: task.id,
+      code: persistedTaskError.code,
+      message: persistedTaskError.message,
+    });
+    return {
+      ok: false,
+      error: "The follow-up Task could not be saved. Please try again.",
+    };
+  }
+
+  if (
+    persistedTask &&
+    persistedTask.assigned_user_id !== task.assignedUserId
+  ) {
+    const role = access.activeOrganization!.role;
+    const mayReassign =
+      !access.isSuperAdmin &&
+      hasPermission(access, "ASSIGN_TASKS") &&
+      (
+        role === "BUSINESS_OWNER" ||
+        role === "STAFF_MANAGER"
+      );
+
+    if (!mayReassign) {
+      return {
+        ok: false,
+        error: "Only a Business Owner or Staff Manager may reassign this Task.",
+      };
+    }
+  }
+
   // Temporary RPC signature bridge until generated Supabase types are refreshed.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).rpc(

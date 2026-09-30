@@ -55,6 +55,9 @@ export default async function Page({
         initialNoticeSentFollowUpIds={
           savedDraft?.noticeSentFollowUpIds ?? []
         }
+        initialNoticeSentAtByFollowUpId={
+          savedDraft?.noticeSentAtByFollowUpId ?? {}
+        }
       />
     </>
   );

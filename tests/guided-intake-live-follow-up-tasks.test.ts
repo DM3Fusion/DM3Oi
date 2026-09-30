@@ -73,7 +73,23 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
 
   assert.match(
     drafts,
-    /select\("intake_follow_up_id,status"\)[\s\S]*status === "IN_PROGRESS"/,
+    /select\("id,intake_follow_up_id,status,assigned_user_id,due_at"\)/,
+  );
+  assert.match(
+    drafts,
+    /assignedUserId:[\s\S]*persisted\.assigned_user_id/,
+  );
+  assert.match(
+    drafts,
+    /dueDate:[\s\S]*persisted\.due_at/,
+  );
+  assert.match(
+    drafts,
+    /task\.status === "IN_PROGRESS"[\s\S]*task\.status === "COMPLETED"/,
+  );
+  assert.match(
+    drafts,
+    /organization_case_activity[\s\S]*TASK_STARTED[\s\S]*customer_notice_sent/,
   );
 
   assert.match(
@@ -94,5 +110,54 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
   assert.doesNotMatch(
     component,
     /noticeSentFollowUpIds\.has\(staged\.id\)/,
+  );
+});
+
+test("Guided Intake Task reassignment is Owner or Staff Manager only", () => {
+  const configuration = source("lib/data/guided-case-intake.ts");
+  const actions = source("lib/data/guided-case-intake-actions.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+  const migration = source(
+    "supabase/migrations/20260930023000_dm3oi_guided_intake_task_reassignment_guard.sql",
+  );
+
+  assert.match(
+    configuration,
+    /hasPermission\(access,\s*"ASSIGN_TASKS"\)[\s\S]*BUSINESS_OWNER[\s\S]*STAFF_MANAGER/,
+  );
+  assert.doesNotMatch(
+    configuration,
+    /canReassignFollowUpTasks[\s\S]{0,300}BUSINESS_ADMIN/,
+  );
+
+  assert.match(
+    component,
+    /configuration\.canReassignFollowUpTasks[\s\S]*name="assignedUserId"/,
+  );
+
+  assert.match(
+    actions,
+    /persistedTask\.assigned_user_id !== task\.assignedUserId[\s\S]*BUSINESS_OWNER[\s\S]*STAFF_MANAGER/,
+  );
+  assert.match(
+    actions,
+    /Only a Business Owner or Staff Manager may reassign this Task/,
+  );
+
+  assert.match(
+    migration,
+    /before update of assigned_user_id[\s\S]*on public\.case_tasks/,
+  );
+  assert.match(
+    migration,
+    /old\.intake_follow_up_id is null[\s\S]*return new/,
+  );
+  assert.match(
+    migration,
+    /BUSINESS_OWNER[\s\S]*STAFF_MANAGER[\s\S]*ASSIGN_TASKS/,
+  );
+  assert.doesNotMatch(
+    migration,
+    /BUSINESS_ADMIN'::public\.application_role/,
   );
 });

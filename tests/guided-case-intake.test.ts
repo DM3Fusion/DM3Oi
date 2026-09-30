@@ -69,6 +69,8 @@ const baseConfiguration = (): GuidedIntakeConfiguration => ({
   canViewCustomers: true,
   canCreateCustomer: true,
   canAssign: true,
+  canReassignFollowUpTasks: false,
+  timezone: "UTC",
 });
 
 const draft = (): GuidedCaseIntakeDraft => ({
@@ -627,6 +629,8 @@ test("dependent verification is hidden when dependents are not claimed", () => {
     canViewCustomers: true,
     canCreateCustomer: true,
     canAssign: true,
+  canReassignFollowUpTasks: false,
+  timezone: "UTC",
   };
 
   const evaluation = evaluateGuidedCaseIntake(
@@ -692,6 +696,8 @@ test("dependent verification becomes visible and required when dependents are cl
     canViewCustomers: true,
     canCreateCustomer: true,
     canAssign: true,
+  canReassignFollowUpTasks: false,
+  timezone: "UTC",
   };
 
   const evaluation = evaluateGuidedCaseIntake(
@@ -758,6 +764,8 @@ test("business records follow the self-employment hierarchy", () => {
     canViewCustomers: true,
     canCreateCustomer: true,
     canAssign: true,
+  canReassignFollowUpTasks: false,
+  timezone: "UTC",
   };
 
   const noBusiness = evaluateGuidedCaseIntake(

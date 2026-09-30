@@ -270,6 +270,8 @@ test("required complete-option questions expose missing items and cannot be sati
     canViewCustomers: true,
     canCreateCustomer: true,
     canAssign: true,
+  canReassignFollowUpTasks: false,
+  timezone: "UTC",
   };
   const unresolved = evaluateGuidedCaseIntake(configuration, { documents: ["w2"] });
   assert.deepEqual(

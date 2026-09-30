@@ -213,6 +213,13 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
     ];
   });
   const canAssign = hasPermission(access, "ASSIGN_CASES");
+  const canReassignFollowUpTasks =
+    !access.isSuperAdmin &&
+    hasPermission(access, "ASSIGN_TASKS") &&
+    (
+      access.activeOrganization.role === "BUSINESS_OWNER" ||
+      access.activeOrganization.role === "STAFF_MANAGER"
+    );
   const defaultPriority = settings.data?.default_priority ?? "NORMAL";
   const timezone = settings.data?.timezone ?? "UTC";
   const currentTaxYear = Number(
@@ -323,6 +330,8 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
       canViewCustomers: true,
       canCreateCustomer: hasPermission(access, "CREATE_CUSTOMER"),
       canAssign,
+      canReassignFollowUpTasks,
+      timezone,
     },
   };
 }
