@@ -1209,6 +1209,7 @@ export function GuidedCaseIntake({
           value={draft.caseTypeId}
           onChange={(event) => updateCaseType(event.target.value)}
           aria-invalid={Boolean(errors.caseTypeId)}
+          disabled={Boolean(draft.caseId)}
         >
           <option value="">Select a Case Type</option>
           {availableCaseTypes.map((item) => (
@@ -1235,6 +1236,7 @@ export function GuidedCaseIntake({
           <select
             required
             value={draft.taxYear ?? ""}
+            disabled={Boolean(draft.caseId)}
             onChange={(event) =>
               updateTaxYear(
                 event.target.value === "" ? null : Number(event.target.value),
@@ -1638,7 +1640,18 @@ export function GuidedCaseIntake({
       ].map(([label, value, editStep]) => (
         <div key={String(label)}>
           <dt>{label}</dt><dd>{value}</dd>
-          <button type="button" onClick={() => setStep(Number(editStep))}>Edit</button>
+          <button
+            type="button"
+            onClick={() => setStep(Number(editStep))}
+            disabled={Boolean(draft.caseId) && Number(editStep) < 2}
+            title={
+              Boolean(draft.caseId) && Number(editStep) < 2
+                ? "Case identity is already established."
+                : undefined
+            }
+          >
+            {Boolean(draft.caseId) && Number(editStep) < 2 ? "Locked" : "Edit"}
+          </button>
         </div>
       ))}
       <div className="intake-review-section">

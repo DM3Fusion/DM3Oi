@@ -251,6 +251,21 @@ export async function saveGuidedIntakeDraftAction(
     };
   }
 
+  if (
+    linkedCase &&
+    (
+      input.draft.customerId !== linkedCase.customer_id ||
+      input.draft.taxYear !== linkedCase.tax_year ||
+      input.draft.caseTypeId !== linkedCase.case_type_id
+    )
+  ) {
+    return {
+      ok: false,
+      error:
+        "This Case identity is already established. Customer, Tax Year, and Case Type cannot be changed.",
+    };
+  }
+
   const resumesCustomerDraft = (customerDrafts.data ?? []).some(
     (draft) => draft.submission_key === input.draft.submissionKey,
   );
@@ -893,6 +908,44 @@ export async function finalizeGuidedCaseAction(
     };
   }
   const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const { data: linkedCase, error: linkedCaseError } = await admin
+    .from("cases")
+    .select("id,customer_id,tax_year,case_type_id")
+    .eq("organization_id", access.activeOrganization!.id)
+    .eq("id", draft.caseId)
+    .maybeSingle();
+
+  if (linkedCaseError || !linkedCase) {
+    console.error("Guided Intake finalization identity lookup failed", {
+      organizationId: access.activeOrganization!.id,
+      caseId: draft.caseId,
+      code: linkedCaseError?.code,
+      message: linkedCaseError?.message,
+    });
+    return {
+      ok: false,
+      error: "The established Case could not be verified.",
+      fieldErrors: {},
+      step: 2,
+    };
+  }
+
+  if (
+    draft.customerId !== linkedCase.customer_id ||
+    draft.taxYear !== linkedCase.tax_year ||
+    draft.caseTypeId !== linkedCase.case_type_id
+  ) {
+    return {
+      ok: false,
+      error:
+        "This Case identity is already established. Customer, Tax Year, and Case Type cannot be changed.",
+      fieldErrors: {},
+      step: 2,
+    };
+  }
+
   const replay =
     configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE"
       ? await supabase
@@ -910,13 +963,13 @@ export async function finalizeGuidedCaseAction(
   ) {
     portalStatus = await getCustomerPortalOnboardingStatus({
       organizationId: access.activeOrganization!.id,
-      customerId: draft.customerId,
+      customerId: linkedCase.customer_id,
       actorUserId: access.user.id,
     });
     if (
       !portalOnboardingResolvedForIntake(
         configuration.portalOnboardingMode,
-        draft.customerId,
+        linkedCase.customer_id,
         portalStatus,
         draft.portalOnboarding,
       )
@@ -944,12 +997,12 @@ export async function finalizeGuidedCaseAction(
     {
       target_organization_id: access.activeOrganization!.id,
       target_submission_key: draft.submissionKey,
-      target_customer_id: draft.customerId,
+      target_customer_id: linkedCase.customer_id,
       target_customer_mode: customerMode,
       target_description: draft.description.trim(),
-      target_case_type_id: draft.caseTypeId,
+      target_case_type_id: linkedCase.case_type_id,
       target_priority: guidedCasePriority(draft.priority),
-      target_tax_year: draft.taxYear!,
+      target_tax_year: linkedCase.tax_year!,
       target_manager_user_id: draft.managerUserId || null,
       target_staff_user_ids: draft.staffUserIds,
       target_answers: creationPlan.answers,
