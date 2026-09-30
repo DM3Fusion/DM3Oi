@@ -86,22 +86,8 @@ export async function saveGuidedIntakeDraftAction(
   | { ok: true; draftId: string }
   | { ok: false; error: string }
 > {
-  const timingStartedAt = Date.now();
-  let timingStageStartedAt = timingStartedAt;
-  const logTiming = (stage: string) => {
-    const now = Date.now();
-    console.info("Guided Intake draft timing", {
-      stage,
-      durationMs: now - timingStageStartedAt,
-      totalMs: now - timingStartedAt,
-    });
-    timingStageStartedAt = now;
-  };
-
   const { access, configuration } =
     await loadGuidedCaseIntakeValidationConfiguration();
-  logTiming("validation-configuration");
-
   const organizationId = access.activeOrganization!.id;
 
   if (
@@ -228,8 +214,6 @@ export async function saveGuidedIntakeDraftAction(
         : Promise.resolve({ data: null, error: null }),
     ]);
 
-  logTiming("canonical-lookups");
-
   const draftLookupError =
     existingSession.error ?? customerDrafts.error ?? latestCustomerCase.error;
   if (draftLookupError) {
@@ -253,8 +237,6 @@ export async function saveGuidedIntakeDraftAction(
         .eq("id", linkedCaseId)
         .maybeSingle()
     : { data: null, error: null };
-
-  logTiming("linked-case-lookup");
 
   if (linkedCaseError || (linkedCaseId && !linkedCase)) {
     console.error("Guided Intake materialized Case identity lookup failed", {
@@ -334,8 +316,6 @@ export async function saveGuidedIntakeDraftAction(
         .select("id")
         .single();
 
-  logTiming("draft-persistence");
-
   if (error || !data) {
     if (error?.code === "23505" && input.draft.customerId) {
       return {
@@ -370,8 +350,6 @@ export async function saveGuidedIntakeDraftAction(
         .eq("organization_id", organizationId)
         .eq("case_id", linkedCaseId)
         .not("intake_follow_up_id", "is", null);
-
-    logTiming("follow-up-task-lookup");
 
     if (followUpTaskError) {
       console.error("Guided Intake follow-up Task synchronization lookup failed", {
@@ -416,8 +394,6 @@ export async function saveGuidedIntakeDraftAction(
         },
       );
 
-      logTiming(`follow-up-task-sync:${persistedTask.id}`);
-
       if (syncError) {
         console.error("Guided Intake follow-up Task synchronization failed", {
           organizationId,
@@ -437,24 +413,11 @@ export async function saveGuidedIntakeDraftAction(
     }
   }
 
-  const revalidationStartedAt = Date.now();
-
   revalidatePath("/tasks");
   revalidatePath("/cases");
   if (input.draft.caseId) {
     revalidatePath(`/cases/${input.draft.caseId}`);
   }
-
-  console.info("Guided Intake draft timing", {
-    stage: "revalidation",
-    durationMs: Date.now() - revalidationStartedAt,
-    totalMs: Date.now() - timingStartedAt,
-  });
-  console.info("Guided Intake draft timing", {
-    stage: "total",
-    durationMs: Date.now() - timingStartedAt,
-    totalMs: Date.now() - timingStartedAt,
-  });
 
   return { ok: true, draftId: data.id };
 }

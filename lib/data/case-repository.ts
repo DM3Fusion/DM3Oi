@@ -407,8 +407,6 @@ export async function getCasesRegisterData(): Promise<{
   timezone: string;
   cases: LiveCase[];
 }> {
-  const timingStartedAt = Date.now();
-
   const access = await getAccessContext();
 
   if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
@@ -608,10 +606,6 @@ export async function getCasesRegisterData(): Promise<{
           }
         : readiness,
     };
-  });
-
-  console.info("Cases register timing", {
-    durationMs: Date.now() - timingStartedAt,
   });
 
   return {

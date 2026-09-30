@@ -363,7 +363,6 @@ export async function loadGuidedIntakeDraft(
 export async function loadGuidedIntakeDraftSummaries(): Promise<
   GuidedIntakeDraftSummary[]
 > {
-  const timingStartedAt = Date.now();
 
   const { access, organizationId, canCreate, canDelete } =
     await requireDraftAccess();
@@ -455,10 +454,6 @@ export async function loadGuidedIntakeDraftSummaries(): Promise<
 
   return rows.map((row) => {
     const ownsDraft = row.created_by_user_id === access.user.id;
-
-    console.info("Guided Intake draft summaries timing", {
-    durationMs: Date.now() - timingStartedAt,
-  });
 
   return {
       id: row.id,
