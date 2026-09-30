@@ -8,9 +8,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, normalizeRawCaseStatus } from "@/lib/case-dashboard";
 import { ApplicationIcon } from "@/components/application-icon";
-import { guidedCaseIntakeSteps } from "@/lib/guided-case-intake";
-import { loadGuidedIntakeDraftSummaries } from "@/lib/data/guided-case-intake-drafts";
-import { DraftIntakeRow } from "@/components/cases/draft-intake-row";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -18,6 +16,7 @@ type Params = {
   priority?: string;
   assignment?: string;
   view?: string;
+  lifecycle?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
   const [data, filters, access] = await Promise.all([
@@ -29,13 +28,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
   const counts = getCaseDashboardCounts(data.cases, data.timezone);
-  const items = data.cases.filter((item) => matchesCaseRegisterFilters(item, filters, data.timezone));
+  const selectedLifecycle =
+    filters.lifecycle === "completed" ? "completed" : "active";
+  const lifecycleCases = data.cases.filter((item) =>
+    selectedLifecycle === "completed"
+      ? item.status === "COMPLETED"
+      : isIncompleteCompatibilityCaseStatus(item.status),
+  );
+  const items = lifecycleCases.filter((item) =>
+    matchesCaseRegisterFilters(item, filters, data.timezone),
+  );
   const canCreate = hasPermission(access, "CREATE_CASE");
-  const canDeleteDrafts = hasPermission(access, "DELETE_DRAFT_INTAKES");
-  const drafts =
-    canCreate || canDeleteDrafts
-      ? await loadGuidedIntakeDraftSummaries()
-      : [];
 
   return (
     <>
@@ -50,47 +53,36 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           ) : undefined
         }
       />
-      {drafts.length ? (
-        <section className="panel detail-section draft-intakes-panel">
-          <div className="section-head">
-            <div>
-              <h2>Draft Intakes</h2>
-              <p>Saved intake sessions that have not created Cases yet.</p>
-            </div>
-          </div>
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Action</th>
-                  <th>Status</th>
-                  <th>Customer</th>
-                  <th>Case Type</th>
-                  <th>Updated</th>
-                </tr>
-              </thead>
-              <tbody>
-                {drafts.map((draft) => (
-                  <DraftIntakeRow
-                    key={draft.id}
-                    draftId={draft.id}
-                    customerName={draft.customerName}
-                    caseTitle={draft.caseType}
-                    completedSteps={Math.min(
-                      Math.max(draft.currentStep, 0),
-                      guidedCaseIntakeSteps.length,
-                    )}
-                    totalSteps={guidedCaseIntakeSteps.length}
-                    canResume={draft.canResume}
-                    canDelete={draft.canDelete}
-                    updatedAt={new Date(draft.updatedAt).toLocaleString()}
-                  />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      ) : null}
+      <nav className="case-lifecycle-tabs" aria-label="Case lifecycle">
+        <Link
+          href={{
+            pathname: "/cases",
+            query: {
+              ...filters,
+              lifecycle: "active",
+              status: undefined,
+            },
+          }}
+          className={`case-lifecycle-tab${selectedLifecycle === "active" ? " active" : ""}`}
+          aria-current={selectedLifecycle === "active" ? "page" : undefined}
+        >
+          Active Cases
+        </Link>
+        <Link
+          href={{
+            pathname: "/cases",
+            query: {
+              ...filters,
+              lifecycle: "completed",
+              status: undefined,
+            },
+          }}
+          className={`case-lifecycle-tab${selectedLifecycle === "completed" ? " active" : ""}`}
+          aria-current={selectedLifecycle === "completed" ? "page" : undefined}
+        >
+          Completed Cases
+        </Link>
+      </nav>
       <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>

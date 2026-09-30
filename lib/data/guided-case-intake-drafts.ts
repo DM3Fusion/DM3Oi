@@ -1,5 +1,6 @@
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import { createClient } from "@/lib/supabase/server";
 import type {
   GuidedCaseIntakeDraft,
@@ -141,12 +142,13 @@ async function requireDraftAccess() {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
   const canCreate = hasPermission(access, "CREATE_CASE");
+  const canWork = hasPermission(access, "WORK_CASES");
   const canDelete = hasPermission(access, "DELETE_DRAFT_INTAKES");
 
   if (
     !access?.user?.id ||
     !organizationId ||
-    (!canCreate && !canDelete)
+    (!canCreate && !canWork && !canDelete)
   ) {
     throw new Error("not authorized");
   }
@@ -155,31 +157,38 @@ async function requireDraftAccess() {
     access,
     organizationId,
     canCreate,
+    canWork,
     canDelete,
   };
 }
 
 export async function loadGuidedIntakeDraft(
   draftId: string,
+  caseId: string | null = null,
 ): Promise<GuidedIntakeSavedDraft | null> {
-  const { access, organizationId, canCreate } = await requireDraftAccess();
+  const { access, organizationId, canCreate, canWork } =
+    await requireDraftAccess();
 
-  if (!canCreate) {
+  if (caseId ? !canWork : !canCreate) {
     throw new Error("not authorized");
   }
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("guided_case_intake_drafts")
     .select(
       "id,submission_key,case_id,current_step,customer_mode,customer_id,new_customer,tax_year,description,case_type_id,priority,manager_user_id,staff_user_ids,answers,required_option_ids,follow_up_tasks,portal_onboarding,updated_at",
     )
     .eq("id", draftId)
     .eq("organization_id", organizationId)
-    .eq("created_by_user_id", access.user.id)
-    .is("finalized_at", null)
-    .maybeSingle();
+    .is("finalized_at", null);
+
+  query = caseId
+    ? query.eq("case_id", caseId)
+    : query.eq("created_by_user_id", access.user.id);
+
+  const { data, error } = await query.maybeSingle();
 
   if (error) {
     console.error("Guided Intake draft load failed", {
@@ -358,6 +367,64 @@ export async function loadGuidedIntakeDraft(
     noticeSentAtByFollowUpId,
     updatedAt: data.updated_at,
   };
+}
+
+export async function loadGuidedIntakeDraftForCase(
+  caseId: string,
+): Promise<GuidedIntakeSavedDraft | null> {
+  const { organizationId, canWork } = await requireDraftAccess();
+
+  if (!canWork) {
+    throw new Error("not authorized");
+  }
+
+  const supabase = await createClient();
+
+  const { data: visibleCase, error: visibleCaseError } = await supabase
+    .from("cases")
+    .select("id,status")
+    .eq("organization_id", organizationId)
+    .eq("id", caseId)
+    .maybeSingle();
+
+  if (visibleCaseError) {
+    console.error("Guided Intake Case access lookup failed", {
+      organizationId,
+      caseId,
+      code: visibleCaseError.code,
+      message: visibleCaseError.message,
+    });
+    throw new Error("Guided Intake draft is temporarily unavailable.");
+  }
+
+  if (
+    !visibleCase ||
+    !isIncompleteCompatibilityCaseStatus(visibleCase.status)
+  ) {
+    return null;
+  }
+
+  const { data: linkedDraft, error: linkedDraftError } = await supabase
+    .from("guided_case_intake_drafts")
+    .select("id")
+    .eq("organization_id", organizationId)
+    .eq("case_id", caseId)
+    .is("finalized_at", null)
+    .maybeSingle();
+
+  if (linkedDraftError) {
+    console.error("Guided Intake Case draft lookup failed", {
+      organizationId,
+      caseId,
+      code: linkedDraftError.code,
+      message: linkedDraftError.message,
+    });
+    throw new Error("Guided Intake draft is temporarily unavailable.");
+  }
+
+  if (!linkedDraft) return null;
+
+  return loadGuidedIntakeDraft(linkedDraft.id, caseId);
 }
 
 export async function loadGuidedIntakeDraftSummaries(): Promise<

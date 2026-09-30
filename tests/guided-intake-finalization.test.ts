@@ -14,7 +14,9 @@ test("Step 6 calls the linked-Case Portal-aware finalization RPC", () => {
   )?.[0] ?? "";
 
   assert.match(rpcCall, /target_customer_mode: customerMode/);
-  assert.match(rpcCall, /target_tax_year: draft\.taxYear!/);
+  assert.match(rpcCall, /target_customer_id: linkedCase\.customer_id/);
+  assert.match(rpcCall, /target_case_type_id: linkedCase\.case_type_id/);
+  assert.match(rpcCall, /target_tax_year: linkedCase\.tax_year!/);
   assert.match(
     rpcCall,
     /target_manager_user_id: draft\.managerUserId \|\| null/,

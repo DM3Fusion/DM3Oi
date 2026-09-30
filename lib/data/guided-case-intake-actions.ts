@@ -87,7 +87,7 @@ export async function saveGuidedIntakeDraftAction(
   | { ok: false; error: string }
 > {
   const { access, configuration } =
-    await loadGuidedCaseIntakeValidationConfiguration();
+    await loadGuidedCaseIntakeValidationConfiguration(input.draft.caseId);
   const organizationId = access.activeOrganization!.id;
 
   if (
@@ -182,15 +182,24 @@ export async function saveGuidedIntakeDraftAction(
 
   const [existingSession, customerDrafts, latestCustomerCase] =
     await Promise.all([
-      supabase
-        .from("guided_case_intake_drafts")
-        .select("id,submission_key,customer_id,case_id")
-        .eq("organization_id", organizationId)
-        .eq("created_by_user_id", access.user.id)
-        .eq("submission_key", input.draft.submissionKey)
-        .is("finalized_at", null)
-        .maybeSingle(),
-      input.draft.customerId
+      input.draft.caseId
+        ? supabase
+            .from("guided_case_intake_drafts")
+            .select("id,submission_key,customer_id,case_id,created_by_user_id")
+            .eq("organization_id", organizationId)
+            .eq("case_id", input.draft.caseId)
+            .eq("submission_key", input.draft.submissionKey)
+            .is("finalized_at", null)
+            .maybeSingle()
+        : supabase
+            .from("guided_case_intake_drafts")
+            .select("id,submission_key,customer_id,case_id,created_by_user_id")
+            .eq("organization_id", organizationId)
+            .eq("created_by_user_id", access.user.id)
+            .eq("submission_key", input.draft.submissionKey)
+            .is("finalized_at", null)
+            .maybeSingle(),
+      !input.draft.caseId && input.draft.customerId
         ? supabase
             .from("guided_case_intake_drafts")
             .select("id,submission_key,current_step,updated_at")
@@ -200,7 +209,7 @@ export async function saveGuidedIntakeDraftAction(
             .is("finalized_at", null)
             .order("updated_at", { ascending: false })
         : Promise.resolve({ data: [], error: null }),
-      input.draft.customerId
+      !input.draft.caseId && input.draft.customerId
         ? admin
             .from("cases")
             .select("intake_submission_key")
@@ -225,6 +234,13 @@ export async function saveGuidedIntakeDraftAction(
     return {
       ok: false,
       error: "The intake draft could not be saved. Please try again.",
+    };
+  }
+
+  if (input.draft.caseId && !existingSession.data) {
+    return {
+      ok: false,
+      error: "The established Case intake is not available for editing.",
     };
   }
 
@@ -273,7 +289,7 @@ export async function saveGuidedIntakeDraftAction(
     return {
       ok: false,
       error:
-        "An unfinished intake already exists for this Customer. Resume the existing draft from Cases → Draft Intakes.",
+        "An unfinished intake already exists for this Customer. Resume the existing intake before starting another Case.",
     };
   }
 
@@ -289,7 +305,8 @@ export async function saveGuidedIntakeDraftAction(
 
   const payload = {
     organization_id: organizationId,
-    created_by_user_id: access.user.id,
+    created_by_user_id:
+      existingSession.data?.created_by_user_id ?? access.user.id,
     submission_key: canonicalSubmissionKey,
     current_step: input.currentStep,
     customer_mode: input.customerMode,
@@ -320,9 +337,9 @@ export async function saveGuidedIntakeDraftAction(
   const { data, error } = existingSession.data
     ? await supabase
         .from("guided_case_intake_drafts")
-        .upsert(payload, {
-          onConflict: "organization_id,created_by_user_id,submission_key",
-        })
+        .update(payload)
+        .eq("id", existingSession.data.id)
+        .eq("organization_id", organizationId)
         .select("id")
         .single()
     : await supabase
@@ -336,7 +353,7 @@ export async function saveGuidedIntakeDraftAction(
       return {
         ok: false,
         error:
-          "An unfinished intake already exists for this Customer. Resume the existing draft from Cases → Draft Intakes.",
+          "An unfinished intake already exists for this Customer. Resume the existing intake before starting another Case.",
       };
     }
     console.error("Guided Intake draft save failed", {
@@ -453,15 +470,15 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   draft: GuidedCaseIntakeDraft,
   task: GuidedIntakeFollowUpTask,
 ): Promise<UpsertGuidedIntakeFollowUpTaskResult> {
-  const { access, configuration } =
-    await loadGuidedCaseIntakeConfiguration();
-
   if (!draft.caseId) {
     return {
       ok: false,
       error: "Establish the Case before creating a follow-up Task.",
     };
   }
+
+  const { access, configuration } =
+    await loadGuidedCaseIntakeConfiguration(draft.caseId);
 
   const evaluation = evaluateGuidedCaseIntake(
     configuration,
@@ -877,7 +894,7 @@ export async function finalizeGuidedCaseAction(
   customerMode: "existing" | "new",
 ): Promise<CreateGuidedCaseResult> {
   const { access, configuration } =
-    await loadGuidedCaseIntakeConfiguration();
+    await loadGuidedCaseIntakeConfiguration(draft.caseId);
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(draft.submissionKey)) {
     return {
       ok: false,
@@ -952,7 +969,7 @@ export async function finalizeGuidedCaseAction(
           .from("cases")
           .select("id")
           .eq("organization_id", access.activeOrganization!.id)
-          .eq("created_by_user_id", access.user.id)
+          .eq("id", draft.caseId)
           .eq("intake_submission_key", draft.submissionKey)
           .maybeSingle()
       : { data: null, error: null };
@@ -1037,8 +1054,12 @@ export type GuidedIntakePortalActionResult =
   | { ok: true; status: CustomerPortalOnboardingStatus }
   | { ok: false; error: string; status?: CustomerPortalOnboardingStatus };
 
-async function requireGuidedIntakePortalCustomer(customerId: string) {
-  const { access, configuration } = await loadGuidedCaseIntakeConfiguration();
+async function requireGuidedIntakePortalCustomer(
+  customerId: string,
+  caseId: string | null = null,
+) {
+  const { access, configuration } =
+    await loadGuidedCaseIntakeConfiguration(caseId);
   if (configuration.portalOnboardingMode !== "PROMPT_DURING_CASE_INTAKE")
     throw new CustomerPortalProvisioningError(
       "Portal onboarding is not enabled for Guided Intake.",
@@ -1052,9 +1073,13 @@ async function requireGuidedIntakePortalCustomer(customerId: string) {
 
 export async function loadGuidedIntakePortalStatusAction(
   customerId: string,
+  caseId: string | null = null,
 ): Promise<GuidedIntakePortalActionResult> {
   try {
-    const { access } = await requireGuidedIntakePortalCustomer(customerId);
+    const { access } = await requireGuidedIntakePortalCustomer(
+      customerId,
+      caseId,
+    );
     return {
       ok: true,
       status: await getCustomerPortalOnboardingStatus({
@@ -1082,9 +1107,13 @@ export async function loadGuidedIntakePortalStatusAction(
 export async function sendGuidedIntakePortalInvitationAction(
   customerId: string,
   resend = false,
+  caseId: string | null = null,
 ): Promise<GuidedIntakePortalActionResult> {
   try {
-    const { access } = await requireGuidedIntakePortalCustomer(customerId);
+    const { access } = await requireGuidedIntakePortalCustomer(
+      customerId,
+      caseId,
+    );
     const status = await provisionCustomerPortalAccess({
       organizationId: access.activeOrganization!.id,
       organizationName: access.activeOrganization!.name,
@@ -1114,12 +1143,13 @@ export async function sendGuidedIntakePortalInvitationAction(
 export async function setGuidedIntakePortalNotRequiredAction(
   customerId: string,
   notRequired: boolean,
+  caseId: string | null = null,
 ): Promise<
   | { ok: true; resolution: GuidedIntakePortalResolution }
   | { ok: false; error: string }
 > {
   try {
-    await requireGuidedIntakePortalCustomer(customerId);
+    await requireGuidedIntakePortalCustomer(customerId, caseId);
     return {
       ok: true,
       resolution: notRequired

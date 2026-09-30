@@ -267,12 +267,23 @@ test("Guided Intake UI keeps one Customer mode across navigation and moves Tax Y
   assert.match(detailsStep, /<span>Tax Year<\/span>[\s\S]*selectableTaxYears/);
 });
 
-test("draft loading restores materialized Customers as existing without changing stored rows", () => {
+test("draft loading restores materialized Customers as existing without changing stored identity", () => {
   const loader = source("lib/data/guided-case-intake-drafts.ts");
   const action = source("lib/data/guided-case-intake-actions.ts");
+
   assert.match(loader, /customerMode: data\.customer_id[\s\S]*\? "existing"/);
-  assert.match(action, /input\.draft\.customerId[\s\S]*canonicalCustomerDraftSubmissionKey/);
-  assert.match(action, /onConflict: "organization_id,created_by_user_id,submission_key"/);
+  assert.match(
+    action,
+    /input\.draft\.customerId[\s\S]*canonicalCustomerDraftSubmissionKey/,
+  );
+  assert.match(
+    action,
+    /created_by_user_id:[\s\S]*existingSession\.data\?\.created_by_user_id \?\? access\.user\.id/,
+  );
+  assert.match(
+    action,
+    /\.update\(payload\)[\s\S]*\.eq\("id", existingSession\.data\.id\)/,
+  );
 });
 
 test("Customer step cannot advance without an active organization Customer", () => {

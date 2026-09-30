@@ -470,7 +470,10 @@ export function GuidedCaseIntake({
       return;
     }
     let active = true;
-    void loadGuidedIntakePortalStatusAction(draft.customerId).then((result) => {
+    void loadGuidedIntakePortalStatusAction(
+      draft.customerId,
+      draft.caseId,
+    ).then((result) => {
       if (!active) return;
       setPortalPending(false);
       if (!result.ok) {
@@ -512,7 +515,7 @@ export function GuidedCaseIntake({
     return () => {
       active = false;
     };
-  }, [draft.customerId, portalPromptEnabled]);
+  }, [draft.caseId, draft.customerId, portalPromptEnabled]);
 
   const selectCustomer = (customerId: string) => {
     setPortalStatus(null);
@@ -772,6 +775,7 @@ export function GuidedCaseIntake({
     const result = await sendGuidedIntakePortalInvitationAction(
       draft.customerId,
       resend,
+      draft.caseId,
     );
     setPortalPending(false);
     if (!result.ok) {
@@ -806,6 +810,7 @@ export function GuidedCaseIntake({
     const result = await setGuidedIntakePortalNotRequiredAction(
       draft.customerId,
       notRequired,
+      draft.caseId,
     );
     setPortalPending(false);
     if (!result.ok) {

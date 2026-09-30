@@ -83,15 +83,32 @@ test("historical Cases do not participate in draft-based Step 1 exclusion", () =
   );
 });
 
-test("stale saves reject another Customer draft and fresh races converge on one key", () => {
+test("stale pre-Case saves reject another Customer draft while existing Case drafts update their stable row", () => {
   assert.match(saveAction, /\.eq\("customer_id", input\.draft\.customerId\)/);
   assert.match(saveAction, /resumesCustomerDraft/);
-  assert.match(saveAction, /An unfinished intake already exists for this Customer/);
+  assert.match(
+    saveAction,
+    /An unfinished intake already exists for this Customer/,
+  );
   assert.match(saveAction, /canonicalCustomerDraftSubmissionKey/);
-  assert.match(saveAction, /select\("intake_submission_key"\)[\s\S]*latestCustomerCase\.data\?\.intake_submission_key/);
-  assert.match(saveAction, /existingSession\.data[\s\S]*\.upsert\([\s\S]*:\s*await supabase[\s\S]*\.insert\(payload\)/);
-  assert.match(saveAction, /error\?\.code === "23505"[\s\S]*Resume the existing draft/);
-  assert.match(saveAction, /onConflict: "organization_id,created_by_user_id,submission_key"/);
+  assert.match(
+    saveAction,
+    /select\("intake_submission_key"\)[\s\S]*latestCustomerCase\.data\?\.intake_submission_key/,
+  );
+
+  assert.match(
+    saveAction,
+    /existingSession\.data[\s\S]*\.update\(payload\)[\s\S]*\.eq\("id", existingSession\.data\.id\)[\s\S]*:\s*await supabase[\s\S]*\.insert\(payload\)/,
+  );
+  assert.match(
+    saveAction,
+    /created_by_user_id:[\s\S]*existingSession\.data\?\.created_by_user_id \?\? access\.user\.id/,
+  );
+  assert.match(
+    saveAction,
+    /error\?\.code === "23505"[\s\S]*Resume the existing intake/,
+  );
+
   assert.match(
     draftMigration,
     /unique \(organization_id,created_by_user_id,submission_key\)/,

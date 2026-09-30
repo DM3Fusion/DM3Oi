@@ -70,9 +70,22 @@ export default async function Page({
       "Is self-employment or business income involved?",
     ]);
 
-  const [purposeResult, qualifierQuestionsResult] = await Promise.all([
+  const editableIntakeQuery = supabase
+    .from("guided_case_intake_drafts")
+    .select("id")
+    .eq("organization_id", data.organizationId)
+    .eq("case_id", item.id)
+    .is("finalized_at", null)
+    .maybeSingle();
+
+  const [
+    purposeResult,
+    qualifierQuestionsResult,
+    editableIntakeResult,
+  ] = await Promise.all([
     purposeQuery,
     qualifierQuestionsQuery,
+    editableIntakeQuery,
   ]);
   if (purposeResult.error) {
     console.error("Task Purpose query failed", {
@@ -87,6 +100,16 @@ export default async function Page({
     label: string;
   }>;
   const questions = item.questions;
+
+  if (editableIntakeResult.error) {
+    console.error("Editable Guided Intake lookup failed", {
+      organizationId: data.organizationId,
+      caseId: item.id,
+      code: editableIntakeResult.error.code,
+      message: editableIntakeResult.error.message,
+    });
+    throw new Error("Case intake status is temporarily unavailable.");
+  }
 
   if (qualifierQuestionsResult.error) {
     console.error("Case qualifier Question lookup failed", {
@@ -179,6 +202,11 @@ export default async function Page({
   const canManage = hasPermission(access, "MANAGE_TASKS");
   const canAssignCases = hasPermission(access, "ASSIGN_CASES");
   const canWorkCases = hasPermission(access, "WORK_CASES");
+  const canEditGuidedIntake =
+    canWorkCases &&
+    isCanonicalActiveCaseStatus(item.status) &&
+    Boolean(editableIntakeResult.data);
+
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
   );
@@ -212,6 +240,14 @@ export default async function Page({
             </dl>
           </div>
           <div className="detail-badges">
+            {canEditGuidedIntake ? (
+              <Link
+                className="secondary-button"
+                href={`/cases/new?case=${item.id}`}
+              >
+                Edit Case
+              </Link>
+            ) : null}
             <Badge value={item.status} />
             <Badge value={item.priority} />
           </div>

@@ -6,20 +6,35 @@ import {
   GuidedCaseIntakeDataError,
   loadGuidedCaseIntakeConfiguration,
 } from "@/lib/data/guided-case-intake";
-import { loadGuidedIntakeDraft } from "@/lib/data/guided-case-intake-drafts";
+import {
+  loadGuidedIntakeDraft,
+  loadGuidedIntakeDraftForCase,
+} from "@/lib/data/guided-case-intake-drafts";
 
 export const metadata = { title: "Guided Case Intake" };
 
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ draft?: string }>;
+  searchParams: Promise<{ draft?: string; case?: string }>;
 }) {
+  const query = await searchParams;
+
+  const savedDraft = query.case
+    ? await loadGuidedIntakeDraftForCase(query.case)
+    : query.draft
+      ? await loadGuidedIntakeDraft(query.draft)
+      : null;
+
+  if ((query.case || query.draft) && !savedDraft) notFound();
+
   let configuration;
   let draftCustomerIds;
   try {
     ({ configuration, draftCustomerIds } =
-      await loadGuidedCaseIntakeConfiguration());
+      await loadGuidedCaseIntakeConfiguration(
+        savedDraft?.draft.caseId ?? null,
+      ));
   } catch (error) {
     if (
       error instanceof GuidedCaseIntakeDataError &&
@@ -30,19 +45,16 @@ export default async function Page({
     throw error;
   }
 
-  const query = await searchParams;
-  const savedDraft = query.draft
-    ? await loadGuidedIntakeDraft(query.draft)
-    : null;
-
-  if (query.draft && !savedDraft) notFound();
-
   return (
     <>
       <PageHeader
         eyebrow="Cases"
-        title="Guided Case Intake"
-        description="Create one complete, validated Case without leaving the intake workflow."
+        title={query.case ? "Edit Case" : "Guided Case Intake"}
+        description={
+          query.case
+            ? "Continue the existing Case intake workflow."
+            : "Create one complete, validated Case without leaving the intake workflow."
+        }
       />
       <GuidedCaseIntake
         configuration={configuration}

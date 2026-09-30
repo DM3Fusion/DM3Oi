@@ -7,6 +7,7 @@ import {
   type OrganizationPermissionOverride,
 } from "@/lib/auth/permissions";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import { createClient } from "@/lib/supabase/server";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import type {
@@ -37,7 +38,9 @@ const profileName = (profile: {
   profile.email ||
   "Organization member";
 
-export async function loadGuidedCaseIntakeValidationConfiguration(): Promise<{
+export async function loadGuidedCaseIntakeValidationConfiguration(
+  caseId: string | null = null,
+): Promise<{
   access: NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
   configuration: Pick<
     GuidedIntakeConfiguration,
@@ -47,14 +50,38 @@ export async function loadGuidedCaseIntakeValidationConfiguration(): Promise<{
   const access = await getAccessContext();
   if (
     !access?.activeOrganization ||
-    !hasPermission(access, "CREATE_CASE") ||
-    !hasPermission(access, "VIEW_CUSTOMERS")
+    !hasPermission(access, "VIEW_CUSTOMERS") ||
+    (
+      caseId
+        ? !hasPermission(access, "WORK_CASES")
+        : !hasPermission(access, "CREATE_CASE")
+    )
   ) {
     throw new GuidedCaseIntakeDataError("Guided Case Intake is not authorized.");
   }
 
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
+
+  if (caseId) {
+    const { data: visibleCase, error: visibleCaseError } = await supabase
+      .from("cases")
+      .select("id,status")
+      .eq("organization_id", organizationId)
+      .eq("id", caseId)
+      .maybeSingle();
+
+    if (
+      visibleCaseError ||
+      !visibleCase ||
+      !isIncompleteCompatibilityCaseStatus(visibleCase.status)
+    ) {
+      throw new GuidedCaseIntakeDataError(
+        "Guided Case Intake is not authorized.",
+      );
+    }
+  }
+
   const admin = createAdminClient();
 
   const [questions, options, rules, actions] = await Promise.all([
@@ -142,7 +169,9 @@ export async function loadGuidedCaseIntakeValidationConfiguration(): Promise<{
   };
 }
 
-export async function loadGuidedCaseIntakeConfiguration(): Promise<{
+export async function loadGuidedCaseIntakeConfiguration(
+  caseId: string | null = null,
+): Promise<{
   access: NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
   configuration: GuidedIntakeConfiguration;
   draftCustomerIds: string[];
@@ -150,13 +179,38 @@ export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   const access = await getAccessContext();
   if (
     !access?.activeOrganization ||
-    !hasPermission(access, "CREATE_CASE") ||
-    !hasPermission(access, "VIEW_CUSTOMERS")
+    !hasPermission(access, "VIEW_CUSTOMERS") ||
+    (
+      caseId
+        ? !hasPermission(access, "WORK_CASES")
+        : !hasPermission(access, "CREATE_CASE")
+    )
   ) {
     throw new GuidedCaseIntakeDataError("Guided Case Intake is not authorized.");
   }
+
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
+
+  if (caseId) {
+    const { data: visibleCase, error: visibleCaseError } = await supabase
+      .from("cases")
+      .select("id,status")
+      .eq("organization_id", organizationId)
+      .eq("id", caseId)
+      .maybeSingle();
+
+    if (
+      visibleCaseError ||
+      !visibleCase ||
+      !isIncompleteCompatibilityCaseStatus(visibleCase.status)
+    ) {
+      throw new GuidedCaseIntakeDataError(
+        "Guided Case Intake is not authorized.",
+      );
+    }
+  }
+
   const admin = createAdminClient();
   const [
     customers,
