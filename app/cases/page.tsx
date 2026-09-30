@@ -20,18 +20,11 @@ type Params = {
   view?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
-  const pageStartedAt = Date.now();
-
   const [data, filters, access] = await Promise.all([
     getCasesRegisterData(),
     searchParams,
     getAccessContext(),
   ]);
-
-  console.info("Cases page timing", {
-    stage: "register-data",
-    durationMs: Date.now() - pageStartedAt,
-  });
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
@@ -39,22 +32,10 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const items = data.cases.filter((item) => matchesCaseRegisterFilters(item, filters, data.timezone));
   const canCreate = hasPermission(access, "CREATE_CASE");
   const canDeleteDrafts = hasPermission(access, "DELETE_DRAFT_INTAKES");
-  const draftStartedAt = Date.now();
   const drafts =
     canCreate || canDeleteDrafts
       ? await loadGuidedIntakeDraftSummaries()
       : [];
-
-  console.info("Cases page timing", {
-    stage: "draft-summaries",
-    durationMs: Date.now() - draftStartedAt,
-    totalMs: Date.now() - pageStartedAt,
-  });
-
-  console.info("Cases page timing", {
-    stage: "total",
-    durationMs: Date.now() - pageStartedAt,
-  });
 
   return (
     <>
