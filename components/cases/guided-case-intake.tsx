@@ -755,7 +755,7 @@ export function GuidedCaseIntake({
   ) => {
     if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
       setFollowUpError(
-        "Mark every tracked required document as received before completing this Task.",
+        "Click Cancel and mark all missing documents as received before completing this Task.",
       );
       return;
     }
