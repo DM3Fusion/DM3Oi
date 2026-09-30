@@ -515,8 +515,8 @@ export async function provisionCustomerPortalAccess(input: {
     const delivery = await sendCustomerPortalInvitationEmail({
       recipientEmail: email,
       recipientName:
-        customer.name?.trim() ||
         customer.first_name?.trim() ||
+        customer.name?.trim() ||
         "Customer",
       recipientUserId: authUser.id,
       organizationName: input.organizationName,

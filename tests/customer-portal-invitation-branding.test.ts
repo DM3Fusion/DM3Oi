@@ -214,7 +214,7 @@ test("Customer Portal invitation greeting uses the authoritative Customer name",
 
   assert.match(
     service,
-    /recipientName:\s*customer\.name\?\.trim\(\)\s*\|\|\s*customer\.first_name\?\.trim\(\)\s*\|\|\s*"Customer"/,
+    /recipientName:\s*customer\.first_name\?\.trim\(\)\s*\|\|\s*customer\.name\?\.trim\(\)\s*\|\|\s*"Customer"/,
   );
 
   assert.doesNotMatch(
