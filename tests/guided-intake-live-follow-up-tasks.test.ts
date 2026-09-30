@@ -102,9 +102,12 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
     /sendFollowUpNotice\(activeTask\)[\s\S]*Send Document Request/,
   );
 
+  assert.doesNotMatch(component, /completeFollowUpTaskFromModal/);
+  assert.doesNotMatch(component, />\s*Complete Task\s*</);
+  assert.doesNotMatch(component, /Complete after documents are verified\./);
   assert.match(
     component,
-    /activeTask[\s\S]*Complete Task[\s\S]*Complete after documents are verified\./,
+    /task\.completed\s*\?\s*"Completed"\s*:\s*"Open"/,
   );
 
   assert.match(

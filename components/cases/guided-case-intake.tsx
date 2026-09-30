@@ -15,7 +15,6 @@ import {
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
-  canCompleteIntakeFollowUpTask,
   getMissingRequiredOptions,
   isGuidedQuestionAnswerValid,
   reconcileGuidedIntakeFollowUpTasks,
@@ -734,25 +733,6 @@ export function GuidedCaseIntake({
     }
   };
 
-  const completeFollowUpTaskFromModal = (
-    task: GuidedIntakeFollowUpTask,
-  ) => {
-    if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
-      setFollowUpError(
-        "Click Cancel and mark all missing documents as received before completing this Task.",
-      );
-      return;
-    }
-
-    setFollowUpError(null);
-    updateDraft(
-      "followUpTasks",
-      draft.followUpTasks.map((item) =>
-        item.id === task.id ? { ...item, completed: true } : item,
-      ),
-    );
-    followUpDialog.current?.close();
-  };
   const validateStep = () => {
     if (step === 0)
       return validateGuidedCustomerStep(draft, scopedConfiguration);
@@ -1849,22 +1829,6 @@ export function GuidedCaseIntake({
                     ) : null}
                   </div>
                 )}
-              </div>
-            ) : null}
-
-            {activeTask && !activeTask.completed ? (
-              <div className="task-notice-action">
-                <button
-                  type="button"
-                  className="secondary-button task-complete-button"
-                  disabled={pending}
-                  onClick={() => completeFollowUpTaskFromModal(activeTask)}
-                >
-                  Complete Task
-                </button>
-                <span className="task-complete-help">
-                  Complete after documents are verified.
-                </span>
               </div>
             ) : null}
 

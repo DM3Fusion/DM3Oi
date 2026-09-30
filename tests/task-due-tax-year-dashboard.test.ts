@@ -300,7 +300,9 @@ test("Guided Intake follow-up Tasks preserve intake provenance and finalize atom
   assert.match(component, /className="task-modal"/);
   assert.match(component, /Save and Continue Later/);
   assert.match(component, /step === 2 && !requiredQuestionsComplete/);
-  assert.match(component, /Mark every tracked required document as received before completing its follow-up Task/);
+  assert.match(component, /task\.completed\s*\?\s*"Completed"\s*:\s*"Open"/);
+  assert.match(component, /All required documents received/);
+  assert.doesNotMatch(component, />\s*Complete Task\s*</);
   assert.match(actions, /follow_up_tasks: input\.draft\.followUpTasks/);
   assert.match(actions, /target_follow_up_tasks: draft\.followUpTasks/);
   assert.match(migration, /intake_follow_up_id/);
