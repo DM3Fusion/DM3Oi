@@ -202,6 +202,11 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
     /target_status:\s*targetStatus/,
   );
 
+  assert.match(
+    component,
+    /if \(step === 2\)[\s\S]*saveGuidedIntakeDraftAction\([\s\S]*setStep\(3\)/,
+  );
+
   assert.doesNotMatch(
     component,
     /conditional question\{hiddenQuestions\.length/,

@@ -862,7 +862,34 @@ export function GuidedCaseIntake({
       return;
     }
 
-    setStep((current) => Math.min(current + 1, guidedCaseIntakeSteps.length - 1));
+    if (step === 2) {
+      setPending(true);
+
+      const result = await saveGuidedIntakeDraftAction({
+        currentStep: step,
+        customerMode,
+        draft,
+        newCustomer: {
+          ...customerValues,
+          firstName: customerFirstName,
+          lastName: customerLastName,
+        },
+      });
+
+      setPending(false);
+
+      if (!result.ok) {
+        setFormError(result.error);
+        return;
+      }
+
+      setStep(3);
+      return;
+    }
+
+    setStep((current) =>
+      Math.min(current + 1, guidedCaseIntakeSteps.length - 1),
+    );
   };
 
   const createNewCustomerAndContinue = async () => {
