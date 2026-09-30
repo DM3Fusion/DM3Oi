@@ -414,7 +414,6 @@ export async function saveGuidedIntakeDraftAction(
   }
 
   revalidatePath("/tasks");
-  revalidatePath("/cases");
   if (input.draft.caseId) {
     revalidatePath(`/cases/${input.draft.caseId}`);
   }
