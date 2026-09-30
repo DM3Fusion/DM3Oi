@@ -180,7 +180,7 @@ export async function saveGuidedIntakeDraftAction(
     await Promise.all([
       supabase
         .from("guided_case_intake_drafts")
-        .select("id,submission_key,customer_id")
+        .select("id,submission_key,customer_id,case_id")
         .eq("organization_id", organizationId)
         .eq("created_by_user_id", access.user.id)
         .eq("submission_key", input.draft.submissionKey)
@@ -224,6 +224,29 @@ export async function saveGuidedIntakeDraftAction(
     };
   }
 
+  const linkedCaseId = existingSession.data?.case_id ?? null;
+  const { data: linkedCase, error: linkedCaseError } = linkedCaseId
+    ? await admin
+        .from("cases")
+        .select("id,customer_id,tax_year,case_type_id")
+        .eq("organization_id", organizationId)
+        .eq("id", linkedCaseId)
+        .maybeSingle()
+    : { data: null, error: null };
+
+  if (linkedCaseError || (linkedCaseId && !linkedCase)) {
+    console.error("Guided Intake materialized Case identity lookup failed", {
+      organizationId,
+      caseId: linkedCaseId,
+      code: linkedCaseError?.code,
+      message: linkedCaseError?.message,
+    });
+    return {
+      ok: false,
+      error: "The intake draft could not be saved. Please try again.",
+    };
+  }
+
   const resumesCustomerDraft = (customerDrafts.data ?? []).some(
     (draft) => draft.submission_key === input.draft.submissionKey,
   );
@@ -251,7 +274,8 @@ export async function saveGuidedIntakeDraftAction(
     submission_key: canonicalSubmissionKey,
     current_step: input.currentStep,
     customer_mode: input.customerMode,
-    customer_id: input.draft.customerId || null,
+    customer_id:
+      linkedCase?.customer_id ?? (input.draft.customerId || null),
     new_customer: {
       type: input.newCustomer.type,
       name: input.newCustomer.name,
@@ -261,9 +285,10 @@ export async function saveGuidedIntakeDraftAction(
       phone: input.newCustomer.phone,
       notes: input.newCustomer.notes,
     },
-    tax_year: input.draft.taxYear,
+    tax_year: linkedCase?.tax_year ?? input.draft.taxYear,
     description: input.draft.description,
-    case_type_id: input.draft.caseTypeId || null,
+    case_type_id:
+      linkedCase?.case_type_id ?? (input.draft.caseTypeId || null),
     priority: guidedCasePriority(input.draft.priority),
     manager_user_id: input.draft.managerUserId || null,
     staff_user_ids: input.draft.staffUserIds,
@@ -306,7 +331,7 @@ export async function saveGuidedIntakeDraftAction(
     };
   }
 
-  if (input.draft.caseId && input.draft.followUpTasks.length) {
+  if (linkedCaseId && input.draft.followUpTasks.length) {
     const completedByFollowUpId = new Map(
       input.draft.followUpTasks.map((task) => [task.id, task.completed]),
     );
@@ -319,13 +344,13 @@ export async function saveGuidedIntakeDraftAction(
         .from("case_tasks")
         .select("id,intake_follow_up_id,status")
         .eq("organization_id", organizationId)
-        .eq("case_id", input.draft.caseId)
+        .eq("case_id", linkedCaseId)
         .not("intake_follow_up_id", "is", null);
 
     if (followUpTaskError) {
       console.error("Guided Intake follow-up Task synchronization lookup failed", {
         organizationId,
-        caseId: input.draft.caseId,
+        caseId: linkedCaseId,
         code: followUpTaskError.code,
         message: followUpTaskError.message,
       });
@@ -368,7 +393,7 @@ export async function saveGuidedIntakeDraftAction(
       if (syncError) {
         console.error("Guided Intake follow-up Task synchronization failed", {
           organizationId,
-          caseId: input.draft.caseId,
+          caseId: linkedCaseId,
           taskId: persistedTask.id,
           followUpId,
           targetStatus,
