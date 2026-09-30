@@ -587,7 +587,7 @@ export function reconcileGuidedIntakeFollowUpTasks(
         ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
         : "All required documents have been received.",
       completed:
-        missingOptions.length || !question?.valid ? false : task.completed,
+        missingOptions.length || !question?.valid ? false : true,
     }];
   });
 }

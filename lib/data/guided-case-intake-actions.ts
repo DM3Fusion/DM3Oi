@@ -306,8 +306,101 @@ export async function saveGuidedIntakeDraftAction(
     };
   }
 
+  if (input.draft.caseId && input.draft.followUpTasks.length) {
+    const completedByFollowUpId = new Map(
+      input.draft.followUpTasks.map((task) => [task.id, task.completed]),
+    );
+
+    // Temporary schema bridge until generated Supabase types include
+    // Guided Intake Task provenance and task_purpose_id.
+    const { data: persistedFollowUpTasks, error: followUpTaskError } =
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any)
+        .from("case_tasks")
+        .select(
+          "id,intake_follow_up_id,title,description,assigned_user_id,status,required,due_at,task_purpose_id",
+        )
+        .eq("organization_id", organizationId)
+        .eq("case_id", input.draft.caseId)
+        .not("intake_follow_up_id", "is", null);
+
+    if (followUpTaskError) {
+      console.error("Guided Intake follow-up Task synchronization lookup failed", {
+        organizationId,
+        caseId: input.draft.caseId,
+        code: followUpTaskError.code,
+        message: followUpTaskError.message,
+      });
+      return {
+        ok: false,
+        error:
+          "The intake was saved, but its follow-up Tasks could not be synchronized. Please try again.",
+      };
+    }
+
+    for (const persistedTask of persistedFollowUpTasks ?? []) {
+      const followUpId = persistedTask.intake_follow_up_id;
+      if (
+        typeof followUpId !== "string" ||
+        !completedByFollowUpId.has(followUpId)
+      ) {
+        continue;
+      }
+
+      const completed = completedByFollowUpId.get(followUpId) === true;
+      const targetStatus = completed
+        ? "COMPLETED"
+        : persistedTask.status === "COMPLETED"
+          ? "IN_PROGRESS"
+          : persistedTask.status;
+
+      if (targetStatus === persistedTask.status) continue;
+
+      // Reuse the canonical Task lifecycle RPC so completed_at,
+      // completed_by_user_id, and Case activity remain authoritative.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error: syncError } = await (supabase as any).rpc(
+        "update_case_task",
+        {
+          target_task_id: persistedTask.id,
+          target_task_purpose_id: persistedTask.task_purpose_id,
+          target_title: persistedTask.title,
+          target_description: persistedTask.description,
+          target_assigned_user_id: persistedTask.assigned_user_id,
+          target_status: targetStatus,
+          target_required: persistedTask.required,
+          target_due_date: persistedTask.due_at
+            ? String(persistedTask.due_at).slice(0, 10)
+            : null,
+        },
+      );
+
+      if (syncError) {
+        console.error("Guided Intake follow-up Task synchronization failed", {
+          organizationId,
+          caseId: input.draft.caseId,
+          taskId: persistedTask.id,
+          followUpId,
+          targetStatus,
+          code: syncError.code,
+          message: syncError.message,
+        });
+        return {
+          ok: false,
+          error:
+            "The intake was saved, but its follow-up Task status could not be synchronized. Please try again.",
+        };
+      }
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/tasks");
   revalidatePath("/cases");
   revalidatePath("/cases/new");
+  if (input.draft.caseId) {
+    revalidatePath(`/cases/${input.draft.caseId}`);
+  }
   return { ok: true, draftId: data.id };
 }
 

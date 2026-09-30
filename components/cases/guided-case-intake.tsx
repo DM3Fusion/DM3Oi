@@ -734,22 +734,6 @@ export function GuidedCaseIntake({
     }
   };
 
-  const completeFollowUpTask = (task: GuidedIntakeFollowUpTask) => {
-    if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
-      setFormError(
-        "Mark every tracked required document as received before completing its follow-up Task.",
-      );
-      return;
-    }
-
-    updateDraft(
-      "followUpTasks",
-      draft.followUpTasks.map((item) =>
-        item.id === task.id ? { ...item, completed: true } : item,
-      ),
-    );
-  };
-
   const completeFollowUpTaskFromModal = (
     task: GuidedIntakeFollowUpTask,
   ) => {
@@ -1578,9 +1562,6 @@ export function GuidedCaseIntake({
     const requiredQuestions = evaluation.questions.filter(
       (question) => question.applicable && question.effectiveRequired,
     );
-    const hiddenQuestions = evaluation.questions.filter(
-      (question) => !question.applicable,
-    );
     return (
       <div className="intake-requirements intake-step-content">
         <h3>Required Intake Answers</h3>
@@ -1607,10 +1588,31 @@ export function GuidedCaseIntake({
           </ul>
         ) : <p className="intake-note">No Rule-generated Tasks apply.</p>}
         <h3>Missing-document Follow-up Tasks</h3>
-        {draft.followUpTasks.length ? <ul>{draft.followUpTasks.map((task) => <li key={task.id} className={task.completed ? "satisfied" : "outstanding"}><strong>{task.completed ? "Completed" : "Open"}</strong><span>{task.title}<small>{task.missingOptionLabels.join(", ")} · Due {task.dueDate}</small></span>{!task.completed ? <button type="button" className="text-button" onClick={() => completeFollowUpTask(task)}>Complete Task</button> : null}</li>)}</ul> : <p className="intake-note">No missing-document follow-up Tasks have been created.</p>}
-        {hiddenQuestions.length ? (
-          <p className="intake-note">{hiddenQuestions.length} conditional question{hiddenQuestions.length === 1 ? " is" : "s are"} currently non-applicable and will not block creation.</p>
-        ) : null}
+        {draft.followUpTasks.length ? (
+          <ul>
+            {draft.followUpTasks.map((task) => (
+              <li
+                key={task.id}
+                className={task.completed ? "satisfied" : "outstanding"}
+              >
+                <strong>{task.completed ? "Completed" : "Open"}</strong>
+                <span>
+                  {task.title}
+                  <small>
+                    {task.completed
+                      ? "All required documents received"
+                      : task.missingOptionLabels.join(", ")}
+                    {" · "}Due {task.dueDate}
+                  </small>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="intake-note">
+            No missing-document follow-up Tasks have been created.
+          </p>
+        )}
         {renderPortalOnboarding()}
       </div>
     );

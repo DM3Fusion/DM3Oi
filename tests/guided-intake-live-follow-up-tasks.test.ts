@@ -176,3 +176,39 @@ test("Guided Intake Task reassignment is Owner or Staff Manager only", () => {
     /BUSINESS_ADMIN'::public\.application_role/,
   );
 });
+
+test("received Guided Intake requirements synchronize the real Case Task lifecycle", () => {
+  const domain = source("lib/guided-case-intake.ts");
+  const actions = source("lib/data/guided-case-intake-actions.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+
+  assert.match(
+    domain,
+    /completed:\s*missingOptions\.length \|\| !question\?\.valid \? false : true/,
+  );
+
+  assert.match(
+    actions,
+    /\.from\("case_tasks"\)[\s\S]*intake_follow_up_id[\s\S]*update_case_task/,
+  );
+
+  assert.match(
+    actions,
+    /completed\s*\?\s*"COMPLETED"[\s\S]*persistedTask\.status === "COMPLETED"[\s\S]*"IN_PROGRESS"/,
+  );
+
+  assert.match(
+    actions,
+    /target_status:\s*targetStatus/,
+  );
+
+  assert.doesNotMatch(
+    component,
+    /conditional question\{hiddenQuestions\.length/,
+  );
+
+  assert.doesNotMatch(
+    component,
+    /Missing-document Follow-up Tasks[\s\S]{0,1200}onClick=\{\(\) => completeFollowUpTask/,
+  );
+});
