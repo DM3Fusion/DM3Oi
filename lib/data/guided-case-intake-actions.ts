@@ -312,14 +312,12 @@ export async function saveGuidedIntakeDraftAction(
     );
 
     // Temporary schema bridge until generated Supabase types include
-    // Guided Intake Task provenance and task_purpose_id.
+    // Guided Intake Task provenance and lifecycle synchronization RPC.
     const { data: persistedFollowUpTasks, error: followUpTaskError } =
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .from("case_tasks")
-        .select(
-          "id,intake_follow_up_id,title,description,assigned_user_id,status,required,due_at,task_purpose_id",
-        )
+        .select("id,intake_follow_up_id,status")
         .eq("organization_id", organizationId)
         .eq("case_id", input.draft.caseId)
         .not("intake_follow_up_id", "is", null);
@@ -356,22 +354,14 @@ export async function saveGuidedIntakeDraftAction(
 
       if (targetStatus === persistedTask.status) continue;
 
-      // Reuse the canonical Task lifecycle RPC so completed_at,
-      // completed_by_user_id, and Case activity remain authoritative.
+      // Guided Intake owns this workflow Task. Synchronize only lifecycle
+      // state from the already-persisted Requirements state.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: syncError } = await (supabase as any).rpc(
-        "update_case_task",
+        "sync_guided_intake_requirement_task_status",
         {
           target_task_id: persistedTask.id,
-          target_task_purpose_id: persistedTask.task_purpose_id,
-          target_title: persistedTask.title,
-          target_description: persistedTask.description,
-          target_assigned_user_id: persistedTask.assigned_user_id,
-          target_status: targetStatus,
-          target_required: persistedTask.required,
-          target_due_date: persistedTask.due_at
-            ? String(persistedTask.due_at).slice(0, 10)
-            : null,
+          target_completed: completed,
         },
       );
 

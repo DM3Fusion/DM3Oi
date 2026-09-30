@@ -189,7 +189,7 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     actions,
-    /\.from\("case_tasks"\)[\s\S]*intake_follow_up_id[\s\S]*update_case_task/,
+    /\.from\("case_tasks"\)[\s\S]*intake_follow_up_id[\s\S]*sync_guided_intake_requirement_task_status/,
   );
 
   assert.match(
@@ -199,7 +199,31 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     actions,
-    /target_status:\s*targetStatus/,
+    /target_completed:\s*completed/,
+  );
+
+  const lifecycleMigration = source(
+    "supabase/migrations/20260930030000_dm3oi_guided_intake_requirement_task_lifecycle.sql",
+  );
+
+  assert.match(
+    lifecycleMigration,
+    /create function public\.sync_guided_intake_requirement_task_status/,
+  );
+
+  assert.match(
+    lifecycleMigration,
+    /completed_at=case[\s\S]*completed_by_user_id=case/,
+  );
+
+  assert.match(
+    lifecycleMigration,
+    /draft_completed is distinct from target_completed/,
+  );
+
+  assert.doesNotMatch(
+    lifecycleMigration,
+    /assigned_user_id\s*=/,
   );
 
   assert.match(
