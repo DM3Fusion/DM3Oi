@@ -271,7 +271,7 @@ export async function provisionCustomerPortalAccess(input: {
   const admin = createAdminClient();
   const { data: customer, error: customerError } = await admin
     .from("customers")
-    .select("id,email,status")
+    .select("id,name,first_name,email,status")
     .eq("organization_id", input.organizationId)
     .eq("id", input.customerId)
     .maybeSingle();
@@ -515,9 +515,9 @@ export async function provisionCustomerPortalAccess(input: {
     const delivery = await sendCustomerPortalInvitationEmail({
       recipientEmail: email,
       recipientName:
-        typeof authUser.user_metadata?.display_name === "string"
-          ? authUser.user_metadata.display_name
-          : email,
+        customer.name?.trim() ||
+        customer.first_name?.trim() ||
+        "Customer",
       recipientUserId: authUser.id,
       organizationName: input.organizationName,
       organizationId: input.organizationId,

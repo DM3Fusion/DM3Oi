@@ -54,3 +54,35 @@ test("Guided Intake follow-up Tasks persist immediately against the materialized
   assert.doesNotMatch(component, />Stage Task</);
   assert.doesNotMatch(component, />Staged</);
 });
+
+
+test("Guided Intake reuses the canonical missing-document notice workflow and preserves sent state", () => {
+  const actions = source("lib/data/guided-case-intake-actions.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+  const drafts = source("lib/data/guided-case-intake-drafts.ts");
+
+  assert.match(
+    actions,
+    /sendGuidedIntakeMissingDocumentsNoticeAction[\s\S]*sendMissingDocumentsNotice\([\s\S]*mark_intake_requirement_notice_sent/,
+  );
+
+  assert.match(
+    actions,
+    /\.eq\("intake_follow_up_id", followUpId\)/,
+  );
+
+  assert.match(
+    drafts,
+    /select\("intake_follow_up_id,status"\)[\s\S]*status === "IN_PROGRESS"/,
+  );
+
+  assert.match(
+    component,
+    /noticeSentFollowUpIds\.has\(staged\.id\)[\s\S]*Email Sent/,
+  );
+
+  assert.match(
+    component,
+    /sendFollowUpNotice\(staged\)[\s\S]*Send Notice/,
+  );
+});

@@ -28,6 +28,7 @@ export type GuidedIntakeSavedDraft = {
   customerMode: "existing" | "new";
   draft: GuidedCaseIntakeDraft;
   newCustomer: GuidedIntakeNewCustomerDraft;
+  noticeSentFollowUpIds: string[];
   updatedAt: string;
 };
 
@@ -191,6 +192,48 @@ export async function loadGuidedIntakeDraft(
 
   if (!data) return null;
 
+  const followUpTasks = parseFollowUpTasks(data.follow_up_tasks);
+  let noticeSentFollowUpIds: string[] = [];
+
+  if (data.case_id && followUpTasks.length) {
+    // Temporary schema bridge until generated Supabase types include
+    // Guided Intake Task provenance.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: persistedTasks, error: persistedTaskError } = await (supabase as any)
+      .from("case_tasks")
+      .select("intake_follow_up_id,status")
+      .eq("organization_id", organizationId)
+      .eq("case_id", data.case_id)
+      .in(
+        "intake_follow_up_id",
+        followUpTasks.map((task) => task.id),
+      );
+
+    if (persistedTaskError) {
+      console.error("Guided Intake Task notice state load failed", {
+        organizationId,
+        draftId,
+        caseId: data.case_id,
+        code: persistedTaskError.code,
+        message: persistedTaskError.message,
+      });
+      throw new Error("Guided Intake draft is temporarily unavailable.");
+    }
+
+    noticeSentFollowUpIds = (
+      (persistedTasks ?? []) as Array<{
+        intake_follow_up_id: string | null;
+        status: string;
+      }>
+    )
+      .filter(
+        (task) =>
+          task.intake_follow_up_id &&
+          task.status === "IN_PROGRESS",
+      )
+      .map((task) => task.intake_follow_up_id as string);
+  }
+
   return {
     id: data.id,
     submissionKey: data.submission_key,
@@ -214,7 +257,7 @@ export async function loadGuidedIntakeDraft(
       staffUserIds: data.staff_user_ids,
       answers: parseAnswers(data.answers),
       requiredOptionIds: parseRequiredOptionIds(data.required_option_ids),
-      followUpTasks: parseFollowUpTasks(data.follow_up_tasks),
+      followUpTasks,
       portalOnboarding: parseGuidedIntakePortalResolution(
         data.portal_onboarding,
       ),
@@ -223,6 +266,7 @@ export async function loadGuidedIntakeDraft(
       ...emptyNewCustomer(),
       ...parseNewCustomer(data.new_customer),
     },
+    noticeSentFollowUpIds,
     updatedAt: data.updated_at,
   };
 }

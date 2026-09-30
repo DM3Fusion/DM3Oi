@@ -52,6 +52,9 @@ export default async function Page({
         initialStep={savedDraft?.currentStep}
         initialCustomerMode={savedDraft?.customerMode}
         initialNewCustomer={savedDraft?.newCustomer}
+        initialNoticeSentFollowUpIds={
+          savedDraft?.noticeSentFollowUpIds ?? []
+        }
       />
     </>
   );

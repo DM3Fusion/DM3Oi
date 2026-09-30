@@ -10,6 +10,7 @@ import {
   loadGuidedIntakePortalStatusAction,
   sendGuidedIntakePortalInvitationAction,
   setGuidedIntakePortalNotRequiredAction,
+  sendGuidedIntakeMissingDocumentsNoticeAction,
   upsertGuidedIntakeFollowUpTaskAction,
 } from "@/lib/data/guided-case-intake-actions";
 import {
@@ -64,6 +65,7 @@ type Props = {
     phone: string;
     notes: string;
   };
+  initialNoticeSentFollowUpIds?: string[];
 };
 
 const fieldError = (errors: GuidedIntakeFieldErrors, key: string) =>
@@ -311,6 +313,7 @@ export function GuidedCaseIntake({
   initialStep = 0,
   initialCustomerMode,
   initialNewCustomer,
+  initialNoticeSentFollowUpIds = [],
 }: Props) {
   const router = useRouter();
   const [step, setStep] = useState(initialStep);
@@ -354,6 +357,10 @@ export function GuidedCaseIntake({
   const [errors, setErrors] = useState<GuidedIntakeFieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const [noticeSentFollowUpIds, setNoticeSentFollowUpIds] =
+    useState<Set<string>>(
+      () => new Set(initialNoticeSentFollowUpIds),
+    );
   const [portalPending, setPortalPending] = useState(
     configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE" &&
       Boolean(initialDraft?.customerId),
@@ -681,6 +688,45 @@ export function GuidedCaseIntake({
     );
     followUpDialog.current?.close();
   };
+
+  const sendFollowUpNotice = async (task: GuidedIntakeFollowUpTask) => {
+    if (
+      !draft.caseId ||
+      pending ||
+      noticeSentFollowUpIds.has(task.id)
+    ) {
+      return;
+    }
+
+    setPending(true);
+    setFormError(null);
+
+    const result =
+      await sendGuidedIntakeMissingDocumentsNoticeAction(
+        draft.caseId,
+        task.id,
+      );
+
+    setPending(false);
+
+    if (!result.ok) {
+      setFormError(result.error);
+      return;
+    }
+
+    setNoticeSentFollowUpIds((current) => {
+      const next = new Set(current);
+      next.add(task.id);
+      return next;
+    });
+
+    if (!result.statusUpdated) {
+      setFormError(
+        "The notice was sent, but the Task status could not be refreshed automatically. Do not resend the notice; review the Case Task.",
+      );
+    }
+  };
+
   const completeFollowUpTask = (task: GuidedIntakeFollowUpTask) => {
     if (!canCompleteIntakeFollowUpTask(task, evaluation)) {
       setFormError(
@@ -1307,7 +1353,42 @@ export function GuidedCaseIntake({
                   );
                   return <div className="intake-question-with-follow-up" key={question.id}>
                     <QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />
-                    {missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>{staged ? "Update Task" : "Create Follow-up Task"}</button></div> : null}
+                    {missing ? (
+                      <div className="intake-missing-requirement">
+                        <p>
+                          <b>Missing:</b>{" "}
+                          {missing.missingOptions
+                            .map((option) => option.label)
+                            .join(", ")}
+                        </p>
+                        <div className="mini-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => openFollowUpTask(question.id)}
+                            disabled={pending}
+                          >
+                            {staged ? "Update Task" : "Create Follow-up Task"}
+                          </button>
+                          {staged ? (
+                            noticeSentFollowUpIds.has(staged.id) ? (
+                              <span className="task-notice-sent">
+                                <span>Email Sent</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="secondary-button task-notice-button"
+                                onClick={() => void sendFollowUpNotice(staged)}
+                                disabled={pending}
+                              >
+                                {pending ? "Sending…" : "Send Notice"}
+                              </button>
+                            )
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>;
                 })}
               </div>
@@ -1322,8 +1403,61 @@ export function GuidedCaseIntake({
             </header>
             <div className="intake-question-list">
               {unassigned.map((question) => {
-                const missing = missingRequirements.find((item) => item.question.id === question.id);
-                return <div className="intake-question-with-follow-up" key={question.id}><QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />{missing ? <div className="intake-missing-requirement"><p><b>Missing:</b> {missing.missingOptions.map((option) => option.label).join(", ")}</p><button type="button" className="secondary-button" onClick={() => openFollowUpTask(question.id)}>Create Follow-up Task</button></div> : null}</div>;
+                const missing = missingRequirements.find(
+                  (item) => item.question.id === question.id,
+                );
+                const staged = draft.followUpTasks.find(
+                  (task) => task.questionId === question.id,
+                );
+                return (
+                  <div
+                    className="intake-question-with-follow-up"
+                    key={question.id}
+                  >
+                    <QuestionField
+                      question={question}
+                      value={draft.answers[question.id]}
+                      error={errors[`question.${question.id}`]}
+                      onChange={(value) => updateAnswer(question.id, value)}
+                    />
+                    {missing ? (
+                      <div className="intake-missing-requirement">
+                        <p>
+                          <b>Missing:</b>{" "}
+                          {missing.missingOptions
+                            .map((option) => option.label)
+                            .join(", ")}
+                        </p>
+                        <div className="mini-actions">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            onClick={() => openFollowUpTask(question.id)}
+                            disabled={pending}
+                          >
+                            {staged ? "Update Task" : "Create Follow-up Task"}
+                          </button>
+                          {staged ? (
+                            noticeSentFollowUpIds.has(staged.id) ? (
+                              <span className="task-notice-sent">
+                                <span>Email Sent</span>
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                className="secondary-button task-notice-button"
+                                onClick={() => void sendFollowUpNotice(staged)}
+                                disabled={pending}
+                              >
+                                {pending ? "Sending…" : "Send Notice"}
+                              </button>
+                            )
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                );
               })}
             </div>
           </section>

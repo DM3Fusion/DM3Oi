@@ -34,6 +34,10 @@ import {
   provisionCustomerPortalAccess,
 } from "@/lib/data/customer-portal-provisioning-service";
 import { mapGuidedCaseFinalizationError } from "@/lib/guided-case-finalization";
+import {
+  MissingDocumentsNoticeError,
+  sendMissingDocumentsNotice,
+} from "@/lib/data/missing-documents-notice-service";
 
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
@@ -404,6 +408,197 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   revalidatePath(`/cases/${draft.caseId}`);
 
   return { ok: true };
+}
+
+export type SendGuidedIntakeMissingDocumentsNoticeResult =
+  | {
+      ok: true;
+      recipientEmail: string;
+      alreadySent: boolean;
+      statusUpdated: boolean;
+    }
+  | { ok: false; error: string };
+
+export async function sendGuidedIntakeMissingDocumentsNoticeAction(
+  caseId: string,
+  followUpId: string,
+): Promise<SendGuidedIntakeMissingDocumentsNoticeResult> {
+  const access = await getAccessContext();
+  const organization = access?.activeOrganization;
+
+  if (
+    !access?.user ||
+    !organization ||
+    !hasPermission(access, "WORK_TASKS")
+  ) {
+    return {
+      ok: false,
+      error: "You are not authorized to send this Customer notice.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  // Temporary schema bridge until generated Supabase types include
+  // Guided Intake Task provenance.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: task, error: taskError } = await (supabase as any)
+    .from("case_tasks")
+    .select(
+      "id,case_id,status,intake_follow_up_id,intake_requirement_context,description",
+    )
+    .eq("organization_id", organization.id)
+    .eq("case_id", caseId)
+    .eq("intake_follow_up_id", followUpId)
+    .maybeSingle();
+
+  if (taskError || !task) {
+    return {
+      ok: false,
+      error: "The Requirements Task is not available.",
+    };
+  }
+
+  if (task.status === "IN_PROGRESS") {
+    const { data: currentCase } = await supabase
+      .from("cases")
+      .select("customer_id")
+      .eq("id", caseId)
+      .eq("organization_id", organization.id)
+      .maybeSingle();
+
+    const { data: currentCustomer } = currentCase
+      ? await supabase
+          .from("customers")
+          .select("email")
+          .eq("id", currentCase.customer_id)
+          .eq("organization_id", organization.id)
+          .maybeSingle()
+      : { data: null };
+
+    return {
+      ok: true,
+      recipientEmail: currentCustomer?.email ?? "",
+      alreadySent: true,
+      statusUpdated: true,
+    };
+  }
+
+  if (task.status !== "NOT_STARTED") {
+    return {
+      ok: false,
+      error: "This Requirements Task is no longer awaiting a Customer notice.",
+    };
+  }
+
+  const { data: caseRow, error: caseError } = await supabase
+    .from("cases")
+    .select("id,case_number,customer_id")
+    .eq("id", caseId)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (caseError || !caseRow) {
+    return {
+      ok: false,
+      error: "The Case is not available.",
+    };
+  }
+
+  const { data: customer, error: customerError } = await supabase
+    .from("customers")
+    .select("id,name,email,status")
+    .eq("id", caseRow.customer_id)
+    .eq("organization_id", organization.id)
+    .maybeSingle();
+
+  if (customerError || !customer) {
+    return {
+      ok: false,
+      error: "The Customer is not available.",
+    };
+  }
+
+  const requirementContext = task.intake_requirement_context as
+    | { missing_option_labels?: unknown }
+    | null;
+
+  const missingDocuments = Array.isArray(
+    requirementContext?.missing_option_labels,
+  )
+    ? requirementContext.missing_option_labels
+        .filter(
+          (value: unknown): value is string =>
+            typeof value === "string",
+        )
+        .join(", ")
+    : String(task.description ?? "")
+        .replace(/^Outstanding requirements:\s*/i, "")
+        .trim();
+
+  try {
+    await sendMissingDocumentsNotice({
+      organizationId: organization.id,
+      organizationName: organization.name,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      caseId,
+      caseNumber: caseRow.case_number,
+      missingDocuments: missingDocuments || "Required documents",
+      actorUserId: access.user.id,
+    });
+  } catch (error) {
+    console.error("Guided Intake missing documents notice failed", {
+      organizationId: organization.id,
+      caseId,
+      followUpId,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    return {
+      ok: false,
+      error:
+        error instanceof MissingDocumentsNoticeError
+          ? error.safeMessage
+          : "The Customer notice could not be sent.",
+    };
+  }
+
+  // The canonical RPC records successful notice delivery by moving the
+  // workflow-generated Task from NOT_STARTED to IN_PROGRESS.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: statusError } = await (supabase as any).rpc(
+    "mark_intake_requirement_notice_sent",
+    {
+      target_task_id: task.id,
+    },
+  );
+
+  if (statusError) {
+    console.error("Guided Intake Requirements Task notice status update failed", {
+      organizationId: organization.id,
+      caseId,
+      followUpId,
+      taskId: task.id,
+      code: statusError.code,
+      message: statusError.message,
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/cases");
+  revalidatePath("/cases/new");
+  revalidatePath(`/cases/${caseId}`);
+  revalidatePath("/communications");
+
+  return {
+    ok: true,
+    recipientEmail: customer.email ?? "",
+    alreadySent: false,
+    statusUpdated: !statusError,
+  };
 }
 
 export type CreateGuidedCaseResult =

@@ -202,3 +202,23 @@ test("internal and generic invitation contracts remain distinct", () => {
     /invitationOrganization[\s\S]*organizationInvitationMetadata[\s\S]*: \{ display_name: displayName, title: title \|\| null \}/,
   );
 });
+
+
+test("Customer Portal invitation greeting uses the authoritative Customer name", () => {
+  const service = source("lib/data/customer-portal-provisioning-service.ts");
+
+  assert.match(
+    service,
+    /\.from\("customers"\)[\s\S]*\.select\("id,name,first_name,email,status"\)/,
+  );
+
+  assert.match(
+    service,
+    /recipientName:\s*customer\.name\?\.trim\(\)\s*\|\|\s*customer\.first_name\?\.trim\(\)\s*\|\|\s*"Customer"/,
+  );
+
+  assert.doesNotMatch(
+    service,
+    /recipientName:[\s\S]{0,180}authUser\.user_metadata\?\.display_name[\s\S]{0,180}: email/,
+  );
+});
