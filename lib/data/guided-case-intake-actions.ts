@@ -439,10 +439,8 @@ export async function saveGuidedIntakeDraftAction(
 
   const revalidationStartedAt = Date.now();
 
-  revalidatePath("/");
   revalidatePath("/tasks");
   revalidatePath("/cases");
-  revalidatePath("/cases/new");
   if (input.draft.caseId) {
     revalidatePath(`/cases/${input.draft.caseId}`);
   }
