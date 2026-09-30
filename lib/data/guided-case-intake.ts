@@ -37,6 +37,111 @@ const profileName = (profile: {
   profile.email ||
   "Organization member";
 
+export async function loadGuidedCaseIntakeValidationConfiguration(): Promise<{
+  access: NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
+  configuration: Pick<
+    GuidedIntakeConfiguration,
+    "organizationId" | "questions" | "rules" | "actions"
+  >;
+}> {
+  const access = await getAccessContext();
+  if (
+    !access?.activeOrganization ||
+    !hasPermission(access, "CREATE_CASE") ||
+    !hasPermission(access, "VIEW_CUSTOMERS")
+  ) {
+    throw new GuidedCaseIntakeDataError("Guided Case Intake is not authorized.");
+  }
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [questions, options, rules, actions] = await Promise.all([
+    supabase
+      .from("organization_question_definitions")
+      .select(
+        "id,question_text,description,response_type,required,require_all_options,track_required_options,completion_condition,question_group,display_order",
+      )
+      .eq("organization_id", organizationId)
+      .eq("active", true)
+      .order("display_order"),
+    supabase
+      .from("question_options")
+      .select(
+        "id,question_id,option_label,option_value,display_order,is_active",
+      )
+      .eq("organization_id", organizationId)
+      .eq("is_active", true)
+      .order("display_order"),
+    admin
+      .from("rule_definitions")
+      .select(
+        "id,organization_id,name,source_question_id,condition_operator,condition_option_id,active",
+      )
+      .eq("organization_id", organizationId)
+      .eq("active", true)
+      .order("display_order"),
+    admin
+      .from("rule_actions")
+      .select(
+        "id,organization_id,rule_definition_id,action_type,target_question_id,task_title,task_description,task_priority,task_required,task_blocking",
+      )
+      .eq("organization_id", organizationId)
+      .is("retired_at", null)
+      .order("display_order"),
+  ]);
+
+  const error =
+    questions.error ??
+    options.error ??
+    rules.error ??
+    actions.error;
+
+  if (error) {
+    console.error("Guided Case Intake validation query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+    throw new GuidedCaseIntakeDataError();
+  }
+
+  return {
+    access,
+    configuration: {
+      organizationId,
+      questions: (questions.data ?? []).map((question) => ({
+        id: question.id,
+        text: question.question_text,
+        description: question.description,
+        responseType: question.response_type,
+        required: question.required,
+        requireAllOptions: question.require_all_options,
+        // Preserve the existing full-loader behavior exactly.
+        trackRequiredOptions: false,
+        completionCondition:
+          question.completion_condition === "YES_REQUIRED"
+            ? "YES_REQUIRED"
+            : "ANY_ANSWER",
+        group: question.question_group as GuidedIntakeQuestion["group"],
+        displayOrder: question.display_order,
+        options: (options.data ?? [])
+          .filter((option) => option.question_id === question.id)
+          .map((option) => ({
+            id: option.id,
+            questionId: option.question_id,
+            label: option.option_label,
+            value: option.option_value,
+            displayOrder: option.display_order,
+          })),
+      })),
+      rules: rules.data ?? [],
+      actions: actions.data ?? [],
+    },
+  };
+}
+
 export async function loadGuidedCaseIntakeConfiguration(): Promise<{
   access: NonNullable<Awaited<ReturnType<typeof getAccessContext>>>;
   configuration: GuidedIntakeConfiguration;

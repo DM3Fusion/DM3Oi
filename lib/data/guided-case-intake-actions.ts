@@ -4,7 +4,10 @@ import { revalidatePath } from "next/cache";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createCustomerForCurrentOrganization } from "@/lib/data/customer-creation";
-import { loadGuidedCaseIntakeConfiguration } from "@/lib/data/guided-case-intake";
+import {
+  loadGuidedCaseIntakeConfiguration,
+  loadGuidedCaseIntakeValidationConfiguration,
+} from "@/lib/data/guided-case-intake";
 import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
@@ -83,7 +86,8 @@ export async function saveGuidedIntakeDraftAction(
   | { ok: true; draftId: string }
   | { ok: false; error: string }
 > {
-  const { access, configuration } = await loadGuidedCaseIntakeConfiguration();
+  const { access, configuration } =
+    await loadGuidedCaseIntakeValidationConfiguration();
   const organizationId = access.activeOrganization!.id;
 
   if (
