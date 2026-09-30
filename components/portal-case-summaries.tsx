@@ -88,7 +88,9 @@ export function PortalCaseSummaries({
                   aria-label={`Action required for ${item.case_number}`}
                 >
                   <div className="portal-case-requirement-label">
-                    Action Required
+                    {requirement.reported_sent_at
+                      ? "Awaiting Verification"
+                      : "Action Required"}
                   </div>
                   <h3>
                     {requirement.reported_sent_at
