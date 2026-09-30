@@ -272,3 +272,24 @@ test("documents-sent confirmation creates no Service Request", () => {
     /insert into public\.service_requests/i,
   );
 });
+
+test("documents-reported-sent conflict handling avoids PL/pgSQL task_id ambiguity", () => {
+  const fixMigration = source(
+    "supabase/migrations/20260930011500_dm3oi_documents_reported_sent_conflict_fix.sql",
+  );
+
+  assert.match(
+    fixMigration,
+    /add constraint case_document_confirmations_task_key[\s\S]*unique using index case_document_confirmations_task_uidx/,
+  );
+
+  assert.match(
+    fixMigration,
+    /on conflict on constraint case_document_confirmations_task_key[\s\S]*do nothing/,
+  );
+
+  assert.doesNotMatch(
+    fixMigration,
+    /on conflict\s*\(\s*task_id\s*\)/,
+  );
+});
