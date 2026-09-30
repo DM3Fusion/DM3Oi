@@ -2,6 +2,8 @@ import type {
   CustomerPortalCaseRequirement,
   CustomerPortalCaseSummary,
 } from "@/lib/data/customer-portal-case-repository";
+import { PortalDocumentsSentConfirmation } from "@/components/portal-documents-sent-confirmation";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 
 const safePercentage = (value: number) =>
   Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
@@ -12,6 +14,7 @@ type Props = {
   organizationName: string;
   secureDocumentSystemUrl: string | null;
   documentSubmissionInstructions: string | null;
+  timezone: string;
 };
 
 export function PortalCaseSummaries({
@@ -20,6 +23,7 @@ export function PortalCaseSummaries({
   organizationName,
   secureDocumentSystemUrl,
   documentSubmissionInstructions,
+  timezone,
 }: Props) {
   if (!cases.length) {
     return (
@@ -86,12 +90,33 @@ export function PortalCaseSummaries({
                   <div className="portal-case-requirement-label">
                     Action Required
                   </div>
-                  <h3>Documents Needed</h3>
+                  <h3>
+                    {requirement.reported_sent_at
+                      ? "Documents Reported Sent"
+                      : "Documents Needed"}
+                  </h3>
                   <ul>
                     {requirement.missing_documents.map((document) => (
                       <li key={document}>{document}</li>
                     ))}
                   </ul>
+
+                  {requirement.reported_sent_at ? (
+                    <div className="portal-documents-reported-state">
+                      <strong>Reported Sent</strong>
+                      <time dateTime={requirement.reported_sent_at}>
+                        {formatOrganizationDateTime(
+                          requirement.reported_sent_at,
+                          timezone,
+                          "medium",
+                        )}
+                      </time>
+                      <p>
+                        {organizationName} will verify receipt in its secure
+                        document system.
+                      </p>
+                    </div>
+                  ) : null}
 
                   <div className="portal-case-privacy-notice">
                     <strong>Privacy Notice</strong>
@@ -114,7 +139,7 @@ export function PortalCaseSummaries({
                     </div>
                   ) : null}
 
-                  {secureDocumentSystemUrl ? (
+                  {!requirement.reported_sent_at && secureDocumentSystemUrl ? (
                     <a
                       className="primary-button portal-secure-document-link"
                       href={secureDocumentSystemUrl}
@@ -125,10 +150,21 @@ export function PortalCaseSummaries({
                     </a>
                   ) : null}
 
-                  <small className="portal-external-system-note">
-                    Opens the organization&apos;s external secure document
-                    system outside DM3Oi.
-                  </small>
+                  {!requirement.reported_sent_at ? (
+                    <>
+                      <small className="portal-external-system-note">
+                        Opens the organization&apos;s external secure document
+                        system outside DM3Oi.
+                      </small>
+
+                      <PortalDocumentsSentConfirmation
+                        taskId={requirement.task_id}
+                        caseNumber={item.case_number}
+                        documents={requirement.missing_documents}
+                        organizationName={organizationName}
+                      />
+                    </>
+                  ) : null}
                 </section>
               ) : null}
             </article>

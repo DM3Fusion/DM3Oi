@@ -180,7 +180,7 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
 }
 
 const getUnreadNotificationCountForScope = cache(
-  async (organizationId: string, _userId: string): Promise<number> => {
+  async (organizationId: string): Promise<number> => {
     const supabase = await createClient();
     const { data: count, error } = await supabase.rpc(
       "get_my_unread_notification_count",
@@ -208,7 +208,7 @@ export async function getUnreadNotificationCount(scope?: {
   const context = scope ? null : await requireInternalContext();
   const organizationId =
     scope?.organizationId ?? context!.activeOrganization.id;
-  const userId = scope?.userId ?? context!.user.id;
+  void (scope?.userId ?? context!.user.id);
 
-  return getUnreadNotificationCountForScope(organizationId, userId);
+  return getUnreadNotificationCountForScope(organizationId);
 }

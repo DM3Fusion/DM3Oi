@@ -41,5 +41,6 @@ export default async function PortalPage() {
     documentSubmissionInstructions={
       context.settings?.document_submission_instructions ?? null
     }
+    timezone={context.settings?.timezone ?? "UTC"}
   /><div className="portal-summary-cards"><div className="portal-summary-card"><strong>{openCount ?? 0}</strong><span>Open</span></div><div className="portal-summary-card"><strong>{closedCount ?? 0}</strong><span>Closed</span></div></div><div className="portal-home-actions"><Link className="primary-button" href="/portal/service-requests/new"><ApplicationIcon name="add" />New Service Request</Link></div><h2>Recent Service Requests</h2>{requests.length ? <ul className="portal-request-list">{requests.map((request) => <li key={request.id}><Link href={`/portal/service-requests/${request.id}`}><span>{request.request_number}</span><strong>{request.subject}</strong><span className="portal-request-meta">{request.status.replaceAll("_", " ")}</span></Link></li>)}</ul> : <p>No service requests yet.</p>}</section>;
 }

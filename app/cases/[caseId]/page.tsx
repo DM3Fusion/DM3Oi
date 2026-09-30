@@ -329,7 +329,11 @@ export default async function Page({
             {item.tasks.length ? (
               <div className="task-list">
                 {item.tasks.map((task) => (
-                  <details className="task-record" key={task.id}>
+                  <details
+                    className="task-record"
+                    id={`task-${task.id}`}
+                    key={task.id}
+                  >
                     <summary className="task-record-summary">
                       <span
                         className={`task-check ${task.status === "COMPLETED" ? "done" : ""}`}

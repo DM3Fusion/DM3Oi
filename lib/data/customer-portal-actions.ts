@@ -78,3 +78,47 @@ export async function createCustomerServiceRequestMessageAction(form: FormData):
   });
   return { ok: true };
 }
+
+export type ReportCustomerCaseDocumentsSentResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function reportCustomerCaseDocumentsSentAction(
+  form: FormData,
+): Promise<ReportCustomerCaseDocumentsSentResult> {
+  const taskId = String(form.get("taskId") ?? "").trim();
+
+  if (!taskId) {
+    return {
+      ok: false,
+      error: "The document request could not be identified.",
+    };
+  }
+
+  const context = await requireCustomerPortalContext();
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc(
+    "report_customer_case_documents_sent",
+    {
+      target_portal_access_id: context.access.id,
+      target_task_id: taskId,
+    },
+  );
+
+  if (error || !data?.length) {
+    console.error("Customer document confirmation failed", {
+      code: error?.code ?? null,
+      message: error?.message ?? null,
+    });
+
+    return {
+      ok: false,
+      error: "The confirmation could not be recorded.",
+    };
+  }
+
+  revalidatePath("/portal");
+
+  return { ok: true };
+}

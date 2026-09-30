@@ -316,6 +316,42 @@ export type Database = {
           },
         ]
       }
+      case_document_confirmations: {
+        Row: {
+          case_id: string
+          created_at: string
+          customer_id: string
+          id: string
+          organization_id: string
+          portal_access_id: string | null
+          reported_by_user_id: string | null
+          reported_sent_at: string
+          task_id: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          customer_id: string
+          id?: string
+          organization_id: string
+          portal_access_id?: string | null
+          reported_by_user_id?: string | null
+          reported_sent_at?: string
+          task_id: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          customer_id?: string
+          id?: string
+          organization_id?: string
+          portal_access_id?: string | null
+          reported_by_user_id?: string | null
+          reported_sent_at?: string
+          task_id?: string
+        }
+        Relationships: []
+      }
       case_tasks: {
         Row: {
           assigned_user_id: string | null
@@ -3328,6 +3364,8 @@ created_at: string
         Returns: {
           case_number: string
           missing_documents: Json
+          reported_sent_at: string | null
+          task_id: string
         }[]
       }
       get_case_progress: {
@@ -3585,6 +3623,18 @@ created_at: string
           target_user_id: string
         }
         Returns: undefined
+      }
+      report_customer_case_documents_sent: {
+        Args: {
+          target_portal_access_id: string
+          target_task_id: string
+        }
+        Returns: {
+          case_number: string
+          confirmation_id: string
+          reported_sent_at: string
+          task_id: string
+        }[]
       }
       set_notification_read_state: {
         Args: { target_notification_id: string; target_read: boolean }

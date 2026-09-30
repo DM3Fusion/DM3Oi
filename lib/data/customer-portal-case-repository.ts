@@ -9,8 +9,10 @@ export interface CustomerPortalCaseSummary {
 }
 
 export interface CustomerPortalCaseRequirement {
+  task_id: string;
   case_number: string;
   missing_documents: string[];
+  reported_sent_at: string | null;
 }
 
 export class CustomerPortalCaseDataError extends Error {
@@ -64,8 +66,10 @@ export async function getCustomerPortalCaseRequirements(
 
     return documents.length
       ? [{
+          task_id: row.task_id,
           case_number: row.case_number,
           missing_documents: documents,
+          reported_sent_at: row.reported_sent_at,
         }]
       : [];
   });
