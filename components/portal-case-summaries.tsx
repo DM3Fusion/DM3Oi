@@ -103,7 +103,7 @@ export function PortalCaseSummaries({
 
                   {requirement.reported_sent_at ? (
                     <div className="portal-documents-reported-state">
-                      <strong>Reported Sent</strong>
+                      <strong>Document Sent</strong>
                       <time dateTime={requirement.reported_sent_at}>
                         {formatOrganizationDateTime(
                           requirement.reported_sent_at,
@@ -116,28 +116,30 @@ export function PortalCaseSummaries({
                         document system.
                       </p>
                     </div>
-                  ) : null}
+                  ) : (
+                    <>
+                      <div className="portal-case-privacy-notice">
+                        <strong>Privacy Notice</strong>
+                        <p>
+                          For your privacy, do not send documents, tax records,
+                          identification, or other sensitive information through
+                          DM3Oi or a DM3Oi email reply.
+                        </p>
+                        <p>
+                          You must use the secure document system required by{" "}
+                          {organizationName} or follow the document-submission
+                          instructions below.
+                        </p>
+                      </div>
 
-                  <div className="portal-case-privacy-notice">
-                    <strong>Privacy Notice</strong>
-                    <p>
-                      For your privacy, do not send documents, tax records,
-                      identification, or other sensitive information through
-                      DM3Oi or a DM3Oi email reply.
-                    </p>
-                    <p>
-                      You must use the secure document system required by{" "}
-                      {organizationName} or follow the document-submission
-                      instructions below.
-                    </p>
-                  </div>
-
-                  {documentSubmissionInstructions ? (
-                    <div className="portal-document-instructions">
-                      <strong>How to Provide Your Documents</strong>
-                      <p>{documentSubmissionInstructions}</p>
-                    </div>
-                  ) : null}
+                      {documentSubmissionInstructions ? (
+                        <div className="portal-document-instructions">
+                          <strong>How to Provide Your Documents</strong>
+                          <p>{documentSubmissionInstructions}</p>
+                        </div>
+                      ) : null}
+                    </>
+                  )}
 
                   {!requirement.reported_sent_at && secureDocumentSystemUrl ? (
                     <a
