@@ -1370,22 +1370,6 @@ export function GuidedCaseIntake({
                           >
                             {staged ? "Update Task" : "Create Follow-up Task"}
                           </button>
-                          {staged ? (
-                            noticeSentFollowUpIds.has(staged.id) ? (
-                              <span className="task-notice-sent">
-                                <span>Email Sent</span>
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                className="secondary-button task-notice-button"
-                                onClick={() => void sendFollowUpNotice(staged)}
-                                disabled={pending}
-                              >
-                                {pending ? "Sending…" : "Send Notice"}
-                              </button>
-                            )
-                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -1437,22 +1421,6 @@ export function GuidedCaseIntake({
                           >
                             {staged ? "Update Task" : "Create Follow-up Task"}
                           </button>
-                          {staged ? (
-                            noticeSentFollowUpIds.has(staged.id) ? (
-                              <span className="task-notice-sent">
-                                <span>Email Sent</span>
-                              </span>
-                            ) : (
-                              <button
-                                type="button"
-                                className="secondary-button task-notice-button"
-                                onClick={() => void sendFollowUpNotice(staged)}
-                                disabled={pending}
-                              >
-                                {pending ? "Sending…" : "Send Notice"}
-                              </button>
-                            )
-                          ) : null}
                         </div>
                       </div>
                     ) : null}
@@ -1674,17 +1642,150 @@ export function GuidedCaseIntake({
         followUpDialog.current?.close();
       }}
     >
-      <form className="task-modal-form" onSubmit={saveFollowUpTask}>
-        <header>
-          <div><p className="eyebrow">Guided Intake</p><h2>Create Follow-up Task</h2></div>
-          <button type="button" className="rule-dialog-close" aria-label="Close follow-up Task modal" onClick={() => followUpDialog.current?.close()}><span aria-hidden>×</span></button>
-        </header>
-        <label><span>Task title</span><input value="Obtain missing required documents" readOnly /></label>
-        <div className="intake-modal-context"><b>Outstanding requirements</b><p>{activeFollowUpRequirement?.missingOptions.map((option) => option.label).join(", ")}</p></div>
-        <label><span>Assigned to</span><select name="assignedUserId" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.assignedUserId ?? ""}><option value="">Select Staff</option>{configuration.staff.map((member) => <option value={member.id} key={member.id}>{member.name}</option>)}</select></label>
-        <label><span>Due Date</span><input type="date" name="dueDate" required defaultValue={draft.followUpTasks.find((task) => task.questionId === followUpQuestionId)?.dueDate ?? ""} /></label>
-        <footer><button type="button" className="secondary-button" onClick={() => followUpDialog.current?.close()}>Cancel</button><button className="primary-button" disabled={pending}>{pending ? "Saving…" : draft.followUpTasks.some((task) => task.questionId === followUpQuestionId) ? "Update Task" : "Create Task"}</button></footer>
-      </form>
+      {(() => {
+        const activeTask = draft.followUpTasks.find(
+          (task) => task.questionId === followUpQuestionId,
+        );
+        const noticeSent = activeTask
+          ? noticeSentFollowUpIds.has(activeTask.id)
+          : false;
+        const taskStatus = activeTask?.completed
+          ? "Completed"
+          : noticeSent
+            ? "In Progress"
+            : "Not Started";
+
+        return (
+          <form className="task-modal-form" onSubmit={saveFollowUpTask}>
+            <header>
+              <div>
+                <p className="eyebrow">Guided Intake Task</p>
+                <h2>{activeTask ? "Update Task" : "Create Follow-up Task"}</h2>
+              </div>
+              <button
+                type="button"
+                className="rule-dialog-close"
+                aria-label="Close follow-up Task modal"
+                onClick={() => followUpDialog.current?.close()}
+              >
+                <span aria-hidden>×</span>
+              </button>
+            </header>
+
+            <label>
+              <span>Task title</span>
+              <input value="Obtain missing required documents" readOnly />
+            </label>
+
+            <div className="intake-modal-context">
+              <b>Outstanding requirements</b>
+              <p>
+                {activeFollowUpRequirement?.missingOptions
+                  .map((option) => option.label)
+                  .join(", ")}
+              </p>
+            </div>
+
+            {activeTask ? (
+              <label>
+                <span>Status</span>
+                <input value={taskStatus} readOnly />
+              </label>
+            ) : null}
+
+            <label>
+              <span>Assigned to</span>
+              <select
+                name="assignedUserId"
+                required
+                defaultValue={activeTask?.assignedUserId ?? ""}
+              >
+                <option value="">Select Staff</option>
+                {configuration.staff.map((member) => (
+                  <option value={member.id} key={member.id}>
+                    {member.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Due Date</span>
+              <input
+                type="date"
+                name="dueDate"
+                required
+                defaultValue={activeTask?.dueDate ?? ""}
+              />
+            </label>
+
+            {activeTask && !activeTask.completed ? (
+              <div className="task-notice-action">
+                {!noticeSent ? (
+                  <>
+                    <button
+                      type="button"
+                      className="secondary-button task-notice-button"
+                      onClick={() => void sendFollowUpNotice(activeTask)}
+                      disabled={pending}
+                    >
+                      {pending ? "Sending…" : "Send Document Request"}
+                    </button>
+                    <span className="task-notice-help">
+                      Email the Customer the missing-document instructions and
+                      start this Task.
+                    </span>
+                  </>
+                ) : (
+                  <div className="task-notice-sent">
+                    <span>Document Request Sent</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {activeTask && !activeTask.completed ? (
+              <div className="task-notice-action">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={pending}
+                  onClick={() => completeFollowUpTask(activeTask)}
+                >
+                  Complete Task
+                </button>
+                <span className="task-notice-help">
+                  Complete only after the requested documents have been verified
+                  in the organization&apos;s secure document system.
+                </span>
+              </div>
+            ) : null}
+
+            {activeTask?.completed ? (
+              <div className="task-notice-sent">
+                <span>Task Completed</span>
+              </div>
+            ) : null}
+
+            <footer>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => followUpDialog.current?.close()}
+              >
+                Cancel
+              </button>
+              <button className="primary-button" disabled={pending}>
+                {pending
+                  ? "Saving…"
+                  : activeTask
+                    ? "Save Task"
+                    : "Create Task"}
+              </button>
+            </footer>
+          </form>
+        );
+      })()}
     </dialog>
     <section className="panel guided-case-intake">
       <ol className="intake-stepper" aria-label="Case intake progress">

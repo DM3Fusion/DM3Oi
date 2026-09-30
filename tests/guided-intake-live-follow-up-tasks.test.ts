@@ -78,11 +78,21 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
 
   assert.match(
     component,
-    /noticeSentFollowUpIds\.has\(staged\.id\)[\s\S]*Email Sent/,
+    /noticeSentFollowUpIds\.has\(activeTask\.id\)[\s\S]*Document Request Sent/,
   );
 
   assert.match(
     component,
-    /sendFollowUpNotice\(staged\)[\s\S]*Send Notice/,
+    /sendFollowUpNotice\(activeTask\)[\s\S]*Send Document Request/,
+  );
+
+  assert.match(
+    component,
+    /activeTask[\s\S]*Complete Task[\s\S]*verified[\s\S]*secure document system/,
+  );
+
+  assert.doesNotMatch(
+    component,
+    /noticeSentFollowUpIds\.has\(staged\.id\)/,
   );
 });
