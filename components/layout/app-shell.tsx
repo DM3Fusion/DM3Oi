@@ -91,13 +91,12 @@ export function AppShell({
     let active = true;
 
     const reconcileOrganizationAttention = async () => {
-      const { count, error } = await supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("organization_id", access.activeOrganization!.id)
-        .eq("recipient_user_id", access.user.id)
-        .is("read_at", null)
-        .is("archived_at", null);
+      const { data: count, error } = await supabase.rpc(
+        "get_my_unread_notification_count",
+        {
+          target_organization_id: access.activeOrganization!.id,
+        },
+      );
 
       if (!active || error) {
         return;

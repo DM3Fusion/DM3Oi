@@ -180,15 +180,14 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
 }
 
 const getUnreadNotificationCountForScope = cache(
-  async (organizationId: string, userId: string): Promise<number> => {
+  async (organizationId: string, _userId: string): Promise<number> => {
     const supabase = await createClient();
-    const { count, error } = await supabase
-      .from("notifications")
-      .select("id", { count: "exact", head: true })
-      .eq("organization_id", organizationId)
-      .eq("recipient_user_id", userId)
-      .is("read_at", null)
-      .is("archived_at", null);
+    const { data: count, error } = await supabase.rpc(
+      "get_my_unread_notification_count",
+      {
+        target_organization_id: organizationId,
+      },
+    );
 
     if (error) {
       console.error("Unread communications count failed", {

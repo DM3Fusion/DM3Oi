@@ -198,9 +198,10 @@ test("organization shell reconciles personal Inbox attention and open Users view
   const shell = source("components/layout/app-shell.tsx");
 
   assert.match(shell, /liveUnreadNotificationCount/);
+  assert.match(shell, /get_my_unread_notification_count/);
   assert.match(
     shell,
-    /\.eq\("recipient_user_id", access\.user\.id\)/,
+    /target_organization_id:\s*access\.activeOrganization!\.id/,
   );
   assert.match(shell, /window\.setInterval[\s\S]*30_000/);
   assert.match(shell, /window\.addEventListener\("focus"/);

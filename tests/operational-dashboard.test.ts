@@ -258,7 +258,19 @@ test("dashboard queries remain authorized and recipient scoped", () => {
   );
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.eq\("organization_id", organizationId\)/);
-  assert.match(communications, /\.eq\("recipient_user_id", userId\)/);
+  assert.match(communications, /get_my_unread_notification_count/);
+  assert.match(
+    communications,
+    /target_organization_id:\s*organizationId/,
+  );
+  const unreadCountMigration = source(
+    "supabase/migrations/20260930003000_dm3oi_notification_unread_count_rpc.sql",
+  );
+  assert.match(unreadCountMigration, /actor uuid := auth\.uid\(\)/);
+  assert.match(
+    unreadCountMigration,
+    /notification\.recipient_user_id = actor/,
+  );
 });
 
 test("dashboard KPI cards remain four columns on wide and two on narrow layouts", () => {

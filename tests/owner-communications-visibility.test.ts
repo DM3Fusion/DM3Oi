@@ -74,7 +74,22 @@ test("observed rows navigate without mutating another recipient's read state", (
 
 test("Owner badge and mark-all behavior remain personal", () => {
   assert.match(repository, /getUnreadNotificationCount/);
-  assert.match(repository, /\.eq\("recipient_user_id", userId\)/);
+  assert.match(repository, /get_my_unread_notification_count/);
+  assert.match(
+    repository,
+    /target_organization_id:\s*organizationId/,
+  );
+  const unreadCountMigration = source(
+    "supabase/migrations/20260930003000_dm3oi_notification_unread_count_rpc.sql",
+  );
+  assert.match(
+    unreadCountMigration,
+    /notification\.recipient_user_id = actor/,
+  );
+  assert.match(
+    unreadCountMigration,
+    /grant execute[\s\S]*to authenticated/,
+  );
   assert.match(page, /Mark my notifications as read/);
   assert.match(permissionMigration, /mark_all_notifications_read[\s\S]*recipient_user_id=actor/);
 });

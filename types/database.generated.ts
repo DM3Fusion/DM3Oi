@@ -3401,6 +3401,10 @@ created_at: string
         Args: { target_task_id: string }
         Returns: Database["public"]["Tables"]["case_tasks"]["Row"]
       }
+      get_my_unread_notification_count: {
+        Args: { target_organization_id: string }
+        Returns: number
+      }
       mark_all_notifications_read: {
         Args: { target_organization_id: string }
         Returns: number
