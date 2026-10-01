@@ -118,3 +118,39 @@ test("materialization remains CREATE_CASE-controlled", () => {
   const materialize = source.slice(start, end);
   assert.match(materialize, /'CREATE_CASE'/);
 });
+
+
+test("Edit Case hydrates locked identity from the authoritative Case", () => {
+  assert.match(
+    drafts,
+    /select\("id,status,customer_id,tax_year,case_type_id"\)/,
+  );
+  assert.match(
+    drafts,
+    /customerId: visibleCase\.customer_id/,
+  );
+  assert.match(
+    drafts,
+    /taxYear: visibleCase\.tax_year/,
+  );
+  assert.match(
+    drafts,
+    /caseTypeId: visibleCase\.case_type_id \?\? ""/,
+  );
+});
+
+test("materialized Case identity is not reconciled again on client initialization", () => {
+  const component = fs.readFileSync(
+    "components/cases/guided-case-intake.tsx",
+    "utf8",
+  );
+
+  assert.match(
+    component,
+    /if \(source\.caseId\) \{\s*return source;\s*\}/,
+  );
+  assert.match(
+    component,
+    /reconcileGuidedCaseSelection\(/,
+  );
+});

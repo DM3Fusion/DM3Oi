@@ -344,6 +344,10 @@ export function GuidedCaseIntake({
       followUpTasks: [],
       portalOnboarding: unresolvedPortalOnboarding(),
     };
+    if (source.caseId) {
+      return source;
+    }
+
     return {
       ...source,
       ...reconcileGuidedCaseSelection(

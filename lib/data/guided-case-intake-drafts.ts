@@ -382,7 +382,7 @@ export async function loadGuidedIntakeDraftForCase(
 
   const { data: visibleCase, error: visibleCaseError } = await supabase
     .from("cases")
-    .select("id,status")
+    .select("id,status,customer_id,tax_year,case_type_id")
     .eq("organization_id", organizationId)
     .eq("id", caseId)
     .maybeSingle();
@@ -424,7 +424,20 @@ export async function loadGuidedIntakeDraftForCase(
 
   if (!linkedDraft) return null;
 
-  return loadGuidedIntakeDraft(linkedDraft.id, caseId);
+  const savedDraft = await loadGuidedIntakeDraft(linkedDraft.id, caseId);
+  if (!savedDraft) return null;
+
+  return {
+    ...savedDraft,
+    customerMode: "existing",
+    draft: {
+      ...savedDraft.draft,
+      caseId: visibleCase.id,
+      customerId: visibleCase.customer_id,
+      taxYear: visibleCase.tax_year,
+      caseTypeId: visibleCase.case_type_id ?? "",
+    },
+  };
 }
 
 export async function loadGuidedIntakeDraftSummaries(): Promise<
