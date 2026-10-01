@@ -86,18 +86,33 @@ test("Rule-required Question counts only while the evaluator marks it applicable
   assert.equal(inactive.ready, true);
 });
 
-test("required Task statuses are binary and NOT_APPLICABLE is excluded", () => {
-  for (const status of ["NOT_STARTED", "IN_PROGRESS", "BLOCKED"] as const) {
+test("required Task readiness treats customer waiting as incomplete and required-unavailable as resolved", () => {
+  for (const status of ["NOT_STARTED", "IN_PROGRESS", "WAITING_ON_CUSTOMER", "BLOCKED"] as const) {
     const result = calculateCaseReadiness({ questions: [], tasks: [task(status, status)] });
     assert.equal(result.progressPercent, 0);
     assert.equal(result.ready, false);
   }
-  const completed = calculateCaseReadiness({ questions: [], tasks: [task("done", "COMPLETED")] });
+
+  const completed = calculateCaseReadiness({
+    questions: [],
+    tasks: [task("done", "COMPLETED")],
+  });
   assert.equal(completed.progressPercent, 100);
   assert.equal(completed.ready, true);
-  const excluded = calculateCaseReadiness({ questions: [], tasks: [task("n/a", "NOT_APPLICABLE")] });
-  assert.equal(excluded.totalUnits, 0);
-  assert.equal(excluded.ready, true);
+
+  const unavailable = calculateCaseReadiness({
+    questions: [],
+    tasks: [task("unavailable", "REQUIRED_UNAVAILABLE")],
+  });
+  assert.equal(unavailable.totalUnits, 0);
+  assert.equal(unavailable.ready, true);
+
+  const systemExcluded = calculateCaseReadiness({
+    questions: [],
+    tasks: [task("system excluded", "NOT_APPLICABLE")],
+  });
+  assert.equal(systemExcluded.totalUnits, 0);
+  assert.equal(systemExcluded.ready, true);
 });
 
 test("ordinary optional Tasks do not count while manual required Tasks do", () => {
@@ -150,18 +165,18 @@ test("progress uses equal binary units and Math.round, including zero requiremen
   assert.deepEqual([empty.progressPercent, empty.ready], [100, true]);
 });
 
-test("remaining work orders Questions, blocked blockers, other blockers, then required Tasks", () => {
+test("remaining work orders Questions, customer-waiting blockers, other blockers, then required Tasks", () => {
   const result = calculateCaseReadiness({
     questions: [question("Question", undefined)],
     tasks: [
       task("Required", "IN_PROGRESS"),
       task("Blocking", "IN_PROGRESS", { required: false, blocking: true }),
-      task("Blocked", "BLOCKED", { required: false, blocking: true }),
+      task("Waiting", "WAITING_ON_CUSTOMER", { required: false, blocking: true }),
     ],
   });
   assert.deepEqual(result.remainingWork.map((work) => work.label), [
     "Question",
-    "Blocked",
+    "Waiting",
     "Blocking",
     "Required",
   ]);
@@ -182,11 +197,13 @@ test("internal repository derives readiness in a bounded authorized organization
 test("Case detail replaces the placeholder with accessible business-facing readiness", () => {
   const page = source("app/cases/[caseId]/page.tsx");
   const ui = source("components/ui.tsx");
-  assert.match(page, /<h3>Case Readiness<\/h3>/);
+  assert.match(page, /"Case Readiness"/);
+  assert.match(page, /"Case Status"/);
   assert.match(page, /Ready for completion/);
   assert.match(page, /Not ready for completion/);
   assert.match(page, /remainingWork\.slice\(0, 5\)\.map/);
-  assert.match(page, /Blocked task/);
+  assert.match(page, /Waiting on Customer/);
+  assert.doesNotMatch(page, /Blocked task/);
   assert.doesNotMatch(page, /Future milestone|source_rule_id|source_rule_action_id/);
   assert.match(ui, /role="progressbar"[\s\S]*aria-valuenow=\{percentage\}/);
   assert.doesNotMatch(source("lib/case-readiness.ts"), /update\(|insert\(|\.from\("cases"\)/);

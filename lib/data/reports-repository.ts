@@ -65,8 +65,8 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
         .from("organization_case_tasks")
         .select("organization_id,title,status,due_at")
         .eq("organization_id", organizationId)
-        .in("status", ["NOT_STARTED", "IN_PROGRESS", "BLOCKED"])
-        .or(`status.eq.BLOCKED,due_at.lt.${currentDayStart}`)
+        .in("status", ["NOT_STARTED", "IN_PROGRESS", "WAITING_ON_CUSTOMER"])
+        .or(`status.eq.WAITING_ON_CUSTOMER,due_at.lt.${currentDayStart}`)
     : Promise.resolve({ data: [], error: null });
   const requestsPromise = capabilities.serviceRequests
     ? supabase

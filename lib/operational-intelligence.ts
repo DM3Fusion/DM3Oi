@@ -61,7 +61,7 @@ export type TaskBottleneck = {
   generated: boolean;
   affectedCases: number;
   incompleteCount: number;
-  blockedCount: number;
+  waitingOnCustomerCount: number;
   overdueCount: number;
 };
 
@@ -89,6 +89,7 @@ const plural = (count: number, singular: string, pluralValue = `${singular}s`) =
 const isApplicableRequirement = (task: IntelligenceTask) =>
   task.status !== "NOT_APPLICABLE" &&
   task.status !== "COMPLETED" &&
+  task.status !== "REQUIRED_UNAVAILABLE" &&
   (task.required || task.blocking);
 
 const isOverdue = (task: IntelligenceTask, dayStart: Date) =>
@@ -106,6 +107,7 @@ export function classifyCaseAttention(
     (task) =>
       task.status !== "COMPLETED" &&
       task.status !== "NOT_APPLICABLE" &&
+      task.status !== "REQUIRED_UNAVAILABLE" &&
       Boolean(task.assignedUserId) &&
       Boolean(task.dueAt),
   );
@@ -260,7 +262,7 @@ export function deriveOperationalIntelligence({
       generated: boolean;
       caseIds: Set<string>;
       incompleteCount: number;
-      blockedCount: number;
+      waitingOnCustomerCount: number;
       overdueCount: number;
     }
   >();
@@ -276,12 +278,13 @@ export function deriveOperationalIntelligence({
         generated,
         caseIds: new Set<string>(),
         incompleteCount: 0,
-        blockedCount: 0,
+        waitingOnCustomerCount: 0,
         overdueCount: 0,
       };
       group.caseIds.add(item.id);
       group.incompleteCount += 1;
-      if (task.status === "BLOCKED") group.blockedCount += 1;
+      if (task.status === "WAITING_ON_CUSTOMER")
+        group.waitingOnCustomerCount += 1;
       if (isOverdue(task, dayStart)) group.overdueCount += 1;
       taskGroups.set(key, group);
     }
@@ -293,41 +296,45 @@ export function deriveOperationalIntelligence({
       generated: group.generated,
       affectedCases: group.caseIds.size,
       incompleteCount: group.incompleteCount,
-      blockedCount: group.blockedCount,
+      waitingOnCustomerCount: group.waitingOnCustomerCount,
       overdueCount: group.overdueCount,
     }),
   );
   taskBottlenecks.sort(
     (left, right) =>
       right.affectedCases - left.affectedCases ||
-      right.blockedCount - left.blockedCount ||
+      right.waitingOnCustomerCount - left.waitingOnCustomerCount ||
       left.label.localeCompare(right.label),
   );
 
-  const blockedCases = currentCases.filter((item) =>
+  const waitingOnCustomerCases = currentCases.filter((item) =>
     item.tasks.some(
-      (task) => isApplicableRequirement(task) && task.status === "BLOCKED",
+      (task) =>
+        isApplicableRequirement(task) &&
+        task.status === "WAITING_ON_CUSTOMER",
     ),
   );
-  const blockedTasks = blockedCases.flatMap((item) =>
+  const waitingOnCustomerTasks = waitingOnCustomerCases.flatMap((item) =>
     item.tasks.filter(
-      (task) => isApplicableRequirement(task) && task.status === "BLOCKED",
+      (task) =>
+        isApplicableRequirement(task) &&
+        task.status === "WAITING_ON_CUSTOMER",
     ),
   );
-  const blockedWork = {
-    caseCount: blockedCases.length,
-    taskCount: blockedTasks.length,
-    overdueCount: blockedTasks.filter((task) => isOverdue(task, dayStart)).length,
-    cases: blockedCases.map((item) => ({
+  const waitingOnCustomerWork = {
+    caseCount: waitingOnCustomerCases.length,
+    taskCount: waitingOnCustomerTasks.length,
+    overdueCount: waitingOnCustomerTasks.filter((task) => isOverdue(task, dayStart)).length,
+    cases: waitingOnCustomerCases.map((item) => ({
       id: item.id,
       caseNumber: item.caseNumber,
       title: item.title,
     })),
     topTasks: taskBottlenecks
-      .filter((item) => item.blockedCount > 0)
+      .filter((item) => item.waitingOnCustomerCount > 0)
       .sort(
         (left, right) =>
-          right.blockedCount - left.blockedCount ||
+          right.waitingOnCustomerCount - left.waitingOnCustomerCount ||
           left.label.localeCompare(right.label),
       )
       .slice(0, 5),
@@ -393,7 +400,7 @@ export function deriveOperationalIntelligence({
     readinessDistribution,
     questionBottlenecks,
     taskBottlenecks,
-    blockedWork,
+    waitingOnCustomerWork,
     ruleActivity,
     attentionCases,
   };

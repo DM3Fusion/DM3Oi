@@ -114,7 +114,7 @@ export function OperationalIntelligenceSection({
       affectedCases: item.affectedCases,
       detail: [
         `${item.incompleteCount} incomplete`,
-        item.blockedCount ? `${item.blockedCount} blocked` : null,
+        item.waitingOnCustomerCount ? `${item.waitingOnCustomerCount} waiting on customer` : null,
         item.overdueCount ? `${item.overdueCount} overdue` : null,
       ]
         .filter(Boolean)
@@ -193,23 +193,23 @@ export function OperationalIntelligenceSection({
           ) : (
             <div className="no-results">Bottleneck detail is unavailable for this access level.</div>
           )}
-          {capabilities.viewTasks && intelligence.blockedWork.cases.length ? (
+          {capabilities.viewTasks && intelligence.waitingOnCustomerWork.cases.length ? (
             <div className="blocked-case-links">
               <div>
-                <strong>Top blocked work</strong>
-                <span>{intelligence.blockedWork.topTasks.map((item) => `${item.label} (${item.blockedCount})`).join(" · ")}</span>
+                <strong>Top work waiting on customer</strong>
+                <span>{intelligence.waitingOnCustomerWork.topTasks.map((item) => `${item.label} (${item.waitingOnCustomerCount})`).join(" · ")}</span>
               </div>
               <div>
-                <strong>Cases carrying blocked work</strong>
+                <strong>Cases waiting on customer</strong>
                 <span>
-                  {intelligence.blockedWork.cases.slice(0, 4).map((item, index) => (
+                  {intelligence.waitingOnCustomerWork.cases.slice(0, 4).map((item, index) => (
                     <span key={item.id}>{index ? " · " : ""}{capabilities.viewCases ? <Link href={`/cases/${item.id}`}>{item.caseNumber}</Link> : item.caseNumber}</span>
                   ))}
                 </span>
               </div>
             </div>
           ) : capabilities.viewTasks ? (
-            <div className="blocked-work-empty">No Cases currently have blocked required work.</div>
+            <div className="blocked-work-empty">No Cases currently have required work waiting on the Customer.</div>
           ) : null}
         </section>
       </div>

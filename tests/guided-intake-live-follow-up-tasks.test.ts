@@ -85,7 +85,7 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
   );
   assert.match(
     drafts,
-    /task\.status === "IN_PROGRESS"[\s\S]*task\.status === "COMPLETED"/,
+    /task\.status === "WAITING_ON_CUSTOMER"[\s\S]*task\.status === "COMPLETED"/,
   );
   assert.match(
     drafts,
@@ -191,8 +191,10 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     domain,
-    /const completed = missingOptions\.length === 0 && question\.valid/,
+    /missingOptions\.length === 0[\s\S]*"COMPLETED"/,
   );
+  assert.match(domain, /"WAITING_ON_CUSTOMER"/);
+  assert.match(domain, /"REQUIRED_UNAVAILABLE"/);
   assert.match(
     domain,
     /task\.status === "COMPLETED"[\s\S]*\? "IN_PROGRESS"/,
@@ -290,7 +292,10 @@ test("Guided Intake follow-up Task exposes and persists canonical status and Due
   const component = source("components/cases/guided-case-intake.tsx");
   const casePage = source("app/cases/[caseId]/page.tsx");
 
-  assert.match(model, /status:\s*"NOT_STARTED"\s*\|\s*"IN_PROGRESS"/);
+  assert.match(
+    model,
+    /status:[\s\S]*"NOT_STARTED"[\s\S]*"IN_PROGRESS"[\s\S]*"WAITING_ON_CUSTOMER"[\s\S]*"REQUIRED_UNAVAILABLE"[\s\S]*"COMPLETED"/,
+  );
   assert.match(model, /completed:\s*status === "COMPLETED"/);
 
   assert.match(

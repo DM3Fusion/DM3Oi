@@ -6,18 +6,34 @@ import { isOpenTask, matchesCaseFilter, matchesTaskFilter, normalizeCaseStatus, 
 const task = (status: TaskRow["status"], due_at: string | null = null) => ({ status, due_at }) as TaskRow;
 const liveCase = (status: LiveCase["status"]) => ({ status }) as LiveCase;
 
-test("task filters match dashboard aggregate definitions and reject invalid values", () => {
+test("task filters expose customer workflow statuses while retaining system-only legacy semantics", () => {
   assert.equal(isOpenTask(task("NOT_STARTED")), true);
+  assert.equal(isOpenTask(task("IN_PROGRESS")), true);
+  assert.equal(isOpenTask(task("WAITING_ON_CUSTOMER")), true);
   assert.equal(isOpenTask(task("BLOCKED")), true);
+
   assert.equal(isOpenTask(task("COMPLETED")), false);
   assert.equal(isOpenTask(task("NOT_APPLICABLE")), false);
+  assert.equal(isOpenTask(task("REQUIRED_UNAVAILABLE")), false);
+
   assert.equal(normalizeTaskStatus("invalid"), undefined);
-  assert.deepEqual(taskStatuses, ["not-started", "in-progress", "blocked", "completed", "not-applicable"]);
+  assert.equal(normalizeTaskStatus("blocked"), undefined);
+  assert.equal(normalizeTaskStatus("not-applicable"), undefined);
+
+  assert.deepEqual(taskStatuses, [
+    "not-started",
+    "in-progress",
+    "waiting-on-customer",
+    "required-unavailable",
+    "completed",
+  ]);
+
   assert.equal(matchesTaskFilter(task("NOT_STARTED"), "not-started", undefined, "UTC"), true);
   assert.equal(matchesTaskFilter(task("IN_PROGRESS"), "in-progress", undefined, "UTC"), true);
-  assert.equal(matchesTaskFilter(task("BLOCKED"), "blocked", undefined, "UTC"), true);
+  assert.equal(matchesTaskFilter(task("WAITING_ON_CUSTOMER"), "waiting-on-customer", undefined, "UTC"), true);
+  assert.equal(matchesTaskFilter(task("REQUIRED_UNAVAILABLE"), "required-unavailable", undefined, "UTC"), true);
   assert.equal(matchesTaskFilter(task("COMPLETED"), "completed", undefined, "UTC"), true);
-  assert.equal(matchesTaskFilter(task("NOT_APPLICABLE"), "not-applicable", undefined, "UTC"), true);
+
   assert.equal(normalizeTaskStatus("overdue"), undefined);
   assert.equal(normalizeTaskDue("overdue"), "overdue");
 });

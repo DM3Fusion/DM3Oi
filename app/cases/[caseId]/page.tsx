@@ -31,9 +31,9 @@ import {
 const taskStatuses = [
   "NOT_STARTED",
   "IN_PROGRESS",
-  "BLOCKED",
+  "WAITING_ON_CUSTOMER",
+  "REQUIRED_UNAVAILABLE",
   "COMPLETED",
-  "NOT_APPLICABLE",
 ] as const;
 export default async function Page({
   params,
@@ -554,7 +554,11 @@ export default async function Page({
                           <select name="status" defaultValue={task.status}>
                             {taskStatuses.map((value) => (
                               <option key={value} value={value}>
-                                {value.replaceAll("_", " ")}
+                                {value === "WAITING_ON_CUSTOMER"
+                                  ? "Waiting on Customer"
+                                  : value === "REQUIRED_UNAVAILABLE"
+                                    ? "Required, but Unavailable"
+                                    : value.replaceAll("_", " ")}
                               </option>
                             ))}
                           </select>
@@ -788,8 +792,8 @@ export default async function Page({
                         <small>
                           {work.kind === "QUESTION"
                             ? "Question"
-                            : work.blocked
-                              ? "Blocked task"
+                            : work.waitingOnCustomer
+                              ? "Waiting on Customer"
                               : "Task"}
                         </small>
                       </li>

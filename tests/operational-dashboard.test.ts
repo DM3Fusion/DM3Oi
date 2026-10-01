@@ -104,7 +104,7 @@ test("case progress and task status expose semantic drill-down links", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const metrics = source("lib/live-dashboard-metrics.ts");
   for (const href of ["/cases?status=new", "/cases?status=assigned", "/cases?status=in-progress", "/cases?status=waiting", "/cases?status=completed"]) assert.match(metrics, new RegExp(`href:\"${href.replace("?", "\\?")}\"`));
-  for (const href of ["/tasks?status=completed", "/tasks?status=open", "/tasks?status=blocked", "/tasks?due=overdue"]) assert.match(dashboard, new RegExp(`href=\"${href.replace("?", "\\?")}\"`));
+  for (const href of ["/tasks?status=completed", "/tasks?status=open", "/tasks?status=waiting-on-customer", "/tasks?due=overdue"]) assert.match(dashboard, new RegExp(`href=\"${href.replace("?", "\\?")}\"`));
   assert.match(dashboard, /<Link className="case-progress-column" href=\{item\.href\}/);
   assert.match(dashboard, /aria-label=\{`View \$\{item\.label\.toLowerCase\(\)\} cases`\}/);
 });
@@ -118,7 +118,7 @@ test("phone Task Status keeps its visualization and uses a compact aligned value
   assert.match(css, /\.task-status-list>a>strong\{text-align:right;font-variant-numeric:tabular-nums\}/);
   assert.match(dashboard, /className="task-ring"[\s\S]*?taskCompletion\*3\.6/);
   assert.match(dashboard, />View tasks <ApplicationIcon name="forward"/);
-  assert.match(dashboard, /<strong>\{summary\.tasks\.(?:completed|open|blocked|overdue)\}<\/strong>/);
+  assert.match(dashboard, /<strong>\{summary\.tasks\.(?:completed|open|waitingOnCustomer|overdue)\}<\/strong>/);
   assert.match(css, /\.task-status-layout\{display:grid;grid-template-columns:135px 1fr/);
 });
 
@@ -217,10 +217,10 @@ test("multiple Cases needing attention keep one progress ring associated with ev
   assert.match(css, /\.attention-case-list>a>\.case-attention-progress,\.attention-case-list>div>\.case-attention-progress\{justify-self:end\}/);
 });
 
-test("phone Top Bottlenecks contains the blocked-work message in normal flow", () => {
+test("phone Top Bottlenecks contains the customer-waiting message in normal flow", () => {
   const intelligence = source("components/dashboard/operational-intelligence.tsx");
   const css = source("app/globals.css");
-  assert.match(intelligence, /<h2>Top Bottlenecks<\/h2>[\s\S]*?<div className="blocked-work-empty">No Cases currently have blocked required work\.<\/div>/);
+  assert.match(intelligence, /<h2>Top Bottlenecks<\/h2>[\s\S]*?<div className="blocked-work-empty">No Cases currently have required work waiting on the Customer\.<\/div>/);
   assert.match(intelligence, /className=\{`panel intelligence-panel cases-needing-attention\$\{singleCase \? " single-attention-case" : ""\}`\}[\s\S]*?<h2>Cases Needing Attention<\/h2>/);
   const containment = css.match(/\.blocked-work-empty\{([^}]*)\}/)?.[1] ?? "";
   assert.match(containment, /min-width:0/);
@@ -229,8 +229,8 @@ test("phone Top Bottlenecks contains the blocked-work message in normal flow", (
   assert.match(containment, /white-space:normal/);
   assert.match(containment, /overflow-wrap:anywhere/);
   assert.doesNotMatch(containment, /position:absolute|(?:^|;)(?:min-|max-)?height:/);
-  assert.match(intelligence, /intelligence\.blockedWork\.cases\.length/);
-  assert.match(intelligence, /intelligence\.blockedWork\.topTasks\.map/);
+  assert.match(intelligence, /intelligence\.waitingOnCustomerWork\.cases\.length/);
+  assert.match(intelligence, /intelligence\.waitingOnCustomerWork\.topTasks\.map/);
 });
 
 test("destination filters reuse authorized organization data and shared semantics", () => {
@@ -241,7 +241,7 @@ test("destination filters reuse authorized organization data and shared semantic
   assert.match(tasks, /getLiveOrganizationData\(\)/);
   assert.match(tasks, /matchesTaskFilter\(task, status, due, data\.timezone\)/);
   assert.match(cases, /matchesCaseRegisterFilters\(item, filters, data\.timezone\)/);
-  assert.match(filters, /!\["COMPLETED", "NOT_APPLICABLE"\]\.includes\(task\.status\)/);
+  assert.match(filters, /!\["COMPLETED", "NOT_APPLICABLE", "REQUIRED_UNAVAILABLE"\]\.includes\(task\.status\)/);
   assert.match(filters, /startOfOrganizationDay\(now, timezone\)/);
   assert.match(requests, /q\?\.status === "open"/);
   assert.match(requests, /serviceRequestStatuses\.includes/);

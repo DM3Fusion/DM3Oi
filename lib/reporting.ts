@@ -307,13 +307,15 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
   const taskPeriod = scopedTasks.filter((item) => inRange(item.created_at, period.range) || inRange(item.completed_at, period.range));
   const overdueBoundary = startOfLocalDate(dateKey(now, timezone), timezone);
   const currentExceptions = scopedCurrentTasks.filter((item) =>
-    !["COMPLETED", "NOT_APPLICABLE"].includes(item.status) &&
-    (item.status === "BLOCKED" || Boolean(item.due_at && new Date(item.due_at) < overdueBoundary)),
+    !["COMPLETED", "NOT_APPLICABLE", "REQUIRED_UNAVAILABLE"].includes(item.status) &&
+    (item.status === "WAITING_ON_CUSTOMER" || Boolean(item.due_at && new Date(item.due_at) < overdueBoundary)),
   );
   const overdue = currentExceptions.filter((item) => item.due_at && new Date(item.due_at) < overdueBoundary);
   const taskPerformance = {
     completed: current.tasksCompleted,
-    blocked: currentExceptions.filter((item) => item.status === "BLOCKED").length,
+    waitingOnCustomer: currentExceptions.filter(
+      (item) => item.status === "WAITING_ON_CUSTOMER",
+    ).length,
     overdue: overdue.length,
     manual: capabilities.rules ? taskPeriod.filter((item) => !item.generated_by_rule).length : null,
     generated: capabilities.rules ? taskPeriod.filter((item) => item.generated_by_rule).length : null,

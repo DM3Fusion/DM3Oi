@@ -59,7 +59,15 @@ test("organization Users resolves canonical profile avatars after tenant and pla
   );
   assert.match(register, /profiles\(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at\)/);
   assert.match(register, /attachAuthorizedAvatarUrls\(\s*rows\.flatMap/);
-  assert.doesNotMatch(register, /createAdminClient/);
+  assert.match(register, /createAdminClient/);
+  assert.ok(
+    register.indexOf("!platformAdminIds.has(member.user_id)") <
+      register.indexOf("createAdminClient()"),
+  );
+  assert.match(
+    register,
+    /admin\.auth\.admin\.getUserById\(member\.user_id\)/,
+  );
   assert.match(register, /src=\{profile\?\.avatarUrl\}/);
   assert.match(register, /size="sm"/);
 });

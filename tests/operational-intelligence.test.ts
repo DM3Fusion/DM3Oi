@@ -156,7 +156,7 @@ test("Task bottlenecks deduplicate requirements and group generated and manual T
   const result = derive([
     caseItem("one", {
       tasks: [
-        task("both", { caseId: "one", required: true, blocking: true, status: "BLOCKED", dueAt: "2026-09-08T12:00:00.000Z", sourceRuleActionId: "action-a", sourceRuleId: "rule-active" }),
+        task("both", { caseId: "one", required: true, blocking: true, status: "WAITING_ON_CUSTOMER", dueAt: "2026-09-08T12:00:00.000Z", sourceRuleActionId: "action-a", sourceRuleId: "rule-active" }),
         task("manual-a", { caseId: "one", label: "  Confirm   hardware " }),
         task("complete", { caseId: "one", label: "Ignore complete", status: "COMPLETED" }),
         task("na", { caseId: "one", label: "Ignore N/A", status: "NOT_APPLICABLE" }),
@@ -179,7 +179,7 @@ test("Task bottlenecks deduplicate requirements and group generated and manual T
     generated: true,
     affectedCases: 2,
     incompleteCount: 2,
-    blockedCount: 1,
+    waitingOnCustomerCount: 1,
     overdueCount: 1,
   });
   assert.deepEqual(manual, {
@@ -188,25 +188,32 @@ test("Task bottlenecks deduplicate requirements and group generated and manual T
     generated: false,
     affectedCases: 2,
     incompleteCount: 2,
-    blockedCount: 0,
+    waitingOnCustomerCount: 0,
     overdueCount: 0,
   });
   assert.equal(result.taskBottlenecks.some((item) => item.label.includes("Ignore")), false);
 });
 
-test("blocked work counts each Case once and uses authoritative applicable Task status", () => {
+test("customer-waiting work counts each Case once and uses authoritative applicable Task status", () => {
   const result = derive([
     caseItem("one", { tasks: [
-      task("blocked-one", { caseId: "one", status: "BLOCKED", blocking: true, dueAt: "2026-09-08T12:00:00.000Z" }),
-      task("blocked-two", { caseId: "one", status: "BLOCKED", required: true }),
+      task("waiting-one", { caseId: "one", status: "WAITING_ON_CUSTOMER", blocking: true, dueAt: "2026-09-08T12:00:00.000Z" }),
+      task("waiting-two", { caseId: "one", status: "WAITING_ON_CUSTOMER", required: true }),
     ] }),
     caseItem("two", { tasks: [task("not-applicable", { caseId: "two", status: "NOT_APPLICABLE", blocking: true })] }),
   ]);
   assert.deepEqual(
-    { cases: result.blockedWork.caseCount, tasks: result.blockedWork.taskCount, overdue: result.blockedWork.overdueCount },
+    {
+      cases: result.waitingOnCustomerWork.caseCount,
+      tasks: result.waitingOnCustomerWork.taskCount,
+      overdue: result.waitingOnCustomerWork.overdueCount,
+    },
     { cases: 1, tasks: 2, overdue: 1 },
   );
-  assert.deepEqual(result.blockedWork.cases.map((item) => item.id), ["one"]);
+  assert.deepEqual(
+    result.waitingOnCustomerWork.cases.map((item) => item.id),
+    ["one"],
+  );
 });
 
 test("Rule activity separates current matches and effects from durable generated Task history", () => {
@@ -415,13 +422,13 @@ test("Dashboard renders compact actionable intelligence without exposing it to C
   assert.match(page, /getOperationalIntelligence\(data\)/);
   assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
   for (const text of ["Operational Intelligence", "Readiness Distribution", "Top Bottlenecks", "Cases Needing Attention", "Rule Activity"]) assert.match(component, new RegExp(text));
-  for (const emptyState of ["All currently required work is complete.", "No Cases currently have blocked required work.", "No current Cases need completion attention", "No active Rules are currently affecting Cases."]) assert.match(component, new RegExp(emptyState));
+  for (const emptyState of ["All currently required work is complete.", "No Cases currently have required work waiting on the Customer.", "No current Cases need completion attention", "No active Rules are currently affecting Cases."]) assert.match(component, new RegExp(emptyState));
   assert.match(component, /label="Completed Cases"/);
   assert.match(component, /value=\{readiness\.completedCases\}/);
   assert.match(component, /\/cases\?status=completed/);
   assert.match(component, /released for external processing/);
-  assert.match(component, /Top blocked work/);
-  assert.match(component, /Cases carrying blocked work/);
+  assert.match(component, /Top work waiting on customer/);
+  assert.match(component, /Cases waiting on customer/);
   assert.match(component, /`\/cases\/\$\{item\.id\}`/);
   assert.match(component, /\/questions\?view=rules/);
   assert.doesNotMatch(component, />\{rule\.ruleId\}</);

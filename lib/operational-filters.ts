@@ -5,15 +5,15 @@ import {
 } from "./case-lifecycle.ts";
 import { startOfOrganizationDay } from "./organization-timezone.ts";
 
-export const taskStatuses = ["not-started", "in-progress", "blocked", "completed", "not-applicable"] as const;
+export const taskStatuses = ["not-started", "in-progress", "waiting-on-customer", "required-unavailable", "completed"] as const;
 export type StoredTaskStatusFilter = (typeof taskStatuses)[number];
 export type TaskStatusFilter = StoredTaskStatusFilter | "open";
 export const taskStatusLabels: Record<StoredTaskStatusFilter, string> = {
   "not-started": "Not Started",
   "in-progress": "In Progress",
-  blocked: "Blocked",
+  "waiting-on-customer": "Waiting on Customer",
+  "required-unavailable": "Required, but Unavailable",
   completed: "Completed",
-  "not-applicable": "Not Applicable",
 };
 export const taskDueFilters = ["today", "overdue"] as const;
 export type TaskDueFilter = (typeof taskDueFilters)[number];
@@ -27,7 +27,8 @@ export const normalizeTaskDue = (value?: string): TaskDueFilter | undefined =>
 export const normalizeTaskQuery = (value?: string) => value?.trim().slice(0, 200) ?? "";
 export const normalizeCaseStatus = (value?: string): CaseStatusFilter | undefined =>
   caseStatuses.includes(value as CaseStatusFilter) ? (value as CaseStatusFilter) : undefined;
-export const isOpenTask = (task: TaskRow) => !["COMPLETED", "NOT_APPLICABLE"].includes(task.status);
+export const isOpenTask = (task: TaskRow) =>
+  !["COMPLETED", "NOT_APPLICABLE", "REQUIRED_UNAVAILABLE"].includes(task.status);
 
 export function organizationDayBounds(timezone: string, now = new Date()) {
   const start = startOfOrganizationDay(now, timezone);
@@ -41,9 +42,9 @@ export function matchesTaskFilter(task: TaskRow, status: TaskStatusFilter | unde
   if (status === "open" && !isOpenTask(task)) return false;
   if (status === "not-started" && task.status !== "NOT_STARTED") return false;
   if (status === "in-progress" && task.status !== "IN_PROGRESS") return false;
+  if (status === "waiting-on-customer" && task.status !== "WAITING_ON_CUSTOMER") return false;
+  if (status === "required-unavailable" && task.status !== "REQUIRED_UNAVAILABLE") return false;
   if (status === "completed" && task.status !== "COMPLETED") return false;
-  if (status === "blocked" && task.status !== "BLOCKED") return false;
-  if (status === "not-applicable" && task.status !== "NOT_APPLICABLE") return false;
   return true;
 }
 

@@ -233,7 +233,12 @@ export type GuidedIntakeFollowUpTask = {
   missingOptionLabels: string[];
   assignedUserId: string;
   dueDate: string;
-  status: "NOT_STARTED" | "IN_PROGRESS" | "BLOCKED" | "COMPLETED" | "NOT_APPLICABLE";
+  status:
+    | "NOT_STARTED"
+    | "IN_PROGRESS"
+    | "WAITING_ON_CUSTOMER"
+    | "REQUIRED_UNAVAILABLE"
+    | "COMPLETED";
   completed: boolean;
 };
 
@@ -581,8 +586,9 @@ export function reconcileGuidedIntakeFollowUpTasks(
     );
     if (!question?.applicable || !question.effectiveRequired) return [];
     const missingOptions = missingByQuestion.get(task.questionId) ?? [];
-    const completed = missingOptions.length === 0 && question.valid;
-    const status: GuidedIntakeFollowUpTask["status"] = completed
+    const requirementsSatisfied =
+      missingOptions.length === 0 && question.valid;
+    const status: GuidedIntakeFollowUpTask["status"] = requirementsSatisfied
       ? "COMPLETED"
       : task.status === "COMPLETED"
         ? "IN_PROGRESS"
@@ -596,7 +602,8 @@ export function reconcileGuidedIntakeFollowUpTasks(
         ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
         : "All required documents have been received.",
       status,
-      completed: status === "COMPLETED",
+      completed:
+        status === "COMPLETED" || status === "REQUIRED_UNAVAILABLE",
     }];
   });
 }

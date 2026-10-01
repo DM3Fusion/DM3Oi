@@ -73,7 +73,7 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
           <div className="task-status-list">
             <Link href="/tasks?status=completed" aria-label="View completed tasks"><span><ApplicationIcon name="completed" className="status-icon completed"/>Completed</span><strong>{summary.tasks.completed}</strong></Link>
             <Link href="/tasks?status=open" aria-label="View open tasks"><span><ApplicationIcon name="status" className="status-icon open"/>Open</span><strong>{summary.tasks.open}</strong></Link>
-            <Link href="/tasks?status=blocked" aria-label="View blocked tasks"><span><ApplicationIcon name="blocked" className="status-icon blocked"/>Blocked</span><strong>{summary.tasks.blocked}</strong></Link>
+            <Link href="/tasks?status=waiting-on-customer" aria-label="View tasks waiting on customer"><span><ApplicationIcon name="status" className="status-icon blocked"/>Waiting on Customer</span><strong>{summary.tasks.waitingOnCustomer}</strong></Link>
             <Link href="/tasks?due=overdue" aria-label="View overdue tasks"><span><ApplicationIcon name="overdue" className="status-icon overdue"/>Overdue</span><strong>{summary.tasks.overdue}</strong></Link>
           </div>
         </div>

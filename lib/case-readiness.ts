@@ -23,7 +23,12 @@ export type ReadinessTask = {
 
 export type RemainingWork =
   | { kind: "QUESTION"; id: string; label: string }
-  | { kind: "TASK"; id: string; label: string; blocked: boolean };
+  | {
+      kind: "TASK";
+      id: string;
+      label: string;
+      waitingOnCustomer: boolean;
+    };
 
 export type CaseReadiness = {
   progressPercent: number;
@@ -59,23 +64,30 @@ export function calculateCaseReadiness({
 
   const applicableTaskUnits = tasks.filter(
     (task) =>
-      task.status !== "NOT_APPLICABLE" && (task.required || task.blocking),
+      task.status !== "NOT_APPLICABLE" &&
+      task.status !== "REQUIRED_UNAVAILABLE" &&
+      (task.required || task.blocking),
   );
+  const isResolvedTask = (task: ReadinessTask) =>
+    task.status === "COMPLETED" ||
+    task.status === "REQUIRED_UNAVAILABLE";
   const incompleteRequiredTasks = applicableTaskUnits.filter(
-    (task) => task.required && task.status !== "COMPLETED",
+    (task) => task.required && !isResolvedTask(task),
   );
   const incompleteBlockingTasks = applicableTaskUnits.filter(
-    (task) => task.blocking && task.status !== "COMPLETED",
+    (task) => task.blocking && !isResolvedTask(task),
   );
   const incompleteTasks = applicableTaskUnits.filter(
-    (task) => task.status !== "COMPLETED",
+    (task) => !isResolvedTask(task),
   );
   const orderedTasks = [
     ...incompleteTasks.filter(
-      (task) => task.blocking && task.status === "BLOCKED",
+      (task) =>
+        task.blocking && task.status === "WAITING_ON_CUSTOMER",
     ),
     ...incompleteTasks.filter(
-      (task) => task.blocking && task.status !== "BLOCKED",
+      (task) =>
+        task.blocking && task.status !== "WAITING_ON_CUSTOMER",
     ),
     ...incompleteTasks.filter((task) => !task.blocking && task.required),
   ];
@@ -85,13 +97,17 @@ export function calculateCaseReadiness({
       kind: "TASK" as const,
       id: task.id,
       label: task.label,
-      blocked: task.status === "BLOCKED",
+      waitingOnCustomer: task.status === "WAITING_ON_CUSTOMER",
     })),
   ];
   const totalUnits = requiredQuestions.length + applicableTaskUnits.length;
   const completedUnits =
     requiredQuestions.length - unansweredRequiredQuestions.length +
-    applicableTaskUnits.filter((task) => task.status === "COMPLETED").length;
+    applicableTaskUnits.filter(
+      (task) =>
+        task.status === "COMPLETED" ||
+        task.status === "REQUIRED_UNAVAILABLE",
+    ).length;
 
   return {
     progressPercent: totalUnits

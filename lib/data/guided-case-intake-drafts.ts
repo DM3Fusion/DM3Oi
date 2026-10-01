@@ -128,15 +128,19 @@ const parseFollowUpTasks = (value: Json): GuidedIntakeFollowUpTask[] => {
       assignedUserId: candidate.assignedUserId,
       dueDate: candidate.dueDate,
       status:
-        candidate.status === "NOT_STARTED" ||
-        candidate.status === "IN_PROGRESS" ||
-        candidate.status === "BLOCKED" ||
-        candidate.status === "COMPLETED" ||
-        candidate.status === "NOT_APPLICABLE"
-          ? candidate.status
-          : candidate.completed
-            ? "COMPLETED"
-            : "NOT_STARTED",
+        candidate.status === "BLOCKED"
+          ? "WAITING_ON_CUSTOMER"
+          : candidate.status === "NOT_APPLICABLE"
+            ? "REQUIRED_UNAVAILABLE"
+            : candidate.status === "NOT_STARTED" ||
+                candidate.status === "IN_PROGRESS" ||
+                candidate.status === "WAITING_ON_CUSTOMER" ||
+                candidate.status === "REQUIRED_UNAVAILABLE" ||
+                candidate.status === "COMPLETED"
+              ? candidate.status
+              : candidate.completed
+                ? "COMPLETED"
+                : "NOT_STARTED",
       completed: candidate.completed,
       missingOptionIds: candidate.missingOptionIds.filter(
         (entry): entry is string => typeof entry === "string",
@@ -269,15 +273,21 @@ export async function loadGuidedIntakeDraft(
         dueDate:
           persisted.due_at?.slice(0, 10) ?? task.dueDate,
         status:
-          persisted.status === "NOT_STARTED" ||
-          persisted.status === "IN_PROGRESS" ||
-          persisted.status === "BLOCKED" ||
-          persisted.status === "COMPLETED" ||
-          persisted.status === "NOT_APPLICABLE"
-            ? persisted.status
-            : task.status,
+          persisted.status === "BLOCKED"
+            ? "WAITING_ON_CUSTOMER"
+            : persisted.status === "NOT_APPLICABLE"
+              ? "REQUIRED_UNAVAILABLE"
+              : persisted.status === "NOT_STARTED" ||
+                  persisted.status === "IN_PROGRESS" ||
+                  persisted.status === "WAITING_ON_CUSTOMER" ||
+                  persisted.status === "REQUIRED_UNAVAILABLE" ||
+                  persisted.status === "COMPLETED"
+                ? persisted.status
+                : task.status,
         completed:
-          persisted.status === "COMPLETED",
+          persisted.status === "COMPLETED" ||
+          persisted.status === "REQUIRED_UNAVAILABLE" ||
+          persisted.status === "NOT_APPLICABLE",
       };
     });
 
@@ -286,7 +296,7 @@ export async function loadGuidedIntakeDraft(
         (task) =>
           task.intake_follow_up_id &&
           (
-            task.status === "IN_PROGRESS" ||
+            task.status === "WAITING_ON_CUSTOMER" ||
             task.status === "COMPLETED"
           ),
       )
@@ -300,7 +310,7 @@ export async function loadGuidedIntakeDraft(
       .select("event_type,event_data,created_at")
       .eq("organization_id", organizationId)
       .eq("case_id", data.case_id)
-      .eq("event_type", "TASK_STARTED")
+      .in("event_type", ["TASK_STARTED", "TASK_UPDATED"])
       .order("created_at", { ascending: true });
 
     if (activityError) {

@@ -17,7 +17,7 @@ const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim()
 const optional = (value: string) => value || undefined;
 const nullableUuid = (value: string) => (value || null) as unknown as string;
 const validDate = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value);
-const friendly = (message: string) => (message.includes("required applicable tasks") ? "Complete or mark not applicable every required task before completing this case." : message.includes("required applicable questions") ? "Answer every required question before completing this case." : message.includes("not authorized") ? "You are not authorized to perform that action." : message.includes("invalid") ? "The selected customer or staff assignment is not valid for this organization." : "The change could not be saved. Please try again.");
+const friendly = (message: string) => (message.includes("required applicable tasks") ? "Complete or mark Required, but Unavailable every required task before completing this case." : message.includes("required applicable questions") ? "Answer every required question before completing this case." : message.includes("not authorized") ? "You are not authorized to perform that action." : message.includes("invalid") ? "The selected customer or staff assignment is not valid for this organization." : "The change could not be saved. Please try again.");
 const fail = (path: string, message: string): never => redirect(`${path}${path.includes("?") ? "&" : "?"}error=${encodeURIComponent(message)}`);
 const refreshCase = (id?: string) => {
   revalidatePath("/");
@@ -195,6 +195,29 @@ export async function updateTaskAction(data: FormData) {
   const dueDate = text(data, "dueDate");
   if (canManage && !validDate(dueDate))
     fail(`/cases/${caseId}`, "A Due Date is required when updating a Task.");
+
+  const requestedStatus = text(data, "status") as TaskStatus;
+  const staffTaskStatuses: TaskStatus[] = [
+    "NOT_STARTED",
+    "IN_PROGRESS",
+    "WAITING_ON_CUSTOMER",
+    "REQUIRED_UNAVAILABLE",
+    "COMPLETED",
+  ];
+  const preservingSystemStatus =
+    ["BLOCKED", "NOT_APPLICABLE"].includes(existing.status) &&
+    requestedStatus === existing.status;
+
+  if (
+    !staffTaskStatuses.includes(requestedStatus) &&
+    !preservingSystemStatus
+  ) {
+    fail(
+      `/cases/${caseId}`,
+      "That Task status is controlled by the system.",
+    );
+  }
+
   // Temporary RPC signature bridge until generated Supabase types are refreshed.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).rpc("update_case_task", {
@@ -208,7 +231,7 @@ export async function updateTaskAction(data: FormData) {
     target_title: canManage ? text(data, "title") : existing.title,
     target_description: canManage ? text(data, "description") : existing.description,
     target_assigned_user_id: canAssign ? nullableUuid(text(data, "assignedUserId")) : nullableUuid(existing.assigned_user_id ?? ""),
-    target_status: text(data, "status") as TaskStatus,
+    target_status: requestedStatus,
     target_required: existing.required,
     target_due_date: canManage ? dueDate : null,
   });

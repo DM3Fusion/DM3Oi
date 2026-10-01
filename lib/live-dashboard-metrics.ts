@@ -19,7 +19,7 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
   const overdueTasks=tasks.filter(task=>task.due_at&&isOpenTask(task)&&new Date(task.due_at)<dayStart).length;
   const openTasks=tasks.filter(isOpenTask).length;
   const completedTasks=tasks.filter(task=>task.status==="COMPLETED").length;
-  const blockedTasks=tasks.filter(task=>task.status==="BLOCKED").length;
+  const waitingOnCustomerTasks=tasks.filter(task=>task.status==="WAITING_ON_CUSTOMER").length;
   const openCases=cases.filter(isLiveCaseActive).length;
   const openRequests=serviceRequests.filter(isLiveServiceRequestActive).length;
   const unassignedRequests=serviceRequests.filter(item=>isLiveServiceRequestActive(item)&&!item.assigned_user_id).length;
@@ -75,7 +75,7 @@ export function getOperationalDashboardMetrics(cases:LiveCase[],serviceRequests:
       {label:"Waiting",value:cases.filter(item=>item.status==="WAITING").length,href:"/cases?status=waiting"},
       {label:"Completed",value:cases.filter(item=>isCanonicalCompletedCaseStatus(item.status)).length,href:"/cases?status=completed"},
     ],
-    tasks:{total:tasks.filter(task=>task.status!=="NOT_APPLICABLE").length,completed:completedTasks,open:openTasks,blocked:blockedTasks,overdue:overdueTasks},
+    tasks:{total:tasks.filter(task=>!["NOT_APPLICABLE","REQUIRED_UNAVAILABLE"].includes(task.status)).length,completed:completedTasks,open:openTasks,waitingOnCustomer:waitingOnCustomerTasks,overdue:overdueTasks},
     attention:[
       {label:"Overdue tasks",value:overdueTasks,href:"/tasks?due=overdue",tone:"red"},
       {label:"Tasks due today",value:dueToday,href:"/tasks?due=today",tone:"amber"},

@@ -78,7 +78,7 @@ test("operational report aggregates authoritative rows and excludes other tenant
   const result = buildOperationalReport({
     organizationId, timezone: "UTC", period,
     cases: [reportCase(), reportCase({ customer_id: "customer-2", opened_at: "2026-08-01T12:00:00Z", completed_at: null }), reportCase({ organization_id: otherOrganizationId })],
-    tasks: [reportTask(), reportTask({ status: "BLOCKED", completed_at: null, due_at: "2026-09-01T00:00:00Z", generated_by_rule: true, assigned_user_id: null }), reportTask({ organization_id: otherOrganizationId })],
+    tasks: [reportTask(), reportTask({ status: "WAITING_ON_CUSTOMER", completed_at: null, due_at: "2026-09-01T00:00:00Z", generated_by_rule: true, assigned_user_id: null }), reportTask({ organization_id: otherOrganizationId })],
     requests: [reportRequest(), reportRequest({ organization_id: otherOrganizationId })],
     customers: [customer(), customer({ id: "customer-2", name: "Second Customer" }), customer({ id: "foreign-customer", organization_id: otherOrganizationId })],
     capabilities, now,
@@ -91,7 +91,7 @@ test("operational report aggregates authoritative rows and excludes other tenant
   assert.equal(values.get("Customers Served"), 1);
   assert.equal(values.get("Tasks Completed"), 1);
   assert.equal(values.get("Service Requests Received"), 1);
-  assert.equal(result.taskPerformance.blocked, 1);
+  assert.equal(result.taskPerformance.waitingOnCustomer, 1);
   assert.equal(result.taskPerformance.overdue, 1);
   assert.deepEqual(result.workDistribution, { assigned: 1, unassigned: 1 });
   assert.equal(result.topCustomers[0]?.label, "Fobbs Quality Signs");
@@ -107,7 +107,7 @@ test("current Task exceptions are independent of the historical reporting window
     cases: [], tasks: [], requests: [], customers: [], capabilities, now,
     currentTasks: [
       reportTask({ title: "Old overdue", status: "IN_PROGRESS", created_at: "2025-01-01T00:00:00Z", completed_at: null, due_at: "2026-01-01T00:00:00Z" }),
-      reportTask({ title: "Current blocked", status: "BLOCKED", completed_at: null, due_at: null }),
+      reportTask({ title: "Current waiting", status: "WAITING_ON_CUSTOMER", completed_at: null, due_at: null }),
       reportTask({ title: "Completed old", status: "COMPLETED", due_at: "2026-01-01T00:00:00Z" }),
       reportTask({ title: "Not applicable old", status: "NOT_APPLICABLE", completed_at: null, due_at: "2026-01-01T00:00:00Z" }),
       reportTask({ title: "Future task", status: "NOT_STARTED", completed_at: null, due_at: "2026-10-01T00:00:00Z" }),
@@ -116,8 +116,8 @@ test("current Task exceptions are independent of the historical reporting window
   });
   assert.equal(result.taskPerformance.completed, 0);
   assert.equal(result.taskPerformance.overdue, 1);
-  assert.equal(result.taskPerformance.blocked, 1);
-  assert.deepEqual(result.bottlenecks.map((item) => item.label).sort(), ["Current blocked", "Old overdue"]);
+  assert.equal(result.taskPerformance.waitingOnCustomer, 1);
+  assert.deepEqual(result.bottlenecks.map((item) => item.label).sort(), ["Current waiting", "Old overdue"]);
 });
 
 test("comparison deltas and empty denominators are deterministic", () => {
@@ -160,7 +160,7 @@ test("Case permission is enforced in the model while independent dimensions rema
   const noCases = { ...capabilities, cases: false };
   const result = buildOperationalReport({
     organizationId, timezone: "UTC", period,
-    cases: [reportCase()], tasks: [reportTask()], currentTasks: [reportTask({ status: "BLOCKED", completed_at: null })],
+    cases: [reportCase()], tasks: [reportTask()], currentTasks: [reportTask({ status: "WAITING_ON_CUSTOMER", completed_at: null })],
     requests: [reportRequest()], customers: [customer()], capabilities: noCases, now,
   });
   for (const label of ["Cases Opened", "Cases Completed", "Completion Rate", "Average Case Duration", "Median Case Duration", "Customers Served"]) {
@@ -168,7 +168,7 @@ test("Case permission is enforced in the model while independent dimensions rema
   }
   assert.equal(result.kpis.find((item) => item.label === "Tasks Completed")?.value, 1);
   assert.equal(result.kpis.find((item) => item.label === "Service Requests Received")?.value, 1);
-  assert.equal(result.taskPerformance.blocked, 1);
+  assert.equal(result.taskPerformance.waitingOnCustomer, 1);
   assert.equal(result.requestPerformance.received, 1);
   assert.deepEqual(result.topCustomers, []);
 });
@@ -182,7 +182,7 @@ test("reports repository enforces authorization scope and bounded safe-view quer
   assert.match(repository, /Promise\.all/);
   assert.match(repository, /capabilities\.rules[\s\S]*generated_by_rule[\s\S]*assigned_user_id/);
   assert.match(repository, /select\("organization_id,title,status,created_at,completed_at,due_at,assigned_user_id"\)/);
-  assert.match(repository, /select\("organization_id,title,status,due_at"\)[\s\S]*\.in\("status", \["NOT_STARTED", "IN_PROGRESS", "BLOCKED"\]\)[\s\S]*due_at\.lt/);
+  assert.match(repository, /select\("organization_id,title,status,due_at"\)[\s\S]*\.in\("status", \["NOT_STARTED", "IN_PROGRESS", "WAITING_ON_CUSTOMER"\]\)[\s\S]*due_at\.lt/);
   assert.doesNotMatch(repository, /currentTasksPromise[\s\S]*updated_at\.gte/);
   assert.doesNotMatch(repository, /for\s*\([^)]*\)\s*\{[^}]*await/);
   assert.doesNotMatch(repository, /\.select\("\*"\)/);
@@ -203,12 +203,12 @@ test("reports UI exposes accessible responsive charts, truthful limitations, and
   assert.match(component, /<b>\{item\.completed\}<\/b>/);
   assert.doesNotMatch(component, /<small>O \{item\.opened\} · C \{item\.completed\}<\/small>/);
   assert.match(component, /\/tasks\?due=overdue/);
-  assert.match(component, /\/tasks\?status=blocked/);
+  assert.match(component, /\/tasks\?status=waiting-on-customer/);
   assert.match(component, /Historical readiness, Question response state/);
   assert.match(component, /Case performance requires Case access/);
   assert.doesNotMatch(component, /!capabilities\.cases \?[^:]+: <>/);
   assert.match(component, /availableKpis/);
-  assert.match(component, /Current blocked or overdue Task patterns/);
+  assert.match(component, /Current customer-waiting or overdue Task patterns/);
   assert.match(component, /Duration trend/);
   assert.match(component, /Throughput trend/);
   assert.doesNotMatch(component, /portal/i);

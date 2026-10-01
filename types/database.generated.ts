@@ -4002,6 +4002,8 @@ created_at: string
         | "BLOCKED"
         | "COMPLETED"
         | "NOT_APPLICABLE"
+        | "WAITING_ON_CUSTOMER"
+        | "REQUIRED_UNAVAILABLE"
       commercial_state: "TRIAL" | "PAID" | "UNPAID" | "COMP" | "INTERNAL"
       customer_status: "ACTIVE" | "INACTIVE" | "ARCHIVED"
       customer_type: "INDIVIDUAL" | "BUSINESS" | "ORGANIZATION"
@@ -4213,6 +4215,8 @@ export const Constants = {
         "BLOCKED",
         "COMPLETED",
         "NOT_APPLICABLE",
+        "WAITING_ON_CUSTOMER",
+        "REQUIRED_UNAVAILABLE",
       ],
       commercial_state: ["TRIAL", "PAID", "UNPAID", "COMP", "INTERNAL"],
       customer_status: ["ACTIVE", "INACTIVE", "ARCHIVED"],

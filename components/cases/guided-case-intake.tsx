@@ -663,9 +663,9 @@ export function GuidedCaseIntake({
     const allowedStatuses = new Set([
       "NOT_STARTED",
       "IN_PROGRESS",
-      "BLOCKED",
+      "WAITING_ON_CUSTOMER",
+      "REQUIRED_UNAVAILABLE",
       "COMPLETED",
-      "NOT_APPLICABLE",
     ]);
     if (
       !assignedUserId ||
@@ -691,7 +691,8 @@ export function GuidedCaseIntake({
       assignedUserId,
       dueDate,
       status: status as GuidedIntakeFollowUpTask["status"],
-      completed: status === "COMPLETED",
+      completed:
+        status === "COMPLETED" || status === "REQUIRED_UNAVAILABLE",
     };
 
     setPending(true);
@@ -1803,9 +1804,11 @@ export function GuidedCaseIntake({
               >
                 <option value="NOT_STARTED">Not Started</option>
                 <option value="IN_PROGRESS">In Progress</option>
-                <option value="BLOCKED">Blocked</option>
+                <option value="WAITING_ON_CUSTOMER">Waiting on Customer</option>
+                <option value="REQUIRED_UNAVAILABLE">
+                  Required, but Unavailable
+                </option>
                 <option value="COMPLETED">Completed</option>
-                <option value="NOT_APPLICABLE">Not Applicable</option>
               </select>
             </label>
 
@@ -1871,7 +1874,11 @@ export function GuidedCaseIntake({
 
             {activeTask?.completed ? (
               <div className="task-notice-sent">
-                <span>Task Completed</span>
+                <span>
+                  {activeTask.status === "REQUIRED_UNAVAILABLE"
+                    ? "Required document marked unavailable"
+                    : "Task Completed"}
+                </span>
               </div>
             ) : null}
 

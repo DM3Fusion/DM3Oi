@@ -53,11 +53,21 @@ test("empty Task queries are omitted while every non-search filter is preserved"
   assert.equal(taskSearchUrl("/tasks", "?status=in-progress&due=overdue", "field installation"), "/tasks?status=in-progress&due=overdue&q=field+installation");
 });
 
-test("Status choices mirror the authoritative workflow enum while overdue remains due-derived", () => {
+test("user-facing Task statuses expose customer waiting and required-unavailable without system-only statuses", () => {
   const foundation = source("supabase/migrations/20260903150000_dm3iqcm_data_foundation.sql");
+  const enumMigration = source("supabase/migrations/20261001221500_dm3oi_task_customer_waiting_status_enum.sql");
   const operationalFilters = source("lib/operational-filters.ts");
+
   assert.match(foundation, /case_task_status as enum \('NOT_STARTED','IN_PROGRESS','BLOCKED','COMPLETED','NOT_APPLICABLE'\)/);
-  assert.match(operationalFilters, /taskStatuses = \["not-started", "in-progress", "blocked", "completed", "not-applicable"\]/);
+  assert.match(enumMigration, /WAITING_ON_CUSTOMER/);
+  assert.match(enumMigration, /REQUIRED_UNAVAILABLE/);
+
+  assert.match(
+    operationalFilters,
+    /taskStatuses = \["not-started", "in-progress", "waiting-on-customer", "required-unavailable", "completed"\]/,
+  );
+  assert.doesNotMatch(operationalFilters, /taskStatuses = \[[^\]]*"blocked"/);
+  assert.doesNotMatch(operationalFilters, /taskStatuses = \[[^\]]*"not-applicable"/);
   assert.doesNotMatch(operationalFilters, /taskStatuses = \[[^\]]*"overdue"/);
   assert.match(operationalFilters, /taskDueFilters = \["today", "overdue"\]/);
 });
