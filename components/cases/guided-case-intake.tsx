@@ -1634,28 +1634,12 @@ export function GuidedCaseIntake({
               >
                 {portalPending ? "Sending…" : "Send Portal Invitation"}
               </button>
-              <button
-                type="button"
-                className="text-button"
-                disabled={portalPending}
-                onClick={() => void setPortalNotRequired(true)}
-              >
-                Not Required for This Case
-              </button>
             </div>
           </>
         ) : null}
         {state === "UNAVAILABLE" ? (
           <>
             <p>{portalStatus?.reason}</p>
-            <button
-              type="button"
-              className="text-button"
-              disabled={portalPending}
-              onClick={() => void setPortalNotRequired(true)}
-            >
-              Not Required for This Case
-            </button>
           </>
         ) : null}
         {state === "NOT_REQUIRED" ? (
