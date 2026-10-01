@@ -1724,6 +1724,219 @@ export function GuidedCaseIntake({
     </div>
   );
 
+  const completedVisibleQuestions = visibleQuestions.filter(
+    (question) => question.valid,
+  ).length;
+
+  const requiredVisibleQuestions = visibleQuestions.filter(
+    (question) => question.effectiveRequired,
+  );
+
+  const completedRequiredQuestions = requiredVisibleQuestions.filter(
+    (question) => question.valid,
+  ).length;
+
+  const outstandingDocumentLabels = Array.from(
+    new Set(
+      missingRequirements.flatMap((requirement) =>
+        requirement.missingOptions.map((option) => option.label),
+      ),
+    ),
+  );
+
+  const renderIntakeContextPanel = () => {
+    if (step === 0) {
+      return (
+        <>
+          <p className="intake-context-eyebrow">Customer</p>
+          <h3>
+            {selectedCustomer ? selectedCustomer.name : "Select a Customer"}
+          </h3>
+          <div className="intake-context-metrics">
+            <div>
+              <strong>{selectedCustomer ? "Selected" : "Pending"}</strong>
+              <span>Customer Status</span>
+            </div>
+            <div>
+              <strong>{draft.taxYear ?? "—"}</strong>
+              <span>Tax Year</span>
+            </div>
+          </div>
+          <p className="intake-context-help">
+            Choose the Customer for this Case. Case identity becomes locked once
+            the Guided Intake materializes the Case.
+          </p>
+        </>
+      );
+    }
+
+    if (step === 1) {
+      return (
+        <>
+          <p className="intake-context-eyebrow">Case Summary</p>
+          <h3>{selectedType?.name ?? "Case Details"}</h3>
+          <div className="intake-context-list">
+            <div>
+              <span>Customer</span>
+              <strong>{selectedCustomer?.name ?? "Not selected"}</strong>
+            </div>
+            <div>
+              <span>Tax Year</span>
+              <strong>{draft.taxYear ?? "—"}</strong>
+            </div>
+            <div>
+              <span>Priority</span>
+              <strong>{draft.priority}</strong>
+            </div>
+            <div>
+              <span>Assigned Staff</span>
+              <strong>{selectedStaff.length || "—"}</strong>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (step === 2) {
+      return (
+        <>
+          <p className="intake-context-eyebrow">Intake Progress</p>
+          <h3>Question Summary</h3>
+          <div className="intake-context-progress">
+            <div>
+              <strong>
+                {completedVisibleQuestions}/{visibleQuestions.length}
+              </strong>
+              <span>Questions Complete</span>
+            </div>
+            <div>
+              <strong>
+                {completedRequiredQuestions}/{requiredVisibleQuestions.length}
+              </strong>
+              <span>Required Complete</span>
+            </div>
+          </div>
+
+          <div className="intake-context-divider" />
+
+          <p className="intake-context-eyebrow">Document Requirements</p>
+          <h3>
+            {outstandingDocumentLabels.length
+              ? `${outstandingDocumentLabels.length} Outstanding`
+              : "No Outstanding Documents"}
+          </h3>
+
+          {outstandingDocumentLabels.length ? (
+            <ul className="intake-context-documents">
+              {outstandingDocumentLabels.slice(0, 6).map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="intake-context-help">
+              DM3Oi will identify document requirements from the Customer’s
+              answers.
+            </p>
+          )}
+
+          {outstandingDocumentLabels.length > 6 ? (
+            <small className="intake-context-more">
+              +{outstandingDocumentLabels.length - 6} more
+            </small>
+          ) : null}
+        </>
+      );
+    }
+
+    if (step === 3) {
+      return (
+        <>
+          <p className="intake-context-eyebrow">Requirements</p>
+          <h3>Case Readiness</h3>
+          <div className="intake-context-progress">
+            <div>
+              <strong>{outstandingDocumentLabels.length}</strong>
+              <span>Documents Outstanding</span>
+            </div>
+            <div>
+              <strong>
+                {draft.followUpTasks.filter((task) => !task.completed).length}
+              </strong>
+              <span>Open Follow-up Tasks</span>
+            </div>
+          </div>
+          <div className="intake-context-divider" />
+          <div className="intake-context-list">
+            <div>
+              <span>Portal</span>
+              <strong>{portalResolved ? "Resolved" : "Action Required"}</strong>
+            </div>
+            <div>
+              <span>Generated Tasks</span>
+              <strong>{evaluation.generatedTasks.length}</strong>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    if (step === 4) {
+      return (
+        <>
+          <p className="intake-context-eyebrow">Review</p>
+          <h3>Ready to Finish?</h3>
+          <div className="intake-context-list">
+            <div>
+              <span>Customer</span>
+              <strong>{selectedCustomer?.name ?? "Missing"}</strong>
+            </div>
+            <div>
+              <span>Case Type</span>
+              <strong>{selectedType?.name ?? "Missing"}</strong>
+            </div>
+            <div>
+              <span>Required Questions</span>
+              <strong>
+                {completedRequiredQuestions}/{requiredVisibleQuestions.length}
+              </strong>
+            </div>
+            <div>
+              <span>Open Follow-up Tasks</span>
+              <strong>
+                {draft.followUpTasks.filter((task) => !task.completed).length}
+              </strong>
+            </div>
+          </div>
+        </>
+      );
+    }
+
+    return (
+      <>
+        <p className="intake-context-eyebrow">Finish Intake</p>
+        <h3>{selectedCustomer?.name ?? "Guided Intake"}</h3>
+        <div className="intake-context-list">
+          <div>
+            <span>Case Type</span>
+            <strong>{selectedType?.name ?? "—"}</strong>
+          </div>
+          <div>
+            <span>Tax Year</span>
+            <strong>{draft.taxYear ?? "—"}</strong>
+          </div>
+          <div>
+            <span>Portal</span>
+            <strong>{portalResolved ? "Resolved" : "Action Required"}</strong>
+          </div>
+        </div>
+        <p className="intake-context-help">
+          Finish Intake records the Guided Intake as complete. Ongoing tax
+          preparation work continues in the organization’s designated systems.
+        </p>
+      </>
+    );
+  };
+
   const content =
     step === 0 ? renderCustomer() :
       step === 1 ? renderDetails() :
@@ -1967,65 +2180,128 @@ export function GuidedCaseIntake({
         );
       })()}
     </dialog>
-    <section className="panel guided-case-intake">
-      <ol className="intake-stepper" aria-label="Case intake progress">
-        {guidedCaseIntakeSteps.map((label, index) => {
-          const completed = index < step;
-          const current = index === step;
-          const identityLocked = Boolean(draft.caseId) && index < 2;
-
-          return (
-            <li
-              key={label}
-              className={current ? "active" : completed ? "complete" : ""}
-              aria-current={current ? "step" : undefined}
-            >
-              <button
-                type="button"
-                className="intake-step-tab"
-                disabled={!completed || identityLocked}
-                onClick={() => {
-                  if (!completed || identityLocked) return;
-                  setStep(index);
-                  setErrors({});
-                  setFormError(null);
-                }}
-                aria-label={
-                  completed && !identityLocked
-                    ? `Go back to ${label}`
-                    : identityLocked
-                      ? `${label}, Case identity is already established`
-                    : current
-                      ? `${label}, current step`
-                      : `${label}, not yet available`
-                }
-              >
-                <span>{index + 1}</span>
-                <b>{label}</b>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
-      <header className="intake-step-heading">
-        <p>Step {step + 1} of {guidedCaseIntakeSteps.length}</p>
-        <h2>
-          {selectedCustomer
-            ? `Guided Intake for ${selectedCustomer.name}`
-            : "Guided Intake"}
-        </h2>
-        <h3>{guidedCaseIntakeSteps[step]}</h3>
-        {step === guidedCaseIntakeSteps.length - 1 && selectedType && selectedCustomer ? (
-          <p className="intake-finish-context">
-            <strong>{selectedType.name}</strong> for{" "}
-            <strong>{selectedCustomer.name}</strong> · Tax Year{" "}
-            <strong>{draft.taxYear}</strong>
+    <section className="guided-case-intake">
+      <header className="intake-workspace-heading">
+        <div>
+          <p className="eyebrow">Case Management</p>
+          <h1>
+            {selectedCustomer
+              ? `Guided Intake — ${selectedCustomer.name}`
+              : "Guided Intake"}
+          </h1>
+          <p>
+            Complete the guided workflow. DM3Oi evaluates responses and
+            determines the requirements for this Case.
           </p>
-        ) : null}
+        </div>
+
+        <div className="intake-heading-status">
+          <span>In Progress</span>
+          {draft.taxYear ? <strong>Tax Year {draft.taxYear}</strong> : null}
+        </div>
       </header>
-      {formError ? <div className="form-alert" role="alert">{formError}</div> : null}
-      {content}
-      <div className="form-actions intake-actions">
+
+      {formError ? (
+        <div className="form-alert intake-workspace-alert" role="alert">
+          {formError}
+        </div>
+      ) : null}
+
+      <div className="intake-workspace">
+        <aside className="intake-progress-rail">
+          <div className="intake-progress-rail-heading">
+            <strong>Guided Intake</strong>
+            <span>
+              Step {step + 1} of {guidedCaseIntakeSteps.length}
+            </span>
+          </div>
+
+          <ol className="intake-stepper" aria-label="Case intake progress">
+            {guidedCaseIntakeSteps.map((label, index) => {
+              const completed = index < step;
+              const current = index === step;
+              const identityLocked = Boolean(draft.caseId) && index < 2;
+
+              return (
+                <li
+                  key={label}
+                  className={current ? "active" : completed ? "complete" : ""}
+                  aria-current={current ? "step" : undefined}
+                >
+                  <button
+                    type="button"
+                    className="intake-step-tab"
+                    disabled={!completed || identityLocked}
+                    onClick={() => {
+                      if (!completed || identityLocked) return;
+                      setStep(index);
+                      setErrors({});
+                      setFormError(null);
+                    }}
+                    aria-label={
+                      completed && !identityLocked
+                        ? `Go back to ${label}`
+                        : identityLocked
+                          ? `${label}, Case identity is already established`
+                          : current
+                            ? `${label}, current step`
+                            : `${label}, not yet available`
+                    }
+                  >
+                    <span aria-hidden>
+                      {completed ? "✓" : index + 1}
+                    </span>
+                    <span className="intake-step-copy">
+                      <b>{label}</b>
+                      <small>
+                        {current
+                          ? "Current"
+                          : completed
+                            ? identityLocked
+                              ? "Complete · Locked"
+                              : "Complete"
+                            : "Pending"}
+                      </small>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </aside>
+
+        <main className="intake-workspace-main">
+          <header className="intake-step-heading">
+            <p>
+              Step {step + 1} of {guidedCaseIntakeSteps.length}
+            </p>
+            <h2>{guidedCaseIntakeSteps[step]}</h2>
+            <span>
+              {step === 0
+                ? "Select or create the Customer for this Case."
+                : step === 1
+                  ? "Establish the Case details, tax year, priority, and assignments."
+                  : step === 2
+                    ? "Answer the applicable questions. DM3Oi determines requirements from these responses."
+                    : step === 3
+                      ? "Review the requirements, Tasks, and Customer Portal state identified by DM3Oi."
+                      : step === 4
+                        ? "Review the complete Guided Intake before finishing."
+                        : "Finish Intake and hand the Case off to the organization’s operational workflow."}
+            </span>
+          </header>
+
+          <div className="intake-workspace-content">
+            {content}
+          </div>
+        </main>
+
+        <aside className="intake-context-panel" aria-label="Guided Intake context">
+          {renderIntakeContextPanel()}
+        </aside>
+      </div>
+
+      <footer className="intake-workspace-footer">
         <div className="intake-actions-left">
           {step >= 2 ? (
             <button
@@ -2037,11 +2313,16 @@ export function GuidedCaseIntake({
               {pending ? "Saving…" : "Save and Continue Later"}
             </button>
           ) : null}
+
           {step === 0 || (Boolean(draft.caseId) && step === 2) ? (
             <Link className="intake-cancel-button" href="/cases">
               {draft.caseId ? "Exit Intake" : "Cancel"}
             </Link>
-          ) : (
+          ) : null}
+        </div>
+
+        <div className="intake-actions-right">
+          {step !== 0 && !(Boolean(draft.caseId) && step === 2) ? (
             <button
               type="button"
               className="secondary-button"
@@ -2054,63 +2335,71 @@ export function GuidedCaseIntake({
             >
               Back
             </button>
+          ) : null}
+
+          {step < guidedCaseIntakeSteps.length - 1 ? (
+            <button
+              type="button"
+              className="primary-button"
+              onClick={
+                step === 0 && customerMode === "new"
+                  ? draft.customerId
+                    ? continueForward
+                    : createNewCustomerAndContinue
+                  : continueForward
+              }
+              disabled={
+                pending ||
+                portalPending ||
+                (step === 2 && !requiredQuestionsResolved) ||
+                (step === 3 && !portalResolved)
+              }
+              title={
+                step === 2 && !requiredQuestionsResolved
+                  ? "Complete all required questions before continuing."
+                  : step === 3 && !portalResolved
+                    ? "Resolve Customer Portal onboarding before continuing."
+                    : undefined
+              }
+            >
+              {pending &&
+              step === 0 &&
+              customerMode === "new" &&
+              !draft.customerId
+                ? "Creating Customer…"
+                : "Continue to Next Section"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="primary-button"
+              disabled={pending || portalPending || !portalResolved}
+              onClick={async () => {
+                setPending(true);
+                setFormError(null);
+                const result = await finalizeGuidedCaseAction(
+                  draft,
+                  customerMode,
+                );
+                if (!result.ok) {
+                  setPending(false);
+                  setErrors(result.fieldErrors);
+                  setFormError(result.error);
+                  if (result.step !== 5) setStep(result.step);
+                  return;
+                }
+                router.push(
+                  `/cases/${result.caseId}?message=${encodeURIComponent(
+                    `Case ${result.caseNumber} intake finalized.`,
+                  )}`,
+                );
+              }}
+            >
+              {pending ? "Finalizing Intake…" : "Finish Intake"}
+            </button>
           )}
         </div>
-        {step < guidedCaseIntakeSteps.length - 1 ? (
-          <button
-            type="button"
-            className="primary-button"
-            onClick={
-              step === 0 && customerMode === "new"
-                ? draft.customerId
-                  ? continueForward
-                  : createNewCustomerAndContinue
-                : continueForward
-            }
-            disabled={
-              pending ||
-              portalPending ||
-              (step === 2 && !requiredQuestionsResolved) ||
-              (step === 3 && !portalResolved)
-            }
-            title={
-              step === 2 && !requiredQuestionsResolved
-                ? "Complete all required questions before continuing."
-                : step === 3 && !portalResolved
-                  ? "Resolve Customer Portal onboarding before continuing."
-                : undefined
-            }
-          >
-            {pending && step === 0 && customerMode === "new" && !draft.customerId
-              ? "Creating Customer…"
-              : "Continue"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            className="primary-button"
-            disabled={pending || portalPending || !portalResolved}
-            onClick={async () => {
-              setPending(true);
-              setFormError(null);
-              const result = await finalizeGuidedCaseAction(
-                draft,
-                customerMode,
-              );
-              if (!result.ok) {
-                setPending(false);
-                setErrors(result.fieldErrors);
-                setFormError(result.error);
-                if (result.step !== 5) setStep(result.step);
-                return;
-              }
-              router.push(`/cases/${result.caseId}?message=${encodeURIComponent(`Case ${result.caseNumber} intake finalized.`)}`);
-            }}
-          >
-            {pending ? "Finalizing Intake…" : "Finish Intake"}
-          </button>
-        )}
-      </div>
+      </footer>
     </section>
     </>
   );
