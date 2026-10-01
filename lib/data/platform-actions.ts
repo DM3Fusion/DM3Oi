@@ -1757,3 +1757,189 @@ export async function deleteRevokedPlatformUserAction(form:FormData){
   revalidatePath("/users");
   redirect(destination(returnTo,"message","User permanently deleted."));
 }
+
+export type OrganizationCaseDeletionPreview = {
+ organizationId:string;
+ organizationName:string;
+ selectedCaseIds:string[];
+ caseCount:number;
+ cases:Array<{
+  id:string;
+  caseNumber:string;
+  title:string;
+  status:string;
+  customerId:string;
+ }>;
+ caseTasks:number;
+ caseActivity:number;
+ caseAssignments:number;
+ caseQuestions:number;
+ caseQuestionResponses:number;
+ caseDocumentConfirmations:number;
+ guidedIntakeDrafts:number;
+ emailDeliveriesDetached:number;
+ serviceRequestsDetached:number;
+};
+
+export type OrganizationCaseDeletionPreviewState =
+ | {ok:false;error:string;preview:null}
+ | {ok:true;error:null;preview:OrganizationCaseDeletionPreview};
+
+type OrganizationCaseDeletionDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   preview_organization_case_deletion:{
+    Args:{
+     target_organization_id:string;
+     target_case_ids:string[];
+    };
+    Returns:OrganizationCaseDeletionPreview;
+   };
+   permanently_delete_organization_cases:{
+    Args:{
+     target_organization_id:string;
+     target_case_ids:string[];
+     confirmation_text:string;
+    };
+    Returns:Record<string,unknown>&{
+     deletionAuditId:string;
+     casesDeleted:number;
+    };
+   };
+  };
+ };
+};
+
+export async function previewOrganizationCaseDeletionAction(
+ _previousState:OrganizationCaseDeletionPreviewState,
+ form:FormData,
+):Promise<OrganizationCaseDeletionPreviewState>{
+ await requireSuperAdmin();
+
+ const organizationId=value(form,"organizationId");
+ const caseIds=[
+  ...new Set(
+   form
+    .getAll("caseId")
+    .map((item)=>String(item).trim())
+    .filter(Boolean),
+  ),
+ ];
+
+ if(!organizationId){
+  return {ok:false,error:"The organization could not be identified.",preview:null};
+ }
+
+ if(!caseIds.length){
+  return {ok:false,error:"Select at least one Case to preview.",preview:null};
+ }
+
+ const supabase=await createClient();
+ const caseDeletionClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<OrganizationCaseDeletionDatabase>
+ >;
+
+ const result=await caseDeletionClient.rpc(
+  "preview_organization_case_deletion",
+  {
+   target_organization_id:organizationId,
+   target_case_ids:caseIds,
+  },
+ );
+
+ if(result.error||!result.data){
+  console.error("SUPER_ADMIN Case deletion preview failed",{
+   organizationId,
+   caseIds,
+   code:result.error?.code??null,
+   message:result.error?.message??null,
+  });
+
+  return {
+   ok:false,
+   error:"The Case deletion preview could not be prepared.",
+   preview:null,
+  };
+ }
+
+ return {
+  ok:true,
+  error:null,
+  preview:result.data,
+ };
+}
+
+export async function permanentlyDeleteOrganizationCasesAction(form:FormData){
+ await requireSuperAdmin();
+
+ const organizationId=value(form,"organizationId");
+ const confirmation=value(form,"confirmation");
+ const caseIds=[
+  ...new Set(
+   form
+    .getAll("caseId")
+    .map((item)=>String(item).trim())
+    .filter(Boolean),
+  ),
+ ];
+
+ const path=`/admin/organizations/${organizationId}`;
+
+ if(!organizationId){
+  redirect(destination(
+   "/admin/organizations",
+   "error",
+   "The organization could not be identified.",
+  ));
+ }
+
+ if(!caseIds.length){
+  redirect(destination(
+   path,
+   "error",
+   "Select at least one Case to delete.",
+  ));
+ }
+
+ const supabase=await createClient();
+ const caseDeletionClient=supabase as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<OrganizationCaseDeletionDatabase>
+ >;
+
+ const result=await caseDeletionClient.rpc(
+  "permanently_delete_organization_cases",
+  {
+   target_organization_id:organizationId,
+   target_case_ids:caseIds,
+   confirmation_text:confirmation,
+  },
+ );
+
+ if(result.error){
+  console.error("SUPER_ADMIN Case deletion failed",{
+   organizationId,
+   caseIds,
+   code:result.error.code,
+   message:result.error.message,
+  });
+
+  const message=result.error.message.includes("confirmation text")
+   ?"The deletion confirmation did not match."
+   :"The selected Cases could not be deleted.";
+
+  redirect(destination(path,"error",message));
+ }
+
+ revalidatePath("/");
+ revalidatePath("/cases");
+ revalidatePath("/tasks");
+ revalidatePath("/communications");
+ revalidatePath("/admin/organizations");
+ revalidatePath(path);
+
+ redirect(destination(
+  path,
+  "message",
+  `${caseIds.length} test ${caseIds.length===1?"Case was":"Cases were"} permanently deleted. Case numbers were not reset or reused.`,
+ ));
+}

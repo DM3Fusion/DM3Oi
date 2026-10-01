@@ -18,6 +18,7 @@ import { PlatformOrganizationDetailsForm } from "@/components/platform-organizat
 import { ApplicationIcon } from "@/components/application-icon";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { SuperAdminOrganizationReset } from "@/components/super-admin-organization-reset";
+import { SuperAdminCaseDelete } from "@/components/super-admin-case-delete";
 import { SuperAdminOrganizationDelete } from "@/components/super-admin-organization-delete";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 const roles = [
@@ -319,6 +320,20 @@ export default async function Page({
           organizationName={organization.name}
           owners={resetOwners}
           retryResetAuditId={query.resetAuditId}
+        />
+
+        <SuperAdminCaseDelete
+          organizationId={organization.id}
+          organizationName={organization.name}
+          cases={cases.map((item) => ({
+            id: item.id,
+            caseNumber: item.case_number,
+            title: item.title,
+            status: item.status,
+            customerName:
+              customers.find((customer) => customer.id === item.customer_id)?.name ??
+              "Unknown customer",
+          }))}
         />
 
         <div className="admin-permanent-delete-divider">
