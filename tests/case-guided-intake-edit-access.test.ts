@@ -123,7 +123,7 @@ test("materialization remains CREATE_CASE-controlled", () => {
 test("Edit Case hydrates locked identity from the authoritative Case", () => {
   assert.match(
     drafts,
-    /select\("id,status,customer_id,tax_year,case_type_id"\)/,
+    /from\("organization_cases"\)[\s\S]*select\("id,status,customer_id,tax_year,case_type_id"\)/,
   );
   assert.match(
     drafts,
@@ -153,4 +153,14 @@ test("materialized Case identity is not reconciled again on client initializatio
     component,
     /reconcileGuidedCaseSelection\(/,
   );
+});
+
+
+test("Edit Case identity loading does not bypass the organization Case projection", () => {
+  const caseLoader = drafts.match(
+    /export async function loadGuidedIntakeDraftForCase[\s\S]*?export async function loadGuidedIntakeDraftSummaries/,
+  )?.[0] ?? "";
+
+  assert.match(caseLoader, /from\("organization_cases"\)/);
+  assert.doesNotMatch(caseLoader, /from\("cases"\)/);
 });

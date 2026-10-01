@@ -381,7 +381,7 @@ export async function loadGuidedIntakeDraftForCase(
   const supabase = await createClient();
 
   const { data: visibleCase, error: visibleCaseError } = await supabase
-    .from("cases")
+    .from("organization_cases")
     .select("id,status,customer_id,tax_year,case_type_id")
     .eq("organization_id", organizationId)
     .eq("id", caseId)
