@@ -1478,7 +1478,9 @@ export function GuidedCaseIntake({
                           <b>
                             {requirement.documentRequirement
                               ? "Missing:"
-                              : "Follow-up required:"}
+                              : staged
+                                ? "Follow-up Task created:"
+                                : "Follow-up required:"}
                           </b>{" "}
                           {requirement.documentRequirement
                             ? requirement.missingOptions
@@ -1535,7 +1537,9 @@ export function GuidedCaseIntake({
                           <b>
                             {requirement.documentRequirement
                               ? "Missing:"
-                              : "Follow-up required:"}
+                              : staged
+                                ? "Follow-up Task created:"
+                                : "Follow-up required:"}
                           </b>{" "}
                           {requirement.documentRequirement
                             ? requirement.missingOptions

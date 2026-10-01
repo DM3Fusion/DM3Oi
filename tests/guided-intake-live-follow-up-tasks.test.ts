@@ -334,6 +334,55 @@ test("Guided Intake follow-up Task exposes and persists canonical status and Due
 });
 
 
+test("generic Question follow-up Tasks may persist with empty missing-option arrays", () => {
+  const migration = source(
+    "supabase/migrations/20261002007000_dm3oi_generic_follow_up_task_shape.sql",
+  );
+
+  assert.match(
+    migration,
+    /case_tasks_intake_follow_up_shape[\s\S]*QUESTION_FOLLOW_UP/,
+  );
+  assert.match(
+    migration,
+    /QUESTION_FOLLOW_UP[\s\S]*missing_option_ids[\s\S]*=0[\s\S]*missing_option_labels[\s\S]*=0/,
+  );
+  assert.match(
+    migration,
+    /DOCUMENT_REQUIREMENT[\s\S]*required_option_ids[\s\S]*required_option_labels/,
+  );
+});
+
+test("generic Question follow-up Tasks derive Task Purpose from their Intake section", () => {
+  const migration = source(
+    "supabase/migrations/20261002008000_dm3oi_guided_follow_up_section_purpose.sql",
+  );
+  const component = source(
+    "components/cases/guided-case-intake.tsx",
+  );
+
+  assert.match(
+    migration,
+    /QUESTION_FOLLOW_UP[\s\S]*task_purpose_id:=null/,
+  );
+  assert.match(
+    migration,
+    /VERIFICATION_ELIGIBILITY[\s\S]*Verification & Eligibility/,
+  );
+  assert.match(
+    migration,
+    /DOCUMENT_REQUIREMENT|Missing Documents/,
+  );
+  assert.match(
+    component,
+    /Follow-up Task created:/,
+  );
+  assert.match(
+    component,
+    /staged \? "Update Task" : "Create Follow-up Task"/,
+  );
+});
+
 test("generic YES/NO follow-up Tasks use the current answer and preserve document specialization", () => {
   const migration = source(
     "supabase/migrations/20261001233000_dm3oi_generic_guided_intake_follow_up_tasks.sql",
