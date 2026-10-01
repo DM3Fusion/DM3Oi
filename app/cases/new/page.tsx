@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui";
 import { GuidedCaseIntake } from "@/components/cases/guided-case-intake";
 import {
   GuidedCaseIntakeDataError,
@@ -47,15 +46,6 @@ export default async function Page({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Cases"
-        title={query.case ? "Edit Case" : "Guided Case Intake"}
-        description={
-          query.case
-            ? "Continue the existing Case intake workflow."
-            : "Create one complete, validated Case without leaving the intake workflow."
-        }
-      />
       <GuidedCaseIntake
         configuration={configuration}
         draftCustomerIds={draftCustomerIds}
