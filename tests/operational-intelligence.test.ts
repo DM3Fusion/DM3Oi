@@ -66,6 +66,7 @@ const task = (
   required: true,
   blocking: false,
   dueAt: null,
+  assignedUserId: null,
   sourceRuleId: null,
   sourceRuleActionId: null,
   ...overrides,
@@ -244,17 +245,129 @@ test("Rule activity separates current matches and effects from durable generated
   assert.equal(taskRestricted.ruleActivity?.[0].generatedByStatus, null);
 });
 
-test("attention levels and reasons are deterministic and ignore optional or nonapplicable Tasks", () => {
-  const blocked = caseItem("blocked", { readiness: readiness({ progress: 40, ready: false, total: 5 }), tasks: [task("blocked", { status: "BLOCKED", blocking: true })] });
-  const overdue = caseItem("overdue", { readiness: readiness({ progress: 50, ready: false, total: 2 }), tasks: [task("overdue", { dueAt: "2026-09-08T12:00:00.000Z" })] });
-  const unanswered = caseItem("unanswered", { readiness: readiness({ progress: 50, ready: false, unanswered: 1, total: 2 }) });
-  const ready = caseItem("ready", { tasks: [task("optional", { required: false }), task("na", { status: "NOT_APPLICABLE", blocking: true })] });
-  assert.equal(classifyCaseAttention(blocked, "UTC", new Date("2026-09-09T12:00:00Z")).level, "CRITICAL");
-  assert.equal(classifyCaseAttention(overdue, "UTC", new Date("2026-09-09T12:00:00Z")).level, "HIGH");
-  assert.deepEqual(classifyCaseAttention(unanswered, "UTC").reasons, ["1 unanswered required question"]);
-  assert.equal(classifyCaseAttention(unanswered, "UTC").level, "MEDIUM");
-  assert.equal(classifyCaseAttention(ready, "UTC").level, "NORMAL");
-  assert.deepEqual(derive([unanswered, overdue, blocked, ready]).attentionCases.map((item) => item.id), ["blocked", "overdue", "unanswered"]);
+test("Cases need attention only for assigned Tasks due within one day or overdue", () => {
+  const now = new Date("2026-09-09T12:00:00Z");
+
+  const ordinaryIncomplete = caseItem("ordinary-incomplete", {
+    readiness: readiness({ progress: 33, ready: false, total: 6 }),
+  });
+
+  const unassignedOverdue = caseItem("unassigned-overdue", {
+    tasks: [
+      task("unassigned-overdue", {
+        dueAt: "2026-09-08T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  const assignedFuture = caseItem("assigned-future", {
+    tasks: [
+      task("assigned-future", {
+        assignedUserId: "staff-1",
+        dueAt: "2026-09-12T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  const assignedDueSoon = caseItem("assigned-due-soon", {
+    tasks: [
+      task("assigned-due-soon", {
+        assignedUserId: "staff-1",
+        dueAt: "2026-09-10T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  const assignedOverdue = caseItem("assigned-overdue", {
+    tasks: [
+      task("assigned-overdue", {
+        assignedUserId: "staff-1",
+        dueAt: "2026-09-08T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  const multipleOverdue = caseItem("multiple-overdue", {
+    tasks: [
+      task("overdue-one", {
+        assignedUserId: "staff-1",
+        dueAt: "2026-09-08T12:00:00.000Z",
+      }),
+      task("overdue-two", {
+        assignedUserId: "staff-2",
+        dueAt: "2026-09-07T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  const completedAndNotApplicable = caseItem("ignored-statuses", {
+    tasks: [
+      task("complete", {
+        assignedUserId: "staff-1",
+        status: "COMPLETED",
+        dueAt: "2026-09-08T12:00:00.000Z",
+      }),
+      task("not-applicable", {
+        assignedUserId: "staff-1",
+        status: "NOT_APPLICABLE",
+        dueAt: "2026-09-08T12:00:00.000Z",
+      }),
+    ],
+  });
+
+  assert.equal(
+    classifyCaseAttention(ordinaryIncomplete, "UTC", now).level,
+    "NORMAL",
+  );
+  assert.equal(
+    classifyCaseAttention(unassignedOverdue, "UTC", now).level,
+    "NORMAL",
+  );
+  assert.equal(
+    classifyCaseAttention(assignedFuture, "UTC", now).level,
+    "NORMAL",
+  );
+
+  assert.equal(
+    classifyCaseAttention(assignedDueSoon, "UTC", now).level,
+    "MEDIUM",
+  );
+  assert.deepEqual(
+    classifyCaseAttention(assignedDueSoon, "UTC", now).reasons,
+    ["1 assigned task due within 1 day"],
+  );
+
+  assert.equal(
+    classifyCaseAttention(assignedOverdue, "UTC", now).level,
+    "HIGH",
+  );
+  assert.deepEqual(
+    classifyCaseAttention(assignedOverdue, "UTC", now).reasons,
+    ["1 overdue assigned task"],
+  );
+
+  assert.equal(
+    classifyCaseAttention(multipleOverdue, "UTC", now).level,
+    "CRITICAL",
+  );
+
+  assert.equal(
+    classifyCaseAttention(completedAndNotApplicable, "UTC", now).level,
+    "NORMAL",
+  );
+
+  assert.deepEqual(
+    derive([
+      ordinaryIncomplete,
+      unassignedOverdue,
+      assignedFuture,
+      assignedDueSoon,
+      assignedOverdue,
+      multipleOverdue,
+      completedAndNotApplicable,
+    ]).attentionCases.map((item) => item.id),
+    ["multiple-overdue", "assigned-overdue", "assigned-due-soon"],
+  );
 });
 
 test("repository constrains provenance to already authorized Case IDs and gates Rule names", () => {

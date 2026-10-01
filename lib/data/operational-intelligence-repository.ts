@@ -72,6 +72,7 @@ export async function getOperationalIntelligence(
         required: task.required,
         blocking: task.blocking,
         dueAt: task.due_at,
+        assignedUserId: task.assigned_user_id,
         sourceRuleId: source?.source_rule_id ?? null,
         sourceRuleActionId: source?.source_rule_action_id ?? null,
       };

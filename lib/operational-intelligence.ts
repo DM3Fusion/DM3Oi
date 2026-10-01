@@ -25,6 +25,7 @@ export type IntelligenceTask = {
   required: boolean;
   blocking: boolean;
   dueAt: string | null;
+  assignedUserId: string | null;
   sourceRuleId: string | null;
   sourceRuleActionId: string | null;
 };
@@ -99,33 +100,50 @@ export function classifyCaseAttention(
   now = new Date(),
 ): AttentionCase {
   const dayStart = startOfOrganizationDay(now, timezone);
-  const incompleteTasks = item.tasks.filter(isApplicableRequirement);
-  const blockedCount = incompleteTasks.filter(
-    (task) => task.status === "BLOCKED",
+  const dayAfterTomorrow = new Date(dayStart.getTime() + 48 * 60 * 60 * 1000);
+
+  const attentionTasks = item.tasks.filter(
+    (task) =>
+      task.status !== "COMPLETED" &&
+      task.status !== "NOT_APPLICABLE" &&
+      Boolean(task.assignedUserId) &&
+      Boolean(task.dueAt),
+  );
+
+  const overdueCount = attentionTasks.filter(
+    (task) => task.dueAt && new Date(task.dueAt) < dayStart,
   ).length;
-  const overdueCount = incompleteTasks.filter((task) =>
-    isOverdue(task, dayStart),
+
+  const dueWithinOneDayCount = attentionTasks.filter(
+    (task) => {
+      if (!task.dueAt) return false;
+      const dueAt = new Date(task.dueAt);
+      return dueAt >= dayStart && dueAt < dayAfterTomorrow;
+    },
   ).length;
-  const unansweredCount = item.readiness.unansweredRequiredQuestions.length;
+
   const reasons = [
-    blockedCount ? plural(blockedCount, "blocked task") : null,
-    overdueCount ? plural(overdueCount, "overdue required task") : null,
-    unansweredCount
-      ? plural(unansweredCount, "unanswered required question")
+    overdueCount
+      ? plural(overdueCount, "overdue assigned task")
       : null,
-    incompleteTasks.length
-      ? plural(incompleteTasks.length, "incomplete required task")
+    dueWithinOneDayCount
+      ? plural(
+          dueWithinOneDayCount,
+          "assigned task due within 1 day",
+          "assigned tasks due within 1 day",
+        )
       : null,
   ].filter((reason): reason is string => Boolean(reason));
-  const outstandingUnits = item.readiness.totalUnits - item.readiness.completedUnits;
+
   const level: AttentionLevel =
-    blockedCount > 0 || overdueCount > 1
+    overdueCount > 1
       ? "CRITICAL"
-      : overdueCount > 0 || outstandingUnits >= 3
+      : overdueCount > 0
         ? "HIGH"
-        : !item.readiness.ready
+        : dueWithinOneDayCount > 0
           ? "MEDIUM"
           : "NORMAL";
+
   return {
     id: item.id,
     caseNumber: item.caseNumber,
