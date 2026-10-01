@@ -195,3 +195,15 @@ test("Review advances without re-running hidden step validation", () => {
     /finalizeGuidedCaseAction\(\s*draft,\s*customerMode/,
   );
 });
+
+
+test("Case-linked saves preserve the original Guided Intake Customer mode", () => {
+  assert.match(
+    actions,
+    /\.select\("id,submission_key,customer_mode,customer_id,case_id,created_by_user_id"\)/,
+  );
+  assert.match(
+    actions,
+    /customer_mode:\s*existingSession\.data\?\.customer_mode \?\? input\.customerMode/,
+  );
+});

@@ -185,7 +185,7 @@ export async function saveGuidedIntakeDraftAction(
       input.draft.caseId
         ? supabase
             .from("guided_case_intake_drafts")
-            .select("id,submission_key,customer_id,case_id,created_by_user_id")
+            .select("id,submission_key,customer_mode,customer_id,case_id,created_by_user_id")
             .eq("organization_id", organizationId)
             .eq("case_id", input.draft.caseId)
             .eq("submission_key", input.draft.submissionKey)
@@ -193,7 +193,7 @@ export async function saveGuidedIntakeDraftAction(
             .maybeSingle()
         : supabase
             .from("guided_case_intake_drafts")
-            .select("id,submission_key,customer_id,case_id,created_by_user_id")
+            .select("id,submission_key,customer_mode,customer_id,case_id,created_by_user_id")
             .eq("organization_id", organizationId)
             .eq("created_by_user_id", access.user.id)
             .eq("submission_key", input.draft.submissionKey)
@@ -309,7 +309,8 @@ export async function saveGuidedIntakeDraftAction(
       existingSession.data?.created_by_user_id ?? access.user.id,
     submission_key: canonicalSubmissionKey,
     current_step: input.currentStep,
-    customer_mode: input.customerMode,
+    customer_mode:
+      existingSession.data?.customer_mode ?? input.customerMode,
     customer_id:
       linkedCase?.customer_id ?? (input.draft.customerId || null),
     new_customer: {
