@@ -531,12 +531,17 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   }
 
   const supabase = await createClient();
+  const admin = createAdminClient();
 
-  // updateAnswer() is client-local until a save occurs. Synchronize the
-  // current answers before the live Task RPC so its database validation sees
-  // the same answer that produced the Task Creator.
+  // updateAnswer() is client-local until a save occurs. The caller has
+  // already been authorized for this exact materialized Case above, so use
+  // the trusted server client for this narrowly scoped draft synchronization.
+  // The live Task RPC remains authenticated and performs its own authorization.
   const persistedAnswers = JSON.parse(JSON.stringify(draft.answers));
-  const { error: draftAnswerSyncError } = await supabase
+  const {
+    data: synchronizedDraft,
+    error: draftAnswerSyncError,
+  } = await admin
     .from("guided_case_intake_drafts")
     .update({
       answers: persistedAnswers,
@@ -545,16 +550,20 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
     .eq("organization_id", access.activeOrganization!.id)
     .eq("submission_key", draft.submissionKey)
     .eq("case_id", draft.caseId)
-    .is("finalized_at", null);
+    .is("finalized_at", null)
+    .select("id")
+    .maybeSingle();
 
-  if (draftAnswerSyncError) {
+  if (draftAnswerSyncError || !synchronizedDraft) {
     console.error("Guided Intake answers sync before Task save failed", {
       organizationId: access.activeOrganization!.id,
       submissionKey: draft.submissionKey,
       caseId: draft.caseId,
       followUpId: task.id,
-      code: draftAnswerSyncError.code,
-      message: draftAnswerSyncError.message,
+      code: draftAnswerSyncError?.code,
+      message:
+        draftAnswerSyncError?.message ??
+        "No unfinished Guided Intake draft matched the authorized Case.",
     });
     return {
       ok: false,
