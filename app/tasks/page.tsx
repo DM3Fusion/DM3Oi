@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Badge, PageHeader } from "@/components/ui";
 import { TaskFilters } from "@/components/task-filters";
+import { NavigableRow } from "@/components/navigable-row";
 import { getLiveOrganizationData } from "@/lib/data/case-repository";
 import { formatOrganizationDate } from "@/lib/organization-timezone";
 import { matchesTaskFilter, matchesTaskSearch, normalizeTaskDue, normalizeTaskQuery, normalizeTaskStatus, taskStatusLabels } from "@/lib/operational-filters";
@@ -17,5 +18,5 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const hasFilters = Boolean(q || status || due);
   const statusLabel = status === "open" ? "Open" : status ? taskStatusLabels[status] : undefined;
   const dueLabel = due === "today" ? "Due Today" : due === "overdue" ? "Overdue" : undefined;
-  return <><PageHeader eyebrow="Staff Work" title="Tasks"/><section className="panel"><TaskFilters q={q} status={status} due={due}/><div className="table-meta"><span><b>{rows.length}</b> tasks</span><span>{q ? `Search: ${q}` : statusLabel ? `Status: ${statusLabel}` : dueLabel ? `Due: ${dueLabel}` : "Authorized organization tasks"}</span></div>{rows.length ? <div className="table-scroll"><table><thead><tr><th>Task</th><th>Case</th><th>Status</th><th>Due</th></tr></thead><tbody>{rows.map(({ task, item }) => <tr key={task.id}><td><b>{task.title}</b></td><td><Link className="case-link" href={`/cases/${item.id}`}>{item.case_number}</Link></td><td><Badge value={task.status}/></td><td>{formatOrganizationDate(task.due_at, data.timezone)}</td></tr>)}</tbody></table></div> : hasFilters ? <div className="no-results">No tasks match these filters.</div> : <div className="no-results">No tasks are available.</div>}</section></>;
+  return <><PageHeader eyebrow="Staff Work" title="Tasks"/><section className="panel"><TaskFilters q={q} status={status} due={due}/><div className="table-meta"><span><b>{rows.length}</b> tasks</span><span>{q ? `Search: ${q}` : statusLabel ? `Status: ${statusLabel}` : dueLabel ? `Due: ${dueLabel}` : "Authorized organization tasks"}</span></div>{rows.length ? <div className="table-scroll"><table><thead><tr><th>Task</th><th>Case</th><th>Status</th><th>Due</th></tr></thead><tbody>{rows.map(({ task, item }) => <NavigableRow key={task.id} href={`/cases/${item.id}`} label={`Open case ${item.case_number}`}><td><b>{task.title}</b></td><td><Link className="case-link" href={`/cases/${item.id}`}>{item.case_number}</Link></td><td><Badge value={task.status}/></td><td>{formatOrganizationDate(task.due_at, data.timezone)}</td></NavigableRow>)}</tbody></table></div> : hasFilters ? <div className="no-results">No tasks match these filters.</div> : <div className="no-results">No tasks are available.</div>}</section></>;
 }
