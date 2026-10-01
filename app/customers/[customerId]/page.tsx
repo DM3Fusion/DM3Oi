@@ -29,7 +29,14 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const memberSince = getCustomerMemberSince(cases ?? []);
   const portal = portalLinks?.[0];
   const portalStatus = await getCustomerPortalOnboardingStatus({ organizationId: access.activeOrganization.id, customerId: customer.id, actorUserId: access.user.id });
-  const { data: settings } = await createAdminClient().from("organization_settings").select("timezone").eq("organization_id", access.activeOrganization.id).maybeSingle();
+  const admin = createAdminClient();
+  const [{ data: settings }, portalAuth] = await Promise.all([
+    admin.from("organization_settings").select("timezone").eq("organization_id", access.activeOrganization.id).maybeSingle(),
+    portal
+      ? admin.auth.admin.getUserById(portal.user_id)
+      : Promise.resolve({ data: { user: null }, error: null }),
+  ]);
+  const portalLastLogin = portalAuth.data.user?.last_sign_in_at ?? null;
   return (
     <>
       <PageHeader
@@ -62,7 +69,6 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <dt>Name</dt>
             <dd>{customer.name}</dd>
           </div>
-          {customer.first_name || customer.last_name ? <div><dt>Structured name</dt><dd>{[customer.first_name, customer.last_name].filter(Boolean).join(" ")}</dd></div> : null}
           <div>
             <dt>Email</dt>
             <dd>{customer.email ?? "—"}</dd>
@@ -87,6 +93,16 @@ export default async function Page({ params, searchParams }: { params: Promise<{
           <div>
             <dt>Member since</dt>
             <dd>{memberSince ?? "—"}</dd>
+          </div>
+          <div>
+            <dt>Last Login</dt>
+            <dd>
+              {!portal
+                ? "—"
+                : portalLastLogin
+                  ? formatOrganizationDateTime(portalLastLogin, settings?.timezone)
+                  : "Never"}
+            </dd>
           </div>
           <div>
             <dt>Last activity</dt>
