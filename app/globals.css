@@ -269,6 +269,46 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 
+
+/* Case completion lifecycle control */
+.case-completion-control{
+  margin-top:14px;
+}
+.case-completion-control>summary{
+  display:inline-flex;
+  width:100%;
+  justify-content:center;
+  list-style:none;
+  cursor:pointer;
+}
+.case-completion-control>summary::-webkit-details-marker{
+  display:none;
+}
+.case-completion-confirmation{
+  display:grid;
+  gap:9px;
+  margin-top:12px;
+  padding:13px;
+  border:1px solid #cbd5e1;
+  border-radius:7px;
+  background:#f8fafc;
+}
+.case-completion-confirmation>strong{
+  color:#10233f;
+}
+.case-completion-confirmation>p{
+  margin:0;
+  color:#526176;
+  font-size:13px;
+  line-height:1.5;
+}
+.case-completion-confirmation form{
+  margin-top:3px;
+}
+.case-completion-confirmation form button{
+  width:100%;
+}
+
 /* Guided Intake Task modal refinements. */
 .task-notice-sent-pill{
   display:inline-flex;

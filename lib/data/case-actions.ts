@@ -93,6 +93,32 @@ export async function transitionCaseStatusAction(data: FormData) {
   refreshCase(id);
   redirect(`/cases/${id}?message=Case%20status%20updated.`);
 }
+export async function completeCaseAction(data: FormData) {
+  const id = text(data, "caseId");
+  await requirePermission("WORK_CASES");
+
+  const supabase = await createClient();
+
+  // Temporary schema bridge until generated Supabase types include complete_case.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc("complete_case", {
+    target_case_id: id,
+  });
+
+  if (error) {
+    console.error("Case completion failed", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+    });
+    fail(`/cases/${id}`, friendly(error.message));
+  }
+
+  refreshCase(id);
+  redirect(`/cases/${id}?message=Case%20completed.`);
+}
+
 export async function setCaseAssignmentAction(data: FormData) {
   const id = text(data, "caseId");
   await requirePermission("ASSIGN_CASES");

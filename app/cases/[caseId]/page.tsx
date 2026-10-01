@@ -9,6 +9,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { formatActivity } from "@/lib/activity-format";
 import { formatDate } from "@/lib/format";
 import {
+  completeCaseAction,
   sendMissingDocumentsNoticeAction,
   setCaseAssignmentAction,
   transitionCaseStatusAction,
@@ -78,14 +79,24 @@ export default async function Page({
     .is("finalized_at", null)
     .maybeSingle();
 
+  const finalizedIntakeQuery = supabase
+    .from("guided_case_intake_drafts")
+    .select("id")
+    .eq("organization_id", data.organizationId)
+    .eq("case_id", item.id)
+    .not("finalized_at", "is", null)
+    .maybeSingle();
+
   const [
     purposeResult,
     qualifierQuestionsResult,
     editableIntakeResult,
+    finalizedIntakeResult,
   ] = await Promise.all([
     purposeQuery,
     qualifierQuestionsQuery,
     editableIntakeQuery,
+    finalizedIntakeQuery,
   ]);
   if (purposeResult.error) {
     console.error("Task Purpose query failed", {
@@ -107,6 +118,16 @@ export default async function Page({
       caseId: item.id,
       code: editableIntakeResult.error.code,
       message: editableIntakeResult.error.message,
+    });
+    throw new Error("Case intake status is temporarily unavailable.");
+  }
+
+  if (finalizedIntakeResult.error) {
+    console.error("Finalized Guided Intake lookup failed", {
+      organizationId: data.organizationId,
+      caseId: item.id,
+      code: finalizedIntakeResult.error.code,
+      message: finalizedIntakeResult.error.message,
     });
     throw new Error("Case intake status is temporarily unavailable.");
   }
@@ -206,6 +227,12 @@ export default async function Page({
     canWorkCases &&
     isCanonicalActiveCaseStatus(item.status) &&
     Boolean(editableIntakeResult.data);
+
+  const canCompleteCase =
+    canWorkCases &&
+    isCanonicalActiveCaseStatus(item.status) &&
+    Boolean(finalizedIntakeResult.data) &&
+    item.progress.ready;
 
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
@@ -752,9 +779,36 @@ export default async function Page({
                   ) : null}
                 </div>
               ) : (
-                <p className="case-readiness-complete">
-                  All currently required work is complete.
-                </p>
+                <>
+                  <p className="case-readiness-complete">
+                    All currently required DM3Oi work is complete.
+                  </p>
+
+                  {canCompleteCase ? (
+                    <details className="case-completion-control">
+                      <summary className="primary-button">
+                        Complete Case
+                      </summary>
+
+                      <div className="case-completion-confirmation">
+                        <strong>Confirm Case Completion</strong>
+                        <p>
+                          Confirm that all work performed outside DM3Oi for this
+                          Case has been completed. The Case will move to
+                          Completed Cases and the Customer Portal will show the
+                          service as complete.
+                        </p>
+
+                        <form action={completeCaseAction}>
+                          <input type="hidden" name="caseId" value={item.id} />
+                          <PendingSubmitButton pendingLabel="Completing…">
+                            Confirm Completion
+                          </PendingSubmitButton>
+                        </form>
+                      </div>
+                    </details>
+                  ) : null}
+                </>
               )}
             </section>
           ) : null}
