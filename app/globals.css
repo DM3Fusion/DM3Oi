@@ -9731,3 +9731,44 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     display: none !important;
   }
 }
+
+/* Guided Intake workspace height refinement.
+   Keep short steps compact so the action bar remains visible without
+   forcing unnecessary vertical whitespace. */
+.guided-case-intake .intake-workspace-content {
+  min-height: 20rem;
+}
+
+@media (min-width: 851px) {
+  .guided-case-intake .intake-workspace {
+    align-items: start;
+  }
+
+  .guided-case-intake .intake-progress-rail,
+  .guided-case-intake .intake-workspace-main,
+  .guided-case-intake .intake-context-panel {
+    align-self: start;
+  }
+
+  .guided-case-intake .intake-step-tab {
+    min-height: 3.8rem;
+    padding-top: 0.55rem;
+    padding-bottom: 0.55rem;
+  }
+
+  .guided-case-intake
+    .intake-stepper
+    li::after,
+  .guided-case-intake
+    .intake-stepper
+    li:not(:last-child)::after {
+    top: 2.7rem;
+    bottom: -0.55rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .guided-case-intake .intake-workspace-content {
+    min-height: 0;
+  }
+}
