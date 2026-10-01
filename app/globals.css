@@ -9863,3 +9863,34 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     justify-content: flex-start;
   }
 }
+
+/* Task Status: keep labels and numeric values in separate columns at all widths. */
+.task-status-list{
+  min-width:0;
+  width:100%;
+}
+.task-status-list>a{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 3ch;
+  align-items:center;
+  gap:16px;
+  width:100%;
+}
+.task-status-list>a>span{
+  min-width:0;
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+.task-status-list>a>strong{
+  min-width:3ch;
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+
+@media(max-width:600px){
+  .task-status-list>a{
+    grid-template-columns:minmax(0,1fr) 5ch;
+    gap:12px;
+  }
+}
