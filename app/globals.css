@@ -9828,6 +9828,44 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   overflow-x: hidden;
 }
 
+.intake-document-availability-modal .task-modal-form {
+  grid-template-columns: 1fr;
+}
+
+.intake-document-availability-modal .task-modal-form > header,
+.intake-document-availability-modal .task-modal-form > footer,
+.intake-document-availability-modal .task-modal-form > .full,
+.intake-document-availability-modal .intake-document-availability-list {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+
+.intake-document-availability-modal .task-modal-form > header {
+  align-items: flex-start;
+}
+
+.intake-document-availability-modal .task-modal-form > header > div {
+  min-width: 0;
+}
+
+.intake-document-availability-modal .task-modal-form > header p {
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.intake-document-availability-modal .task-modal-form > footer {
+  justify-content: flex-start;
+}
+
+.intake-document-availability-modal .intake-document-availability-list > label {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.intake-document-availability-modal .intake-document-availability-control {
+  justify-self: end;
+}
+
 .intake-document-availability-list {
   display: grid;
   gap: 0.55rem;
