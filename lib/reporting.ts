@@ -291,9 +291,6 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
   };
   scopedCases.forEach((item) => { addBucket(item.opened_at, "opened"); if (item.completed_at) addBucket(item.completed_at, "completed"); });
   const caseVolume = [...bucketMap.values()].sort((left, right) => left.key.localeCompare(right.key));
-  const outcome = {
-    completed: scopedCases.filter((item) => inRange(item.completed_at, period.range)).length,
-  };
   const completedDurations = scopedCases.filter((item) => inRange(item.completed_at, period.range)).map((item) => durationDays(item.opened_at, item.completed_at!));
   const durationsByBucket = new Map<string, number[]>();
   scopedCases.filter((item) => inRange(item.completed_at, period.range)).forEach((item) => {
@@ -349,5 +346,5 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
     assigned: taskPeriod.filter((item) => item.assigned_user_id).length,
     unassigned: taskPeriod.filter((item) => !item.assigned_user_id).length,
   };
-  return { period, capabilities, kpis, caseVolume, outcome, completion: { average: current.averageDuration, median: median(completedDurations), count: completedDurations.length }, durationTrend, taskPerformance, requestPerformance, requestVolume, topCustomers, bottlenecks, workDistribution };
+  return { period, capabilities, kpis, caseVolume, completion: { average: current.averageDuration, median: median(completedDurations), count: completedDurations.length }, durationTrend, taskPerformance, requestPerformance, requestVolume, topCustomers, bottlenecks, workDistribution };
 }

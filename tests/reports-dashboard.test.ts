@@ -142,33 +142,7 @@ test("completion rate uses the opened cohort completed by the reporting cutoff",
   assert.equal(result.kpis.find((item) => item.label === "Completion Rate")?.value, 0);
 });
 
-test("Case outcomes use canonical completion timestamps only", () => {
-  const period = resolveReportingPeriod(
-    { period: "this_month" },
-    "UTC",
-    new Date("2026-09-09T12:00:00Z"),
-  );
 
-  const report = buildOperationalReport({
-    organizationId,
-    timezone: "UTC",
-    period,
-    cases: [
-      reportCase(),
-      reportCase({ completed_at: null }),
-      reportCase({ completed_at: "2026-08-01T12:00:00Z" }),
-    ],
-    tasks: [],
-    requests: [],
-    customers: [],
-    capabilities,
-    now: new Date("2026-09-09T12:00:00Z"),
-  });
-
-  assert.deepEqual(report.outcome, {
-    completed: 1,
-  });
-});
 
 test("dimension permissions suppress restricted Task Customer Service Desk and Rule detail", () => {
   const period = resolveReportingPeriod({ period: "30d" }, "UTC", now);
@@ -219,10 +193,15 @@ test("reports repository enforces authorization scope and bounded safe-view quer
 test("reports UI exposes accessible responsive charts, truthful limitations, and supported drilldowns", () => {
   const component = readFileSync("components/reports/reports-dashboard.tsx", "utf8");
   const styles = readFileSync("app/globals.css", "utf8");
-  for (const heading of ["Case Volume", "Case Outcomes", "Completion Performance", "Task Performance", "Service Requests", "Customer Activity", "Operational Bottlenecks", "Work Distribution"]) assert.match(component, new RegExp(`>${heading}<`));
+  for (const heading of ["Case Volume", "Completion Performance", "Task Performance", "Service Requests", "Customer Activity", "Operational Bottlenecks", "Work Distribution"]) assert.match(component, new RegExp(`>${heading}<`));
+  assert.doesNotMatch(component, />Case Outcomes</);
   assert.match(component, /role="img"/);
   assert.match(component, /aria-label=/);
   assert.match(component, /title=\{`\$\{item\.opened\} opened`\}/);
+  assert.match(component, /className="report-volume-bars"/);
+  assert.match(component, /<b>\{item\.opened\}<\/b>/);
+  assert.match(component, /<b>\{item\.completed\}<\/b>/);
+  assert.doesNotMatch(component, /<small>O \{item\.opened\} · C \{item\.completed\}<\/small>/);
   assert.match(component, /\/tasks\?due=overdue/);
   assert.match(component, /\/tasks\?status=blocked/);
   assert.match(component, /Historical readiness, Question response state/);

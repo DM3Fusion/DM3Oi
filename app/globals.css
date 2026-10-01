@@ -8806,60 +8806,119 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 
 /* Report Case Volume bucket readability */
+.report-case-volume-grid{
+  grid-template-columns:minmax(0,1fr);
+}
+
+.report-case-volume-grid>.report-wide{
+  grid-column:auto;
+}
+
 .report-volume-chart{
   margin-bottom:10px;
   scrollbar-gutter:stable;
 }
+
 .report-volume-chart>div{
   min-width:78px;
+  grid-template-rows:190px auto;
+  gap:9px;
 }
-.report-volume-chart>div>span,
-.report-volume-chart>div>small{
+
+.report-volume-bars{
+  display:flex;
+  align-items:stretch;
+  justify-content:center;
+  gap:8px;
+  min-height:0;
+  border-bottom:1px solid #cad4df;
+  background:repeating-linear-gradient(
+    to top,
+    #f5f7fa 0,
+    #f5f7fa 1px,
+    transparent 1px,
+    transparent 38px
+  );
+}
+
+.report-volume-bars>span{
+  display:flex;
+  width:18px;
+  min-width:0;
+  height:100%;
+  align-items:center;
+  justify-content:flex-end;
+  flex-direction:column;
+}
+
+.report-volume-bars>span>b{
+  display:block;
+  margin-bottom:5px;
+  color:#33485e;
+  font-size:12px;
+  font-weight:750;
+  line-height:1;
+}
+
+.report-volume-bars>span>i{
+  display:block;
+  width:14px;
+  min-height:0;
+  border-radius:3px 3px 0 0;
+}
+
+.report-volume-date{
   display:block;
   min-width:0;
   overflow:hidden;
+  color:var(--muted);
+  font-size:12px;
   white-space:nowrap;
   text-overflow:ellipsis;
 }
-.report-volume-chart>div>span{
-  font-size:12px;
-}
-.report-volume-chart>div>small{
-  font-size:11px;
-}
+
 .report-volume-chart-fit{
   overflow-x:hidden;
 }
+
 .report-volume-chart-fit>div{
   min-width:0;
 }
+
 .report-legend{
   position:relative;
   z-index:1;
   padding-top:6px;
 }
+
 @media(max-width:820px){
   .report-volume-chart>div{
     min-width:72px;
   }
+
   .report-volume-chart-fit>div{
     min-width:0;
   }
 }
+
 @media(max-width:560px){
   .report-volume-chart{
     margin-bottom:8px;
   }
+
   .report-volume-chart>div{
     min-width:68px;
   }
+
   .report-volume-chart-fit>div{
     min-width:0;
   }
-  .report-volume-chart>div>span{
+
+  .report-volume-date{
     font-size:11px;
   }
-  .report-volume-chart>div>small{
-    font-size:10px;
+
+  .report-volume-bars>span>b{
+    font-size:11px;
   }
 }
