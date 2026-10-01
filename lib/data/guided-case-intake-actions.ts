@@ -118,10 +118,11 @@ export async function saveGuidedIntakeDraftAction(
     input.draft.answers,
     input.draft.requiredOptionIds,
   );
+  const effectiveRequiredOptionIds = evaluation.requiredOptionIds;
   const unstagedMissingRequirement = getMissingRequiredOptions(
     evaluation,
     input.draft.answers,
-    input.draft.requiredOptionIds,
+    effectiveRequiredOptionIds,
   ).some(
     (requirement) =>
       !input.draft.followUpTasks.some(
@@ -131,7 +132,7 @@ export async function saveGuidedIntakeDraftAction(
   const requiredOptionErrors = validateGuidedRequiredOptionMap(
     configuration.questions,
     input.draft.answers,
-    input.draft.requiredOptionIds,
+    effectiveRequiredOptionIds,
   );
   if (Object.keys(requiredOptionErrors).length) {
     return {
@@ -148,7 +149,7 @@ export async function saveGuidedIntakeDraftAction(
           task,
           evaluation,
           input.draft.answers,
-          input.draft.requiredOptionIds,
+          effectiveRequiredOptionIds,
         ),
     )
   ) {
@@ -336,7 +337,7 @@ export async function saveGuidedIntakeDraftAction(
     manager_user_id: input.draft.managerUserId || null,
     staff_user_ids: input.draft.staffUserIds,
     answers: input.draft.answers,
-    required_option_ids: input.draft.requiredOptionIds,
+    required_option_ids: effectiveRequiredOptionIds,
     follow_up_tasks: input.draft.followUpTasks,
     portal_onboarding: portalOnboarding,
   };
@@ -492,13 +493,14 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
     draft.answers,
     draft.requiredOptionIds,
   );
+  const effectiveRequiredOptionIds = evaluation.requiredOptionIds;
 
   if (
     !guidedFollowUpTaskMatchesMissingOptions(
       task,
       evaluation,
       draft.answers,
-      draft.requiredOptionIds,
+      effectiveRequiredOptionIds,
     )
   ) {
     return {
@@ -531,7 +533,10 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   const persistedAnswers = JSON.parse(JSON.stringify(draft.answers));
   const { error: draftAnswerSyncError } = await supabase
     .from("guided_case_intake_drafts")
-    .update({ answers: persistedAnswers })
+    .update({
+      answers: persistedAnswers,
+      required_option_ids: effectiveRequiredOptionIds,
+    })
     .eq("organization_id", access.activeOrganization!.id)
     .eq("submission_key", draft.submissionKey)
     .eq("case_id", draft.caseId)
@@ -1039,7 +1044,7 @@ export async function finalizeGuidedCaseAction(
   const creationPlan = buildGuidedIntakeCreationPlan(
     configuration,
     draft.answers,
-    draft.requiredOptionIds,
+    validation.evaluation.requiredOptionIds,
   );
   // Temporary RPC signature bridge until generated Supabase types are refreshed.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -70,6 +70,9 @@ type Props = {
   initialNoticeSentAtByFollowUpId?: Record<string, string>;
 };
 
+const guidedTaxDocumentQuestionId =
+  "911c69ee-14bd-4391-ae87-f5b34047ea60";
+
 const fieldError = (errors: GuidedIntakeFieldErrors, key: string) =>
   errors[key] ? (
     <small className="field-error" role="alert">
@@ -380,7 +383,10 @@ export function GuidedCaseIntake({
     useState<CustomerPortalOnboardingStatus | null>(null);
   const [portalError, setPortalError] = useState<string | null>(null);
   const followUpDialog = useRef<HTMLDialogElement>(null);
+  const requiredDocumentsDialog = useRef<HTMLDialogElement>(null);
   const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
+  const [documentAvailabilityIds, setDocumentAvailabilityIds] =
+    useState<string[]>([]);
   const [customerValues, setCustomerValues] = useState({
     type: initialNewCustomer?.type ?? "INDIVIDUAL",
     name: initialNewCustomer?.name ?? "",
@@ -410,9 +416,18 @@ export function GuidedCaseIntake({
       ),
     [scopedConfiguration, draft.answers],
   );
-  const visibleQuestions = evaluation.questions.filter(
+  const intakeQuestionEvaluation = {
+    ...evaluation,
+    questions: evaluation.questions.filter(
+      (question) => question.id !== guidedTaxDocumentQuestionId,
+    ),
+  };
+
+  const visibleQuestions = intakeQuestionEvaluation.questions.filter(
     (question) => question.applicable,
   );
+
+  const effectiveRequiredOptionIds = evaluation.requiredOptionIds;
   const selectableCustomers = useMemo(
     () =>
       getGuidedIntakeSelectableCustomers(
@@ -451,12 +466,12 @@ export function GuidedCaseIntake({
   const missingRequirements = getMissingRequiredOptions(
     evaluation,
     draft.answers,
-    draft.requiredOptionIds,
+    effectiveRequiredOptionIds,
   );
   const followUpRequirements = getGuidedIntakeFollowUpRequirements(
     evaluation,
     draft.answers,
-    draft.requiredOptionIds,
+    effectiveRequiredOptionIds,
   );
   const activeFollowUpRequirement = followUpRequirements.find(
     (item) => item.question.id === followUpQuestionId,
@@ -478,7 +493,7 @@ export function GuidedCaseIntake({
       task,
       evaluation,
       draft.answers,
-      draft.requiredOptionIds,
+      effectiveRequiredOptionIds,
     );
   });
   const portalPromptEnabled =
@@ -645,11 +660,13 @@ export function GuidedCaseIntake({
           ? isGuidedQuestionAnswerValid(
               question,
               value,
-              current.requiredOptionIds[questionId],
+              nextEvaluation.requiredOptionIds[questionId],
             )
           : false;
+
         return {
           answers,
+          requiredOptionIds: nextEvaluation.requiredOptionIds,
           followUpTasks: reconcileGuidedIntakeFollowUpTasks(
             current.followUpTasks.map((task) =>
               task.questionId === questionId && !answerRemainsValid
@@ -658,7 +675,7 @@ export function GuidedCaseIntake({
             ),
             nextEvaluation,
             answers,
-            current.requiredOptionIds,
+            nextEvaluation.requiredOptionIds,
           ),
         };
       })(),
@@ -791,14 +808,38 @@ export function GuidedCaseIntake({
         customerMode,
       );
     if (step === 2)
-      return validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds);
-    if (step === 3)
+      return validateGuidedIntakeQuestions(
+        intakeQuestionEvaluation,
+        effectiveRequiredOptionIds,
+      );
+
+    if (step === 3) {
+      const unresolvedDocumentFollowUp = missingRequirements.some(
+        (requirement) =>
+          !draft.followUpTasks.some(
+            (task) =>
+              task.questionId === requirement.question.id &&
+              guidedFollowUpTaskMatchesMissingOptions(
+                task,
+                evaluation,
+                draft.answers,
+                effectiveRequiredOptionIds,
+              ),
+          ),
+      );
+
       return {
-        ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
+        ...(unresolvedDocumentFollowUp
+          ? {
+              requiredDocuments:
+                "Create or update the follow-up Task for outstanding required documents.",
+            }
+          : {}),
         ...(!portalResolved
           ? { portalOnboarding: "Resolve Customer Portal onboarding." }
           : {}),
       };
+    }
     // Review is a summary step. Earlier steps were already validated while
     // advancing through the intake, and Finish Intake performs the authoritative
     // full server-side validation before finalization. Do not surface hidden
@@ -983,7 +1024,7 @@ export function GuidedCaseIntake({
     if (pending) return;
 
     if (
-      step >= 2 &&
+      step >= 3 &&
       missingRequirements.some(
         (requirement) =>
           !draft.followUpTasks.some(
@@ -1623,22 +1664,133 @@ export function GuidedCaseIntake({
   };
 
   const renderRequirements = () => {
-    const requiredQuestions = evaluation.questions.filter(
-      (question) => question.applicable && question.effectiveRequired,
+    const documentQuestion = evaluation.questions.find(
+      (question) => question.id === guidedTaxDocumentQuestionId,
     );
+
+    const requiredDocumentIds =
+      effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? [];
+
+    const requiredDocuments = documentQuestion
+      ? documentQuestion.options
+          .filter((option) => requiredDocumentIds.includes(option.id))
+          .sort((a, b) => a.displayOrder - b.displayOrder)
+      : [];
+
+    const selectedDocumentIds = new Set(
+      Array.isArray(draft.answers[guidedTaxDocumentQuestionId])
+        ? draft.answers[guidedTaxDocumentQuestionId].filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
+    );
+
+    const availableDocumentCount = requiredDocuments.filter((document) =>
+      selectedDocumentIds.has(document.id),
+    ).length;
+
+    const documentRequirement = followUpRequirements.find(
+      (requirement) =>
+        requirement.question.id === guidedTaxDocumentQuestionId,
+    );
+
+    const documentTask = draft.followUpTasks.find(
+      (task) => task.questionId === guidedTaxDocumentQuestionId,
+    );
+
+    const openDocumentAvailability = () => {
+      setDocumentAvailabilityIds(
+        requiredDocumentIds.filter((id) => selectedDocumentIds.has(id)),
+      );
+      requiredDocumentsDialog.current?.showModal();
+    };
+
     return (
       <div className="intake-requirements intake-step-content">
-        <h3>Required Intake Answers</h3>
-        {requiredQuestions.length ? (
-          <ul>
-            {requiredQuestions.map((question) => (
-              <li key={question.id} className={question.valid ? "satisfied" : "outstanding"}>
-                <strong>{question.valid ? "Satisfied" : "Outstanding"}</strong>
-                <span>{question.text}</span>
-              </li>
-            ))}
-          </ul>
-        ) : <p className="intake-note">No required intake answers apply.</p>}
+        <section className="intake-required-documents-summary">
+          <header>
+            <div>
+              <p className="eyebrow">Guided Intake</p>
+              <h3>Required Documents</h3>
+              <p>
+                Based on the customer&apos;s answers, DM3Oi determines which
+                documents are required. Indicate which documents are currently
+                available.
+              </p>
+            </div>
+            {requiredDocuments.length ? (
+              <strong>
+                {availableDocumentCount} of {requiredDocuments.length} available
+              </strong>
+            ) : null}
+          </header>
+
+          {requiredDocuments.length ? (
+            <>
+              <ul className="intake-required-document-status-list">
+                {requiredDocuments.map((document) => {
+                  const available = selectedDocumentIds.has(document.id);
+
+                  return (
+                    <li
+                      key={document.id}
+                      className={available ? "satisfied" : "outstanding"}
+                    >
+                      <strong>{available ? "Available" : "Outstanding"}</strong>
+                      <span>{document.label}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+
+              <div className="form-actions">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={openDocumentAvailability}
+                  disabled={pending}
+                >
+                  Update Availability
+                </button>
+
+                {documentRequirement ? (
+                  <button
+                    type="button"
+                    className="primary-button"
+                    onClick={() =>
+                      openFollowUpTask(guidedTaxDocumentQuestionId)
+                    }
+                    disabled={pending}
+                  >
+                    {documentTask
+                      ? "Update Missing-Document Task"
+                      : "Create Missing-Document Task"}
+                  </button>
+                ) : null}
+              </div>
+
+              {documentRequirement ? (
+                <p className="intake-note outstanding">
+                  Outstanding:{" "}
+                  {documentRequirement.missingOptions
+                    .map((option) => option.label)
+                    .join(", ")}
+                </p>
+              ) : (
+                <p className="intake-note satisfied">
+                  All DM3Oi-required documents are marked available.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="intake-note">
+              No documents are currently required from the intake answers.
+            </p>
+          )}
+
+          {fieldError(errors, "requiredDocuments")}
+        </section>
+
         <h3>Generated Tasks</h3>
         {evaluation.generatedTasks.length ? (
           <ul>
@@ -1646,11 +1798,21 @@ export function GuidedCaseIntake({
               <li key={task.actionId} className="conditional">
                 <strong>Conditional</strong>
                 <span>{task.title}</span>
-                <small>{task.required ? "Required Task" : "Task"}{task.blocking ? " · Blocking" : ""} · {task.priority} · Due in {task.dueInDays} day{task.dueInDays === 1 ? "" : "s"}</small>
+                <small>
+                  {task.required ? "Required Task" : "Task"}
+                  {task.blocking ? " · Blocking" : ""}
+                  {" · "}
+                  {task.priority}
+                  {" · "}Due in {task.dueInDays} day
+                  {task.dueInDays === 1 ? "" : "s"}
+                </small>
               </li>
             ))}
           </ul>
-        ) : <p className="intake-note">No Rule-generated Tasks apply.</p>}
+        ) : (
+          <p className="intake-note">No Rule-generated Tasks apply.</p>
+        )}
+
         <h3>Follow-up Tasks</h3>
         {draft.followUpTasks.length ? (
           <ul>
@@ -1677,6 +1839,7 @@ export function GuidedCaseIntake({
             No follow-up Tasks have been created.
           </p>
         )}
+
         {renderPortalOnboarding()}
       </div>
     );
@@ -1717,9 +1880,17 @@ export function GuidedCaseIntake({
         <button type="button" onClick={() => setStep(2)}>Edit Questions</button>
       </div>
       <div className="intake-review-section">
-        <h3>Effective Requirements</h3>
-        <span>{evaluation.generatedTasks.length} generated Task{evaluation.generatedTasks.length === 1 ? "" : "s"}</span>
-        <button type="button" onClick={() => setStep(3)}>Review Requirements</button>
+        <h3>Required Documents</h3>
+        <span>
+          {(effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? []).length}
+          {" "}required document
+          {(effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? []).length === 1
+            ? ""
+            : "s"}
+        </span>
+        <button type="button" onClick={() => setStep(3)}>
+          Review Required Documents
+        </button>
       </div>
     </div>
   );
@@ -1959,6 +2130,105 @@ export function GuidedCaseIntake({
 
   return (
     <>
+    <dialog
+      ref={requiredDocumentsDialog}
+      className="task-modal"
+      onCancel={(event) => {
+        event.preventDefault();
+        requiredDocumentsDialog.current?.close();
+      }}
+    >
+      <form
+        className="task-modal-form intake-document-availability-modal"
+        onSubmit={(event) => {
+          event.preventDefault();
+
+          const requiredIds =
+            effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? [];
+
+          updateAnswer(
+            guidedTaxDocumentQuestionId,
+            requiredIds.filter((id) =>
+              documentAvailabilityIds.includes(id),
+            ),
+          );
+
+          requiredDocumentsDialog.current?.close();
+        }}
+      >
+        <header>
+          <div>
+            <p className="eyebrow">Guided Intake</p>
+            <h2>Required Documents</h2>
+          </div>
+          <button
+            type="button"
+            className="rule-dialog-close task-modal-close"
+            aria-label="Close required documents modal"
+            onClick={() => requiredDocumentsDialog.current?.close()}
+          >
+            ×
+          </button>
+        </header>
+
+        <p>
+          Based on the customer&apos;s answers, DM3Oi requires the documents
+          below. Indicate which are currently available.
+        </p>
+
+        <div className="intake-document-availability-list">
+          {(() => {
+            const documentQuestion = evaluation.questions.find(
+              (question) =>
+                question.id === guidedTaxDocumentQuestionId,
+            );
+
+            const requiredIds =
+              effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? [];
+
+            const documents = documentQuestion
+              ? documentQuestion.options
+                  .filter((option) => requiredIds.includes(option.id))
+                  .sort((a, b) => a.displayOrder - b.displayOrder)
+              : [];
+
+            return documents.map((document) => (
+              <label key={document.id}>
+                <span>{document.label}</span>
+                <span className="intake-document-availability-control">
+                  <input
+                    type="checkbox"
+                    checked={documentAvailabilityIds.includes(document.id)}
+                    onChange={(event) => {
+                      setDocumentAvailabilityIds((current) =>
+                        event.target.checked
+                          ? [...new Set([...current, document.id])]
+                          : current.filter((id) => id !== document.id),
+                      );
+                    }}
+                  />
+                  Available
+                </span>
+              </label>
+            ));
+          })()}
+        </div>
+
+        <div className="task-modal-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => requiredDocumentsDialog.current?.close()}
+          >
+            Cancel
+          </button>
+          <button type="submit" className="primary-button">
+            Save Availability
+          </button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog
       ref={followUpDialog}
       className="task-modal"
@@ -2284,7 +2554,7 @@ export function GuidedCaseIntake({
                   : step === 2
                     ? "Answer the applicable questions. DM3Oi determines requirements from these responses."
                     : step === 3
-                      ? "Review the requirements, Tasks, and Customer Portal state identified by DM3Oi."
+                      ? "Review the documents DM3Oi requires from the intake answers and record their availability."
                       : step === 4
                         ? "Review the complete Guided Intake before finishing."
                         : "Finish Intake and hand the Case off to the organization’s operational workflow."}

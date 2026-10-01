@@ -57,8 +57,8 @@ test("portal Case progress reuses the authoritative function without exposing ta
   assert.match(component, /role="progressbar"/);
   assert.match(component, /aria-valuemin=\{0\}/);
   assert.match(component, /aria-valuemax=\{100\}/);
-  assert.match(component, /aria-valuenow=\{percentage\}/);
-  assert.match(component, /aria-valuetext=\{`\$\{percentage\}% complete`\}/);
+  assert.match(component, /aria-valuenow=\{intakePercentage\}/);
+  assert.match(component, /aria-valuetext=\{`\$\{intakePercentage\}% intake complete`\}/);
 });
 
 test("active Cases use the established terminal exclusions and deterministic newest-first ordering", () => {
@@ -72,15 +72,15 @@ test("active Cases use the established terminal exclusions and deterministic new
 
 test("portal Case UI has distinct zero, one, and multiple Case presentations", () => {
   assert.match(component, /if \(!cases\.length\)/);
-  assert.match(component, />No active cases</);
-  assert.match(component, /You don’t currently have any work in progress\./);
+  assert.match(component, />No cases</);
+  assert.match(component, /You don’t currently have any Case activity to display\./);
   assert.match(component, /const singular = cases\.length === 1/);
-  assert.match(component, /singular \? "Your Case" : "Active Cases"/);
+  assert.match(component, /singular \? "Your Case" : "Your Cases"/);
   assert.match(component, /cases\.map\(\(item\) =>/);
   assert.match(component, /item\.service_label \|\| item\.case_number/);
   assert.match(component, /item\.case_number/);
   assert.match(component, /item\.customer_status/);
-  assert.match(component, /\{percentage\}% Complete/);
+  assert.match(component, /\{intakePercentage\}% Complete/);
   const emptyBranch = component.match(/if \(!cases\.length\)([\s\S]*?)const singular/)?.[1] ?? "";
   assert.doesNotMatch(emptyBranch, /progressbar|% Complete|portal-case-progress/);
 });

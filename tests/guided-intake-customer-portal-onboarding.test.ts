@@ -307,31 +307,35 @@ test("Guided Intake uses explicit actions and Customer creation/Case creation ne
   );
 });
 
-test("Step 4 places its single Portal requirement after ordinary requirements and before navigation", () => {
+test("Step 4 places its single Portal requirement after Required Documents and follow-up work", () => {
   const component = source("components/cases/guided-case-intake.tsx");
   const requirementsStart = component.indexOf("const renderRequirements = () =>");
   const reviewStart = component.indexOf("const renderReview = () =>", requirementsStart);
   const requirements = component.slice(requirementsStart, reviewStart);
   const contentPosition = component.indexOf("{content}", reviewStart);
   const navigationPosition = component.indexOf(
-    '<div className="form-actions intake-actions">',
+    '<footer className="intake-workspace-footer">',
     contentPosition,
   );
 
   assert.ok(requirementsStart >= 0 && reviewStart > requirementsStart);
   assert.equal(requirements.match(/renderPortalOnboarding\(\)/g)?.length, 1);
+
   assert.ok(
-    requirements.indexOf("Required Intake Answers") <
+    requirements.indexOf("Required Documents") <
       requirements.indexOf("Generated Tasks"),
   );
+
   assert.ok(
     requirements.indexOf("Generated Tasks") <
-      requirements.indexOf("Missing-document Follow-up Tasks"),
+      requirements.indexOf("Follow-up Tasks"),
   );
+
   assert.ok(
-    requirements.indexOf("Missing-document Follow-up Tasks") <
+    requirements.indexOf("Follow-up Tasks") <
       requirements.indexOf("renderPortalOnboarding()"),
   );
+
   assert.ok(contentPosition >= 0 && navigationPosition > contentPosition);
 });
 

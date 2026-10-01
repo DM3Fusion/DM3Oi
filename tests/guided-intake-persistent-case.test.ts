@@ -135,9 +135,21 @@ test("Portal onboarding remains a Step 6 gate and is absent from Step 2", () => 
 });
 
 test("Save and Continue Later is unavailable before materialization", () => {
-  assert.match(component, /\{step >= 2 \? \([\s\S]*Save and Continue Later/);
+  assert.match(
+    component,
+    /\{step >= 2 \? \([\s\S]*Save and Continue Later/,
+  );
+
+  assert.match(
+    component,
+    /step === 1[\s\S]*materializeGuidedCaseAction/,
+  );
+
   assert.doesNotMatch(
-    component.match(/\{step === 0[\s\S]*?\) : null\}/)?.[0] ?? "",
+    component.slice(
+      component.indexOf("const renderCustomer"),
+      component.indexOf("const renderDetails"),
+    ),
     /Save and Continue Later/,
   );
 });

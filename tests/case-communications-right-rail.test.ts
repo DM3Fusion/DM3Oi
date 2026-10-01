@@ -21,10 +21,17 @@ const privacyMigration = source(
 test("right rail contains Assignments, Customer Communications, and Case Readiness in order", () => {
   const assignments = page.indexOf("<h2>Assignments</h2>");
   const communications = page.indexOf("<h2>Customer Communications</h2>");
-  const readiness = page.indexOf("<h3>Case Readiness</h3>");
+  const readiness = page.indexOf(
+    'className="panel case-readiness-panel"',
+    communications,
+  );
   assert.ok(assignments >= 0);
   assert.ok(communications > assignments);
   assert.ok(readiness > communications);
+  assert.match(
+    page,
+    /item\.status === "COMPLETED"[\s\S]*"Case Status"[\s\S]*"Case Readiness"/,
+  );
   assert.doesNotMatch(page, /Attachments|Completion Review/);
   assert.match(page, /Ready for completion/);
   assert.match(page, /Not ready for completion/);

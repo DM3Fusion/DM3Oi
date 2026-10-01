@@ -34,7 +34,7 @@ test("redundant Operational Dashboard explanations are absent while operational 
   for (const content of [
     "Case Progress", "Task Status", "All Needing Attention", "Recent Activity",
     "Readiness Distribution", "Top Bottlenecks", "Cases Needing Attention", "Rule Activity",
-    "Completed", "Open", "Blocked", "Overdue",
+    "Completed", "Open", "Waiting on Customer", "Overdue",
   ]) assert.match(combined, new RegExp(content));
   assert.match(intelligence, /\$\{item\.incompleteCount\} incomplete/);
   assert.match(intelligence, /\$\{item\.overdueCount\} overdue/);

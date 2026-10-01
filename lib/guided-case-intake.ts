@@ -216,8 +216,8 @@ export function resolveGuidedDraftCustomerMode(
   storedMode: GuidedCustomerMode | undefined,
   fallback: GuidedCustomerMode,
 ): GuidedCustomerMode {
-  if (storedMode) return storedMode;
   if (customerId) return "existing";
+  if (storedMode) return storedMode;
   return fallback;
 }
 
@@ -271,6 +271,7 @@ export type GuidedIntakeEvaluation = {
   >;
   generatedTasks: EffectiveTaskAction[];
   matchedRuleIds: string[];
+  requiredOptionIds: GuidedIntakeRequiredOptionIds;
 };
 
 export type GuidedIntakeCreationPlan = {
@@ -375,6 +376,153 @@ export function isGuidedQuestionAnswerComplete(
   return true;
 }
 
+const mimmsTaxDocumentQuestionId =
+  "911c69ee-14bd-4391-ae87-f5b34047ea60";
+
+const mimmsTaxQuestionIds = {
+  taxpayerWages: "a1000000-0000-4000-8000-000000000001",
+  spouseWages: "a1000000-0000-4000-8000-000000000002",
+  retirement: "a1000000-0000-4000-8000-000000000003",
+  socialSecurity: "a1000000-0000-4000-8000-000000000004",
+  interest: "a1000000-0000-4000-8000-000000000005",
+  dividends: "a1000000-0000-4000-8000-000000000006",
+  brokerage: "a1000000-0000-4000-8000-000000000007",
+  mortgage: "a1000000-0000-4000-8000-000000000008",
+  rental: "a1000000-0000-4000-8000-000000000009",
+  businessExpenses: "a1000000-0000-4000-8000-00000000000a",
+  selfEmployment: "9a13d83d-f731-4dd2-8d59-b5ba63cb243c",
+  dependentsClaimed: "d13771bc-1b7b-4ec5-b5e9-8200a89222d2",
+  hohUnmarried: "a1000000-0000-4000-8000-000000000011",
+  hohHomeCost: "a1000000-0000-4000-8000-000000000012",
+  hohQualifyingPerson: "a1000000-0000-4000-8000-000000000013",
+  hohResidency: "a1000000-0000-4000-8000-000000000014",
+  qssDeathPeriod: "a1000000-0000-4000-8000-000000000021",
+  qssNotRemarried: "a1000000-0000-4000-8000-000000000022",
+  qssHome: "a1000000-0000-4000-8000-000000000023",
+  qssChild: "a1000000-0000-4000-8000-000000000024",
+} as const;
+
+const nonDeferrableMimmsEligibilityQuestionIds = new Set<string>([
+  mimmsTaxQuestionIds.hohUnmarried,
+  mimmsTaxQuestionIds.hohHomeCost,
+  mimmsTaxQuestionIds.hohQualifyingPerson,
+  mimmsTaxQuestionIds.hohResidency,
+  mimmsTaxQuestionIds.qssDeathPeriod,
+  mimmsTaxQuestionIds.qssNotRemarried,
+  mimmsTaxQuestionIds.qssHome,
+  mimmsTaxQuestionIds.qssChild,
+]);
+
+function normalizedGuidedOptionLabel(value: string) {
+  return value.trim().toLowerCase().replace(/[–—]/g, "-");
+}
+
+function selectedGuidedOption(
+  question: GuidedIntakeQuestion | undefined,
+  answer: Json | undefined,
+) {
+  if (!question || typeof answer !== "string") return undefined;
+  return question.options.find((option) => option.id === answer);
+}
+
+function isSelectedFilingStatus(
+  configuration: Pick<GuidedIntakeConfiguration, "questions">,
+  answers: GuidedIntakeAnswers,
+  label: string,
+) {
+  const filingStatusQuestion = configuration.questions.find((question) =>
+    question.text.toLowerCase().includes("filing status"),
+  );
+  const option = selectedGuidedOption(
+    filingStatusQuestion,
+    filingStatusQuestion
+      ? answers[filingStatusQuestion.id]
+      : undefined,
+  );
+  return (
+    normalizedGuidedOptionLabel(option?.label ?? "") ===
+    normalizedGuidedOptionLabel(label)
+  );
+}
+
+export function deriveGuidedIntakeRequiredOptionIds(
+  configuration: Pick<GuidedIntakeConfiguration, "questions">,
+  answers: GuidedIntakeAnswers,
+  current: GuidedIntakeRequiredOptionIds = {},
+): GuidedIntakeRequiredOptionIds {
+  const documentQuestion = configuration.questions.find(
+    (question) => question.id === mimmsTaxDocumentQuestionId,
+  );
+
+  if (!documentQuestion) return current;
+
+  const optionIdByValue = new Map(
+    documentQuestion.options.map((option) => [option.value, option.id]),
+  );
+  const required = new Set<string>();
+
+  const requireDocument = (value: string) => {
+    const optionId = optionIdByValue.get(value);
+    if (optionId) required.add(optionId);
+  };
+
+  if (answers[mimmsTaxQuestionIds.taxpayerWages] === true) {
+    requireDocument("w-2-taxpayer");
+  }
+
+  if (
+    isSelectedFilingStatus(
+      configuration,
+      answers,
+      "Married Filing Jointly",
+    ) &&
+    answers[mimmsTaxQuestionIds.spouseWages] === true
+  ) {
+    requireDocument("w-2-spouse");
+  }
+
+  if (answers[mimmsTaxQuestionIds.retirement] === true) {
+    requireDocument("1099-r");
+  }
+
+  if (answers[mimmsTaxQuestionIds.socialSecurity] === true) {
+    requireDocument("ssa-1099");
+  }
+
+  if (answers[mimmsTaxQuestionIds.interest] === true) {
+    requireDocument("1099-int");
+  }
+
+  if (answers[mimmsTaxQuestionIds.dividends] === true) {
+    requireDocument("1099-div");
+  }
+
+  if (answers[mimmsTaxQuestionIds.brokerage] === true) {
+    requireDocument("brokerage-investment-statement");
+  }
+
+  if (answers[mimmsTaxQuestionIds.mortgage] === true) {
+    requireDocument("1098");
+  }
+
+  if (answers[mimmsTaxQuestionIds.rental] === true) {
+    requireDocument("rental-income-expense-records");
+  }
+
+  if (answers[mimmsTaxQuestionIds.selfEmployment] === true) {
+    requireDocument("business-income-records");
+  }
+
+  if (answers[mimmsTaxQuestionIds.businessExpenses] === true) {
+    requireDocument("business-expense-records");
+  }
+
+  return {
+    ...current,
+    [documentQuestion.id]: [...required],
+  };
+}
+
 export function evaluateGuidedCaseIntake(
   configuration: Pick<
     GuidedIntakeConfiguration,
@@ -383,6 +531,13 @@ export function evaluateGuidedCaseIntake(
   answers: GuidedIntakeAnswers,
   requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
 ): GuidedIntakeEvaluation {
+  const effectiveRequiredOptionIds =
+    deriveGuidedIntakeRequiredOptionIds(
+      configuration,
+      answers,
+      requiredOptionIds,
+    );
+
   const result = evaluateCaseRules({
     organizationId: configuration.organizationId,
     questions: configuration.questions.map((question) => ({
@@ -410,8 +565,14 @@ export function evaluateGuidedCaseIntake(
   return {
     questions: configuration.questions.map((question) => {
       const evaluated = byQuestion.get(question.id);
-      const applicable = evaluated?.applicable ?? true;
-      const effectiveRequired = evaluated?.required ?? question.required;
+      const derivedRequiredIds =
+        effectiveRequiredOptionIds[question.id] ?? [];
+      const hasTrackedRequirements =
+        !question.trackRequiredOptions || derivedRequiredIds.length > 0;
+      const applicable =
+        (evaluated?.applicable ?? true) && hasTrackedRequirements;
+      const effectiveRequired =
+        applicable && (evaluated?.required ?? question.required);
       return {
         ...question,
         applicable,
@@ -420,12 +581,13 @@ export function evaluateGuidedCaseIntake(
         valid: isGuidedQuestionAnswerComplete(
           question,
           answers[question.id],
-          requiredOptionIds[question.id],
+          effectiveRequiredOptionIds[question.id],
         ),
       };
     }),
     generatedTasks: result.effectiveTaskActions,
     matchedRuleIds: result.matchedRules.map((rule) => rule.id),
+    requiredOptionIds: effectiveRequiredOptionIds,
   };
 }
 
@@ -604,6 +766,11 @@ export function getGuidedIntakeFollowUpRequirements(
         missingOptions,
         documentRequirement: true,
       }];
+    }
+
+    // Filing-status eligibility is a validation gate, not deferrable work.
+    if (nonDeferrableMimmsEligibilityQuestionIds.has(question.id)) {
+      return [];
     }
 
     // A required Question may have a syntactically valid answer that still
@@ -867,16 +1034,32 @@ export function validateGuidedCaseIntake(
     draft.answers,
     draft.requiredOptionIds,
   );
+  const effectiveRequiredOptionIds = evaluation.requiredOptionIds;
   const fieldErrors: GuidedIntakeFieldErrors = {
     ...validateGuidedCustomerStep(draft, configuration),
     ...validateGuidedCaseDetails(draft, configuration, customerMode),
-    ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
+    ...validateGuidedIntakeQuestions(
+      evaluation,
+      effectiveRequiredOptionIds,
+    ),
     ...validateGuidedRequiredOptionMap(
       configuration.questions,
       draft.answers,
-      draft.requiredOptionIds,
+      effectiveRequiredOptionIds,
     ),
   };
+
+  if (
+    isSelectedFilingStatus(
+      configuration,
+      draft.answers,
+      "Qualifying Surviving Spouse",
+    ) &&
+    draft.answers[mimmsTaxQuestionIds.dependentsClaimed] !== true
+  ) {
+    fieldErrors[`question.${mimmsTaxQuestionIds.dependentsClaimed}`] =
+      "Dependents Claimed must be Yes for Qualifying Surviving Spouse.";
+  }
   const staffIds = new Set(configuration.staff.map((member) => member.id));
   const followUpQuestionIds = new Set<string>();
   for (const task of draft.followUpTasks) {
@@ -888,7 +1071,7 @@ export function validateGuidedCaseIntake(
         task,
         evaluation,
         draft.answers,
-        draft.requiredOptionIds,
+        effectiveRequiredOptionIds,
       )
     )
       fieldErrors[`followUp.${task.id}`] =
@@ -936,7 +1119,9 @@ export function buildGuidedIntakeCreationPlan(
         .filter(
           (option) =>
             !question.trackRequiredOptions ||
-            (requiredOptionIds[question.id] ?? []).includes(option.id),
+            (evaluation.requiredOptionIds[question.id] ?? []).includes(
+              option.id,
+            ),
         )
         .map((option) => ({
         id: option.id,

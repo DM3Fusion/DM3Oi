@@ -61,7 +61,11 @@ test("server action cannot enable retired tracked-required mode", () => {
   );
   assert.match(
     loader,
-    /trackRequiredOptions: false/,
+    /question\.id === "911c69ee-14bd-4391-ae87-f5b34047ea60"/,
+  );
+  assert.doesNotMatch(
+    loader,
+    /trackRequiredOptions:\s*question\.track_required_options/,
   );
 });
 

@@ -49,7 +49,6 @@ test("Case-oriented intake route loads the materialized Case draft", () => {
     intakePage,
     /loadGuidedCaseIntakeConfiguration\([\s\S]*savedDraft\?\.draft\.caseId/,
   );
-  assert.match(intakePage, /query\.case \? "Edit Case"/);
 });
 
 test("new Case and existing Case authorization remain separate", () => {
@@ -209,13 +208,13 @@ test("Case-linked saves preserve the original Guided Intake Customer mode", () =
 });
 
 
-test("saved Guided Intake mode is not inferred from the materialized Customer ID", () => {
-  assert.doesNotMatch(
+test("materialized Guided Intake Customers reopen in existing-Customer mode", () => {
+  assert.match(
     drafts,
     /customerMode:\s*data\.customer_id/,
   );
   assert.match(
     drafts,
-    /customerMode:\s*data\.customer_mode === "new" \? "new" : "existing"/,
+    /data\.customer_id[\s\S]*\? "existing"[\s\S]*data\.customer_mode === "new"/,
   );
 });

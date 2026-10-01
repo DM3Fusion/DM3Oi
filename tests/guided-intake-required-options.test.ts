@@ -373,10 +373,21 @@ test("configured required-item UI exposes Received only", () => {
   assert.doesNotMatch(intakeComponent, />Required<\/span>/);
 });
 
-test("draft persistence carries required option selections", () => {
+test("draft persistence carries server-derived required option selections", () => {
   const actions = readFileSync("lib/data/guided-case-intake-actions.ts", "utf8");
   const drafts = readFileSync("lib/data/guided-case-intake-drafts.ts", "utf8");
-  assert.match(actions, /required_option_ids: input\.draft\.requiredOptionIds/);
+  assert.match(
+    actions,
+    /const effectiveRequiredOptionIds = evaluation\.requiredOptionIds/,
+  );
+  assert.match(
+    actions,
+    /required_option_ids: effectiveRequiredOptionIds/,
+  );
+  assert.doesNotMatch(
+    actions,
+    /required_option_ids: input\.draft\.requiredOptionIds/,
+  );
   assert.match(drafts, /required_option_ids/);
   assert.match(drafts, /requiredOptionIds: parseRequiredOptionIds/);
 });

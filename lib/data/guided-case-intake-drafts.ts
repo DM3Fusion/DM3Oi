@@ -365,8 +365,11 @@ export async function loadGuidedIntakeDraft(
     currentStep: data.case_id
       ? Math.max(2, data.current_step)
       : Math.min(1, data.current_step),
-    customerMode:
-      data.customer_mode === "new" ? "new" : "existing",
+    customerMode: data.customer_id
+      ? "existing"
+      : data.customer_mode === "new"
+        ? "new"
+        : "existing",
     draft: {
       submissionKey: data.submission_key,
       caseId: data.case_id,

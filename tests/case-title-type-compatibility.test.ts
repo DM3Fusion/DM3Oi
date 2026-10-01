@@ -167,10 +167,10 @@ test("Case Configuration manages Case Type behavior instead of title compatibili
 });
 
 
-test("resumed Guided Intake preserves its stored Customer mode after a Customer ID exists", () => {
+test("resumed Guided Intake treats a materialized Customer as existing", () => {
   assert.equal(
     resolveGuidedDraftCustomerMode("customer-123", "new", "existing"),
-    "new",
+    "existing",
   );
   assert.equal(
     resolveGuidedDraftCustomerMode("customer-123", "existing", "new"),
