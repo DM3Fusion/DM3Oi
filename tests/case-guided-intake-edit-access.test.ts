@@ -146,7 +146,7 @@ test("materialized Case identity is not reconciled again on client initializatio
 
   assert.match(
     component,
-    /if \(source\.caseId\) \{\s*return source;\s*\}/,
+    /if \(assignmentNormalizedSource\.caseId\) \{\s*return assignmentNormalizedSource;\s*\}/,
   );
   assert.match(
     component,

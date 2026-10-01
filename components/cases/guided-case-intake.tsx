@@ -706,7 +706,9 @@ export function GuidedCaseIntake({
     const form = new FormData(event.currentTarget);
     const assignedUserId = String(form.get("assignedUserId") ?? "");
     const dueDate = String(form.get("dueDate") ?? "");
-    const status = String(form.get("status") ?? "NOT_STARTED");
+    const requestedStatus = String(
+      form.get("status") ?? "NOT_STARTED",
+    );
     const allowedStatuses = new Set([
       "NOT_STARTED",
       "IN_PROGRESS",
@@ -717,7 +719,7 @@ export function GuidedCaseIntake({
     if (
       !assignedUserId ||
       !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) ||
-      !allowedStatuses.has(status)
+      !allowedStatuses.has(requestedStatus)
     ) return;
     const existing = draft.followUpTasks.find(
       (task) => task.questionId === activeFollowUpRequirement.question.id,
@@ -730,6 +732,9 @@ export function GuidedCaseIntake({
     );
     const documentRequirement =
       activeFollowUpRequirement.documentRequirement;
+    const status = documentRequirement
+      ? "WAITING_ON_CUSTOMER"
+      : requestedStatus;
     const task: GuidedIntakeFollowUpTask = {
       id: existing?.id ?? crypto.randomUUID(),
       questionId: activeFollowUpRequirement.question.id,
@@ -2002,8 +2007,8 @@ export function GuidedCaseIntake({
           <p className="intake-context-eyebrow">Document Requirements</p>
           <h3>
             {outstandingDocumentLabels.length
-              ? `${outstandingDocumentLabels.length} Outstanding`
-              : "No Outstanding Documents"}
+              ? `${outstandingDocumentLabels.length} Required`
+              : "No Required Documents"}
           </h3>
 
           {outstandingDocumentLabels.length ? (
@@ -2343,18 +2348,34 @@ export function GuidedCaseIntake({
 
             <label>
               <span>Status</span>
-              <select
-                name="status"
-                defaultValue={activeTask?.status ?? "NOT_STARTED"}
-              >
-                <option value="NOT_STARTED">Not Started</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="WAITING_ON_CUSTOMER">Waiting on Customer</option>
-                <option value="REQUIRED_UNAVAILABLE">
-                  Required, but Unavailable
-                </option>
-                <option value="COMPLETED">Completed</option>
-              </select>
+              {activeFollowUpRequirement?.documentRequirement ? (
+                <>
+                  <input value="Waiting on Customer" readOnly />
+                  <input
+                    type="hidden"
+                    name="status"
+                    value="WAITING_ON_CUSTOMER"
+                  />
+                  <small>
+                    System set while required documents are outstanding.
+                  </small>
+                </>
+              ) : (
+                <select
+                  name="status"
+                  defaultValue={activeTask?.status ?? "NOT_STARTED"}
+                >
+                  <option value="NOT_STARTED">Not Started</option>
+                  <option value="IN_PROGRESS">In Progress</option>
+                  <option value="WAITING_ON_CUSTOMER">
+                    Waiting on Customer
+                  </option>
+                  <option value="REQUIRED_UNAVAILABLE">
+                    Required, but Unavailable
+                  </option>
+                  <option value="COMPLETED">Completed</option>
+                </select>
+              )}
             </label>
 
             <label>

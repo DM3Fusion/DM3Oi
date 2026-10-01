@@ -10061,3 +10061,75 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-variant-numeric:tabular-nums;
   }
 }
+
+
+/* Guided Intake document requirement checklist */
+.task-document-requirements {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.task-document-requirements-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.task-document-requirements-head p {
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+}
+
+.task-document-requirement-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.task-document-requirement-row {
+  display: grid;
+  grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+}
+
+.task-document-received-check {
+  display: inline-grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 0.2rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.task-document-requirement-copy {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.task-document-requirement-copy small {
+  opacity: 0.72;
+}
+
+@media (max-width: 700px) {
+  .task-document-requirements-head {
+    display: grid;
+  }
+
+  .task-document-requirement-row {
+    grid-template-columns: 1.5rem minmax(0, 1fr);
+  }
+
+  .task-document-requirement-row button {
+    grid-column: 1 / -1;
+  }
+}

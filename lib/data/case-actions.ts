@@ -245,6 +245,61 @@ export async function updateTaskAction(data: FormData) {
   refreshCase(caseId);
   redirect(`/cases/${caseId}?message=Task%20updated.`);
 }
+export async function setDocumentRequirementReceivedAction(data: FormData) {
+  const caseId = text(data, "caseId");
+  const taskId = text(data, "taskId");
+  const optionId = text(data, "optionId");
+  const received = text(data, "received") === "true";
+
+  await requirePermission("WORK_TASKS");
+
+  if (!taskId || !optionId) {
+    fail(`/cases/${caseId}`, "The document requirement is not available.");
+  }
+
+  const supabase = await createClient();
+
+  // Temporary RPC bridge until generated Supabase types include this function.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any).rpc(
+    "set_case_document_requirement_received",
+    {
+      target_task_id: taskId,
+      target_option_id: optionId,
+      target_received: received,
+    },
+  );
+
+  if (error) {
+    console.error("Document requirement receipt update failed", {
+      code: error.code,
+      message: error.message,
+      taskId,
+      optionId,
+      received,
+    });
+
+    if (error.message.includes("Waiting on Customer")) {
+      fail(
+        `/cases/${caseId}`,
+        "This Task remains Waiting on Customer until every required document is received.",
+      );
+    }
+
+    fail(`/cases/${caseId}`, friendly(error.message));
+  }
+
+  refreshCase(caseId);
+
+  redirect(
+    `/cases/${caseId}?message=${encodeURIComponent(
+      received
+        ? "Document marked received."
+        : "Document marked outstanding. Task is Waiting on Customer.",
+    )}`,
+  );
+}
+
 export async function sendMissingDocumentsNoticeAction(data: FormData) {
   const caseId = text(data, "caseId");
   const taskId = text(data, "taskId");

@@ -321,7 +321,15 @@ test("Guided Intake follow-up Task exposes and persists canonical status and Due
   assert.match(component, /name="dueDate"/);
   assert.match(component, /completed:\s*status === "COMPLETED"/);
 
-  assert.match(casePage, /<select name="status" defaultValue=\{task\.status\}>/);
+  assert.match(
+    casePage,
+    /<select[\s\S]*name="status"[\s\S]*defaultValue=\{task\.status\}/,
+  );
+  assert.match(
+    casePage,
+    /System set while required documents are[\s\S]*outstanding/,
+  );
+  assert.match(casePage, /value="WAITING_ON_CUSTOMER"/);
   assert.match(casePage, /name="dueDate"/);
 });
 

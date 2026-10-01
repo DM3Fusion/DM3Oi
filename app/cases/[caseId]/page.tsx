@@ -11,6 +11,7 @@ import { formatDate } from "@/lib/format";
 import {
   completeCaseAction,
   sendMissingDocumentsNoticeAction,
+  setDocumentRequirementReceivedAction,
   setCaseAssignmentAction,
   transitionCaseStatusAction,
   updateTaskAction,
@@ -35,6 +36,54 @@ const taskStatuses = [
   "REQUIRED_UNAVAILABLE",
   "COMPLETED",
 ] as const;
+
+type DocumentRequirementItem = {
+  id: string;
+  label: string;
+  received: boolean;
+};
+
+const documentRequirementContext = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const context = value as Record<string, unknown>;
+  if (context.kind !== "DOCUMENT_REQUIREMENT") return null;
+
+  const ids = Array.isArray(context.required_option_ids)
+    ? context.required_option_ids.filter(
+        (entry): entry is string => typeof entry === "string",
+      )
+    : [];
+
+  const labels = Array.isArray(context.required_option_labels)
+    ? context.required_option_labels.filter(
+        (entry): entry is string => typeof entry === "string",
+      )
+    : [];
+
+  const receivedIds = new Set(
+    Array.isArray(context.received_option_ids)
+      ? context.received_option_ids.filter(
+          (entry): entry is string => typeof entry === "string",
+        )
+      : [],
+  );
+
+  const items: DocumentRequirementItem[] = ids.map((id, index) => ({
+    id,
+    label: labels[index] ?? "Required document",
+    received: receivedIds.has(id),
+  }));
+
+  return {
+    items,
+    outstanding: items.filter((item) => !item.received),
+    noticeSentAt:
+      typeof context.notice_sent_at === "string"
+        ? context.notice_sent_at
+        : null,
+  };
+};
 export default async function Page({
   params,
   searchParams,
@@ -551,17 +600,61 @@ export default async function Page({
                         </label>
                         <label>
                           <span>Status</span>
-                          <select name="status" defaultValue={task.status}>
-                            {taskStatuses.map((value) => (
-                              <option key={value} value={value}>
-                                {value === "WAITING_ON_CUSTOMER"
-                                  ? "Waiting on Customer"
-                                  : value === "REQUIRED_UNAVAILABLE"
-                                    ? "Required, but Unavailable"
-                                    : value.replaceAll("_", " ")}
-                              </option>
-                            ))}
-                          </select>
+                          {(() => {
+                            const requirement = documentRequirementContext(
+                              task.intake_requirement_context,
+                            );
+
+                            if (requirement?.outstanding.length) {
+                              return (
+                                <>
+                                  <input value="Waiting on Customer" readOnly />
+                                  <input
+                                    type="hidden"
+                                    name="status"
+                                    value="WAITING_ON_CUSTOMER"
+                                  />
+                                  <small>
+                                    System set while required documents are
+                                    outstanding.
+                                  </small>
+                                </>
+                              );
+                            }
+
+                            if (requirement) {
+                              return (
+                                <select
+                                  name="status"
+                                  defaultValue={task.status}
+                                >
+                                  <option value="IN_PROGRESS">
+                                    In Progress
+                                  </option>
+                                  <option value="COMPLETED">
+                                    Completed
+                                  </option>
+                                </select>
+                              );
+                            }
+
+                            return (
+                              <select
+                                name="status"
+                                defaultValue={task.status}
+                              >
+                                {taskStatuses.map((value) => (
+                                  <option key={value} value={value}>
+                                    {value === "WAITING_ON_CUSTOMER"
+                                      ? "Waiting on Customer"
+                                      : value === "REQUIRED_UNAVAILABLE"
+                                        ? "Required, but Unavailable"
+                                        : value.replaceAll("_", " ")}
+                                  </option>
+                                ))}
+                              </select>
+                            );
+                          })()}
                         </label>
                         <label>
                           <span>Due date</span>
@@ -577,8 +670,102 @@ export default async function Page({
                           <PendingSubmitButton pendingLabel="Saving…">Save Task</PendingSubmitButton>
                         </div>
                       </form>
+
+                      {(() => {
+                        const requirement = documentRequirementContext(
+                          task.intake_requirement_context,
+                        );
+
+                        if (!requirement?.items.length) return null;
+
+                        return (
+                          <section className="task-document-requirements">
+                            <div className="task-document-requirements-head">
+                              <div>
+                                <strong>Document Requirements</strong>
+                                <p>
+                                  Record receipt only. Documents remain outside
+                                  DM3Oi.
+                                </p>
+                              </div>
+                              <span className="count-pill">
+                                {requirement.outstanding.length} outstanding
+                              </span>
+                            </div>
+
+                            <div className="task-document-requirement-list">
+                              {requirement.items.map((document) => (
+                                <form
+                                  action={
+                                    setDocumentRequirementReceivedAction
+                                  }
+                                  className={`task-document-requirement-row${
+                                    document.received ? " received" : ""
+                                  }`}
+                                  key={document.id}
+                                >
+                                  <input
+                                    type="hidden"
+                                    name="caseId"
+                                    value={item.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="taskId"
+                                    value={task.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="optionId"
+                                    value={document.id}
+                                  />
+                                  <input
+                                    type="hidden"
+                                    name="received"
+                                    value={
+                                      document.received ? "false" : "true"
+                                    }
+                                  />
+
+                                  <span
+                                    className={`task-document-received-check${
+                                      document.received ? " checked" : ""
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    {document.received ? "✓" : ""}
+                                  </span>
+
+                                  <span className="task-document-requirement-copy">
+                                    <strong>{document.label}</strong>
+                                    <small>
+                                      {document.received
+                                        ? "Received"
+                                        : "Outstanding"}
+                                    </small>
+                                  </span>
+
+                                  {task.status !== "COMPLETED" ? (
+                                    <PendingSubmitButton
+                                      className="secondary-button"
+                                      pendingLabel="Saving…"
+                                    >
+                                      {document.received
+                                        ? "Mark Outstanding"
+                                        : "Mark Received"}
+                                    </PendingSubmitButton>
+                                  ) : null}
+                                </form>
+                              ))}
+                            </div>
+                          </section>
+                        );
+                      })()}
+
                       {task.generated_by_intake &&
-                      task.status === "NOT_STARTED" ? (
+                      documentRequirementContext(
+                        task.intake_requirement_context,
+                      )?.outstanding.length ? (
                         <div className="task-notice-action">
                           <form
                             action={sendMissingDocumentsNoticeAction}
@@ -594,13 +781,28 @@ export default async function Page({
                             </PendingSubmitButton>
                           </form>
                           <span className="task-notice-help">
-                            Send Notice to Customer to start task
+                            {documentRequirementContext(
+                              task.intake_requirement_context,
+                            )?.noticeSentAt
+                              ? "Send an updated request containing only the documents still outstanding."
+                              : "Send the Customer the current outstanding document requirements."}
                           </span>
-                        </div>
-                      ) : task.generated_by_intake &&
-                        task.status === "IN_PROGRESS" ? (
-                        <div className="task-notice-sent">
-                          <span>Email Sent</span>
+
+                          {documentRequirementContext(
+                            task.intake_requirement_context,
+                          )?.noticeSentAt ? (
+                            <div className="task-notice-sent">
+                              <span>
+                                Last notice sent{" "}
+                                {formatOrganizationDateTime(
+                                  documentRequirementContext(
+                                    task.intake_requirement_context,
+                                  )!.noticeSentAt!,
+                                  data.timezone,
+                                )}
+                              </span>
+                            </div>
+                          ) : null}
                         </div>
                       ) : null}
 

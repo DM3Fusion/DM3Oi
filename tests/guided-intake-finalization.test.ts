@@ -19,7 +19,11 @@ test("Step 6 calls the linked-Case Portal-aware finalization RPC", () => {
   assert.match(rpcCall, /target_tax_year: linkedCase\.tax_year!/);
   assert.match(
     rpcCall,
-    /target_manager_user_id: draft\.managerUserId \|\| null/,
+    /target_manager_user_id: configuration\.canAssign[\s\S]*\? draft\.managerUserId \|\| null[\s\S]*: null/,
+  );
+  assert.match(
+    rpcCall,
+    /target_staff_user_ids: configuration\.canAssign[\s\S]*\? draft\.staffUserIds[\s\S]*: \[access\.user\.id\]/,
   );
   assert.match(rpcCall, /target_follow_up_tasks: draft\.followUpTasks/);
   assert.match(rpcCall, /target_portal_onboarding: draft\.portalOnboarding/);

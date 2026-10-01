@@ -160,7 +160,7 @@ export async function saveGuidedIntakeDraftAction(
         "A follow-up Task no longer matches the current intake answer. Review it and try again.",
     };
   }
-  if (input.currentStep >= 2 && unstagedMissingRequirement) {
+  if (input.currentStep >= 3 && unstagedMissingRequirement) {
     return {
       ok: false,
       error:
@@ -693,38 +693,6 @@ export async function sendGuidedIntakeMissingDocumentsNoticeAction(
     };
   }
 
-  if (task.status === "IN_PROGRESS") {
-    const { data: currentCase } = await supabase
-      .from("cases")
-      .select("customer_id")
-      .eq("id", caseId)
-      .eq("organization_id", organization.id)
-      .maybeSingle();
-
-    const { data: currentCustomer } = currentCase
-      ? await supabase
-          .from("customers")
-          .select("email")
-          .eq("id", currentCase.customer_id)
-          .eq("organization_id", organization.id)
-          .maybeSingle()
-      : { data: null };
-
-    return {
-      ok: true,
-      recipientEmail: currentCustomer?.email ?? "",
-      alreadySent: true,
-      statusUpdated: true,
-    };
-  }
-
-  if (task.status !== "NOT_STARTED") {
-    return {
-      ok: false,
-      error: "This Requirements Task is no longer awaiting a Customer notice.",
-    };
-  }
-
   const { data: caseRow, error: caseError } = await supabase
     .from("cases")
     .select("id,case_number,customer_id")
@@ -799,8 +767,9 @@ export async function sendGuidedIntakeMissingDocumentsNoticeAction(
     };
   }
 
-  // The canonical RPC records successful notice delivery by moving the
-  // workflow-generated Task from NOT_STARTED to IN_PROGRESS.
+  // Record successful notice delivery without changing the document
+  // requirement lifecycle. Outstanding requirements remain system-owned
+  // WAITING_ON_CUSTOMER.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: statusError } = await (supabase as any).rpc(
     "mark_intake_requirement_notice_sent",
