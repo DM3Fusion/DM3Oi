@@ -25,7 +25,37 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const customer = requireOrganizationCustomer(customerRow);
   if (!customer) notFound();
   const [{ data: creator }, { data: cases }, { data: portalLinks }] = await Promise.all([customer.created_by_user_id ? supabase.from("profiles").select("*").eq("id", customer.created_by_user_id).maybeSingle() : Promise.resolve({ data: null }), supabase.from("organization_cases").select("id,status,tax_year").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id), supabase.from("customer_portal_users").select("id,user_id,is_active").eq("organization_id", access.activeOrganization.id).eq("customer_id", customer.id).order("is_active", { ascending: false })]);
-  const openCases = (cases ?? []).filter((item) => isIncompleteCompatibilityCaseStatus(item.status)).length;
+  const openCaseRows = (cases ?? []).filter((item) =>
+    isIncompleteCompatibilityCaseStatus(item.status),
+  );
+  const openCases = openCaseRows.length;
+  const openCaseIds = openCaseRows.map((item) => item.id);
+
+  const { data: customerAssignments } = openCaseIds.length
+    ? await supabase
+        .from("case_assignments")
+        .select("user_id")
+        .eq("organization_id", access.activeOrganization.id)
+        .eq("assignment_role", "STAFF")
+        .eq("is_active", true)
+        .in("case_id", openCaseIds)
+    : { data: [] };
+
+  const assignedStaffIds = [
+    ...new Set((customerAssignments ?? []).map((item) => item.user_id)),
+  ];
+
+  const { data: assignedStaffProfiles } = assignedStaffIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id,display_name,email")
+        .in("id", assignedStaffIds)
+    : { data: [] };
+
+  const assignedStaffNames = (assignedStaffProfiles ?? [])
+    .map((profile) => profile.display_name || profile.email || "Assigned Staff")
+    .sort((a, b) => a.localeCompare(b));
+
   const memberSince = getCustomerMemberSince(cases ?? []);
   const portal = portalLinks?.[0];
   const portalStatus = await getCustomerPortalOnboardingStatus({ organizationId: access.activeOrganization.id, customerId: customer.id, actorUserId: access.user.id });
@@ -62,6 +92,14 @@ export default async function Page({ params, searchParams }: { params: Promise<{
             <h2>{customer.customer_number}</h2>
             <p>{customer.type}</p>
           </div>
+
+          <div className="customer-mobile-assigned-staff">
+            <span>Assigned Staff</span>
+            <strong>
+              {assignedStaffNames.length ? assignedStaffNames.join(", ") : "—"}
+            </strong>
+          </div>
+
           <Badge value={customer.status} />
         </div>
         <dl className="detail-facts">
