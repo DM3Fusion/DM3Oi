@@ -9823,27 +9823,37 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 .intake-document-availability-modal {
-  width: min(36rem, calc(100vw - 2rem));
+  width: min(52rem, calc(100vw - 3rem));
+  max-width: 52rem;
+  overflow-x: hidden;
 }
 
 .intake-document-availability-list {
   display: grid;
   gap: 0.55rem;
+  min-width: 0;
 }
 
 .intake-document-availability-list > label {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 1.5rem;
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 0.4rem;
   padding: 0.75rem 0.85rem;
 }
 
+.intake-document-availability-list > label > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .intake-document-availability-control {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.45rem;
   white-space: nowrap;
 }
