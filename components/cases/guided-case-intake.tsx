@@ -1678,9 +1678,22 @@ export function GuidedCaseIntake({
           step === 3 ? renderRequirements() :
             step === 4 ? renderReview() : (
               <div className="intake-create-confirmation intake-step-content">
-                <h2>Ready to create this Case</h2>
-                <p>The server will revalidate the Customer, configuration, assignments, questions, Rules, and requirements before making any changes.</p>
-                <p><strong>{selectedType?.name}</strong> for <strong>{selectedCustomer?.name}</strong> · Tax Year <strong>{draft.taxYear}</strong></p>
+                <h2>Ready to Finish Intake</h2>
+                <p>
+                  Clicking <strong>Finish Intake</strong> completes the intake
+                  process in DM3Oi™; however, Customers can still check the
+                  status of their Case using the Customer Portal.
+                </p>
+                <p>
+                  Continue document handling, preparation, filing, payment
+                  processing, and other service work in your organization’s
+                  designated systems.
+                </p>
+                <p>
+                  <strong>{selectedType?.name}</strong> for{" "}
+                  <strong>{selectedCustomer?.name}</strong> · Tax Year{" "}
+                  <strong>{draft.taxYear}</strong>
+                </p>
               </div>
             );
 

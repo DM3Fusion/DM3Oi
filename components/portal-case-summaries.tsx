@@ -68,16 +68,16 @@ export function PortalCaseSummaries({
               </div>
 
               <div className="portal-case-progress-copy">
-                <strong>{percentage}% Complete</strong>
+                <strong>{percentage}% Intake Complete</strong>
               </div>
               <div
                 className="portal-case-progress"
                 role="progressbar"
-                aria-label={`${item.case_number} progress`}
+                aria-label={`${item.case_number} intake progress`}
                 aria-valuemin={0}
                 aria-valuemax={100}
                 aria-valuenow={percentage}
-                aria-valuetext={`${percentage}% complete`}
+                aria-valuetext={`${percentage}% intake complete`}
               >
                 <span style={{ width: `${percentage}%` }} />
               </div>
