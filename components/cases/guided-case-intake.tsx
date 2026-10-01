@@ -758,18 +758,11 @@ export function GuidedCaseIntake({
           ? { portalOnboarding: "Resolve Customer Portal onboarding." }
           : {}),
       };
-    return {
-      ...validateGuidedCustomerStep(draft, scopedConfiguration),
-      ...validateGuidedCaseDetails(
-        draft,
-        scopedConfiguration,
-        customerMode,
-      ),
-      ...validateGuidedIntakeQuestions(evaluation, draft.requiredOptionIds),
-      ...(!portalResolved
-        ? { portalOnboarding: "Resolve Customer Portal onboarding." }
-        : {}),
-    };
+    // Review is a summary step. Earlier steps were already validated while
+    // advancing through the intake, and Finish Intake performs the authoritative
+    // full server-side validation before finalization. Do not surface hidden
+    // field errors on Review that the user cannot resolve from this screen.
+    return {};
   };
 
   const sendPortalInvitation = async (resend: boolean) => {

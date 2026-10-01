@@ -174,3 +174,24 @@ test("Edit Case preserves the Guided Intake customer mode established before mat
   assert.doesNotMatch(caseLoader, /customerMode:\s*"existing"/);
   assert.match(caseLoader, /\.\.\.savedDraft/);
 });
+
+
+test("Review advances without re-running hidden step validation", () => {
+  const component = fs.readFileSync(
+    "components/cases/guided-case-intake.tsx",
+    "utf8",
+  );
+
+  const validation = component.match(
+    /const validateStep = \(\) => \{[\s\S]*?\n  \};/,
+  )?.[0] ?? "";
+
+  assert.match(
+    validation,
+    /Review is a summary step[\s\S]*return \{\};/,
+  );
+  assert.match(
+    component,
+    /finalizeGuidedCaseAction\(\s*draft,\s*customerMode/,
+  );
+});
