@@ -89,6 +89,7 @@ export async function saveGuidedIntakeDraftAction(
   const { access, configuration } =
     await loadGuidedCaseIntakeValidationConfiguration(input.draft.caseId);
   const organizationId = access.activeOrganization!.id;
+  const canAssignCases = hasPermission(access, "ASSIGN_CASES");
 
   if (
     !Number.isInteger(input.currentStep) ||
@@ -334,8 +335,12 @@ export async function saveGuidedIntakeDraftAction(
     case_type_id:
       linkedCase?.case_type_id ?? (input.draft.caseTypeId || null),
     priority: guidedCasePriority(input.draft.priority),
-    manager_user_id: input.draft.managerUserId || null,
-    staff_user_ids: input.draft.staffUserIds,
+    manager_user_id: canAssignCases
+      ? input.draft.managerUserId || null
+      : null,
+    staff_user_ids: canAssignCases
+      ? input.draft.staffUserIds
+      : [access.user.id],
     answers: input.draft.answers,
     required_option_ids: effectiveRequiredOptionIds,
     follow_up_tasks: input.draft.followUpTasks,
@@ -893,8 +898,12 @@ export async function materializeGuidedCaseAction(
       target_case_type_id: draft.caseTypeId,
       target_priority: guidedCasePriority(draft.priority),
       target_tax_year: draft.taxYear!,
-      target_manager_user_id: draft.managerUserId || null,
-      target_staff_user_ids: draft.staffUserIds,
+      target_manager_user_id: configuration.canAssign
+        ? draft.managerUserId || null
+        : null,
+      target_staff_user_ids: configuration.canAssign
+        ? draft.staffUserIds
+        : [access.user.id],
     },
   );
 
@@ -1059,8 +1068,12 @@ export async function finalizeGuidedCaseAction(
       target_case_type_id: linkedCase.case_type_id,
       target_priority: guidedCasePriority(draft.priority),
       target_tax_year: linkedCase.tax_year!,
-      target_manager_user_id: draft.managerUserId || null,
-      target_staff_user_ids: draft.staffUserIds,
+      target_manager_user_id: configuration.canAssign
+        ? draft.managerUserId || null
+        : null,
+      target_staff_user_ids: configuration.canAssign
+        ? draft.staffUserIds
+        : [access.user.id],
       target_answers: creationPlan.answers,
       target_follow_up_tasks: draft.followUpTasks,
       target_portal_onboarding: draft.portalOnboarding,

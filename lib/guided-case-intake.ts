@@ -668,31 +668,25 @@ export function validateGuidedCaseDetails(
   if (!guidedCasePriorities.some((priority) => priority === draft.priority))
     errors.priority = "Select a valid priority.";
 
-  if (
-    !configuration.canAssign &&
-    (draft.managerUserId || draft.staffUserIds.length)
-  )
-    errors.assignments = "You do not have permission to assign this Case.";
-
-  if (
-    draft.managerUserId &&
-    !configuration.managers.some(
-      (manager) => manager.id === draft.managerUserId,
+  if (configuration.canAssign) {
+    if (
+      draft.managerUserId &&
+      !configuration.managers.some(
+        (manager) => manager.id === draft.managerUserId,
+      )
     )
-  )
-    errors.managerUserId = "Select an active eligible Case Manager.";
+      errors.managerUserId = "Select an active eligible Case Manager.";
 
-  const staffIds = new Set(configuration.staff.map((member) => member.id));
+    const staffIds = new Set(configuration.staff.map((member) => member.id));
 
-  if (draft.staffUserIds.length === 0)
-    errors.staffUserIds = configuration.canAssign
-      ? "Assign at least one Staff member before continuing."
-      : "An Assigned Staff member is required, but you do not have assignment permission.";
-  else if (draft.staffUserIds.some((id) => !staffIds.has(id)))
-    errors.staffUserIds = "Assigned Staff must be active eligible members.";
+    if (draft.staffUserIds.length === 0)
+      errors.staffUserIds = "Assign at least one Staff member before continuing.";
+    else if (draft.staffUserIds.some((id) => !staffIds.has(id)))
+      errors.staffUserIds = "Assigned Staff must be active eligible members.";
 
-  if (new Set(draft.staffUserIds).size !== draft.staffUserIds.length)
-    errors.staffUserIds = "Assigned Staff cannot contain duplicates.";
+    if (new Set(draft.staffUserIds).size !== draft.staffUserIds.length)
+      errors.staffUserIds = "Assigned Staff cannot contain duplicates.";
+  }
 
   return errors;
 }

@@ -349,15 +349,24 @@ export function GuidedCaseIntake({
       followUpTasks: [],
       portalOnboarding: unresolvedPortalOnboarding(),
     };
-    if (source.caseId) {
-      return source;
+    const assignmentNormalizedSource =
+      !configuration.canAssign && configuration.staff.length === 1
+        ? {
+            ...source,
+            managerUserId: "",
+            staffUserIds: [configuration.staff[0].id],
+          }
+        : source;
+
+    if (assignmentNormalizedSource.caseId) {
+      return assignmentNormalizedSource;
     }
 
     return {
-      ...source,
+      ...assignmentNormalizedSource,
       ...reconcileGuidedCaseSelection(
-        source.caseTypeId,
-        source.taxYear,
+        assignmentNormalizedSource.caseTypeId,
+        assignmentNormalizedSource.taxYear,
         initialResolvedCustomerMode,
         configuration.caseTypes,
         configuration.currentTaxYear,
@@ -1394,7 +1403,7 @@ export function GuidedCaseIntake({
           </fieldset>
         </>
       ) : (
-        <p className="intake-note full">Assignments can be added later by a user with assignment permission.</p>
+        <p className="intake-note full">This Case will be assigned to you automatically.</p>
       )}
     </div>
   );
@@ -2301,6 +2310,7 @@ export function GuidedCaseIntake({
                     defaultValue={
                       activeTask?.assignedUserId ||
                       draft.staffUserIds[0] ||
+                      configuration.staff[0]?.id ||
                       ""
                     }
                   >

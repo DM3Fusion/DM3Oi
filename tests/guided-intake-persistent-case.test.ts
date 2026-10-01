@@ -6,6 +6,9 @@ const source = (path: string) => readFileSync(path, "utf8");
 const migration = source(
   "supabase/migrations/20260928130000_dm3oi_guided_intake_case_persistence.sql",
 );
+const selfAssignmentMigration = source(
+  "supabase/migrations/20261002004500_dm3oi_guided_intake_self_assignment.sql",
+);
 const actions = source("lib/data/guided-case-intake-actions.ts");
 const component = source("components/cases/guided-case-intake.tsx");
 const draftLoader = source("lib/data/guided-case-intake-drafts.ts");
@@ -39,6 +42,14 @@ test("validated Step 2 materializes one canonical active Case with real identity
   assert.doesNotMatch(materializeSql, /'ASSIGNED'|'UNASSIGNED'/);
   assert.match(materializeSql, /at least one assigned staff member is required/);
   assert.match(materializeSql, /insert into public\.case_assignments/);
+  assert.match(
+    actions,
+    /target_staff_user_ids:\s*configuration\.canAssign[\s\S]*draft\.staffUserIds[\s\S]*\[access\.user\.id\]/,
+  );
+  assert.match(
+    actions,
+    /staff_user_ids:\s*canAssignCases[\s\S]*input\.draft\.staffUserIds[\s\S]*\[access\.user\.id\]/,
+  );
   assert.doesNotMatch(
     materializeSql.match(/insert into public\.cases\([\s\S]*?\) values\([\s\S]*?\)/)?.[0] ?? "",
     /case_number|opened_at/,
@@ -164,7 +175,15 @@ test("Milestone 1 lifecycle and read-only Case Questions remain intact", () => {
 test("new RPCs retain tenant authorization and least-privilege execution", () => {
   assert.match(materializeSql, /actor uuid:=auth\.uid\(\)/);
   assert.match(materializeSql, /has_effective_organization_permission\([\s\S]*'CREATE_CASE'/);
-  assert.match(materializeSql, /has_effective_organization_permission\([\s\S]*'ASSIGN_CASES'/);
+  assert.match(selfAssignmentMigration, /has_effective_organization_permission\([\s\S]*'ASSIGN_CASES'/);
+  assert.match(
+    selfAssignmentMigration,
+    /target_manager_user_id is not null[\s\S]*cardinality\(target_staff_user_ids\)<>1[\s\S]*target_staff_user_ids\[1\] is distinct from actor/,
+  );
+  assert.match(
+    selfAssignmentMigration,
+    /Case creator may only self-assign/,
+  );
   assert.match(finalizeSql, /security definer[\s\S]*set search_path=''/);
   assert.match(
     finalizeSql,

@@ -456,7 +456,9 @@ export async function loadGuidedCaseIntakeConfiguration(
         : [],
       staff: canAssign
         ? eligible.map(({ id, name }) => ({ id, name }))
-        : [],
+        : eligible
+            .filter((member) => member.id === access.user.id)
+            .map(({ id, name }) => ({ id, name })),
       questions: (questions.data ?? []).map((question) => ({
         id: question.id,
         text: question.question_text,

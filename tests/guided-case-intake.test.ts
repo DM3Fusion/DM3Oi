@@ -328,7 +328,7 @@ test("Case Details require at least one Assigned Staff member", () => {
   assert.match(errors.staffUserIds, /Assign at least one Staff member/);
 });
 
-test("Case Details reject ineligible staff, managers, duplicates, and unauthorized assignment", () => {
+test("Case Details validate explicit assignments only for users with assignment permission", () => {
   const configuration = baseConfiguration();
   const ineligible = validateGuidedCaseDetails(
     {
@@ -340,16 +340,28 @@ test("Case Details reject ineligible staff, managers, duplicates, and unauthoriz
   );
   assert.match(ineligible.managerUserId, /active eligible Case Manager/);
   assert.match(ineligible.staffUserIds, /active eligible members/);
+
   const duplicate = validateGuidedCaseDetails(
     { ...draft(), staffUserIds: ["staff-a", "staff-a"] },
     configuration,
   );
   assert.match(duplicate.staffUserIds, /duplicates/);
-  const unauthorized = validateGuidedCaseDetails(
-    { ...draft(), staffUserIds: ["staff-a"] },
-    { ...configuration, canAssign: false },
+
+  const selfAssignedByServer = validateGuidedCaseDetails(
+    {
+      ...draft(),
+      managerUserId: "",
+      staffUserIds: [],
+    },
+    {
+      ...configuration,
+      canAssign: false,
+      managers: [],
+      staff: [],
+    },
   );
-  assert.match(unauthorized.assignments, /do not have permission/);
+  assert.equal(selfAssignedByServer.staffUserIds, undefined);
+  assert.equal(selfAssignedByServer.assignments, undefined);
 });
 
 test("SHOW and REQUIRE dynamically expose and require intake Questions", () => {
