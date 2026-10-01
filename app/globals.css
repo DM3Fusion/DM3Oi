@@ -10363,8 +10363,8 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 /* Guided Intake — Required Documents modal structural correction. */
 dialog.task-modal.intake-document-availability-modal {
-  width: min(58rem, calc(100vw - 3rem));
-  max-width: 58rem;
+  width: min(48rem, calc(100vw - 3rem));
+  max-width: 48rem;
   overflow-x: hidden;
 }
 
