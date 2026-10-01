@@ -270,6 +270,135 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 
 
+
+/* Completed Cases are historical records, not editable workspaces. */
+.task-record.read-only .task-editor{
+  display:none;
+}
+.task-record.read-only>summary{
+  cursor:default;
+}
+
+/* Tax outcome completion modal */
+.case-completion-open{
+  width:100%;
+  justify-content:center;
+}
+.case-completion-dialog{
+  width:min(620px,calc(100vw - 32px));
+  max-height:calc(100vh - 32px);
+  overflow:auto;
+  border:1px solid var(--line);
+  border-radius:10px;
+  padding:0;
+  color:var(--ink);
+  background:#fff;
+  box-shadow:0 20px 55px rgba(16,24,40,.22);
+}
+.case-completion-dialog::backdrop{
+  background:rgba(16,35,63,.42);
+}
+.case-completion-form{
+  display:grid;
+  gap:20px;
+  padding:24px;
+}
+.case-completion-form header h2,
+.case-completion-form header p{
+  margin:0;
+}
+.case-completion-form header h2{
+  margin-top:4px;
+}
+.case-completion-form header p{
+  margin-top:7px;
+  color:#52677d;
+  line-height:1.5;
+}
+.case-completion-form fieldset{
+  display:grid;
+  gap:10px;
+  min-width:0;
+  margin:0;
+  padding:0;
+  border:0;
+}
+.case-completion-form legend{
+  margin-bottom:8px;
+  color:#40506a;
+  font-weight:800;
+}
+.case-completion-option{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:start;
+  gap:12px;
+  padding:14px;
+  border:1px solid #d7dee7;
+  border-radius:7px;
+  background:#fff;
+  cursor:pointer;
+}
+.case-completion-option:has(input:checked){
+  border-color:#1688c7;
+  background:#f3fbfd;
+}
+.case-completion-option input{
+  margin-top:4px;
+}
+.case-completion-option span,
+.case-completion-option strong,
+.case-completion-option small{
+  display:block;
+}
+.case-completion-option strong{
+  color:#10233f;
+}
+.case-completion-option small{
+  margin-top:3px;
+  color:#667085;
+  line-height:1.45;
+}
+.case-completion-warning{
+  padding:12px 13px;
+  border:1px solid #dbe4ec;
+  border-radius:7px;
+  background:#f8fafc;
+  color:#526176;
+  font-size:14px;
+  line-height:1.5;
+}
+.case-completion-form footer{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  padding-top:16px;
+  border-top:1px solid var(--line);
+}
+.case-completion-control>p{
+  margin:0 0 11px;
+  color:#526176;
+  font-size:14px;
+  line-height:1.5;
+}
+@media(max-width:600px){
+  .case-completion-dialog{
+    width:calc(100vw - 24px);
+    max-height:calc(100vh - 24px);
+  }
+  .case-completion-form{
+    padding:18px;
+  }
+  .case-completion-form footer{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+  .case-completion-form footer button{
+    width:100%;
+    justify-content:center;
+  }
+}
+
 /* Case completion lifecycle control */
 .case-completion-control{
   margin-top:14px;

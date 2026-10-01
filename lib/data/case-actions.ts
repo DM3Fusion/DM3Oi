@@ -95,7 +95,13 @@ export async function transitionCaseStatusAction(data: FormData) {
 }
 export async function completeCaseAction(data: FormData) {
   const id = text(data, "caseId");
+  const taxOutcome = text(data, "taxOutcome");
+
   await requirePermission("WORK_CASES");
+
+  if (!["REFUND", "BALANCE_DUE", "ZERO_BALANCE"].includes(taxOutcome)) {
+    fail(`/cases/${id}`, "Select the final tax preparation outcome.");
+  }
 
   const supabase = await createClient();
 
@@ -103,6 +109,7 @@ export async function completeCaseAction(data: FormData) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any).rpc("complete_case", {
     target_case_id: id,
+    target_tax_outcome: taxOutcome,
   });
 
   if (error) {

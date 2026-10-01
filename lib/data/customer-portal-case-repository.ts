@@ -7,6 +7,7 @@ export interface CustomerPortalCaseSummary {
   customer_status: string;
   progress_percent: number;
   intake_finalized: boolean;
+  tax_outcome: "REFUND" | "BALANCE_DUE" | "ZERO_BALANCE" | null;
 }
 
 export interface CustomerPortalCaseRequirement {

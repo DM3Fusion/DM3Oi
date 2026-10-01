@@ -18,6 +18,7 @@ import {
 import { UserAvatar } from "@/components/user-avatar";
 import { CaseQuestions } from "@/components/cases/case-questions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { CaseCompletionModal } from "@/components/cases/case-completion-modal";
 import { formatOrganizationDate, formatOrganizationDateTime, organizationDateInputValue } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
@@ -220,9 +221,13 @@ export default async function Page({
     return Math.max(1, difference);
   })();
 
-  const canManage = hasPermission(access, "MANAGE_TASKS");
-  const canAssignCases = hasPermission(access, "ASSIGN_CASES");
-  const canWorkCases = hasPermission(access, "WORK_CASES");
+  const caseReadOnly = item.status === "COMPLETED";
+  const canManage =
+    !caseReadOnly && hasPermission(access, "MANAGE_TASKS");
+  const canAssignCases =
+    !caseReadOnly && hasPermission(access, "ASSIGN_CASES");
+  const canWorkCases =
+    !caseReadOnly && hasPermission(access, "WORK_CASES");
   const canEditGuidedIntake =
     canWorkCases &&
     isCanonicalActiveCaseStatus(item.status) &&
@@ -393,7 +398,7 @@ export default async function Page({
               <div className="task-list">
                 {item.tasks.map((task) => (
                   <details
-                    className="task-record"
+                    className={`task-record${caseReadOnly ? " read-only" : ""}`}
                     id={`task-${task.id}`}
                     key={task.id}
                   >
@@ -430,7 +435,9 @@ export default async function Page({
                         {task.required ? "Required" : "Optional"}
                       </span>
                       <Badge value={task.status} />
-                      <span className="task-row-chevron" aria-hidden="true">›</span>
+                      {!caseReadOnly ? (
+                        <span className="task-row-chevron" aria-hidden="true">›</span>
+                      ) : null}
                     </summary>
                     <div className="task-editor">
                       <form action={updateTaskAction} className="mini-form">
@@ -785,28 +792,16 @@ export default async function Page({
                   </p>
 
                   {canCompleteCase ? (
-                    <details className="case-completion-control">
-                      <summary className="primary-button">
-                        Complete Case
-                      </summary>
-
-                      <div className="case-completion-confirmation">
-                        <strong>Confirm Case Completion</strong>
-                        <p>
-                          Confirm that all work performed outside DM3Oi for this
-                          Case has been completed. The Case will move to
-                          Completed Cases and the Customer Portal will show the
-                          service as complete.
-                        </p>
-
-                        <form action={completeCaseAction}>
-                          <input type="hidden" name="caseId" value={item.id} />
-                          <PendingSubmitButton pendingLabel="Completing…">
-                            Confirm Completion
-                          </PendingSubmitButton>
-                        </form>
-                      </div>
-                    </details>
+                    <div className="case-completion-control">
+                      <p>
+                        Click Complete Case once tax preparation is finished and
+                        the final tax outcome is known.
+                      </p>
+                      <CaseCompletionModal
+                        caseId={item.id}
+                        action={completeCaseAction}
+                      />
+                    </div>
                   ) : null}
                 </>
               )}

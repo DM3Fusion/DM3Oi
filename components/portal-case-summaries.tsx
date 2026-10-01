@@ -8,17 +8,24 @@ import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 const safePercentage = (value: number) =>
   Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 
-const externalCasePhaseLabel = (serviceLabel: string) => {
-  const normalized = serviceLabel.toLowerCase();
+const activeExternalCasePhaseLabel = (serviceLabel: string) =>
+  serviceLabel.toLowerCase().includes("cash advance")
+    ? "Cash Advance"
+    : "Tax Return";
 
-  if (
-    normalized.includes("cash advance") ||
-    normalized.includes("refund")
-  ) {
-    return "Refund";
+const completedExternalCasePhase = (
+  outcome: CustomerPortalCaseSummary["tax_outcome"],
+) => {
+  switch (outcome) {
+    case "REFUND":
+      return { label: "Refund", status: "Issued" };
+    case "BALANCE_DUE":
+      return { label: "Payment", status: "Due" };
+    case "ZERO_BALANCE":
+      return { label: "Tax Return", status: "Complete" };
+    default:
+      return { label: "Tax Return", status: "Complete" };
   }
-
-  return "Service";
 };
 
 type Props = {
@@ -67,10 +74,15 @@ export function PortalCaseSummaries({
         {cases.map((item) => {
           const percentage = safePercentage(item.progress_percent);
           const intakePercentage = item.intake_finalized ? 100 : percentage;
-          const externalPhaseLabel = externalCasePhaseLabel(item.service_label);
           const externalPhaseComplete = item.customer_status === "Completed";
+          const completedExternalPhase = completedExternalCasePhase(
+            item.tax_outcome,
+          );
+          const externalPhaseLabel = externalPhaseComplete
+            ? completedExternalPhase.label
+            : activeExternalCasePhaseLabel(item.service_label);
           const externalPhaseStatus = externalPhaseComplete
-            ? "100% Complete"
+            ? completedExternalPhase.status
             : item.intake_finalized
               ? "In Progress"
               : "Not Started";
@@ -120,7 +132,7 @@ export function PortalCaseSummaries({
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={100}
-                      aria-valuetext="100% complete"
+                      aria-valuetext={`${externalPhaseLabel} ${externalPhaseStatus}`}
                     >
                       <span style={{ width: "100%" }} />
                     </div>
