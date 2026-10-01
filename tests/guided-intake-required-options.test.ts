@@ -92,7 +92,7 @@ const evaluateYesNo = (
     {},
   );
 
-test("optional ANY_ANSWER YES/NO answered No creates a follow-up requirement", () => {
+test("optional ANY_ANSWER YES/NO answered No does not create a follow-up requirement", () => {
   const item = yesNoQuestion({
     id: "optional-no",
     required: false,
@@ -102,17 +102,14 @@ test("optional ANY_ANSWER YES/NO answered No creates a follow-up requirement", (
   const evaluation = evaluateYesNo(item, false);
 
   assert.equal(evaluation.questions[0]?.valid, true);
-
-  const requirements = getGuidedIntakeFollowUpRequirements(
-    evaluation,
-    answers,
-    {},
+  assert.deepEqual(
+    getGuidedIntakeFollowUpRequirements(
+      evaluation,
+      answers,
+      {},
+    ),
+    [],
   );
-
-  assert.equal(requirements.length, 1);
-  assert.equal(requirements[0]?.question.id, item.id);
-  assert.equal(requirements[0]?.documentRequirement, false);
-  assert.deepEqual(requirements[0]?.missingOptions, []);
 });
 
 test("optional ANY_ANSWER YES/NO answered Yes does not create a follow-up requirement", () => {
@@ -123,6 +120,26 @@ test("optional ANY_ANSWER YES/NO answered Yes does not create a follow-up requir
   });
   const answers = { [item.id]: true };
   const evaluation = evaluateYesNo(item, true);
+
+  assert.equal(evaluation.questions[0]?.valid, true);
+  assert.deepEqual(
+    getGuidedIntakeFollowUpRequirements(
+      evaluation,
+      answers,
+      {},
+    ),
+    [],
+  );
+});
+
+test("required ANY_ANSWER YES/NO answered No is complete and does not create a follow-up requirement", () => {
+  const item = yesNoQuestion({
+    id: "required-any-no",
+    required: true,
+    completionCondition: "ANY_ANSWER",
+  });
+  const answers = { [item.id]: false };
+  const evaluation = evaluateYesNo(item, false);
 
   assert.equal(evaluation.questions[0]?.valid, true);
   assert.deepEqual(

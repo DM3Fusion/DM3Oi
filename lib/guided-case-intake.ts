@@ -587,16 +587,18 @@ export function getGuidedIntakeFollowUpRequirements(
   );
 
   return evaluation.questions.flatMap<GuidedIntakeFollowUpRequirement>((question) => {
-    if (!question.applicable) return [];
+    if (
+      !question.applicable ||
+      !question.effectiveRequired ||
+      question.valid
+    ) {
+      return [];
+    }
 
     const missingOptions = missingByQuestion.get(question.id) ?? [];
 
     // Preserve the specialized required-document workflow.
-    if (
-      question.effectiveRequired &&
-      !question.valid &&
-      missingOptions.length
-    ) {
+    if (missingOptions.length) {
       return [{
         question,
         missingOptions,
@@ -604,25 +606,10 @@ export function getGuidedIntakeFollowUpRequirements(
       }];
     }
 
-    // Every applicable YES/NO Question answered No gets one workflow
-    // follow-up Task, whether the Question itself is required or optional.
+    // A required Question may have a syntactically valid answer that still
+    // does not satisfy its completion rule. YES_REQUIRED + No is the current
+    // example. That unresolved answer is carried forward as a workflow Task.
     if (
-      question.responseType === "YES_NO" &&
-      question.answered &&
-      answers[question.id] === false
-    ) {
-      return [{
-        question,
-        missingOptions: [],
-        documentRequirement: false,
-      }];
-    }
-
-    // Keep the generic path available for any future required Question whose
-    // answer is syntactically valid but does not satisfy its completion rule.
-    if (
-      question.effectiveRequired &&
-      !question.valid &&
       question.answered &&
       isGuidedQuestionAnswerValid(
         question,
@@ -659,7 +646,7 @@ export function reconcileGuidedIntakeFollowUpTasks(
     const question = evaluation.questions.find(
       (item) => item.id === task.questionId,
     );
-    if (!question?.applicable) return [];
+    if (!question?.applicable || !question.effectiveRequired) return [];
 
     const requirement = requirements.get(task.questionId);
     const missingOptions = requirement?.missingOptions ?? [];
@@ -670,11 +657,7 @@ export function reconcileGuidedIntakeFollowUpTasks(
         task.missingOptionIds.length > 0
       );
 
-    const requirementsSatisfied = documentRequirement
-      ? question.valid
-      : question.responseType === "YES_NO"
-        ? answers[question.id] === true
-        : question.valid;
+    const requirementsSatisfied = question.valid;
 
     const status: GuidedIntakeFollowUpTask["status"] = requirementsSatisfied
       ? "COMPLETED"
@@ -789,22 +772,17 @@ export function guidedFollowUpTaskMatchesMissingOptions(
     (item) => item.id === task.questionId,
   );
 
-  if (!question || !question.applicable) {
+  if (
+    !question ||
+    !question.applicable ||
+    !question.effectiveRequired
+  ) {
     return false;
   }
 
   // Once the linked condition becomes satisfied, preserve the completed Task
   // as historical evidence instead of treating it as stale.
-  if (
-    task.completed &&
-    (
-      task.missingOptionIds.length > 0
-        ? question.valid
-        : question.responseType === "YES_NO"
-          ? answers[question.id] === true
-          : question.valid
-    )
-  ) {
+  if (task.completed && question.valid) {
     return true;
   }
 
@@ -836,8 +814,10 @@ export function guidedFollowUpTaskMatchesMissingOptions(
 export function canCompleteIntakeFollowUpTask(
   task: GuidedIntakeFollowUpTask,
   evaluation: GuidedIntakeEvaluation,
-  answers: GuidedIntakeAnswers = {},
+  _answers: GuidedIntakeAnswers = {},
 ) {
+  void _answers;
+
   if (task.status === "REQUIRED_UNAVAILABLE") return true;
 
   const question = evaluation.questions.find(
@@ -847,10 +827,6 @@ export function canCompleteIntakeFollowUpTask(
 
   if (task.missingOptionIds.length > 0) {
     return question.valid;
-  }
-
-  if (question.responseType === "YES_NO") {
-    return answers[question.id] === true;
   }
 
   return question.valid;

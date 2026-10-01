@@ -191,7 +191,11 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     domain,
-    /const requirementsSatisfied = documentRequirement[\s\S]*question\.valid[\s\S]*question\.responseType === "YES_NO"[\s\S]*answers\[question\.id\] === true[\s\S]*\? "COMPLETED"/,
+    /!question\?*\.applicable[\s\S]*!question\.effectiveRequired/,
+  );
+  assert.match(
+    domain,
+    /const requirementsSatisfied = question\.valid;/,
   );
   assert.match(
     domain,
@@ -332,11 +336,7 @@ test("generic YES/NO follow-up Tasks use the current answer and preserve documen
 
   assert.match(
     domain,
-    /Every applicable YES\/NO Question answered No gets one workflow/,
-  );
-  assert.match(
-    domain,
-    /question\.responseType === "YES_NO"[\s\S]*answers\[question\.id\] === false/,
+    /!question\.applicable[\s\S]*!question\.effectiveRequired[\s\S]*question\.valid[\s\S]*isGuidedQuestionAnswerValid/,
   );
 
   assert.match(
@@ -359,10 +359,6 @@ test("generic YES/NO follow-up Tasks use the current answer and preserve documen
   assert.match(
     migration,
     /question_row\.response_type<>'YES_NO'[\s\S]*is not distinct from 'false'::jsonb[\s\S]*requested_status='COMPLETED'[\s\S]*is not distinct from 'true'::jsonb/,
-  );
-  assert.doesNotMatch(
-    migration,
-    /completion_condition<>'YES_REQUIRED'/,
   );
 
   assert.match(
