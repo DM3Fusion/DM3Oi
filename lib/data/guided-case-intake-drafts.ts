@@ -363,7 +363,10 @@ export async function loadGuidedIntakeDraft(
     id: data.id,
     submissionKey: data.submission_key,
     currentStep: data.case_id
-      ? Math.max(2, data.current_step)
+      ? Math.max(
+          noticeSentFollowUpIds.length ? 3 : 2,
+          data.current_step,
+        )
       : Math.min(1, data.current_step),
     customerMode: data.customer_id
       ? "existing"

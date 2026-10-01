@@ -450,27 +450,6 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
     );
   }
 
-  // A successful Required Documents notice establishes that Guided Intake has
-  // progressed through Questions and into Step 4 — Required Documents.
-  // Advance only older unfinished drafts; never move a later draft backward.
-  const { error: resumeStepError } = await supabase
-    .from("guided_case_intake_drafts")
-    .update({ current_step: 3 })
-    .eq("organization_id", organization.id)
-    .eq("case_id", caseId)
-    .is("finalized_at", null)
-    .lt("current_step", 3);
-
-  if (resumeStepError) {
-    console.error("Guided Intake resume step update failed after notice", {
-      organizationId: organization.id,
-      caseId,
-      taskId,
-      code: resumeStepError.code,
-      message: resumeStepError.message,
-    });
-  }
-
   // Temporary RPC bridge until generated Supabase types include this function.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error: statusError } = await (supabase as any).rpc(

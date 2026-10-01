@@ -370,17 +370,17 @@ test("Task Purpose projection grants authenticated callers the underlying Task P
   );
 });
 
-test("sending a missing-document notice advances unfinished Guided Intake to Step 4 without moving later drafts backward", () => {
-  const actions = source("lib/data/case-actions.ts");
+test("a sent missing-document notice resumes an unfinished materialized Case at Required Documents", () => {
+  const drafts = source("lib/data/guided-case-intake-drafts.ts");
 
   assert.match(
-    actions,
-    /from\("guided_case_intake_drafts"\)[\s\S]*update\(\{ current_step: 3 \}\)[\s\S]*eq\("case_id", caseId\)[\s\S]*is\("finalized_at", null\)[\s\S]*lt\("current_step", 3\)/,
+    drafts,
+    /currentStep: data\.case_id[\s\S]*Math\.max\([\s\S]*noticeSentFollowUpIds\.length \? 3 : 2,[\s\S]*data\.current_step/,
   );
 
   assert.match(
-    actions,
-    /await sendMissingDocumentsNotice\([\s\S]*?\);[\s\S]*?current_step: 3/,
+    drafts,
+    /customer_notice_sent !== true/,
   );
 });
 
