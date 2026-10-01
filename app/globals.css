@@ -9823,9 +9823,14 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 .intake-document-availability-modal {
-  width: min(52rem, calc(100vw - 3rem));
-  max-width: 52rem;
+  width: min(64rem, calc(100vw - 3rem));
+  max-width: 64rem;
   overflow-x: hidden;
+}
+
+.intake-document-availability-modal .task-modal-form {
+  width: 100%;
+  min-width: 0;
 }
 
 .intake-document-availability-modal .task-modal-form {
