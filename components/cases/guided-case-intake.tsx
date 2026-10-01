@@ -1678,7 +1678,6 @@ export function GuidedCaseIntake({
           step === 3 ? renderRequirements() :
             step === 4 ? renderReview() : (
               <div className="intake-create-confirmation intake-step-content">
-                <h2>Ready to Finish Intake</h2>
                 <p>
                   Clicking <strong>Finish Intake</strong> completes the intake
                   process in DM3Oi™; however, Customers can still check the
@@ -1688,11 +1687,6 @@ export function GuidedCaseIntake({
                   Continue document handling, preparation, filing, payment
                   processing, and other service work in your organization’s
                   designated systems.
-                </p>
-                <p>
-                  <strong>{selectedType?.name}</strong> for{" "}
-                  <strong>{selectedCustomer?.name}</strong> · Tax Year{" "}
-                  <strong>{draft.taxYear}</strong>
                 </p>
               </div>
             );
@@ -1944,6 +1938,13 @@ export function GuidedCaseIntake({
             : "Guided Intake"}
         </h2>
         <h3>{guidedCaseIntakeSteps[step]}</h3>
+        {step === guidedCaseIntakeSteps.length - 1 && selectedType && selectedCustomer ? (
+          <p className="intake-finish-context">
+            <strong>{selectedType.name}</strong> for{" "}
+            <strong>{selectedCustomer.name}</strong> · Tax Year{" "}
+            <strong>{draft.taxYear}</strong>
+          </p>
+        ) : null}
       </header>
       {formError ? <div className="form-alert" role="alert">{formError}</div> : null}
       {content}
