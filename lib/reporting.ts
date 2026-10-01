@@ -199,7 +199,7 @@ export const isCanonicalReportParams = (params: ReportParams, period: ReportingP
   return supplied.toString() === period.canonicalQuery;
 };
 
-export type ReportCase = { organization_id: string; customer_id: string; opened_at: string; completed_at: string | null; closed_at: string | null };
+export type ReportCase = { organization_id: string; customer_id: string; opened_at: string; completed_at: string | null };
 export type ReportTask = { organization_id: string; title: string; status: string; created_at: string; completed_at: string | null; due_at: string | null; generated_by_rule: boolean; assigned_user_id: string | null };
 export type ReportCurrentTask = Pick<ReportTask, "organization_id" | "title" | "status" | "due_at">;
 export type ReportRequest = { organization_id: string; case_id: string | null; opened_at: string; resolved_at: string | null };
@@ -293,7 +293,6 @@ export function buildOperationalReport({ organizationId, timezone, period, cases
   const caseVolume = [...bucketMap.values()].sort((left, right) => left.key.localeCompare(right.key));
   const outcome = {
     completed: scopedCases.filter((item) => inRange(item.completed_at, period.range)).length,
-    closed: scopedCases.filter((item) => inRange(item.closed_at, period.range)).length,
   };
   const completedDurations = scopedCases.filter((item) => inRange(item.completed_at, period.range)).map((item) => durationDays(item.opened_at, item.completed_at!));
   const durationsByBucket = new Map<string, number[]>();

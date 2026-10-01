@@ -8803,3 +8803,39 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     min-height:44px;
   }
 }
+
+
+/* Report Case Volume bucket readability */
+.report-volume-chart>div{
+  min-width:78px;
+}
+.report-volume-chart>div>span,
+.report-volume-chart>div>small{
+  display:block;
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.report-volume-chart>div>span{
+  font-size:12px;
+}
+.report-volume-chart>div>small{
+  font-size:11px;
+}
+@media(max-width:820px){
+  .report-volume-chart>div{
+    min-width:72px;
+  }
+}
+@media(max-width:560px){
+  .report-volume-chart>div{
+    min-width:68px;
+  }
+  .report-volume-chart>div>span{
+    font-size:11px;
+  }
+  .report-volume-chart>div>small{
+    font-size:10px;
+  }
+}

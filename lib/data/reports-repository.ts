@@ -42,10 +42,10 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
   const casesPromise = capabilities.cases
     ? supabase
         .from("organization_cases")
-        .select("organization_id,customer_id,opened_at,completed_at,closed_at")
+        .select("organization_id,customer_id,opened_at,completed_at")
         .eq("organization_id", organizationId)
         .lt("created_at", end)
-        .or(`opened_at.gte.${earliest},completed_at.gte.${earliest},closed_at.gte.${earliest}`)
+        .or(`opened_at.gte.${earliest},completed_at.gte.${earliest}`)
     : Promise.resolve({ data: [], error: null });
   const tasksPromise = !capabilities.tasks
     ? Promise.resolve({ data: [], error: null })

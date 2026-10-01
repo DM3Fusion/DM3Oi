@@ -20,7 +20,7 @@ const organizationId = "11111111-1111-4111-8111-111111111111";
 const otherOrganizationId = "22222222-2222-4222-8222-222222222222";
 const capabilities: ReportCapabilities = { cases: true, tasks: true, serviceRequests: true, customers: true, questions: true, rules: true };
 const reportCase = (value: Partial<ReportCase> = {}): ReportCase => ({
-  organization_id: organizationId, customer_id: "customer-1", opened_at: "2026-09-02T14:00:00.000Z", completed_at: "2026-09-05T14:00:00.000Z", closed_at: null, ...value,
+  organization_id: organizationId, customer_id: "customer-1", opened_at: "2026-09-02T14:00:00.000Z", completed_at: "2026-09-05T14:00:00.000Z", ...value,
 });
 const reportTask = (value: Partial<ReportTask> = {}): ReportTask => ({
   organization_id: organizationId, title: "Install sign", status: "COMPLETED", created_at: "2026-09-02T15:00:00.000Z", completed_at: "2026-09-04T15:00:00.000Z", due_at: "2026-09-06T04:00:00.000Z",
@@ -142,19 +142,32 @@ test("completion rate uses the opened cohort completed by the reporting cutoff",
   assert.equal(result.kpis.find((item) => item.label === "Completion Rate")?.value, 0);
 });
 
-test("Case outcomes include timestamped events in range and exclude unsupported status-only history", () => {
-  const period = resolveReportingPeriod({ period: "7d" }, "UTC", now);
-  const result = buildOperationalReport({
-    organizationId, timezone: "UTC", period,
+test("Case outcomes use canonical completion timestamps only", () => {
+  const period = resolveReportingPeriod(
+    { period: "this_month" },
+    "UTC",
+    new Date("2026-09-09T12:00:00Z"),
+  );
+
+  const report = buildOperationalReport({
+    organizationId,
+    timezone: "UTC",
+    period,
     cases: [
       reportCase(),
-      reportCase({ completed_at: null, closed_at: "2026-09-06T12:00:00Z" }),
-      reportCase({ completed_at: null, closed_at: null }),
-      reportCase({ completed_at: "2026-08-01T12:00:00Z", closed_at: null }),
+      reportCase({ completed_at: null }),
+      reportCase({ completed_at: "2026-08-01T12:00:00Z" }),
     ],
-    tasks: [], requests: [], customers: [], capabilities, now,
+    tasks: [],
+    requests: [],
+    customers: [],
+    capabilities,
+    now: new Date("2026-09-09T12:00:00Z"),
   });
-  assert.deepEqual(result.outcome, { completed: 1, closed: 1 });
+
+  assert.deepEqual(report.outcome, {
+    completed: 1,
+  });
 });
 
 test("dimension permissions suppress restricted Task Customer Service Desk and Rule detail", () => {
