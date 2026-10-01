@@ -5,7 +5,7 @@ import {
   type CaseRegisterFilterValues,
 } from "./case-register-filters";
 
-export interface CaseFilters extends CaseRegisterFilterValues {}
+export type CaseFilters = CaseRegisterFilterValues;
 
 export function CasesRegister({
   items,

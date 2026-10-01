@@ -727,14 +727,24 @@ export default async function Page({
                                     }
                                   />
 
-                                  <span
-                                    className={`task-document-received-check${
-                                      document.received ? " checked" : ""
-                                    }`}
-                                    aria-hidden="true"
-                                  >
-                                    {document.received ? "✓" : ""}
-                                  </span>
+                                  {document.received ? (
+                                    <span
+                                      className="task-document-received-check checked"
+                                      aria-label={`${document.label} received`}
+                                    >
+                                      ✓
+                                    </span>
+                                  ) : (
+                                    <input
+                                      type="checkbox"
+                                      className="task-document-notice-check"
+                                      name="selectedOptionId"
+                                      value={document.id}
+                                      form={`document-notice-${task.id}`}
+                                      defaultChecked
+                                      aria-label={`Include ${document.label} in Customer notice`}
+                                    />
+                                  )}
 
                                   <span className="task-document-requirement-copy">
                                     <strong>{document.label}</strong>
@@ -768,6 +778,7 @@ export default async function Page({
                       )?.outstanding.length ? (
                         <div className="task-notice-action">
                           <form
+                            id={`document-notice-${task.id}`}
                             action={sendMissingDocumentsNoticeAction}
                             className="mini-actions"
                           >

@@ -352,22 +352,75 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
   }
   const currentCustomer = customer!;
 
-  const requirementContext = task.intake_requirement_context as
-    | { missing_option_labels?: unknown }
-    | null;
+  const requirementContext =
+    task.intake_requirement_context &&
+    typeof task.intake_requirement_context === "object" &&
+    !Array.isArray(task.intake_requirement_context)
+      ? (task.intake_requirement_context as Record<string, unknown>)
+      : null;
 
-  const missingDocuments = Array.isArray(
-    requirementContext?.missing_option_labels,
+  if (requirementContext?.kind !== "DOCUMENT_REQUIREMENT") {
+    fail(
+      `/cases/${caseId}`,
+      "The document requirements are not available.",
+    );
+  }
+
+  const documentRequirementContext = requirementContext!;
+
+  const requiredIds = Array.isArray(documentRequirementContext.required_option_ids)
+    ? documentRequirementContext.required_option_ids.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : [];
+
+  const requiredLabels = Array.isArray(
+    documentRequirementContext.required_option_labels,
   )
-    ? requirementContext.missing_option_labels
-        .filter(
-          (value: unknown): value is string =>
-            typeof value === "string",
+    ? documentRequirementContext.required_option_labels.filter(
+        (value: unknown): value is string => typeof value === "string",
+      )
+    : [];
+
+  const receivedIds = new Set(
+    Array.isArray(documentRequirementContext.received_option_ids)
+      ? documentRequirementContext.received_option_ids.filter(
+          (value: unknown): value is string => typeof value === "string",
         )
-        .join(", ")
-    : task.description
-        .replace(/^Outstanding requirements:\s*/i, "")
-        .trim();
+      : [],
+  );
+
+  const outstandingById = new Map(
+    requiredIds
+      .map((id, index) => ({
+        id,
+        label: requiredLabels[index] ?? "Required document",
+      }))
+      .filter((document) => !receivedIds.has(document.id))
+      .map((document) => [document.id, document.label]),
+  );
+
+  const requestedOptionIds = [
+    ...new Set(
+      data
+        .getAll("selectedOptionId")
+        .map((value) => String(value).trim())
+        .filter(Boolean),
+    ),
+  ];
+
+  const selectedDocuments = requestedOptionIds
+    .map((id) => outstandingById.get(id))
+    .filter((label): label is string => Boolean(label));
+
+  if (!selectedDocuments.length) {
+    fail(
+      `/cases/${caseId}`,
+      "Select at least one outstanding document to include in the Customer notice.",
+    );
+  }
+
+  const missingDocuments = selectedDocuments.join(", ");
 
   try {
     await sendMissingDocumentsNotice({
