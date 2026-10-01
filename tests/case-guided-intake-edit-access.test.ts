@@ -207,3 +207,15 @@ test("Case-linked saves preserve the original Guided Intake Customer mode", () =
     /customer_mode:\s*existingSession\.data\?\.customer_mode \?\? input\.customerMode/,
   );
 });
+
+
+test("saved Guided Intake mode is not inferred from the materialized Customer ID", () => {
+  assert.doesNotMatch(
+    drafts,
+    /customerMode:\s*data\.customer_id/,
+  );
+  assert.match(
+    drafts,
+    /customerMode:\s*data\.customer_mode === "new" \? "new" : "existing"/,
+  );
+});
