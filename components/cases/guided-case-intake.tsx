@@ -2146,14 +2146,14 @@ export function GuidedCaseIntake({
     <>
     <dialog
       ref={requiredDocumentsDialog}
-      className="task-modal"
+      className="task-modal intake-document-availability-modal"
       onCancel={(event) => {
         event.preventDefault();
         requiredDocumentsDialog.current?.close();
       }}
     >
       <form
-        className="task-modal-form intake-document-availability-modal"
+        className="task-modal-form"
         onSubmit={(event) => {
           event.preventDefault();
 
