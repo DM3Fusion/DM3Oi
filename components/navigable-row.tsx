@@ -42,7 +42,7 @@ export function NavigableRow({
       className={["navigable-row", className].filter(Boolean).join(" ")}
       tabIndex={0}
       aria-label={label}
-      onClick={onClick}
+      onClickCapture={onClick}
       onKeyDown={onKeyDown}
     >
       {children}

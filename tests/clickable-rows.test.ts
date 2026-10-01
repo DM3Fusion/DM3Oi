@@ -33,6 +33,7 @@ test("nested controls and alternate links are excluded from row navigation", () 
     row,
     /if \(!originatedFromInteractiveControl\(event\.target\)\)/,
   );
+  assert.match(row, /onClickCapture=\{onClick\}/);
 });
 
 test("Users register uses row navigation and removes the redundant Open action", () => {
