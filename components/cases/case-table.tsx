@@ -24,7 +24,7 @@ export function CaseTable({
             <th>Priority</th>
             <th>Assigned Staff</th>
             <th>Progress</th>
-            <th>Due Date</th>
+            <th>Task Due</th>
           </tr>
         </thead>
         <tbody>
@@ -71,7 +71,26 @@ export function CaseTable({
               <td>
                 <ProgressBar percentage={item.progress.progressPercent} compact />
               </td>
-              <td>{formatDate(item.due_at ?? undefined)}</td>
+              <td>
+                {item.status === "COMPLETED"
+                  ? "—"
+                  : formatDate(
+                      item.tasks
+                        .filter(
+                          (task) =>
+                            task.status !== "COMPLETED" &&
+                            task.status !== "NOT_APPLICABLE" &&
+                            Boolean(task.due_at),
+                        )
+                        .map((task) => task.due_at)
+                        .filter((dueAt): dueAt is string => Boolean(dueAt))
+                        .sort(
+                          (left, right) =>
+                            new Date(left).getTime() -
+                            new Date(right).getTime(),
+                        )[0],
+                    )}
+              </td>
             </NavigableRow>
           ))}
         </tbody>
