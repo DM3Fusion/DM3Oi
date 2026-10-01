@@ -687,6 +687,13 @@ export function guidedFollowUpTaskMatchesMissingOptions(
     task.title !== "Obtain missing required documents"
   )
     return false;
+  // A completed workflow Task is historical evidence of the requirement
+  // that existed when it was created. Once the Question is satisfied, do not
+  // require that historical context to equal the now-empty missing-item list.
+  // If the Question becomes invalid again, completion validation below will
+  // reject/reopen the Task.
+  if (task.completed && question.valid) return true;
+
   const missing = getMissingRequiredOptions(
     evaluation,
     answers,

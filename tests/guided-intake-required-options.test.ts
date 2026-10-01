@@ -10,6 +10,7 @@ import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
   getMissingRequiredOptions,
+  guidedFollowUpTaskMatchesMissingOptions,
   isGuidedQuestionAnswerValid,
   reconcileGuidedIntakeFollowUpTasks,
   validateGuidedRequiredOptionMap,
@@ -309,5 +310,62 @@ test("database validator enforces require_all_options", () => {
   assert.match(
     migration,
     /set require_all_options=true/,
+  );
+});
+
+
+test("completed follow-up Task remains valid history after required documents are received", () => {
+  const task = {
+    id: "task-history",
+    questionId: "question-1",
+    title: "Obtain missing required documents",
+    description: "Outstanding requirements: 1099-NEC",
+    missingOptionIds: ["1099-nec"],
+    missingOptionLabels: ["1099-NEC"],
+    assignedUserId: "staff-a",
+    dueDate: "2026-10-01",
+    completed: true,
+  };
+
+  const required = ["w2", "1099-nec"];
+  const received = ["w2", "1099-nec"];
+  const evaluation = trackedEvaluation(received, required);
+
+  assert.equal(
+    guidedFollowUpTaskMatchesMissingOptions(
+      task,
+      evaluation,
+      { "question-1": received },
+      { "question-1": required },
+    ),
+    true,
+  );
+});
+
+test("open follow-up Task must still match the current missing required items", () => {
+  const task = {
+    id: "task-open",
+    questionId: "question-1",
+    title: "Obtain missing required documents",
+    description: "Outstanding requirements: 1099-INT",
+    missingOptionIds: ["1099-int"],
+    missingOptionLabels: ["1099-INT"],
+    assignedUserId: "staff-a",
+    dueDate: "2026-10-01",
+    completed: false,
+  };
+
+  const required = ["w2", "1099-nec"];
+  const received = ["w2"];
+  const evaluation = trackedEvaluation(received, required);
+
+  assert.equal(
+    guidedFollowUpTaskMatchesMissingOptions(
+      task,
+      evaluation,
+      { "question-1": received },
+      { "question-1": required },
+    ),
+    false,
   );
 });
