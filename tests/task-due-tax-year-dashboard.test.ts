@@ -300,7 +300,7 @@ test("Guided Intake follow-up Tasks preserve intake provenance and finalize atom
   const actions = source("lib/data/guided-case-intake-actions.ts");
   assert.match(component, /className="task-modal"/);
   assert.match(component, /Save and Continue Later/);
-  assert.match(component, /step === 2 && !requiredQuestionsComplete/);
+  assert.match(component, /step === 2 && !requiredQuestionsResolved/);
   assert.match(component, /task\.completed\s*\?\s*"Completed"\s*:\s*"Open"/);
   assert.match(component, /All required documents received/);
   assert.doesNotMatch(component, />\s*Complete Task\s*</);

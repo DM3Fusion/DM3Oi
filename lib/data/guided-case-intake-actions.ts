@@ -155,7 +155,7 @@ export async function saveGuidedIntakeDraftAction(
     return {
       ok: false,
       error:
-        "A follow-up Task no longer matches the current missing required items. Review it and try again.",
+        "A follow-up Task no longer matches the current intake answer. Review it and try again.",
     };
   }
   if (input.currentStep >= 2 && unstagedMissingRequirement) {
@@ -167,13 +167,19 @@ export async function saveGuidedIntakeDraftAction(
   }
   if (
     input.draft.followUpTasks.some(
-      (task) => task.completed && !canCompleteIntakeFollowUpTask(task, evaluation),
+      (task) =>
+        task.completed &&
+        !canCompleteIntakeFollowUpTask(
+          task,
+          evaluation,
+          input.draft.answers,
+        ),
     )
   ) {
     return {
       ok: false,
       error:
-        "Required documents must be received before a follow-up Task can remain completed.",
+        "The linked intake question must be resolved before a follow-up Task can remain completed.",
     };
   }
 
@@ -497,7 +503,7 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   ) {
     return {
       ok: false,
-      error: "The follow-up Task no longer matches the missing required items.",
+      error: "The follow-up Task no longer matches the unresolved required question.",
     };
   }
 
@@ -518,6 +524,33 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   }
 
   const supabase = await createClient();
+
+  // updateAnswer() is client-local until a save occurs. Synchronize the
+  // current answers before the live Task RPC so its database validation sees
+  // the same answer that produced the Task Creator.
+  const persistedAnswers = JSON.parse(JSON.stringify(draft.answers));
+  const { error: draftAnswerSyncError } = await supabase
+    .from("guided_case_intake_drafts")
+    .update({ answers: persistedAnswers })
+    .eq("organization_id", access.activeOrganization!.id)
+    .eq("submission_key", draft.submissionKey)
+    .eq("case_id", draft.caseId)
+    .is("finalized_at", null);
+
+  if (draftAnswerSyncError) {
+    console.error("Guided Intake answers sync before Task save failed", {
+      organizationId: access.activeOrganization!.id,
+      submissionKey: draft.submissionKey,
+      caseId: draft.caseId,
+      followUpId: task.id,
+      code: draftAnswerSyncError.code,
+      message: draftAnswerSyncError.message,
+    });
+    return {
+      ok: false,
+      error: "The current intake answer could not be saved. Please try again.",
+    };
+  }
 
   // Reassignment of an already-created Guided Intake follow-up Task is
   // deliberately narrower than general Case assignment authority.

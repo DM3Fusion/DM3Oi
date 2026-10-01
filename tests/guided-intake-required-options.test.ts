@@ -9,6 +9,7 @@ const intakeComponent = readFileSync(
 import {
   buildGuidedIntakeCreationPlan,
   evaluateGuidedCaseIntake,
+  getGuidedIntakeFollowUpRequirements,
   getMissingRequiredOptions,
   guidedFollowUpTaskMatchesMissingOptions,
   isGuidedQuestionAnswerValid,
@@ -54,6 +55,109 @@ const question = (
   ],
 });
 
+const yesNoQuestion = ({
+  id,
+  required,
+  completionCondition = "ANY_ANSWER",
+}: {
+  id: string;
+  required: boolean;
+  completionCondition?: "ANY_ANSWER" | "YES_REQUIRED";
+}): GuidedIntakeQuestion => ({
+  id,
+  text: `Question ${id}`,
+  description: "",
+  responseType: "YES_NO",
+  required,
+  requireAllOptions: false,
+  trackRequiredOptions: false,
+  completionCondition,
+  group: null,
+  displayOrder: 1,
+  options: [],
+});
+
+const evaluateYesNo = (
+  question: GuidedIntakeQuestion,
+  answer: boolean,
+) =>
+  evaluateGuidedCaseIntake(
+    {
+      organizationId: "organization-1",
+      questions: [question],
+      rules: [],
+      actions: [],
+    },
+    { [question.id]: answer },
+    {},
+  );
+
+test("optional ANY_ANSWER YES/NO answered No creates a follow-up requirement", () => {
+  const item = yesNoQuestion({
+    id: "optional-no",
+    required: false,
+    completionCondition: "ANY_ANSWER",
+  });
+  const answers = { [item.id]: false };
+  const evaluation = evaluateYesNo(item, false);
+
+  assert.equal(evaluation.questions[0]?.valid, true);
+
+  const requirements = getGuidedIntakeFollowUpRequirements(
+    evaluation,
+    answers,
+    {},
+  );
+
+  assert.equal(requirements.length, 1);
+  assert.equal(requirements[0]?.question.id, item.id);
+  assert.equal(requirements[0]?.documentRequirement, false);
+  assert.deepEqual(requirements[0]?.missingOptions, []);
+});
+
+test("optional ANY_ANSWER YES/NO answered Yes does not create a follow-up requirement", () => {
+  const item = yesNoQuestion({
+    id: "optional-yes",
+    required: false,
+    completionCondition: "ANY_ANSWER",
+  });
+  const answers = { [item.id]: true };
+  const evaluation = evaluateYesNo(item, true);
+
+  assert.equal(evaluation.questions[0]?.valid, true);
+  assert.deepEqual(
+    getGuidedIntakeFollowUpRequirements(
+      evaluation,
+      answers,
+      {},
+    ),
+    [],
+  );
+});
+
+test("required YES_REQUIRED answered No creates a non-document follow-up requirement", () => {
+  const item = yesNoQuestion({
+    id: "required-no",
+    required: true,
+    completionCondition: "YES_REQUIRED",
+  });
+  const answers = { [item.id]: false };
+  const evaluation = evaluateYesNo(item, false);
+
+  assert.equal(evaluation.questions[0]?.answered, true);
+  assert.equal(evaluation.questions[0]?.valid, false);
+
+  const requirements = getGuidedIntakeFollowUpRequirements(
+    evaluation,
+    answers,
+    {},
+  );
+
+  assert.equal(requirements.length, 1);
+  assert.equal(requirements[0]?.question.id, item.id);
+  assert.equal(requirements[0]?.documentRequirement, false);
+});
+
 test("ordinary MULTI_SELECT remains complete after one valid selection", () => {
   assert.equal(
     isGuidedQuestionAnswerValid(question(false), ["w2"]),
@@ -95,7 +199,7 @@ test("require-all MULTI_SELECT rejects unknown option IDs", () => {
   );
 });
 
-test("Guided Intake displays selected count and blocks Continue while required questions remain incomplete", () => {
+test("Guided Intake displays selected count and blocks Continue until required questions are satisfied or have follow-up Tasks", () => {
   const source = readFileSync(
     "components/cases/guided-case-intake.tsx",
     "utf8",
@@ -108,7 +212,17 @@ test("Guided Intake displays selected count and blocks Continue while required q
 
   assert.match(
     source,
-    /step === 2 && !requiredQuestionsComplete/,
+    /const requiredQuestionsResolved = !evaluation\.questions\.some/,
+  );
+
+  assert.match(
+    source,
+    /guidedFollowUpTaskMatchesMissingOptions/,
+  );
+
+  assert.match(
+    source,
+    /step === 2 && !requiredQuestionsResolved/,
   );
 
   assert.match(

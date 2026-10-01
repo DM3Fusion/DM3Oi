@@ -15,7 +15,9 @@ import {
 } from "@/lib/data/guided-case-intake-actions";
 import {
   evaluateGuidedCaseIntake,
+  getGuidedIntakeFollowUpRequirements,
   getMissingRequiredOptions,
+  guidedFollowUpTaskMatchesMissingOptions,
   isGuidedQuestionAnswerValid,
   reconcileGuidedIntakeFollowUpTasks,
   guidedCaseIntakeSteps,
@@ -446,20 +448,39 @@ export function GuidedCaseIntake({
   const selectedStaff = configuration.staff.filter((item) =>
     draft.staffUserIds.includes(item.id),
   );
-  const requiredQuestionsComplete = !evaluation.questions.some(
-    (question) =>
-      question.applicable &&
-      question.effectiveRequired &&
-      !question.valid,
-  );
   const missingRequirements = getMissingRequiredOptions(
     evaluation,
     draft.answers,
     draft.requiredOptionIds,
   );
-  const activeFollowUpRequirement = missingRequirements.find(
+  const followUpRequirements = getGuidedIntakeFollowUpRequirements(
+    evaluation,
+    draft.answers,
+    draft.requiredOptionIds,
+  );
+  const activeFollowUpRequirement = followUpRequirements.find(
     (item) => item.question.id === followUpQuestionId,
   );
+
+  const requiredQuestionsResolved = !evaluation.questions.some((question) => {
+    if (
+      !question.applicable ||
+      !question.effectiveRequired ||
+      question.valid
+    ) {
+      return false;
+    }
+
+    const task = draft.followUpTasks.find(
+      (item) => item.questionId === question.id,
+    );
+    return !task || !guidedFollowUpTaskMatchesMissingOptions(
+      task,
+      evaluation,
+      draft.answers,
+      draft.requiredOptionIds,
+    );
+  });
   const portalPromptEnabled =
     configuration.portalOnboardingMode === "PROMPT_DURING_CASE_INTAKE";
   const portalResolved = portalOnboardingResolvedForIntake(
@@ -681,11 +702,17 @@ export function GuidedCaseIntake({
     const missingOptionLabels = activeFollowUpRequirement.missingOptions.map(
       (option) => option.label,
     );
+    const documentRequirement =
+      activeFollowUpRequirement.documentRequirement;
     const task: GuidedIntakeFollowUpTask = {
       id: existing?.id ?? crypto.randomUUID(),
       questionId: activeFollowUpRequirement.question.id,
-      title: "Obtain missing required documents",
-      description: `Outstanding requirements: ${missingOptionLabels.join(", ")}`,
+      title: documentRequirement
+        ? "Obtain missing required documents"
+        : "Resolve intake question",
+      description: documentRequirement
+        ? `Outstanding requirements: ${missingOptionLabels.join(", ")}`
+        : `Intake question: ${activeFollowUpRequirement.question.text}`,
       missingOptionIds,
       missingOptionLabels,
       assignedUserId,
@@ -1382,7 +1409,7 @@ export function GuidedCaseIntake({
 
               <div className="intake-question-list">
                 {section.questions.map((question) => {
-                  const missing = missingRequirements.find(
+                  const requirement = followUpRequirements.find(
                     (item) => item.question.id === question.id,
                   );
                   const staged = draft.followUpTasks.find(
@@ -1390,13 +1417,19 @@ export function GuidedCaseIntake({
                   );
                   return <div className="intake-question-with-follow-up" key={question.id}>
                     <QuestionField question={question} value={draft.answers[question.id]} error={errors[`question.${question.id}`]} onChange={(value) => updateAnswer(question.id, value)} />
-                    {missing ? (
+                    {requirement ? (
                       <div className="intake-missing-requirement">
                         <p>
-                          <b>Missing:</b>{" "}
-                          {missing.missingOptions
-                            .map((option) => option.label)
-                            .join(", ")}
+                          <b>
+                            {requirement.documentRequirement
+                              ? "Missing:"
+                              : "Follow-up required:"}
+                          </b>{" "}
+                          {requirement.documentRequirement
+                            ? requirement.missingOptions
+                                .map((option) => option.label)
+                                .join(", ")
+                            : requirement.question.text}
                         </p>
                         <div className="mini-actions">
                           <button
@@ -1424,7 +1457,7 @@ export function GuidedCaseIntake({
             </header>
             <div className="intake-question-list">
               {unassigned.map((question) => {
-                const missing = missingRequirements.find(
+                const requirement = followUpRequirements.find(
                   (item) => item.question.id === question.id,
                 );
                 const staged = draft.followUpTasks.find(
@@ -1441,13 +1474,19 @@ export function GuidedCaseIntake({
                       error={errors[`question.${question.id}`]}
                       onChange={(value) => updateAnswer(question.id, value)}
                     />
-                    {missing ? (
+                    {requirement ? (
                       <div className="intake-missing-requirement">
                         <p>
-                          <b>Missing:</b>{" "}
-                          {missing.missingOptions
-                            .map((option) => option.label)
-                            .join(", ")}
+                          <b>
+                            {requirement.documentRequirement
+                              ? "Missing:"
+                              : "Follow-up required:"}
+                          </b>{" "}
+                          {requirement.documentRequirement
+                            ? requirement.missingOptions
+                                .map((option) => option.label)
+                                .join(", ")
+                            : requirement.question.text}
                         </p>
                         <div className="mini-actions">
                           <button
@@ -1612,7 +1651,7 @@ export function GuidedCaseIntake({
             ))}
           </ul>
         ) : <p className="intake-note">No Rule-generated Tasks apply.</p>}
-        <h3>Missing-document Follow-up Tasks</h3>
+        <h3>Follow-up Tasks</h3>
         {draft.followUpTasks.length ? (
           <ul>
             {draft.followUpTasks.map((task) => (
@@ -1635,7 +1674,7 @@ export function GuidedCaseIntake({
           </ul>
         ) : (
           <p className="intake-note">
-            No missing-document follow-up Tasks have been created.
+            No follow-up Tasks have been created.
           </p>
         )}
         {renderPortalOnboarding()}
@@ -1744,15 +1783,28 @@ export function GuidedCaseIntake({
 
             <label>
               <span>Task title</span>
-              <input value="Obtain missing required documents" readOnly />
+              <input
+                value={
+                  activeFollowUpRequirement?.documentRequirement
+                    ? "Obtain missing required documents"
+                    : "Resolve intake question"
+                }
+                readOnly
+              />
             </label>
 
             <div className="intake-modal-context">
-              <b>Outstanding requirements</b>
+              <b>
+                {activeFollowUpRequirement?.documentRequirement
+                  ? "Outstanding requirements"
+                  : "Intake question"}
+              </b>
               <p>
-                {activeFollowUpRequirement?.missingOptions
-                  .map((option) => option.label)
-                  .join(", ")}
+                {activeFollowUpRequirement?.documentRequirement
+                  ? activeFollowUpRequirement.missingOptions
+                      .map((option) => option.label)
+                      .join(", ")
+                  : activeFollowUpRequirement?.question.text}
               </p>
             </div>
 
@@ -1823,7 +1875,9 @@ export function GuidedCaseIntake({
               />
             </label>
 
-            {activeTask && !activeTask.completed ? (
+            {activeTask &&
+            !activeTask.completed &&
+            activeTask.missingOptionIds.length > 0 ? (
               <div className="task-notice-action">
                 {!noticeSent ? (
                   <>
@@ -1876,7 +1930,9 @@ export function GuidedCaseIntake({
               <div className="task-notice-sent">
                 <span>
                   {activeTask.status === "REQUIRED_UNAVAILABLE"
-                    ? "Required document marked unavailable"
+                    ? activeTask.missingOptionIds.length
+                      ? "Required document marked unavailable"
+                      : "Required item marked unavailable"
                     : "Task Completed"}
                 </span>
               </div>
@@ -2014,11 +2070,11 @@ export function GuidedCaseIntake({
             disabled={
               pending ||
               portalPending ||
-              (step === 2 && !requiredQuestionsComplete) ||
+              (step === 2 && !requiredQuestionsResolved) ||
               (step === 3 && !portalResolved)
             }
             title={
-              step === 2 && !requiredQuestionsComplete
+              step === 2 && !requiredQuestionsResolved
                 ? "Complete all required questions before continuing."
                 : step === 3 && !portalResolved
                   ? "Resolve Customer Portal onboarding before continuing."

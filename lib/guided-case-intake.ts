@@ -569,25 +569,113 @@ export function getMissingRequiredOptions(
   });
 }
 
+export type GuidedIntakeFollowUpRequirement = {
+  question: GuidedIntakeEvaluation["questions"][number];
+  missingOptions: GuidedIntakeOption[];
+  documentRequirement: boolean;
+};
+
+export function getGuidedIntakeFollowUpRequirements(
+  evaluation: GuidedIntakeEvaluation,
+  answers: GuidedIntakeAnswers,
+  requiredOptionIds: GuidedIntakeRequiredOptionIds = {},
+): GuidedIntakeFollowUpRequirement[] {
+  const missingByQuestion = new Map(
+    getMissingRequiredOptions(evaluation, answers, requiredOptionIds).map(
+      ({ question, missingOptions }) => [question.id, missingOptions],
+    ),
+  );
+
+  return evaluation.questions.flatMap<GuidedIntakeFollowUpRequirement>((question) => {
+    if (!question.applicable) return [];
+
+    const missingOptions = missingByQuestion.get(question.id) ?? [];
+
+    // Preserve the specialized required-document workflow.
+    if (
+      question.effectiveRequired &&
+      !question.valid &&
+      missingOptions.length
+    ) {
+      return [{
+        question,
+        missingOptions,
+        documentRequirement: true,
+      }];
+    }
+
+    // Every applicable YES/NO Question answered No gets one workflow
+    // follow-up Task, whether the Question itself is required or optional.
+    if (
+      question.responseType === "YES_NO" &&
+      question.answered &&
+      answers[question.id] === false
+    ) {
+      return [{
+        question,
+        missingOptions: [],
+        documentRequirement: false,
+      }];
+    }
+
+    // Keep the generic path available for any future required Question whose
+    // answer is syntactically valid but does not satisfy its completion rule.
+    if (
+      question.effectiveRequired &&
+      !question.valid &&
+      question.answered &&
+      isGuidedQuestionAnswerValid(
+        question,
+        answers[question.id],
+        requiredOptionIds[question.id],
+      )
+    ) {
+      return [{
+        question,
+        missingOptions: [],
+        documentRequirement: false,
+      }];
+    }
+
+    return [];
+  });
+}
+
 export function reconcileGuidedIntakeFollowUpTasks(
   tasks: GuidedIntakeFollowUpTask[],
   evaluation: GuidedIntakeEvaluation,
   answers: GuidedIntakeAnswers,
   requiredOptionIds: GuidedIntakeRequiredOptionIds,
 ) {
-  const missingByQuestion = new Map(
-    getMissingRequiredOptions(evaluation, answers, requiredOptionIds).map(
-      ({ question, missingOptions }) => [question.id, missingOptions],
-    ),
+  const requirements = new Map(
+    getGuidedIntakeFollowUpRequirements(
+      evaluation,
+      answers,
+      requiredOptionIds,
+    ).map((requirement) => [requirement.question.id, requirement]),
   );
+
   return tasks.flatMap((task) => {
     const question = evaluation.questions.find(
       (item) => item.id === task.questionId,
     );
-    if (!question?.applicable || !question.effectiveRequired) return [];
-    const missingOptions = missingByQuestion.get(task.questionId) ?? [];
-    const requirementsSatisfied =
-      missingOptions.length === 0 && question.valid;
+    if (!question?.applicable) return [];
+
+    const requirement = requirements.get(task.questionId);
+    const missingOptions = requirement?.missingOptions ?? [];
+    const documentRequirement =
+      requirement?.documentRequirement ??
+      (
+        task.title === "Obtain missing required documents" ||
+        task.missingOptionIds.length > 0
+      );
+
+    const requirementsSatisfied = documentRequirement
+      ? question.valid
+      : question.responseType === "YES_NO"
+        ? answers[question.id] === true
+        : question.valid;
+
     const status: GuidedIntakeFollowUpTask["status"] = requirementsSatisfied
       ? "COMPLETED"
       : task.status === "COMPLETED"
@@ -596,11 +684,18 @@ export function reconcileGuidedIntakeFollowUpTasks(
 
     return [{
       ...task,
+      title: documentRequirement
+        ? "Obtain missing required documents"
+        : "Resolve intake question",
       missingOptionIds: missingOptions.map((option) => option.id),
       missingOptionLabels: missingOptions.map((option) => option.label),
-      description: missingOptions.length
-        ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
-        : "All required documents have been received.",
+      description: documentRequirement
+        ? (
+            missingOptions.length
+              ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
+              : "All required documents have been received."
+          )
+        : `Intake question: ${question.text}`,
       status,
       completed:
         status === "COMPLETED" || status === "REQUIRED_UNAVAILABLE",
@@ -693,31 +788,44 @@ export function guidedFollowUpTaskMatchesMissingOptions(
   const question = evaluation.questions.find(
     (item) => item.id === task.questionId,
   );
-  if (
-    !question ||
-    !question.applicable ||
-    !question.effectiveRequired ||
-    question.responseType !== "MULTI_SELECT" ||
-    (!question.requireAllOptions && !question.trackRequiredOptions) ||
-    task.title !== "Obtain missing required documents"
-  )
-    return false;
-  // A completed workflow Task is historical evidence of the requirement
-  // that existed when it was created. Once the Question is satisfied, do not
-  // require that historical context to equal the now-empty missing-item list.
-  // If the Question becomes invalid again, completion validation below will
-  // reject/reopen the Task.
-  if (task.completed && question.valid) return true;
 
-  const missing = getMissingRequiredOptions(
+  if (!question || !question.applicable) {
+    return false;
+  }
+
+  // Once the linked condition becomes satisfied, preserve the completed Task
+  // as historical evidence instead of treating it as stale.
+  if (
+    task.completed &&
+    (
+      task.missingOptionIds.length > 0
+        ? question.valid
+        : question.responseType === "YES_NO"
+          ? answers[question.id] === true
+          : question.valid
+    )
+  ) {
+    return true;
+  }
+
+  const requirement = getGuidedIntakeFollowUpRequirements(
     evaluation,
     answers,
     requiredOptionIds,
-  ).find((item) => item.question.id === task.questionId)?.missingOptions ?? [];
+  ).find((item) => item.question.id === task.questionId);
+
+  if (!requirement) return false;
+
+  const expectedTitle = requirement.documentRequirement
+    ? "Obtain missing required documents"
+    : "Resolve intake question";
+
+  if (task.title !== expectedTitle) return false;
+
   return (
-    task.missingOptionIds.length === missing.length &&
-    task.missingOptionLabels.length === missing.length &&
-    missing.every(
+    task.missingOptionIds.length === requirement.missingOptions.length &&
+    task.missingOptionLabels.length === requirement.missingOptions.length &&
+    requirement.missingOptions.every(
       (option, index) =>
         task.missingOptionIds[index] === option.id &&
         task.missingOptionLabels[index] === option.label,
@@ -728,12 +836,24 @@ export function guidedFollowUpTaskMatchesMissingOptions(
 export function canCompleteIntakeFollowUpTask(
   task: GuidedIntakeFollowUpTask,
   evaluation: GuidedIntakeEvaluation,
+  answers: GuidedIntakeAnswers = {},
 ) {
-  return Boolean(
-    evaluation.questions.find(
-      (question) => question.id === task.questionId && question.valid,
-    ),
+  if (task.status === "REQUIRED_UNAVAILABLE") return true;
+
+  const question = evaluation.questions.find(
+    (item) => item.id === task.questionId,
   );
+  if (!question) return false;
+
+  if (task.missingOptionIds.length > 0) {
+    return question.valid;
+  }
+
+  if (question.responseType === "YES_NO") {
+    return answers[question.id] === true;
+  }
+
+  return question.valid;
 }
 
 export function validateGuidedIntakeQuestions(
@@ -801,9 +921,14 @@ export function validateGuidedCaseIntake(
       fieldErrors[`followUp.${task.id}`] = "Select an active Staff assignee.";
     else if (!/^\d{4}-\d{2}-\d{2}$/.test(task.dueDate))
       fieldErrors[`followUp.${task.id}`] = "Select a valid due date.";
-    else if (task.completed && !canCompleteIntakeFollowUpTask(task, evaluation))
+    else if (
+      task.completed &&
+      !canCompleteIntakeFollowUpTask(task, evaluation, draft.answers)
+    )
       fieldErrors[`followUp.${task.id}`] =
-        "Required documents must be received before completing this Task.";
+        "The required question must be satisfied before completing this Task.";
+    else
+      delete fieldErrors[`question.${task.questionId}`];
     followUpQuestionIds.add(task.questionId);
   }
   return { valid: Object.keys(fieldErrors).length === 0, fieldErrors, evaluation };

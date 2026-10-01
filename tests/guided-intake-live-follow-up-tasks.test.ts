@@ -191,7 +191,15 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     domain,
-    /missingOptions\.length === 0[\s\S]*"COMPLETED"/,
+    /const requirementsSatisfied = documentRequirement[\s\S]*question\.valid[\s\S]*question\.responseType === "YES_NO"[\s\S]*answers\[question\.id\] === true[\s\S]*\? "COMPLETED"/,
+  );
+  assert.match(
+    domain,
+    /getGuidedIntakeFollowUpRequirements/,
+  );
+  assert.match(
+    domain,
+    /Resolve intake question/,
   );
   assert.match(domain, /"WAITING_ON_CUSTOMER"/);
   assert.match(domain, /"REQUIRED_UNAVAILABLE"/);
@@ -311,4 +319,76 @@ test("Guided Intake follow-up Task exposes and persists canonical status and Due
 
   assert.match(casePage, /<select name="status" defaultValue=\{task\.status\}>/);
   assert.match(casePage, /name="dueDate"/);
+});
+
+
+test("generic YES/NO follow-up Tasks use the current answer and preserve document specialization", () => {
+  const migration = source(
+    "supabase/migrations/20261001233000_dm3oi_generic_guided_intake_follow_up_tasks.sql",
+  );
+  const actions = source("lib/data/guided-case-intake-actions.ts");
+  const domain = source("lib/guided-case-intake.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+
+  assert.match(
+    domain,
+    /Every applicable YES\/NO Question answered No gets one workflow/,
+  );
+  assert.match(
+    domain,
+    /question\.responseType === "YES_NO"[\s\S]*answers\[question\.id\] === false/,
+  );
+
+  assert.match(
+    actions,
+    /\.from\("guided_case_intake_drafts"\)[\s\S]*\.update\(\{[\s\S]*answers:/,
+  );
+  assert.match(
+    actions,
+    /Guided Intake answers sync before Task save failed/,
+  );
+  assert.match(
+    actions,
+    /answers sync before Task save failed[\s\S]*upsert_guided_intake_follow_up_task/,
+  );
+
+  assert.match(
+    migration,
+    /Empty arrays identify a generic YES\/NO[\s\S]*current answer is No/,
+  );
+  assert.match(
+    migration,
+    /question_row\.response_type<>'YES_NO'[\s\S]*is not distinct from 'false'::jsonb[\s\S]*requested_status='COMPLETED'[\s\S]*is not distinct from 'true'::jsonb/,
+  );
+  assert.doesNotMatch(
+    migration,
+    /completion_condition<>'YES_REQUIRED'/,
+  );
+
+  assert.match(
+    migration,
+    /'QUESTION_FOLLOW_UP'/,
+  );
+  assert.match(
+    migration,
+    /'DOCUMENT_REQUIREMENT'/,
+  );
+  assert.match(
+    migration,
+    /'Resolve intake question'/,
+  );
+  assert.match(
+    migration,
+    /'Obtain missing required documents'/,
+  );
+
+  assert.match(
+    migration,
+    /required intake response is unresolved and has no follow-up Task/,
+  );
+
+  assert.match(
+    component,
+    /activeTask\.missingOptionIds\.length > 0[\s\S]*Send Document Request/,
+  );
 });
