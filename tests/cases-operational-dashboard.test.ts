@@ -111,11 +111,17 @@ test("KPI cards are semantic links with selected state and responsive six-three-
 test("existing Cases controls, zero-result state, and navigable rows remain intact", () => {
   const page = source("app/cases/page.tsx");
   const register = source("components/cases/cases-register.tsx");
+  const filters = source("components/cases/case-register-filters.tsx");
   const table = source("components/cases/case-table.tsx");
   assert.match(page, /href="\/cases\/new"/);
-  for (const name of ["query", "status", "priority", "assignment"]) assert.match(register, new RegExp(`name="${name}"`));
-  assert.match(register, /type="hidden" name="view" value=\{filters\.view\}/);
-  assert.match(register, />Apply</);
+  assert.match(filters, /name=\{search\.trim\(\) \? "query" : undefined\}/);
+  for (const name of ["status", "priority", "assignment"]) {
+    assert.match(filters, new RegExp(`name="${name}"`));
+  }
+  assert.match(filters, /type="hidden" name="view" value=\{filters\.view\}/);
+  assert.match(filters, />\s*Apply\s*</);
+  assert.match(filters, /setTimeout\([\s\S]*300/);
+  assert.match(filters, /router\.replace/);
   assert.match(register, /No cases match these filters\./);
   assert.match(table, /<NavigableRow[\s\S]*?key=\{item\.id\}[\s\S]*?href=\{`\/cases\/\$\{item\.id\}`\}/);
   assert.match(table, /className="table-scroll"/);

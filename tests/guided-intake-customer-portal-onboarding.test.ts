@@ -366,9 +366,14 @@ test("Portal exception remains unresolved-only while resolved states keep their 
   assert.doesNotMatch(sentBranch, /Not Required for This Case/);
   assert.match(activeBranch, /No action required/);
   assert.doesNotMatch(activeBranch, /Not Required for This Case/);
-  assert.match(
-    portalRenderer.slice(unresolvedStart, notRequiredStart),
-    /Send Portal Invitation[\s\S]*Not Required for This Case/,
+  const unresolvedBranch = portalRenderer.slice(
+    unresolvedStart,
+    notRequiredStart,
+  );
+  assert.match(unresolvedBranch, /Send Portal Invitation/);
+  assert.doesNotMatch(
+    unresolvedBranch,
+    />\s*Not Required for This Case\s*<\/button>/,
   );
   assert.match(notRequiredBranch, /Portal access will not block this intake/);
   assert.match(notRequiredBranch, /Undo \/ Reconsider/);
