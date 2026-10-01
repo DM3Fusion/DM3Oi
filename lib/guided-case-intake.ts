@@ -216,8 +216,9 @@ export function resolveGuidedDraftCustomerMode(
   storedMode: GuidedCustomerMode | undefined,
   fallback: GuidedCustomerMode,
 ): GuidedCustomerMode {
+  if (storedMode) return storedMode;
   if (customerId) return "existing";
-  return storedMode ?? fallback;
+  return fallback;
 }
 
 export type GuidedIntakeAnswers = Record<string, Json | undefined>;

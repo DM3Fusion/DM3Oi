@@ -429,7 +429,6 @@ export async function loadGuidedIntakeDraftForCase(
 
   return {
     ...savedDraft,
-    customerMode: "existing",
     draft: {
       ...savedDraft.draft,
       caseId: visibleCase.id,

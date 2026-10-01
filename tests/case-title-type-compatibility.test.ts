@@ -2,6 +2,7 @@ import fs from "node:fs";
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  resolveGuidedDraftCustomerMode,
   validateGuidedCaseDetails,
 } from "../lib/guided-case-intake.ts";
 
@@ -163,4 +164,20 @@ test("Case Configuration manages Case Type behavior instead of title compatibili
   assert.match(settings, /taxYearRule/);
   assert.doesNotMatch(settings, /Case Title Compatibility/);
   assert.doesNotMatch(settings, /Allowed Case Titles/);
+});
+
+
+test("resumed Guided Intake preserves its stored Customer mode after a Customer ID exists", () => {
+  assert.equal(
+    resolveGuidedDraftCustomerMode("customer-123", "new", "existing"),
+    "new",
+  );
+  assert.equal(
+    resolveGuidedDraftCustomerMode("customer-123", "existing", "new"),
+    "existing",
+  );
+  assert.equal(
+    resolveGuidedDraftCustomerMode("customer-123", undefined, "new"),
+    "existing",
+  );
 });

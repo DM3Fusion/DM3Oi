@@ -164,3 +164,13 @@ test("Edit Case identity loading does not bypass the organization Case projectio
   assert.match(caseLoader, /from\("organization_cases"\)/);
   assert.doesNotMatch(caseLoader, /from\("cases"\)/);
 });
+
+
+test("Edit Case preserves the Guided Intake customer mode established before materialization", () => {
+  const caseLoader = drafts.match(
+    /export async function loadGuidedIntakeDraftForCase[\s\S]*?export async function loadGuidedIntakeDraftSummaries/,
+  )?.[0] ?? "";
+
+  assert.doesNotMatch(caseLoader, /customerMode:\s*"existing"/);
+  assert.match(caseLoader, /\.\.\.savedDraft/);
+});
