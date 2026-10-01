@@ -1802,6 +1802,7 @@ export function GuidedCaseIntake({
                 name="dueDate"
                 required
                 defaultValue={activeTask?.dueDate ?? ""}
+                onChange={(event) => event.currentTarget.blur()}
               />
             </label>
 
