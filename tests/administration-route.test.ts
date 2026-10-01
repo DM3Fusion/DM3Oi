@@ -16,3 +16,16 @@ test("Organization Defaults is exposed only to SUPER_ADMIN in an active organiza
   assert.match(actions,/export async function saveCustomerPortalSettings/);
   assert.equal((actions.match(/!access\?\.isSuperAdmin/g) ?? []).length,2);
 });
+
+test("Case Lifecycle configuration is SUPER_ADMIN-only in the UI and save action",()=>{
+  const settings=readFileSync("app/settings/page.tsx","utf8");
+  const lifecycle=readFileSync("app/settings/case-lifecycle/page.tsx","utf8");
+  const navigation=readFileSync("lib/application-navigation.ts","utf8");
+  const actions=readFileSync("lib/data/organization-administration-actions.ts","utf8");
+
+  assert.match(settings,/card\.href !== "\/settings\/case-lifecycle" \|\| access\?\.isSuperAdmin/);
+  assert.match(lifecycle,/!a\?\.isSuperAdmin\|\|!a\.activeOrganization/);
+  assert.match(navigation,/item\.href !== "\/settings\/case-lifecycle" \|\| context\.isSuperAdmin/);
+  assert.match(actions,/saveLifecycleStatus[\s\S]*!a\?\.isSuperAdmin\|\|!id/);
+  assert.doesNotMatch(actions,/\/administration\/case-lifecycle/);
+});

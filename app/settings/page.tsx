@@ -42,7 +42,8 @@ export default async function Page() {
   const cards = configurationCards.filter(
     (card) =>
       hasPermission(access, card.permission) &&
-      (card.href !== "/settings/general" || access?.isSuperAdmin),
+      (card.href !== "/settings/general" || access?.isSuperAdmin) &&
+      (card.href !== "/settings/case-lifecycle" || access?.isSuperAdmin),
   );
   const mobileCards = cards.filter(
     (card) => card.href !== "/settings/general",

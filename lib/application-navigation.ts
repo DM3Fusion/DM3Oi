@@ -55,7 +55,11 @@ export const authorizedOrganizationAdministrationNavigation = (context: Permissi
   organizationAdministrationNavigation.filter((item) => hasPermission(context, item.permission));
 
 export const authorizedOrganizationSettingsNavigation = (context: PermissionContext) =>
-  organizationSettingsNavigation.filter((item) => hasPermission(context, item.permission));
+  organizationSettingsNavigation.filter(
+    (item) =>
+      hasPermission(context, item.permission) &&
+      (item.href !== "/settings/case-lifecycle" || context.isSuperAdmin),
+  );
 
 export function mobileSecondaryNavigation(context: PermissionContext, platformContext: boolean) {
   const profileNavigation = {

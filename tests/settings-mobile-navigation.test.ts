@@ -37,19 +37,21 @@ test("phone Settings navigation is semantic compact and accessible", () => {
   assert.doesNotMatch(mobileMarkup, /description|Manage/);
 });
 
-test("phone navigation retains the four requested permission-filtered destinations", () => {
-  const expected = [
+test("phone navigation keeps organization Settings destinations while Case Lifecycle remains SUPER_ADMIN-only", () => {
+  for (const [label, href] of [
     ["Case Configuration", "/settings/case-configuration"],
     ["Case Lifecycle", "/settings/case-lifecycle"],
     ["Customer Portal", "/settings/customer-portal"],
     ["User Access", "/settings/user-access"],
-  ];
-
-  for (const [label, href] of expected) {
+  ]) {
     assert.match(page, new RegExp(`title: "${label}"`));
     assert.match(page, new RegExp(`href: "${href}"`));
   }
 
+  assert.match(
+    page,
+    /card\.href !== "\/settings\/case-lifecycle" \|\| access\?\.isSuperAdmin/,
+  );
   assert.match(
     page,
     /const mobileCards = cards\.filter\([\s\S]*card\.href !== "\/settings\/general"/,

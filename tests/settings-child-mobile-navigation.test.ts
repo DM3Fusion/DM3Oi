@@ -73,6 +73,25 @@ test("phone navigation renders the shared permission-filtered Settings hierarchy
     all.map(({ href, label }) => ({ href, label })),
     [
       { href: "/settings/case-configuration", label: "Case Configuration" },
+      { href: "/settings/customer-portal", label: "Customer Portal" },
+      { href: "/settings/user-access", label: "User Access" },
+    ],
+  );
+
+  const superAdmin = authorizedOrganizationSettingsNavigation({
+    isSuperAdmin: true,
+    internalAccess: true,
+    activeOrganization: { role: "BUSINESS_OWNER" },
+    effectivePermissions: new Set([
+      "VIEW_ADMINISTRATION",
+      "MANAGE_ROLE_PERMISSIONS",
+    ]),
+  });
+
+  assert.deepEqual(
+    superAdmin.map(({ href, label }) => ({ href, label })),
+    [
+      { href: "/settings/case-configuration", label: "Case Configuration" },
       { href: "/settings/case-lifecycle", label: "Case Lifecycle" },
       { href: "/settings/customer-portal", label: "Customer Portal" },
       { href: "/settings/user-access", label: "User Access" },
@@ -105,7 +124,7 @@ test("Settings child permissions continue to hide unauthorized destinations", ()
   assert.deepEqual(limited.map((item) => item.href), ["/settings/user-access"]);
   assert.match(
     applicationNavigation,
-    /organizationSettingsNavigation\.filter\(\(item\) => hasPermission\(context, item\.permission\)\)/,
+    /item\.href !== "\/settings\/case-lifecycle" \|\| context\.isSuperAdmin/,
   );
 });
 
