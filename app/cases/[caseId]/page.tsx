@@ -239,6 +239,22 @@ export default async function Page({
     Boolean(finalizedIntakeResult.data) &&
     item.progress.ready;
 
+  const taxOutcome = (
+    item as typeof item & {
+      tax_outcome?: "REFUND" | "BALANCE_DUE" | "ZERO_BALANCE" | null;
+    }
+  ).tax_outcome ?? null;
+
+  const completedCaseStatus =
+    taxOutcome === "REFUND"
+      ? "Refund Issued"
+      : taxOutcome === "BALANCE_DUE"
+        ? "Payment Due"
+        : taxOutcome === "ZERO_BALANCE"
+          ? "Tax Return Complete"
+          : "Case Complete";
+
+
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
   );
@@ -748,20 +764,34 @@ export default async function Page({
             <section className="panel case-readiness-panel">
               <div className="case-readiness-heading">
                 <div>
-                  <h3>Case Readiness</h3>
+                  <h3>
+                    {item.status === "COMPLETED"
+                      ? "Case Status"
+                      : "Case Readiness"}
+                  </h3>
                   <p>{item.progress.progressPercent}% complete</p>
                 </div>
-                <span className={item.progress.ready ? "ready" : "not-ready"}>
-                  {item.progress.ready ? "Ready" : "Not ready"}
-                </span>
+                {item.status === "COMPLETED" ? (
+                  <span className="ready">Complete</span>
+                ) : (
+                  <span className={item.progress.ready ? "ready" : "not-ready"}>
+                    {item.progress.ready ? "Ready" : "Not ready"}
+                  </span>
+                )}
               </div>
               <ProgressBar percentage={item.progress.progressPercent} />
               <b className="case-readiness-state">
-                {item.progress.ready
-                  ? "Ready for completion"
-                  : "Not ready for completion"}
+                {item.status === "COMPLETED"
+                  ? completedCaseStatus
+                  : item.progress.ready
+                    ? "Ready for completion"
+                    : "Not ready for completion"}
               </b>
-              {item.progress.remainingWork.length ? (
+              {item.status === "COMPLETED" ? (
+                <p className="case-readiness-complete">
+                  This completed Case is read-only.
+                </p>
+              ) : item.progress.remainingWork.length ? (
                 <div className="case-readiness-remaining">
                   <strong>Remaining</strong>
                   <ul>

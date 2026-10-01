@@ -70,3 +70,14 @@ test("completed Case task editor is hidden in staff UI", () => {
   assert.match(page, /caseReadOnly = item\.status === "COMPLETED"/);
   assert.match(page, /task-record\$\{caseReadOnly \? " read-only" : ""\}/);
 });
+
+test("completed staff Case displays authoritative tax outcome status", () => {
+  assert.match(page, /taxOutcome === "REFUND"/);
+  assert.match(page, /"Refund Issued"/);
+  assert.match(page, /taxOutcome === "BALANCE_DUE"/);
+  assert.match(page, /"Payment Due"/);
+  assert.match(page, /taxOutcome === "ZERO_BALANCE"/);
+  assert.match(page, /"Tax Return Complete"/);
+  assert.match(page, /item\.status === "COMPLETED"/);
+  assert.match(page, /This completed Case is read-only/);
+});
