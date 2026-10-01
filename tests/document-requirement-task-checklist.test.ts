@@ -6,6 +6,12 @@ const migration = readFileSync(
   "supabase/migrations/20261002005000_dm3oi_document_requirement_checklist.sql",
   "utf8",
 );
+
+const guidedIntake = readFileSync(
+  "components/cases/guided-case-intake.tsx",
+  "utf8",
+);
+
 const casePage = readFileSync("app/cases/[caseId]/page.tsx", "utf8");
 const caseActions = readFileSync("lib/data/case-actions.ts", "utf8");
 const intake = readFileSync(
@@ -81,6 +87,17 @@ test("Case Task renders receipt checklist", () => {
   assert.match(
     casePage,
     /System set while required documents are[\s\S]*outstanding/,
+  );
+});
+
+test("Step 3 progression ignores document-receipt Questions", () => {
+  assert.match(
+    guidedIntake,
+    /requiredQuestionsResolved = !intakeQuestionEvaluation\.questions\.some/,
+  );
+  assert.doesNotMatch(
+    guidedIntake,
+    /requiredQuestionsResolved = !evaluation\.questions\.some/,
   );
 });
 

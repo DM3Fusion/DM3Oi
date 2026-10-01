@@ -229,7 +229,7 @@ test("Guided Intake displays selected count and blocks Continue until required q
 
   assert.match(
     source,
-    /const requiredQuestionsResolved = !evaluation\.questions\.some/,
+    /const requiredQuestionsResolved = !intakeQuestionEvaluation\.questions\.some/,
   );
 
   assert.match(

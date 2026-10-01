@@ -486,7 +486,7 @@ export function GuidedCaseIntake({
     (item) => item.question.id === followUpQuestionId,
   );
 
-  const requiredQuestionsResolved = !evaluation.questions.some((question) => {
+  const requiredQuestionsResolved = !intakeQuestionEvaluation.questions.some((question) => {
     if (
       !question.applicable ||
       !question.effectiveRequired ||
