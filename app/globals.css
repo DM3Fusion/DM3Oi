@@ -10328,3 +10328,35 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   }
 }
 
+
+/* Guided Intake — Required Documents availability alignment refinement. */
+.intake-document-availability-modal .intake-document-availability-list > label {
+  grid-template-columns: minmax(0, 1fr) 10.5rem;
+  column-gap: 1rem;
+}
+
+.intake-document-availability-modal .intake-document-availability-control {
+  justify-self: start;
+  min-width: 0;
+  width: 10.5rem;
+}
+
+.intake-document-availability-modal .task-modal-form > footer {
+  gap: 0.85rem;
+}
+
+.intake-document-availability-modal .task-modal-form > footer button + button {
+  margin-left: 0;
+}
+
+@media (max-width: 720px) {
+  .intake-document-availability-modal .intake-document-availability-list > label {
+    grid-template-columns: minmax(0, 1fr) 8.75rem;
+    column-gap: 0.75rem;
+  }
+
+  .intake-document-availability-modal .intake-document-availability-control {
+    width: 8.75rem;
+  }
+}
+
