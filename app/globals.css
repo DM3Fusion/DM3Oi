@@ -10186,3 +10186,145 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     grid-column: 1 / -1;
   }
 }
+
+/* Guided Intake — Required Documents availability modal final layout. */
+.intake-document-availability-modal {
+  width: min(58rem, calc(100vw - 3rem));
+  max-width: 58rem;
+  overflow-x: hidden;
+}
+
+.intake-document-availability-modal .task-modal-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+  min-width: 0;
+  padding: 1.5rem;
+  overflow-x: hidden;
+}
+
+.intake-document-availability-modal .task-modal-form > header,
+.intake-document-availability-modal .task-modal-form > footer,
+.intake-document-availability-modal .intake-document-availability-list {
+  grid-column: 1 / -1;
+  width: 100%;
+  min-width: 0;
+}
+
+.intake-document-availability-modal .task-modal-form > header {
+  display: grid;
+  gap: 0.4rem;
+  align-items: start;
+}
+
+.intake-document-availability-modal .task-modal-form > header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  line-height: 1.25;
+}
+
+.intake-document-availability-modal .task-modal-form > header p {
+  max-width: 46rem;
+  margin: 0.65rem 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.intake-document-availability-list {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.intake-document-availability-list > label {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 0.7rem 0.2rem;
+}
+
+.intake-document-availability-list > label:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.intake-document-availability-list > label > span:first-child {
+  min-width: 0;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.35;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.intake-document-availability-control {
+  display: inline-grid;
+  grid-template-columns: 1.5rem auto;
+  align-items: center;
+  justify-self: end;
+  gap: 0.65rem;
+  min-width: 8.5rem;
+  white-space: nowrap;
+  color: #52677d;
+  font-size: 0.9rem;
+  font-weight: 750;
+  text-transform: uppercase;
+}
+
+/* Override generic task-modal input sizing for these checkboxes. */
+.intake-document-availability-modal
+  .intake-document-availability-control
+  input[type="checkbox"] {
+  appearance: auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  min-width: 1.35rem;
+  min-height: 1.35rem;
+  margin: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.intake-document-availability-modal .task-modal-form > footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+  padding-top: 1rem;
+}
+
+.intake-document-availability-modal .task-modal-form > footer button {
+  min-height: 2.7rem;
+}
+
+@media (max-width: 720px) {
+  .intake-document-availability-modal {
+    width: calc(100vw - 1.5rem);
+  }
+
+  .intake-document-availability-modal .task-modal-form {
+    padding: 1.1rem;
+  }
+
+  .intake-document-availability-list > label {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.75rem;
+  }
+
+  .intake-document-availability-control {
+    min-width: 0;
+  }
+}
+
