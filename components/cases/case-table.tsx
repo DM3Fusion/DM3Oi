@@ -22,7 +22,6 @@ export function CaseTable({
             <th>Case</th>
             <th>Status</th>
             <th>Priority</th>
-            {!compact && <th>Manager</th>}
             <th>Assigned Staff</th>
             <th>Progress</th>
             <th>Due Date</th>
@@ -50,7 +49,6 @@ export function CaseTable({
               <td>
                 <Badge value={item.priority} />
               </td>
-              {!compact && <td>{displayName(item.manager)}</td>}
               <td>
                 <div className="case-assigned-staff">
                   {item.assignedStaff.length ? (
