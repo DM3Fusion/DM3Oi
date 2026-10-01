@@ -197,6 +197,7 @@ test("follow-up context tracks only current missing required items and reopens o
     missingOptionLabels: ["1099-INT"],
     assignedUserId: "staff-a",
     dueDate: "2026-10-01",
+    status: "COMPLETED" as const,
     completed: true,
   };
   const received = ["w2"];
@@ -324,6 +325,7 @@ test("completed follow-up Task remains valid history after required documents ar
     missingOptionLabels: ["1099-NEC"],
     assignedUserId: "staff-a",
     dueDate: "2026-10-01",
+    status: "COMPLETED" as const,
     completed: true,
   };
 
@@ -352,6 +354,7 @@ test("open follow-up Task must still match the current missing required items", 
     missingOptionLabels: ["1099-INT"],
     assignedUserId: "staff-a",
     dueDate: "2026-10-01",
+    status: "NOT_STARTED" as const,
     completed: false,
   };
 

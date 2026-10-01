@@ -549,29 +549,16 @@ export default async function Page({
                           </select>
                           {!canManage ? <input type="hidden" name="assignedUserId" value={task.assigned_user_id ?? ""} /> : null}
                         </label>
-                        {task.generated_by_rule || task.generated_by_intake ? (
-                          <label>
-                            <span>Status</span>
-                            <input
-                              value={task.status.replaceAll("_", " ")}
-                              readOnly
-                            />
-                            <input
-                              type="hidden"
-                              name="status"
-                              value={task.status}
-                            />
-                          </label>
-                        ) : (
-                          <label>
-                            <span>Status</span>
-                            <select name="status" defaultValue={task.status}>
-                              {taskStatuses.map((value) => (
-                                <option key={value}>{value}</option>
-                              ))}
-                            </select>
-                          </label>
-                        )}
+                        <label>
+                          <span>Status</span>
+                          <select name="status" defaultValue={task.status}>
+                            {taskStatuses.map((value) => (
+                              <option key={value} value={value}>
+                                {value.replaceAll("_", " ")}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
                         <label>
                           <span>Due date</span>
                           <input

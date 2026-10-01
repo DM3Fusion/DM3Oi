@@ -287,6 +287,7 @@ test("required complete-option questions expose missing items and cannot be sati
     missingOptionLabels: ["1099"],
     assignedUserId: "staff",
     dueDate: "2026-10-01",
+    status: "NOT_STARTED",
     completed: false,
   };
   assert.equal(canCompleteIntakeFollowUpTask(task, unresolved), false);

@@ -233,6 +233,7 @@ export type GuidedIntakeFollowUpTask = {
   missingOptionLabels: string[];
   assignedUserId: string;
   dueDate: string;
+  status: "NOT_STARTED" | "IN_PROGRESS" | "BLOCKED" | "COMPLETED" | "NOT_APPLICABLE";
   completed: boolean;
 };
 
@@ -580,6 +581,13 @@ export function reconcileGuidedIntakeFollowUpTasks(
     );
     if (!question?.applicable || !question.effectiveRequired) return [];
     const missingOptions = missingByQuestion.get(task.questionId) ?? [];
+    const completed = missingOptions.length === 0 && question.valid;
+    const status: GuidedIntakeFollowUpTask["status"] = completed
+      ? "COMPLETED"
+      : task.status === "COMPLETED"
+        ? "IN_PROGRESS"
+        : task.status;
+
     return [{
       ...task,
       missingOptionIds: missingOptions.map((option) => option.id),
@@ -587,8 +595,8 @@ export function reconcileGuidedIntakeFollowUpTasks(
       description: missingOptions.length
         ? `Outstanding requirements: ${missingOptions.map((option) => option.label).join(", ")}`
         : "All required documents have been received.",
-      completed:
-        missingOptions.length || !question?.valid ? false : true,
+      status,
+      completed: status === "COMPLETED",
     }];
   });
 }

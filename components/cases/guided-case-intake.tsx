@@ -659,7 +659,19 @@ export function GuidedCaseIntake({
     const form = new FormData(event.currentTarget);
     const assignedUserId = String(form.get("assignedUserId") ?? "");
     const dueDate = String(form.get("dueDate") ?? "");
-    if (!assignedUserId || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) return;
+    const status = String(form.get("status") ?? "NOT_STARTED");
+    const allowedStatuses = new Set([
+      "NOT_STARTED",
+      "IN_PROGRESS",
+      "BLOCKED",
+      "COMPLETED",
+      "NOT_APPLICABLE",
+    ]);
+    if (
+      !assignedUserId ||
+      !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) ||
+      !allowedStatuses.has(status)
+    ) return;
     const existing = draft.followUpTasks.find(
       (task) => task.questionId === activeFollowUpRequirement.question.id,
     );
@@ -678,7 +690,8 @@ export function GuidedCaseIntake({
       missingOptionLabels,
       assignedUserId,
       dueDate,
-      completed: existing?.completed ?? false,
+      status: status as GuidedIntakeFollowUpTask["status"],
+      completed: status === "COMPLETED",
     };
 
     setPending(true);
@@ -1708,12 +1721,6 @@ export function GuidedCaseIntake({
         const noticeSent = activeTask
           ? noticeSentFollowUpIds.has(activeTask.id)
           : false;
-        const taskStatus = activeTask?.completed
-          ? "Completed"
-          : noticeSent
-            ? "In Progress"
-            : "Not Started";
-
         return (
           <form className="task-modal-form" onSubmit={saveFollowUpTask}>
             <header>
@@ -1747,13 +1754,6 @@ export function GuidedCaseIntake({
                   .join(", ")}
               </p>
             </div>
-
-            {activeTask ? (
-              <label>
-                <span>Status</span>
-                <input value={taskStatus} readOnly />
-              </label>
-            ) : null}
 
             <label>
               <span>Assigned to</span>
@@ -1793,6 +1793,20 @@ export function GuidedCaseIntake({
                   />
                 </>
               )}
+            </label>
+
+            <label>
+              <span>Status</span>
+              <select
+                name="status"
+                defaultValue={activeTask?.status ?? "NOT_STARTED"}
+              >
+                <option value="NOT_STARTED">Not Started</option>
+                <option value="IN_PROGRESS">In Progress</option>
+                <option value="BLOCKED">Blocked</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="NOT_APPLICABLE">Not Applicable</option>
+              </select>
             </label>
 
             <label>

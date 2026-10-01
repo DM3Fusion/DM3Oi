@@ -127,6 +127,16 @@ const parseFollowUpTasks = (value: Json): GuidedIntakeFollowUpTask[] => {
       description: candidate.description,
       assignedUserId: candidate.assignedUserId,
       dueDate: candidate.dueDate,
+      status:
+        candidate.status === "NOT_STARTED" ||
+        candidate.status === "IN_PROGRESS" ||
+        candidate.status === "BLOCKED" ||
+        candidate.status === "COMPLETED" ||
+        candidate.status === "NOT_APPLICABLE"
+          ? candidate.status
+          : candidate.completed
+            ? "COMPLETED"
+            : "NOT_STARTED",
       completed: candidate.completed,
       missingOptionIds: candidate.missingOptionIds.filter(
         (entry): entry is string => typeof entry === "string",
@@ -258,6 +268,14 @@ export async function loadGuidedIntakeDraft(
           persisted.assigned_user_id ?? task.assignedUserId,
         dueDate:
           persisted.due_at?.slice(0, 10) ?? task.dueDate,
+        status:
+          persisted.status === "NOT_STARTED" ||
+          persisted.status === "IN_PROGRESS" ||
+          persisted.status === "BLOCKED" ||
+          persisted.status === "COMPLETED" ||
+          persisted.status === "NOT_APPLICABLE"
+            ? persisted.status
+            : task.status,
         completed:
           persisted.status === "COMPLETED",
       };

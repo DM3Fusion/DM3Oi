@@ -127,7 +127,11 @@ test("Guided Intake reuses the canonical missing-document notice workflow and pr
 
   assert.match(
     component,
-    /completed: existing\?\.completed \?\? false/,
+    /status:\s*status as GuidedIntakeFollowUpTask\["status"\]/,
+  );
+  assert.match(
+    component,
+    /completed:\s*status === "COMPLETED"/,
   );
 });
 
@@ -187,7 +191,15 @@ test("received Guided Intake requirements synchronize the real Case Task lifecyc
 
   assert.match(
     domain,
-    /completed:\s*missingOptions\.length \|\| !question\?\.valid \? false : true/,
+    /const completed = missingOptions\.length === 0 && question\.valid/,
+  );
+  assert.match(
+    domain,
+    /task\.status === "COMPLETED"[\s\S]*\? "IN_PROGRESS"/,
+  );
+  assert.match(
+    domain,
+    /completed:\s*status === "COMPLETED"/,
   );
 
   assert.match(
@@ -269,4 +281,29 @@ test("Guided Intake draft identity protection uses a narrow Case lookup helper",
     migration,
     /current_user not in \('postgres','supabase_admin','service_role'\)/,
   );
+});
+
+
+test("Guided Intake follow-up Task exposes and persists canonical status and Due Date", () => {
+  const model = source("lib/guided-case-intake.ts");
+  const drafts = source("lib/data/guided-case-intake-drafts.ts");
+  const component = source("components/cases/guided-case-intake.tsx");
+  const casePage = source("app/cases/[caseId]/page.tsx");
+
+  assert.match(model, /status:\s*"NOT_STARTED"\s*\|\s*"IN_PROGRESS"/);
+  assert.match(model, /completed:\s*status === "COMPLETED"/);
+
+  assert.match(
+    drafts,
+    /status:[\s\S]*persisted\.status === "NOT_STARTED"[\s\S]*persisted\.status === "COMPLETED"/,
+  );
+  assert.match(drafts, /dueDate:[\s\S]*persisted\.due_at\?\.slice\(0, 10\)/);
+
+  assert.match(component, /name="status"/);
+  assert.match(component, /defaultValue=\{activeTask\?\.status \?\? "NOT_STARTED"\}/);
+  assert.match(component, /name="dueDate"/);
+  assert.match(component, /completed:\s*status === "COMPLETED"/);
+
+  assert.match(casePage, /<select name="status" defaultValue=\{task\.status\}>/);
+  assert.match(casePage, /name="dueDate"/);
 });
