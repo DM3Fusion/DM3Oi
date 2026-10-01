@@ -370,6 +370,20 @@ test("Task Purpose projection grants authenticated callers the underlying Task P
   );
 });
 
+test("sending a missing-document notice advances unfinished Guided Intake to Step 4 without moving later drafts backward", () => {
+  const actions = source("lib/data/case-actions.ts");
+
+  assert.match(
+    actions,
+    /from\("guided_case_intake_drafts"\)[\s\S]*update\(\{ current_step: 3 \}\)[\s\S]*eq\("case_id", caseId\)[\s\S]*is\("finalized_at", null\)[\s\S]*lt\("current_step", 3\)/,
+  );
+
+  assert.match(
+    actions,
+    /await sendMissingDocumentsNotice\([\s\S]*?\);[\s\S]*?current_step: 3/,
+  );
+});
+
 test("organization Case Task projection grants only its remaining required Task columns", () => {
   const privilegeMigration = source(
     "supabase/migrations/20260927204000_dm3oi_case_tasks_view_select_privileges.sql",
