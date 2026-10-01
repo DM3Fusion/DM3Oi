@@ -154,6 +154,51 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 
 .portal-privacy-settings-note{display:grid;gap:4px;padding:13px 14px;border:1px solid #e5c1c1;border-left:4px solid #8b1e1e;border-radius:7px;background:#fff7f7;color:#5d1717}.portal-privacy-settings-note strong{font-size:12px;text-transform:uppercase;letter-spacing:.6px}.portal-privacy-settings-note span{font-size:11px;line-height:1.5}.portal-case-requirement{margin-top:18px;padding:16px;border:1px solid #d8e1eb;border-left:5px solid #b42318;border-radius:7px;background:#fff}.portal-case-requirement-label{color:#9b1c1c;font-size:10px;font-weight:900;letter-spacing:.9px;text-transform:uppercase}.portal-case-requirement h3{margin:5px 0 8px;color:#10233f;font-size:16px}.portal-case-requirement ul{margin:0 0 16px;padding-left:21px}.portal-case-requirement li{margin:3px 0;color:#10233f;font-size:15px;font-weight:800}.portal-case-privacy-notice{margin:14px 0;padding:13px 14px;border:1px solid #e5c1c1;border-left:4px solid #8b1e1e;border-radius:7px;background:#fff7f7;color:#5d1717}.portal-case-privacy-notice strong{display:block;margin-bottom:6px;font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase}.portal-case-privacy-notice p{margin:5px 0;font-size:12px;font-weight:650;line-height:1.55}.portal-document-instructions{margin:14px 0}.portal-document-instructions strong{display:block;margin-bottom:5px;color:#40506a;font-size:11px;font-weight:850;letter-spacing:.5px;text-transform:uppercase}.portal-document-instructions p{margin:0;color:#263548;font-size:13px;line-height:1.6;white-space:pre-line}.portal-secure-document-link{display:inline-flex;margin-top:3px}.portal-external-system-note{display:block;margin-top:7px;color:var(--muted);font-size:10px;line-height:1.4}@media(max-width:700px){.portal-case-requirement{padding:14px}.portal-case-requirement h3{font-size:18px}.portal-case-requirement li{font-size:17px}.portal-case-privacy-notice p,.portal-document-instructions p{font-size:14px}.portal-secure-document-link{width:100%;justify-content:center;min-height:46px}}
 
+
+/* Customer Portal Case lifecycle */
+.portal-case-phases{
+  display:grid;
+  gap:14px;
+  margin-top:18px;
+}
+.portal-case-phase{
+  display:grid;
+  gap:7px;
+}
+.portal-case-phase-copy{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  color:#40506a;
+}
+.portal-case-phase-copy>span{
+  font-size:13px;
+  font-weight:800;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+}
+.portal-case-phase-copy>strong{
+  color:#10233f;
+  font-size:15px;
+  font-weight:800;
+  text-align:right;
+}
+.portal-case-progress-pending{
+  background:#e8edf3;
+}
+@media(max-width:600px){
+  .portal-case-phases{
+    gap:16px;
+  }
+  .portal-case-phase-copy>span{
+    font-size:12px;
+  }
+  .portal-case-phase-copy>strong{
+    font-size:15px;
+  }
+}
+
 /* Customer Portal document-submission confirmation */
 .portal-documents-sent-button{
   width:100%;

@@ -8,6 +8,19 @@ import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 const safePercentage = (value: number) =>
   Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 
+const externalCasePhaseLabel = (serviceLabel: string) => {
+  const normalized = serviceLabel.toLowerCase();
+
+  if (
+    normalized.includes("cash advance") ||
+    normalized.includes("refund")
+  ) {
+    return "Refund";
+  }
+
+  return "Service";
+};
+
 type Props = {
   cases: CustomerPortalCaseSummary[];
   requirements: CustomerPortalCaseRequirement[];
@@ -31,8 +44,8 @@ export function PortalCaseSummaries({
         className="portal-case-empty"
         aria-labelledby="portal-cases-heading"
       >
-        <h2 id="portal-cases-heading">No active cases</h2>
-        <p>You don’t currently have any work in progress.</p>
+        <h2 id="portal-cases-heading">No cases</h2>
+        <p>You don’t currently have any Case activity to display.</p>
       </section>
     );
   }
@@ -48,11 +61,19 @@ export function PortalCaseSummaries({
       aria-labelledby="portal-cases-heading"
     >
       <h2 id="portal-cases-heading">
-        {singular ? "Your Case" : "Active Cases"}
+        {singular ? "Your Case" : "Your Cases"}
       </h2>
       <div className={`portal-case-grid${singular ? " single" : ""}`}>
         {cases.map((item) => {
           const percentage = safePercentage(item.progress_percent);
+          const intakePercentage = item.intake_finalized ? 100 : percentage;
+          const externalPhaseLabel = externalCasePhaseLabel(item.service_label);
+          const externalPhaseComplete = item.customer_status === "Completed";
+          const externalPhaseStatus = externalPhaseComplete
+            ? "100% Complete"
+            : item.intake_finalized
+              ? "In Progress"
+              : "Not Started";
           const requirement = requirementByCase.get(item.case_number);
 
           return (
@@ -67,19 +88,51 @@ export function PortalCaseSummaries({
                 </span>
               </div>
 
-              <div className="portal-case-progress-copy">
-                <strong>{percentage}% Intake Complete</strong>
-              </div>
-              <div
-                className="portal-case-progress"
-                role="progressbar"
-                aria-label={`${item.case_number} intake progress`}
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={percentage}
-                aria-valuetext={`${percentage}% intake complete`}
-              >
-                <span style={{ width: `${percentage}%` }} />
+              <div className="portal-case-phases">
+                <div className="portal-case-phase">
+                  <div className="portal-case-phase-copy">
+                    <span>Intake</span>
+                    <strong>{intakePercentage}% Complete</strong>
+                  </div>
+                  <div
+                    className="portal-case-progress"
+                    role="progressbar"
+                    aria-label={`${item.case_number} intake progress`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={intakePercentage}
+                    aria-valuetext={`${intakePercentage}% intake complete`}
+                  >
+                    <span style={{ width: `${intakePercentage}%` }} />
+                  </div>
+                </div>
+
+                <div className="portal-case-phase">
+                  <div className="portal-case-phase-copy">
+                    <span>{externalPhaseLabel}</span>
+                    <strong>{externalPhaseStatus}</strong>
+                  </div>
+                  {externalPhaseComplete ? (
+                    <div
+                      className="portal-case-progress"
+                      role="progressbar"
+                      aria-label={`${item.case_number} ${externalPhaseLabel.toLowerCase()} progress`}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={100}
+                      aria-valuetext="100% complete"
+                    >
+                      <span style={{ width: "100%" }} />
+                    </div>
+                  ) : (
+                    <div
+                      className="portal-case-progress portal-case-progress-pending"
+                      aria-hidden="true"
+                    >
+                      <span style={{ width: "0%" }} />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {requirement ? (

@@ -6,6 +6,7 @@ export interface CustomerPortalCaseSummary {
   service_label: string;
   customer_status: string;
   progress_percent: number;
+  intake_finalized: boolean;
 }
 
 export interface CustomerPortalCaseRequirement {
