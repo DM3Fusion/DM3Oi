@@ -4,6 +4,7 @@ import { ResendInviteButton } from "@/components/resend-invite-button";
 import { requirePermission } from "@/lib/auth/context";
 import { canInviteOrganizationUsers } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
 import { UrlSearch } from "@/components/question-search";
 import { normalizeUserQuery, userMatchesSearch } from "@/lib/user-filters";
@@ -28,10 +29,27 @@ export default async function Page({
   const canAddUser = canInviteOrganizationUsers(context);
   const canManageUsers = hasPermission(context, "MANAGE_USERS");
   const supabase = await createClient();
+  const { data: organizationSettings } = await supabase
+    .from("organization_settings")
+    .select("timezone")
+    .eq("organization_id", org.id)
+    .maybeSingle();
+  const organizationTimezone = organizationSettings?.timezone || "UTC";
+
+  const formatTimestamp = (value: string) =>
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: organizationTimezone,
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(new Date(value));
+
   const { data: members } = await supabase
     .from("organization_members")
     .select(
-      "id,user_id,role,is_active,status,joined_at,profiles(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at)",
+      "id,user_id,role,is_active,status,joined_at,invited_at,verified_at,profiles(id,email,first_name,last_name,display_name,title,avatar_path,avatar_updated_at)",
     )
     .eq("organization_id", org.id)
     .order("joined_at");
@@ -50,6 +68,23 @@ export default async function Page({
   const profilesById = new Map(
     avatarProfiles.map((profile) => [profile.id, profile]),
   );
+
+  const admin = createAdminClient();
+  const authUsers = await Promise.all(
+    rows.map(async (member: any) => {
+      const { data, error } = await admin.auth.admin.getUserById(member.user_id);
+      return [
+        member.user_id,
+        error || !data.user
+          ? null
+          : {
+              lastSignInAt: data.user.last_sign_in_at ?? null,
+            },
+      ] as const;
+    }),
+  );
+  const authByUserId = new Map(authUsers);
+
   const eligible = await Promise.all(
     rows.map(
       async (m) =>
@@ -93,6 +128,7 @@ export default async function Page({
                   <th>Role</th>
                   <th>Status</th>
                   <th>Invitation</th>
+                  <th>Last Login</th>
                 </tr>
               </thead>
               <tbody>
@@ -112,6 +148,22 @@ export default async function Page({
                       m.role,
                       context.isSuperAdmin,
                     );
+
+                  const invitationState = m.verified_at
+                    ? {
+                        label: "Invitation Verified",
+                        timestamp: m.verified_at,
+                      }
+                    : m.invited_at
+                      ? {
+                          label: "Invitation Sent",
+                          timestamp: m.invited_at,
+                        }
+                      : null;
+
+                  const lastLogin =
+                    authByUserId.get(m.user_id)?.lastSignInAt ?? null;
+
                   return (
                     <NavigableRow
                       key={m.id}
@@ -149,26 +201,47 @@ export default async function Page({
                         <Badge value={m.status ?? (m.is_active ? "ACTIVE" : "SUSPENDED")} />
                       </td>
                       <td>
-                        {m.status === "INVITED" && eligible.find(([id]) => id === m.user_id)?.[1] ? (
-                          <ResendInviteButton
-                            userId={m.user_id}
-                            organizationId={org.id}
-                          />
-                        ) : canActivate ? (
-                          <form action={transitionOrganizationMembershipAction}>
-                            <input type="hidden" name="membershipId" value={m.id} />
-                            <input type="hidden" name="action" value="ACTIVATE" />
-                            <input type="hidden" name="returnTo" value="/users" />
-                            <PendingSubmitButton
-                              className="primary-button"
-                              pendingLabel="Activating…"
-                              aria-label={`Activate ${name}`}
-                            >
-                              Activate
-                            </PendingSubmitButton>
-                          </form>
+                        <span className="user-invitation-state">
+                          {invitationState ? (
+                            <>
+                              <strong>{invitationState.label}</strong>
+                              <small className="table-secondary">
+                                {formatTimestamp(invitationState.timestamp)}
+                              </small>
+                            </>
+                          ) : (
+                            <span>—</span>
+                          )}
+
+                          {m.status === "INVITED" &&
+                          eligible.find(([id]) => id === m.user_id)?.[1] ? (
+                            <ResendInviteButton
+                              userId={m.user_id}
+                              organizationId={org.id}
+                            />
+                          ) : canActivate ? (
+                            <form action={transitionOrganizationMembershipAction}>
+                              <input type="hidden" name="membershipId" value={m.id} />
+                              <input type="hidden" name="action" value="ACTIVATE" />
+                              <input type="hidden" name="returnTo" value="/users" />
+                              <PendingSubmitButton
+                                className="primary-button"
+                                pendingLabel="Activating…"
+                                aria-label={`Activate ${name}`}
+                              >
+                                Activate
+                              </PendingSubmitButton>
+                            </form>
+                          ) : null}
+                        </span>
+                      </td>
+                      <td>
+                        {lastLogin ? (
+                          <span className="table-secondary user-last-login">
+                            {formatTimestamp(lastLogin)}
+                          </span>
                         ) : (
-                          "—"
+                          "Never"
                         )}
                       </td>
                     </NavigableRow>

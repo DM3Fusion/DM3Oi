@@ -8922,3 +8922,22 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     font-size:11px;
   }
 }
+
+/* Organization Users invitation and login history */
+.user-invitation-state{
+  display:grid;
+  justify-items:start;
+  gap:3px;
+}
+.user-invitation-state>strong{
+  font-size:13px;
+  font-weight:700;
+  white-space:nowrap;
+}
+.user-invitation-state>form,
+.user-invitation-state>button{
+  margin-top:5px;
+}
+.user-last-login{
+  white-space:nowrap;
+}
