@@ -20,7 +20,6 @@ export function CaseTable({
             <th>Case Number</th>
             <th>Customer</th>
             <th>Case</th>
-            {!compact && <th>Case Type</th>}
             <th>Status</th>
             <th>Priority</th>
             {!compact && <th>Manager</th>}
@@ -45,7 +44,6 @@ export function CaseTable({
               <td>
                 <b>{item.title}</b>
               </td>
-              {!compact && <td>{item.case_type}</td>}
               <td>
                 <Badge value={item.status} />
               </td>
