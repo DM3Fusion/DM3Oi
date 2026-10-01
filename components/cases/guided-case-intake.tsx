@@ -1018,7 +1018,7 @@ export function GuidedCaseIntake({
       return;
     }
 
-    window.location.assign("/cases?message=Intake%20draft%20saved");
+    router.push("/cases?message=Intake%20draft%20saved");
   };
 
   const answerLabel = (question: GuidedIntakeQuestion) => {

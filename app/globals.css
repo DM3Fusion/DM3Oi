@@ -9504,3 +9504,230 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     min-width: 0;
   }
 }
+
+/* ============================================================
+   GUIDED INTAKE VERTICAL RAIL — LEGACY STEPPER RESET
+   Prevent former horizontal-tab styles from leaking into the
+   approved workspace rail.
+   ============================================================ */
+
+.guided-case-intake
+  .intake-stepper
+  li
+  > .intake-step-tab
+  > span::before {
+  content: none;
+  display: none;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li
+  > .intake-step-tab
+  > span:first-child {
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 2.15rem;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid #cad4df;
+  border-radius: 50%;
+  background: #fff;
+  color: #647386;
+  font-size: 0.78rem;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: 0;
+  text-align: center;
+  text-transform: none;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li
+  > .intake-step-tab
+  > .intake-step-copy {
+  width: auto;
+  height: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-rows: none;
+  grid-template-columns: 1fr;
+  align-content: center;
+  align-items: start;
+  justify-content: stretch;
+  gap: 0.16rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: normal;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li
+  > .intake-step-tab
+  > .intake-step-copy
+  > b {
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background: transparent;
+  color: #34495f;
+  font-size: 0.86rem;
+  font-weight: 760;
+  line-height: 1.25;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li
+  > .intake-step-tab
+  > .intake-step-copy
+  > small {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  display: block;
+  color: #8a96a4;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: left;
+  text-transform: none;
+  white-space: normal;
+}
+
+.guided-case-intake .intake-step-tab {
+  min-height: 4.4rem;
+  padding: 0.72rem 0.55rem;
+  display: grid;
+  grid-template-columns: 2.15rem minmax(0, 1fr);
+  grid-template-rows: none;
+  align-content: center;
+  align-items: center;
+  justify-content: stretch;
+  gap: 0.72rem;
+  border: 0;
+  border-radius: 0.45rem;
+  text-align: left;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.active
+  > .intake-step-tab
+  > span:first-child {
+  border-color: #348bb8;
+  background: #348bb8;
+  color: #fff;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.complete
+  > .intake-step-tab
+  > span:first-child {
+  border-color: #75b69f;
+  background: #edf8f4;
+  color: #28745d;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.active
+  > .intake-step-tab
+  > .intake-step-copy
+  > b {
+  color: #226f98;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.complete
+  > .intake-step-tab
+  > .intake-step-copy
+  > b {
+  color: #29473e;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.active
+  > .intake-step-tab
+  > .intake-step-copy
+  > small {
+  color: #377ba0;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.complete
+  > .intake-step-tab
+  > .intake-step-copy
+  > small {
+  color: #54816f;
+}
+
+@media (min-width: 851px) {
+  .guided-case-intake .intake-progress-rail {
+    padding: 1.1rem 0.8rem;
+  }
+
+  .guided-case-intake .intake-stepper {
+    grid-template-columns: 1fr;
+    gap: 0.12rem;
+    align-items: stretch;
+    overflow: visible;
+    border: 0;
+  }
+
+  .guided-case-intake .intake-stepper li {
+    display: block;
+  }
+
+  .guided-case-intake
+    .intake-stepper
+    li::after,
+  .guided-case-intake
+    .intake-stepper
+    li:not(:last-child)::after {
+    display: block !important;
+    top: 3.05rem;
+    bottom: -0.7rem;
+    left: 1.62rem;
+    right: auto;
+    width: 1px;
+    border: 0;
+    background: #d7dfe7;
+  }
+
+  .guided-case-intake
+    .intake-stepper
+    li.complete::after {
+    background: #abd3c5;
+  }
+
+  .guided-case-intake
+    .intake-stepper
+    li:last-child::after {
+    display: none !important;
+  }
+}
