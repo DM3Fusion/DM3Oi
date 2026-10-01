@@ -9954,3 +9954,24 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
     gap:10px;
   }
 }
+
+/* Task Status overflow correction: keep the count column inside the card. */
+.task-status-layout,
+.task-status-list{
+  min-width:0;
+}
+
+.task-status-list>a{
+  box-sizing:border-box;
+  min-width:0;
+  max-width:100%;
+}
+
+.task-status-list>a>span{
+  min-width:0;
+}
+
+.task-status-list>a>strong{
+  min-width:0;
+  max-width:100%;
+}
