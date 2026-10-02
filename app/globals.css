@@ -11128,3 +11128,64 @@ dialog.task-modal.intake-document-availability-modal {
     overflow-wrap:anywhere;
   }
 }
+
+/* SUPER_ADMIN Customer submission register refinements */
+.customer-import-submission-summary{
+  grid-template-columns:
+    minmax(250px,1.45fr)
+    minmax(180px,.85fr)
+    minmax(90px,.45fr)
+    minmax(130px,.65fr)
+    auto
+    18px;
+  gap:0;
+}
+
+.customer-import-summary-identity{
+  padding-right:22px;
+}
+
+.customer-import-summary-meta{
+  display:contents;
+}
+
+.customer-import-summary-meta>span{
+  display:grid;
+  align-content:center;
+  min-width:0;
+  min-height:46px;
+  padding:0 18px;
+  border-left:1px solid #e5e9ef;
+}
+
+.customer-import-submission-summary>.badge{
+  justify-self:center;
+  margin:0 16px;
+}
+
+.customer-import-summary-chevron{
+  justify-self:center;
+}
+
+.customer-import-submission-summary:hover{
+  background:#e5e9ef;
+}
+
+.customer-import-submission[open]>.customer-import-submission-summary{
+  background:#eef1f5;
+}
+
+@media(max-width:1000px){
+  .customer-import-submission-summary{
+    grid-template-columns:minmax(220px,1fr) auto 18px;
+    gap:12px;
+  }
+
+  .customer-import-summary-meta{
+    display:none;
+  }
+
+  .customer-import-submission-summary>.badge{
+    margin:0;
+  }
+}
