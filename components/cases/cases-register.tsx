@@ -1,5 +1,5 @@
 import { CaseTable } from "./case-table";
-import type { LiveCase } from "@/lib/data/case-repository";
+import type { CaseRegisterRow } from "@/lib/data/case-repository";
 import {
   CaseRegisterFilters,
   type CaseRegisterFilterValues,
@@ -11,7 +11,7 @@ export function CasesRegister({
   items,
   filters,
 }: {
-  items: LiveCase[];
+  items: CaseRegisterRow[];
   filters: CaseFilters;
 }) {
   return (

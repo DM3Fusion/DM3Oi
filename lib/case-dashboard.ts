@@ -1,4 +1,4 @@
-import type { LiveCase } from "./data/case-repository.ts";
+import type { CaseRegisterRow } from "./data/case-repository.ts";
 import {
   ALL_CASE_LIFECYCLE_STATUSES,
   isIncompleteCompatibilityCaseStatus,
@@ -29,12 +29,12 @@ export interface CaseDashboardCounts {
 export const normalizeCaseView = (value?: string): CaseView | undefined =>
   caseViews.includes(value as CaseView) ? (value as CaseView) : undefined;
 
-export const normalizeRawCaseStatus = (value?: string): LiveCase["status"] | undefined =>
-  ALL_CASE_LIFECYCLE_STATUSES.includes(value as LiveCase["status"])
-    ? (value as LiveCase["status"])
+export const normalizeRawCaseStatus = (value?: string): CaseRegisterRow["status"] | undefined =>
+  ALL_CASE_LIFECYCLE_STATUSES.includes(value as CaseRegisterRow["status"])
+    ? (value as CaseRegisterRow["status"])
     : undefined;
 
-export const isCaseUnassigned = (item: LiveCase) =>
+export const isCaseUnassigned = (item: CaseRegisterRow) =>
   !item.manager_user_id && item.assignedStaff.length === 0;
 
 export function isCaseOverdue(item: LiveCase, timezone: string, now = new Date()) {
@@ -52,7 +52,7 @@ export function matchesCaseView(item: LiveCase, view: CaseView | undefined, time
   return matchesCaseFilter(item, "completed");
 }
 
-export function getCaseDashboardCounts(items: LiveCase[], timezone: string, now = new Date()): CaseDashboardCounts {
+export function getCaseDashboardCounts(items: CaseRegisterRow[], timezone: string, now = new Date()): CaseDashboardCounts {
   return {
     total: items.length,
     inProgress: items.filter((item) => matchesCaseView(item, "in-progress", timezone, now)).length,

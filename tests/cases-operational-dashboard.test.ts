@@ -95,6 +95,50 @@ test("Cases page derives stable KPI counts from the existing authorized organiza
   assert.doesNotMatch(page, /createClient|\.from\("cases"\)/);
 });
 
+test("Cases register uses a purpose-built lightweight projection", () => {
+  const repository = source("lib/data/case-repository.ts");
+  const table = source("components/cases/case-table.tsx");
+
+  const start = repository.indexOf(
+    "export async function getCasesRegisterData()",
+  );
+  const end = repository.indexOf(
+    "export async function getLiveCase(caseId: string)",
+    start,
+  );
+  const loader = repository.slice(start, end);
+
+  assert.match(
+    loader,
+    /select\(\s*"id,case_number,title,status,priority,due_at,manager_user_id,customer_id",?\s*\)/,
+  );
+  assert.match(loader, /select\("id,name"\)/);
+  assert.match(
+    loader,
+    /select\("id,case_id,title,status,required,blocking,due_at"\)/,
+  );
+  assert.match(loader, /select\("case_id,current_step"\)/);
+  assert.doesNotMatch(loader, /current_step,answers/);
+
+  assert.match(
+    loader,
+    /const ruleCaseIds = rawCases[\s\S]*?!intakeProgressByCase\.has\(item\.id\)/,
+  );
+  assert.match(
+    loader,
+    /loadOrganizationCaseRuleEvaluationBundle\(\s*organizationId,\s*ruleCaseIds,?\s*\)/,
+  );
+
+  assert.doesNotMatch(
+    loader,
+    /item\.manager_user_id \? \[item\.manager_user_id\]/,
+  );
+
+  assert.match(loader, /nextTaskDueAt/);
+  assert.match(table, /item\.nextTaskDueAt/);
+  assert.doesNotMatch(table, /item\.tasks/);
+});
+
 test("KPI cards are semantic links with selected state and responsive six-three-two layout", () => {
   const component = source("components/cases/case-kpis.tsx");
   const css = source("app/globals.css");

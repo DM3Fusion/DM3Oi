@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { LiveCase } from "@/lib/data/case-repository";
+import type { CaseRegisterRow } from "@/lib/data/case-repository";
 import { displayName } from "@/lib/data/case-repository";
 import { formatDate } from "@/lib/format";
 import { Badge, ProgressBar } from "@/components/ui";
@@ -9,7 +9,7 @@ export function CaseTable({
   items,
   compact = false,
 }: {
-  items: LiveCase[];
+  items: CaseRegisterRow[];
   compact?: boolean;
 }) {
   return (
@@ -74,22 +74,7 @@ export function CaseTable({
               <td>
                 {item.status === "COMPLETED"
                   ? "—"
-                  : formatDate(
-                      item.tasks
-                        .filter(
-                          (task) =>
-                            task.status !== "COMPLETED" &&
-                            task.status !== "NOT_APPLICABLE" &&
-                            Boolean(task.due_at),
-                        )
-                        .map((task) => task.due_at)
-                        .filter((dueAt): dueAt is string => Boolean(dueAt))
-                        .sort(
-                          (left, right) =>
-                            new Date(left).getTime() -
-                            new Date(right).getTime(),
-                        )[0],
-                    )}
+                  : formatDate(item.nextTaskDueAt ?? undefined)}
               </td>
             </NavigableRow>
           ))}

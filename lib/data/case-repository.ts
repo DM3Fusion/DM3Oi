@@ -70,6 +70,21 @@ export interface LiveCase extends CaseRow {
     answers: Record<string, unknown>;
   } | null;
 }
+export interface CaseRegisterRow {
+  id: CaseRow["id"];
+  case_number: CaseRow["case_number"];
+  title: CaseRow["title"];
+  status: CaseRow["status"];
+  priority: CaseRow["priority"];
+  due_at: CaseRow["due_at"];
+  manager_user_id: CaseRow["manager_user_id"];
+  customer_id: CaseRow["customer_id"];
+  customer: Pick<CustomerRow, "id" | "name"> | null;
+  assignedStaff: AvatarProfileRow[];
+  progress: Pick<CaseReadiness, "progressPercent">;
+  nextTaskDueAt: string | null;
+}
+
 export interface StaffMember {
   membership: MemberRow;
   profile: AvatarProfileRow;
@@ -922,7 +937,7 @@ export async function getTaskRegisterData(): Promise<{
 export async function getCasesRegisterData(): Promise<{
   organizationId: string;
   timezone: string;
-  cases: LiveCase[];
+  cases: CaseRegisterRow[];
 }> {
   const access = await getAccessContext();
 
@@ -945,22 +960,24 @@ export async function getCasesRegisterData(): Promise<{
   ] = await Promise.all([
     supabase
       .from("organization_cases")
-      .select("*")
+      .select(
+        "id,case_number,title,status,priority,due_at,manager_user_id,customer_id",
+      )
       .eq("organization_id", organizationId)
       .order("updated_at", { ascending: false }),
     supabase
       .from("organization_customers")
-      .select("*")
+      .select("id,name")
       .eq("organization_id", organizationId)
       .order("name"),
     supabase
       .from("case_assignments")
-      .select("*")
+      .select("case_id,user_id,assignment_role")
       .eq("organization_id", organizationId)
       .eq("is_active", true),
     supabase
       .from("organization_case_tasks")
-      .select("*")
+      .select("id,case_id,title,status,required,blocking,due_at")
       .eq("organization_id", organizationId)
       .order("sequence"),
     admin
@@ -971,7 +988,7 @@ export async function getCasesRegisterData(): Promise<{
     getPlatformAdminUserIds(),
     admin
       .from("guided_case_intake_drafts")
-      .select("case_id,current_step,answers")
+      .select("case_id,current_step")
       .eq("organization_id", organizationId)
       .not("case_id", "is", null)
       .is("finalized_at", null),
@@ -994,10 +1011,10 @@ export async function getCasesRegisterData(): Promise<{
     throw new DataAccessError();
   }
 
-  const customers = requireOrganizationCustomers(customerResult.data ?? []);
+  const rawCases = caseResult.data ?? [];
+  const customers = customerResult.data ?? [];
   const assignments = assignmentResult.data ?? [];
   const tasks = taskResult.data ?? [];
-  const rawCases = caseResult.data ?? [];
   const totalIntakeSteps = guidedCaseIntakeSteps.length;
 
   const intakeProgressByCase = new Map(
@@ -1008,47 +1025,46 @@ export async function getCasesRegisterData(): Promise<{
         Math.max(row.current_step, 0),
         totalIntakeSteps,
       );
-      const answers =
-        row.answers &&
-        typeof row.answers === "object" &&
-        !Array.isArray(row.answers)
-          ? (row.answers as Record<string, unknown>)
-          : {};
 
       return [[
         row.case_id,
         {
-          completedSteps,
-          totalSteps: totalIntakeSteps,
           progressPercent:
             totalIntakeSteps > 0
               ? Math.round((completedSteps / totalIntakeSteps) * 100)
               : 0,
-          answers,
         },
       ]];
     }),
   );
 
+  const staffAssignments = assignments.filter(
+    (assignment) => assignment.assignment_role === "STAFF",
+  );
+
   const profileIds = [
     ...new Set(
-      rawCases
-        .flatMap((item) =>
-          item.manager_user_id ? [item.manager_user_id] : [],
-        )
-        .concat(assignments.map((assignment) => assignment.user_id)),
+      staffAssignments.map((assignment) => assignment.user_id),
     ),
   ];
 
-  const profilePromise = profileIds.length
-    ? supabase.from("profiles").select("*").in("id", profileIds)
-    : Promise.resolve({ data: [], error: null });
+  const ruleCaseIds = rawCases
+    .filter((item) => !intakeProgressByCase.has(item.id))
+    .map((item) => item.id);
 
   const [profileResult, ruleEvaluationBundle] = await Promise.all([
-    profilePromise,
+    profileIds.length
+      ? supabase
+          .from("profiles")
+          .select("*")
+          .in("id", profileIds)
+      : Promise.resolve({
+          data: [] as ProfileRow[],
+          error: null,
+        }),
     loadOrganizationCaseRuleEvaluationBundle(
       organizationId,
-      rawCases.map((item) => item.id),
+      ruleCaseIds,
     ),
   ]);
 
@@ -1067,61 +1083,84 @@ export async function getCasesRegisterData(): Promise<{
       platformAdminIds,
     );
 
-  const cases: LiveCase[] = rawCases.map((item) => {
-    const itemTasks = tasks.filter((task) => task.case_id === item.id);
-    const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;
-    const questions = evaluatedCaseQuestionsFrom(ruleEvaluation);
-    const staffIds = assignments
-      .filter(
-        (assignment) =>
-          assignment.case_id === item.id &&
-          assignment.assignment_role === "STAFF",
-      )
-      .map((assignment) => assignment.user_id);
-    const intakeProgress = intakeProgressByCase.get(item.id) ?? null;
+  const cases: CaseRegisterRow[] = rawCases.map((item) => {
+    const itemTasks = tasks.filter(
+      (task) => task.case_id === item.id,
+    );
 
-    const readiness = calculateCaseReadiness({
-      questions: questions.map((question) => ({
-        id: question.id,
-        label: question.question_text,
-        responseType: question.response_type,
-        responseValue: question.response?.response_value,
-        applicable: question.applicable,
-        effectiveRequired: question.effectiveRequired,
-      })),
-      tasks: itemTasks.map((task) => ({
-        id: task.id,
-        label: task.title,
-        status: task.status,
-        required: task.required,
-        blocking: task.blocking,
-      })),
+    const staffIds = staffAssignments
+      .filter((assignment) => assignment.case_id === item.id)
+      .map((assignment) => assignment.user_id);
+
+    const assignedStaff = staffIds.flatMap((id) => {
+      const profile = profileForOrganization(id);
+      return profile ? [profile] : [];
     });
+
+    const intakeProgress =
+      intakeProgressByCase.get(item.id) ?? null;
+
+    let progressPercent = intakeProgress?.progressPercent ?? 0;
+
+    if (!intakeProgress) {
+      const ruleEvaluation =
+        ruleEvaluationBundle.evaluations.get(item.id);
+
+      if (!ruleEvaluation) {
+        throw new DataAccessError();
+      }
+
+      const questions =
+        evaluatedCaseQuestionsFrom(ruleEvaluation);
+
+      progressPercent = calculateCaseReadiness({
+        questions: questions.map((question) => ({
+          id: question.id,
+          label: question.question_text,
+          responseType: question.response_type,
+          responseValue: question.response?.response_value,
+          applicable: question.applicable,
+          effectiveRequired: question.effectiveRequired,
+        })),
+        tasks: itemTasks.map((task) => ({
+          id: task.id,
+          label: task.title,
+          status: task.status,
+          required: task.required,
+          blocking: task.blocking,
+        })),
+      }).progressPercent;
+    }
+
+    const nextTaskDueAt =
+      item.status === "COMPLETED"
+        ? null
+        : itemTasks
+            .filter(
+              (task) =>
+                task.status !== "COMPLETED" &&
+                task.status !== "NOT_APPLICABLE" &&
+                Boolean(task.due_at),
+            )
+            .map((task) => task.due_at)
+            .filter((dueAt): dueAt is string => Boolean(dueAt))
+            .sort(
+              (left, right) =>
+                new Date(left).getTime() -
+                new Date(right).getTime(),
+            )[0] ?? null;
 
     return {
       ...item,
       customer:
-        customers.find((customer) => customer.id === item.customer_id) ?? null,
-      manager: item.manager_user_id
-        ? profileForOrganization(item.manager_user_id)
-        : null,
-      assignedStaff: staffIds.flatMap((id) => {
-        const profile = profileForOrganization(id);
-        return profile ? [profile] : [];
-      }),
-      tasks: itemTasks,
-      questions,
-      ruleEvaluation,
-      intakeProgress,
-      progress: intakeProgress
-        ? {
-            ...readiness,
-            progressPercent: intakeProgress.progressPercent,
-            ready: false,
-            completedUnits: intakeProgress.completedSteps,
-            totalUnits: intakeProgress.totalSteps,
-          }
-        : readiness,
+        customers.find(
+          (customer) => customer.id === item.customer_id,
+        ) ?? null,
+      assignedStaff,
+      progress: {
+        progressPercent,
+      },
+      nextTaskDueAt,
     };
   });
 
