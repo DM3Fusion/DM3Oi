@@ -37,6 +37,7 @@ const previewRows = [
   ["Service request activity", "serviceRequestActivity"],
   ["Service request communications", "serviceRequestCommunications"],
   ["Email delivery history", "emailDeliveries"],
+  ["Customer data submissions", "customerImportSubmissions"],
   ["Notifications", "notifications"],
   ["Membership events", "membershipEvents"],
   ["Case number counters", "caseNumberCounters"],
@@ -141,8 +142,9 @@ export function SuperAdminOrganizationReset({
         <p>
           This permanently removes organization users other than the selected
           Business Owner, Customer Portal access, customers, cases, service
-          requests, communications, notifications, analytics, membership
-          history, and transactional counters for this organization.
+          requests, communications, Customer data submissions, notifications,
+          analytics, membership history, and transactional counters for this
+          organization.
         </p>
 
         <p>

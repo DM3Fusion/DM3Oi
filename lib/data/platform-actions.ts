@@ -30,6 +30,7 @@ export type OrganizationResetPreview = {
  serviceRequestActivity:number;
  serviceRequestCommunications:number;
  emailDeliveries:number;
+ customerImportSubmissions:number;
  notifications:number;
  organizationUsersRemoved:number;
  membershipEvents:number;
@@ -301,6 +302,37 @@ const uniqueStrings=(values:unknown):string[]=>Array.isArray(values)
  ? [...new Set(values.filter((item):item is string=>typeof item==="string"&&item.length>0))]
  : [];
 
+async function removeOrganizationCustomerImportSources(
+ admin:ReturnType<typeof createAdminClient>,
+ organizationId:string,
+ paths:string[],
+){
+ const bucket="customer-import-files";
+ const prefix=`${organizationId}/`;
+ const eligible=[...new Set(paths.filter((path)=>path.startsWith(prefix)))];
+ const failedPaths:string[]=[];
+
+ for(let index=0;index<eligible.length;index+=100){
+  const batch=eligible.slice(index,index+100);
+  const removed=await admin.storage.from(bucket).remove(batch);
+
+  if(removed.error){
+   console.error("Organization reset Customer import storage cleanup failed",{
+    organizationId,
+    bucket,
+    message:removed.error.message,
+    paths:batch,
+   });
+   failedPaths.push(...batch);
+  }
+ }
+
+ return {
+  attempted:eligible.length,
+  failedPaths:[...new Set(failedPaths)],
+ };
+}
+
 async function finalizeOrganizationResetIdentityCleanup(
  admin:ReturnType<typeof createAdminClient>,
  resetAuditId:string,
@@ -563,6 +595,29 @@ export async function resetOrganizationCompanyAndUsersAction(form:FormData){
   redirect(destination(path,"error","The preserved user must be an active Business Owner of this organization."));
  }
 
+ const admin=createAdminClient();
+
+ const stagedSources=await admin
+  .from("customer_import_submissions")
+  .select("storage_path,source_file_deleted_at")
+  .eq("organization_id",organizationId);
+
+ if(stagedSources.error){
+  console.error("Organization reset Customer import source lookup failed",{
+   code:stagedSources.error.code,
+   message:stagedSources.error.message,
+   organizationId,
+  });
+  redirect(destination(
+   path,
+   "error",
+   "The organization reset could not verify staged Customer data files.",
+  ));
+ }
+
+ const stagedSourcePaths=(stagedSources.data??[])
+  .map((row)=>row.storage_path);
+
  const resetClient=supabase as ReturnType<
   typeof import("@supabase/ssr").createServerClient<OrganizationResetDatabase>
  >;
@@ -589,6 +644,13 @@ export async function resetOrganizationCompanyAndUsersAction(form:FormData){
   resetResult?.identityCleanupCandidateUserIds,
  );
 
+ const customerImportStorageCleanup=
+  await removeOrganizationCustomerImportSources(
+   admin,
+   organizationId,
+   stagedSourcePaths,
+  );
+
  if(!resetAuditId){
   console.error("Organization reset did not return an audit identifier",{
    organizationId,
@@ -611,8 +673,6 @@ export async function resetOrganizationCompanyAndUsersAction(form:FormData){
   * The database reset is committed before Supabase Auth cleanup. Candidate
   * identities are therefore reconciled independently and fail-closed.
   */
- const admin=createAdminClient();
-
  const {
   deletedUserIds,
   retainedUserIds,
@@ -637,6 +697,8 @@ export async function resetOrganizationCompanyAndUsersAction(form:FormData){
  revalidatePath("/admin/organizations");
  revalidatePath(path);
  revalidatePath("/admin/users");
+ revalidatePath("/admin/customer-import");
+ revalidatePath("/customers/import");
 
  if(cleanupAudit.error){
   console.error("Organization reset identity cleanup audit finalization failed",{
@@ -661,6 +723,14 @@ export async function resetOrganizationCompanyAndUsersAction(form:FormData){
    `Company data was reset, but ${failedUserIds.length} test ${failedUserIds.length===1?"identity requires":"identities require"} cleanup retry. Use Retry Identity Cleanup below.`,
    "resetAuditId",
    resetAuditId,
+  ));
+ }
+
+ if(customerImportStorageCleanup.failedPaths.length>0){
+  redirect(destination(
+   path,
+   "error",
+   `Company data was reset, but ${customerImportStorageCleanup.failedPaths.length} staged Customer data ${customerImportStorageCleanup.failedPaths.length===1?"file requires":"files require"} Storage cleanup.`,
   ));
  }
 
