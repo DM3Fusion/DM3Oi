@@ -47,7 +47,7 @@ export default async function Page({
       <PageHeader
         eyebrow="Relationships"
         title="Submit Customer Data"
-        description="Securely submit Excel or CSV Customer data for system administrator preparation and import."
+        description="Securely upload customer data using an Excel or CSV file for platform administrator to import. Imported data files are not retained."
         action={
           <Link className="secondary-button" href="/customers">
             Back to Customers
