@@ -9,6 +9,7 @@ import {
   CUSTOMER_IMPORT_FILE_MAX_BYTES,
   requireCustomerDataSubmitter,
 } from "@/lib/data/customer-import-submissions";
+import { notifyPlatformAdministratorsOfCustomerDataSubmission } from "@/lib/data/customer-data-submission-notification-service";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const allowedExtensions = new Map([
@@ -98,9 +99,11 @@ export async function submitCustomerDataAction(form: FormData) {
       mime_type: contentType,
       organization_note: organizationNote || null,
       status: "UPLOADED",
-    });
+    })
+    .select("id,created_at")
+    .single();
 
-  if (inserted.error) {
+  if (inserted.error || !inserted.data) {
     await admin.storage
       .from(CUSTOMER_IMPORT_FILE_BUCKET)
       .remove([storagePath]);
@@ -115,8 +118,39 @@ export async function submitCustomerDataAction(form: FormData) {
     fail("The Customer data submission could not be saved. Please try again.");
   }
 
+  try {
+    const uploaderName =
+      context.displayName?.trim() ||
+      context.profileEmail?.trim() ||
+      context.user.email?.trim() ||
+      "Organization user";
+    const uploaderEmail =
+      context.profileEmail?.trim().toLowerCase() ||
+      context.user.email?.trim().toLowerCase() ||
+      "Email unavailable";
+
+    await notifyPlatformAdministratorsOfCustomerDataSubmission({
+      submissionId,
+      organizationId: context.activeOrganization.id,
+      organizationName: context.activeOrganization.name,
+      uploaderUserId: context.user.id,
+      uploaderName,
+      uploaderEmail,
+      originalFilename,
+      submittedAt: inserted.data.created_at,
+    });
+  } catch (error) {
+    console.error("Customer data submission notification failed", {
+      submissionId,
+      organizationId: context.activeOrganization.id,
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
   revalidatePath("/customers/import");
   revalidatePath("/admin/customer-import");
+  revalidatePath("/communications");
+  revalidatePath("/", "layout");
 
   redirect(
     destination(

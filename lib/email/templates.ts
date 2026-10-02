@@ -5,6 +5,7 @@ export const emailTemplateKeys = [
   "MISSING_DOCUMENTS_NOTICE",
   "SIGN_IN_CODE",
   "NEW_SERVICE_REQUEST_NOTIFICATION",
+  "CUSTOMER_DATA_SUBMISSION_NOTIFICATION",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -83,6 +84,33 @@ export const emailTemplateDefinitions: Array<{
     allowedVariables: ["organization_name", "recipient_first_name", "recipient_name", "recipient_email", "service_request_number", "customer_name", "request_subject", "action_url"],
     sampleVariables: { organization_name: "Example Organization", recipient_first_name: "Alex", recipient_name: "Alex Johnson", recipient_email: "alex@example.com", service_request_number: "SR-2026-0042", customer_name: "Example Customer", request_subject: "Quarterly filing question", action_url: "https://dm3oi.com/service-desk/example" },
   },
+  {
+    key: "CUSTOMER_DATA_SUBMISSION_NOTIFICATION",
+    title: "Customer Data Submission Notification",
+    description: "Sent to platform administrators when an organization uploads Customer source data for review.",
+    allowedVariables: [
+      "organization_name",
+      "recipient_first_name",
+      "recipient_name",
+      "recipient_email",
+      "uploader_name",
+      "uploader_email",
+      "filename",
+      "submitted_at",
+      "action_url",
+    ],
+    sampleVariables: {
+      organization_name: "Example Organization",
+      recipient_first_name: "Alex",
+      recipient_name: "Alex Administrator",
+      recipient_email: "admin@example.com",
+      uploader_name: "Jordan Owner",
+      uploader_email: "jordan@example.com",
+      filename: "CustomerData.xlsx",
+      submitted_at: "Oct 2, 2026, 11:45 AM EDT",
+      action_url: "https://dm3oi.com/admin/customer-import",
+    },
+  },
 ];
 
 export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
@@ -123,6 +151,13 @@ export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
     subject_template: "New service request: {{service_request_number}}",
     opening_message: "A new service request was received from {{customer_name}}: {{request_subject}}.",
     closing_message: "Open the Service Request in DM3Oi: {{action_url}}",
+  },
+  CUSTOMER_DATA_SUBMISSION_NOTIFICATION: {
+    template_key: "CUSTOMER_DATA_SUBMISSION_NOTIFICATION",
+    subject_template: "Customer data submitted — {{organization_name}}",
+    opening_message:
+      "{{uploader_name}} ({{uploader_email}}) submitted {{filename}} for {{organization_name}} on {{submitted_at}}.",
+    closing_message: "Open Customer Import in DM3Oi: {{action_url}}",
   },
 };
 
