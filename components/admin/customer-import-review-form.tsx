@@ -75,7 +75,8 @@ export function CustomerImportReviewForm({
           setSaved(values);
           setJustSaved(true);
           router.refresh();
-        } catch {
+        } catch (caught) {
+          console.error("Customer import review action threw", caught);
           setError("The Customer data submission could not be updated.");
         } finally {
           setPending(false);
