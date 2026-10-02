@@ -67,6 +67,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
 
   const submissionId = text(form, "submissionId");
   const status = text(form, "status");
+  const fileDisposition = text(form, "fileDisposition");
   const superAdminNote = text(form, "superAdminNote");
   const correctionInstructions = text(form, "correctionInstructions");
 
@@ -78,10 +79,23 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
     "REJECTED",
   ]);
 
+  const allowedFileDispositions = new Set([
+    "RETAINED",
+    "DELETED_WITHOUT_PROCESSING",
+    "DELETED_AFTER_PROCESSING",
+  ]);
+
   if (!submissionId || !allowed.has(status)) {
     return {
       ok: false as const,
       error: "Select a valid Customer import review status.",
+    };
+  }
+
+  if (!allowedFileDispositions.has(fileDisposition)) {
+    return {
+      ok: false as const,
+      error: "Select a valid file disposition.",
     };
   }
 
@@ -120,6 +134,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
     .from("customer_import_submissions")
     .update({
       status,
+      file_disposition: fileDisposition,
       super_admin_note: superAdminNote || null,
       correction_instructions:
         status === "NEEDS_CORRECTION"
@@ -170,6 +185,15 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
   if (submission.source_file_deleted_at) {
     revalidatePath("/admin/customer-import");
     return;
+  }
+
+  if (
+    submission.file_disposition !== "DELETED_WITHOUT_PROCESSING" &&
+    submission.file_disposition !== "DELETED_AFTER_PROCESSING"
+  ) {
+    throw new Error(
+      "Set File Disposition to a deleted state and save the review before deleting the source file.",
+    );
   }
 
   const removed = await admin.storage

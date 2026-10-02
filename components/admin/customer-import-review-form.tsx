@@ -7,6 +7,7 @@ import { updateCustomerImportSubmissionAction } from "@/app/admin/customer-impor
 
 type ReviewValues = {
   status: string;
+  fileDisposition: string;
   superAdminNote: string;
   correctionInstructions: string;
 };
@@ -14,11 +15,13 @@ type ReviewValues = {
 export function CustomerImportReviewForm({
   submissionId,
   initialStatus,
+  initialFileDisposition,
   initialSuperAdminNote,
   initialCorrectionInstructions,
 }: {
   submissionId: string;
   initialStatus: string;
+  initialFileDisposition: string;
   initialSuperAdminNote: string;
   initialCorrectionInstructions: string;
 }) {
@@ -26,6 +29,7 @@ export function CustomerImportReviewForm({
 
   const initial: ReviewValues = {
     status: initialStatus,
+    fileDisposition: initialFileDisposition,
     superAdminNote: initialSuperAdminNote,
     correctionInstructions: initialCorrectionInstructions,
   };
@@ -38,6 +42,7 @@ export function CustomerImportReviewForm({
 
   const dirty =
     values.status !== saved.status ||
+    values.fileDisposition !== saved.fileDisposition ||
     values.superAdminNote !== saved.superAdminNote ||
     values.correctionInstructions !== saved.correctionInstructions;
 
@@ -92,6 +97,25 @@ export function CustomerImportReviewForm({
             <option value="NEEDS_CORRECTION">Needs Correction</option>
             <option value="READY_TO_IMPORT">Ready to Import</option>
             <option value="REJECTED">Rejected</option>
+          </select>
+        </label>
+
+        <label className="customer-import-file-disposition">
+          <span>File disposition</span>
+          <select
+            name="fileDisposition"
+            value={values.fileDisposition}
+            onChange={(event) =>
+              update({ fileDisposition: event.currentTarget.value })
+            }
+          >
+            <option value="RETAINED">Available / Retained</option>
+            <option value="DELETED_WITHOUT_PROCESSING">
+              Deleted without Processing
+            </option>
+            <option value="DELETED_AFTER_PROCESSING">
+              Deleted after Processing
+            </option>
           </select>
         </label>
 

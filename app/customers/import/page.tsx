@@ -20,6 +20,18 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function fileDispositionLabel(value: string) {
+  if (value === "DELETED_WITHOUT_PROCESSING") {
+    return "Deleted without Processing";
+  }
+
+  if (value === "DELETED_AFTER_PROCESSING") {
+    return "Deleted after Processing";
+  }
+
+  return "Retained for Review";
+}
+
 export default async function Page({
   searchParams,
 }: {
@@ -115,9 +127,9 @@ export default async function Page({
                     </td>
                     <td>{submission.organization_note || "—"}</td>
                     <td>
-                      {submission.source_file_deleted_at
-                        ? "Removed after processing"
-                        : "Retained for review"}
+                      {fileDispositionLabel(
+                        submission.file_disposition,
+                      )}
                     </td>
                   </tr>
                 ))}

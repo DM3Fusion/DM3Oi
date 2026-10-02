@@ -840,6 +840,7 @@ export type Database = {
         Row: {
           correction_instructions: string | null
           created_at: string
+          file_disposition: string
           file_size_bytes: number
           id: string
           import_result: Json | null
@@ -863,6 +864,7 @@ export type Database = {
         Insert: {
           correction_instructions?: string | null
           created_at?: string
+          file_disposition?: string
           file_size_bytes: number
           id?: string
           import_result?: Json | null
@@ -886,6 +888,7 @@ export type Database = {
         Update: {
           correction_instructions?: string | null
           created_at?: string
+          file_disposition?: string
           file_size_bytes?: number
           id?: string
           import_result?: Json | null

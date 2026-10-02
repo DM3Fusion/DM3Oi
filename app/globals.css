@@ -11498,3 +11498,43 @@ dialog.task-modal.intake-document-availability-modal {
     grid-column:auto;
   }
 }
+
+
+/* Customer import review disposition */
+.customer-import-review-top-row{
+  display:grid;
+  grid-template-columns:minmax(220px,260px) minmax(220px,280px) auto;
+  align-items:end;
+  justify-content:start;
+  gap:12px;
+}
+
+.customer-import-review-status,
+.customer-import-file-disposition{
+  width:100%;
+}
+
+.customer-import-review-top-row .customer-import-save-review{
+  align-self:end;
+}
+
+@media(max-width:900px){
+  .customer-import-review-top-row{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .customer-import-review-top-row .customer-import-save-review{
+    grid-column:1/-1;
+    width:max-content;
+  }
+}
+
+@media(max-width:650px){
+  .customer-import-review-top-row{
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-review-top-row .customer-import-save-review{
+    grid-column:auto;
+  }
+}

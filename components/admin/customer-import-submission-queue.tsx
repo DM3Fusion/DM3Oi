@@ -14,6 +14,7 @@ type Submission = {
   original_filename: string;
   file_size_bytes: number;
   status: string;
+  file_disposition: string;
   organization_note: string | null;
   super_admin_note: string | null;
   correction_instructions: string | null;
@@ -30,6 +31,18 @@ function formatBytes(bytes: number) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function fileDispositionLabel(value: string) {
+  if (value === "DELETED_WITHOUT_PROCESSING") {
+    return "Deleted without Processing";
+  }
+
+  if (value === "DELETED_AFTER_PROCESSING") {
+    return "Deleted after Processing";
+  }
+
+  return "Available / Retained";
 }
 
 const PLATFORM_ADMIN_TIMEZONE = "America/New_York";
@@ -86,9 +99,7 @@ export function CustomerImportSubmissionQueue({
                   </span>
                   <span>
                     <small>Source</small>
-                    {submission.source_file_deleted_at
-                      ? "Removed"
-                      : "Available"}
+                    {fileDispositionLabel(submission.file_disposition)}
                   </span>
                 </div>
 
@@ -119,10 +130,14 @@ export function CustomerImportSubmissionQueue({
                     <dt>Source file</dt>
                     <dd>
                       {submission.source_file_deleted_at
-                        ? `Deleted ${formatDate(
+                        ? `${fileDispositionLabel(
+                            submission.file_disposition,
+                          )} · ${formatDate(
                             submission.source_file_deleted_at,
                           )}`
-                        : "Available"}
+                        : fileDispositionLabel(
+                            submission.file_disposition,
+                          )}
                     </dd>
                   </div>
                 </dl>
@@ -154,6 +169,7 @@ export function CustomerImportSubmissionQueue({
                   <CustomerImportReviewForm
                     submissionId={submission.id}
                     initialStatus={submission.status}
+                    initialFileDisposition={submission.file_disposition}
                     initialSuperAdminNote={submission.super_admin_note ?? ""}
                     initialCorrectionInstructions={
                       submission.correction_instructions ?? ""
