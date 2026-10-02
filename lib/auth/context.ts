@@ -105,23 +105,13 @@ export type SuperAdminContext = AccessContext & {
 async function resolveAccessContext(): Promise<AccessContext | null> {
   if (!isSupabaseConfigured()) return null;
 
-  const accessStartedAt = performance.now();
-  const timing = (stage: string, startedAt: number) => {
-    console.info("Access context timing", {
-      stage,
-      durationMs: Math.round(performance.now() - startedAt),
-    });
-  };
-
   try {
     const supabase = await createClient();
 
-    const authStartedAt = performance.now();
     const {
       data: claimsData,
       error: claimsError,
     } = await supabase.auth.getClaims();
-    timing("auth.getClaims", authStartedAt);
 
     if (claimsError) {
       throw claimsError;
@@ -138,7 +128,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         : undefined;
 
     if (!userId) {
-      timing("total", accessStartedAt);
       return null;
     }
 
@@ -155,7 +144,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         ? selected
         : null;
 
-    const rpcStartedAt = performance.now();
 
     // The fast access-context RPC is introduced by migration
     // 20261002012000. Cast locally until generated Supabase types
@@ -168,7 +156,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       },
     );
 
-    timing("access-context-rpc", rpcStartedAt);
 
     if (accessError) {
       throw accessError;
@@ -179,7 +166,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       typeof rawContext !== "object" ||
       Array.isArray(rawContext)
     ) {
-      timing("total", accessStartedAt);
       return null;
     }
 
@@ -235,7 +221,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     const profile = rpcContext.profile ?? null;
 
     if (!profile || profile.is_active !== true) {
-      timing("total", accessStartedAt);
       return null;
     }
 
@@ -304,7 +289,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       };
     }
 
-    const avatarStartedAt = performance.now();
 
     const [avatarUrl, activeOrganizationAvatarUrl] =
       await Promise.all([
@@ -341,7 +325,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
           : Promise.resolve<string | null>(null),
       ]);
 
-    timing("avatar-signing", avatarStartedAt);
 
     if (activeOrganization) {
       const resolvedActiveOrganization: AuthorizedOrganization = {
@@ -366,7 +349,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       user.email ||
       "User";
 
-    timing("total", accessStartedAt);
 
     return {
       user,
