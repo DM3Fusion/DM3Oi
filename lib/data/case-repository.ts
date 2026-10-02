@@ -591,6 +591,223 @@ export async function getServiceDeskData(): Promise<ServiceDeskData> {
   };
 }
 
+export interface ServiceRequestDetailCase {
+  id: string;
+  caseNumber: string;
+  title: string;
+}
+
+export interface ServiceRequestDetailData {
+  organizationId: string;
+  timezone: string;
+  item: ServiceDeskRequest | null;
+  staff: ServiceDeskStaffMember[];
+  eligibleCases: ServiceRequestDetailCase[];
+}
+
+export async function getServiceRequestDetailData(
+  serviceRequestId: string,
+): Promise<ServiceRequestDetailData> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [
+    requestResult,
+    memberResult,
+    settingsResult,
+    platformAdminIds,
+  ] = await Promise.all([
+    supabase
+      .from("organization_service_requests")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", serviceRequestId)
+      .maybeSingle(),
+    supabase
+      .from("organization_members")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    getPlatformAdminUserIds(),
+  ]);
+
+  if (requestResult.error) {
+    console.error("Service Request detail query failed", {
+      organizationId,
+      serviceRequestId,
+      code: requestResult.error.code,
+      message: requestResult.error.message,
+      details: requestResult.error.details,
+      hint: requestResult.error.hint,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const error =
+    memberResult.error ??
+    settingsResult.error;
+
+  if (error) {
+    console.error("Service Request detail support query failed", {
+      organizationId,
+      serviceRequestId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const rawRequest =
+    requestResult.data as ServiceRequestRow | null;
+
+  if (!rawRequest) {
+    return {
+      organizationId,
+      timezone: settingsResult.data?.timezone ?? "UTC",
+      item: null,
+      staff: [],
+      eligibleCases: [],
+    };
+  }
+
+  const memberships = (memberResult.data ?? []).filter(
+    (membership) => !platformAdminIds.has(membership.user_id),
+  );
+
+  const profileIds = [
+    ...new Set([
+      ...memberships.map((membership) => membership.user_id),
+      ...(rawRequest.assigned_user_id
+        ? [rawRequest.assigned_user_id]
+        : []),
+    ]),
+  ];
+
+  const [
+    customerResult,
+    caseResult,
+    profileResult,
+  ] = await Promise.all([
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", rawRequest.customer_id)
+      .maybeSingle(),
+    supabase
+      .from("organization_cases")
+      .select("id,case_number,title,customer_id")
+      .eq("organization_id", organizationId)
+      .eq("customer_id", rawRequest.customer_id),
+    profileIds.length
+      ? supabase
+          .from("profiles")
+          .select("*")
+          .in("id", profileIds)
+      : Promise.resolve({
+          data: [] as ProfileRow[],
+          error: null,
+        }),
+  ]);
+
+  const relatedError =
+    customerResult.error ??
+    caseResult.error ??
+    profileResult.error;
+
+  if (relatedError) {
+    console.error("Service Request detail related-data query failed", {
+      organizationId,
+      serviceRequestId,
+      code: relatedError.code,
+      message: relatedError.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const customers = requireOrganizationCustomers(
+    customerResult.data ? [customerResult.data] : [],
+  );
+
+  const customer = customers[0] ?? null;
+
+  const profiles = (profileResult.data ?? []).map((profile) =>
+    maskPlatformProfile(profile, platformAdminIds),
+  );
+
+  const byProfile = new Map(
+    profiles.map((profile) => [profile.id, profile]),
+  );
+
+  const profileForOrganization = (
+    id: string,
+  ): ProfileRow | null =>
+    platformAdminIds.has(id)
+      ? {
+          id,
+          display_name: ORGANIZATION_SUPPORT_IDENTITY,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null,
+          title: null,
+          is_active: true,
+          avatar_path: null,
+          avatar_updated_at: null,
+          created_at: "",
+          updated_at: "",
+        }
+      : (byProfile.get(id) ?? null);
+
+  const staff: ServiceDeskStaffMember[] =
+    memberships.flatMap((membership) => {
+      const profile = byProfile.get(membership.user_id);
+
+      return profile
+        ? [{ membership, profile }]
+        : [];
+    });
+
+  const item: ServiceDeskRequest = {
+    ...rawRequest,
+    customer,
+    assigned: rawRequest.assigned_user_id
+      ? profileForOrganization(rawRequest.assigned_user_id)
+      : null,
+  };
+
+  const eligibleCases: ServiceRequestDetailCase[] =
+    (caseResult.data ?? []).map((candidate) => ({
+      id: candidate.id,
+      caseNumber: candidate.case_number,
+      title: candidate.title,
+    }));
+
+  return {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    item,
+    staff,
+    eligibleCases,
+  };
+}
+
 export async function getCustomerRegisterData(): Promise<{
   organizationId: string;
   customers: CustomerRow[];

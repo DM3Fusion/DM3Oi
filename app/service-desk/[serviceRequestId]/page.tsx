@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Badge } from "@/components/ui";
-import { getLiveOrganizationData, displayName, type ServiceRequestActivityRow } from "@/lib/data/case-repository";
+import { getServiceRequestDetailData, displayName, type ServiceRequestActivityRow } from "@/lib/data/case-repository";
 import { createClient } from "@/lib/supabase/server";
 import { getAccessContext } from "@/lib/auth/context";
 import { ServiceRequestEditControls } from "@/components/service-request-edit-controls";
@@ -39,9 +39,10 @@ const transitionText = (
 };
 
 export default async function Page({ params, searchParams }: { params: Promise<{ serviceRequestId: string }>; searchParams?: Promise<{ error?: string; warning?: string; from?: string }> }) {
-  const [{ serviceRequestId }, data, access, query, cookieStore] = await Promise.all([
-    params,
-    getLiveOrganizationData(),
+  const { serviceRequestId } = await params;
+
+  const [data, access, query, cookieStore] = await Promise.all([
+    getServiceRequestDetailData(serviceRequestId),
     getAccessContext(),
     searchParams ??
       Promise.resolve({
@@ -53,7 +54,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   ]);
   const fromCommunications = query.from === "communications";
   const communicationsView = normalizeCommunicationsView(cookieStore.get(communicationsViewCookie)?.value);
-  const item = data.serviceRequests.find((request) => request.id === serviceRequestId);
+  const item = data.item;
   if (!item) notFound();
   const assignees = data.staff
     .filter((staff) => roleHasPermission(staff.membership.role, "VIEW_SERVICE_DESK"))
@@ -64,13 +65,7 @@ export default async function Page({ params, searchParams }: { params: Promise<{
   const staffById = new Map(data.staff.map((staff) => [staff.profile.id, displayName(staff.profile)]));
   const canAssign = hasPermission(access, "ASSIGN_SERVICE_REQUEST");
   const canManage = hasPermission(access, "MANAGE_SERVICE_REQUEST");
-  const eligibleCases = data.cases
-    .filter((candidate) => candidate.customer_id === item.customer_id)
-    .map((candidate) => ({
-      id: candidate.id,
-      caseNumber: candidate.case_number,
-      title: candidate.title,
-    }));
+  const eligibleCases = data.eligibleCases;
   const linkedCase = eligibleCases.find((candidate) => candidate.id === item.case_id) ?? null;
   const assignedToCurrentUser = item.assigned_user_id === access?.user.id;
   const canWork = hasPermission(access, "WORK_SERVICE_REQUEST") && (canManage || assignedToCurrentUser);

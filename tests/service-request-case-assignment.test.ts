@@ -21,9 +21,10 @@ test("Service Request detail presents the linked or unlinked Case state", () => 
 });
 
 test("Case choices are authorized organization Cases for the exact customer", () => {
-  assert.match(page, /data\.cases\s*\.filter\(\(candidate\) => candidate\.customer_id === item\.customer_id\)/);
+  assert.match(page, /const eligibleCases = data\.eligibleCases/);
   assert.match(caseRepository, /from\("organization_cases"\)/);
   assert.match(caseRepository, /\.eq\("organization_id", organizationId\)/);
+  assert.match(caseRepository, /\.eq\("customer_id", rawRequest\.customer_id\)/);
   assert.doesNotMatch(page, /data\.customers.*eligibleCases|organization-wide Cases/);
   assert.match(control, /No eligible cases are available for this customer\./);
 });

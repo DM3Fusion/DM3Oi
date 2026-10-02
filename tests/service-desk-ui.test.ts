@@ -71,6 +71,39 @@ test("service request creation uses sticky accessible validation and authoritati
   assert.doesNotMatch(action, /request_number/);
   assert.doesNotMatch(form, /created_by|created_at|organization_id/);
 });
+test("service request detail uses its dedicated bounded loader", () => {
+  const page = source("app/service-desk/[serviceRequestId]/page.tsx");
+  const repository = source("lib/data/case-repository.ts");
+
+  assert.match(page, /getServiceRequestDetailData\(serviceRequestId\)/);
+  assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
+  assert.match(page, /const item = data\.item/);
+  assert.match(page, /const eligibleCases = data\.eligibleCases/);
+
+  const start = repository.indexOf(
+    "export async function getServiceRequestDetailData",
+  );
+  const end = repository.indexOf(
+    "export async function getCustomerRegisterData",
+    start,
+  );
+  const loader = repository.slice(start, end);
+
+  assert.match(loader, /organization_service_requests/);
+  assert.match(loader, /organization_customers/);
+  assert.match(loader, /organization_members/);
+  assert.match(loader, /organization_cases/);
+  assert.match(loader, /organization_settings/);
+  assert.match(loader, /getPlatformAdminUserIds\(\)/);
+  assert.match(loader, /maskPlatformProfile/);
+
+  assert.doesNotMatch(loader, /organization_case_tasks/);
+  assert.doesNotMatch(loader, /case_assignments/);
+  assert.doesNotMatch(loader, /guided_case_intake_drafts/);
+  assert.doesNotMatch(loader, /loadOrganizationCaseRuleEvaluationBundle/);
+  assert.doesNotMatch(loader, /attachAuthorizedAvatarUrls/);
+});
+
 test("service request detail exposes supported controls and activity", () => {
   const page = source("app/service-desk/[serviceRequestId]/page.tsx");
   const controls = source("components/service-request-edit-controls.tsx");
