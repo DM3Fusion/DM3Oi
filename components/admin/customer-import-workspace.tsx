@@ -25,32 +25,64 @@ export function CustomerImportWorkspace({ organizations }: { organizations: Orga
       setPreviewError("Select an organization and CSV file first.");
       return;
     }
+
     setPending(true);
     setPreviewError(null);
     setImportError(null);
     setResult(null);
-    const response = await previewCustomerImportAction({ organizationId, csv });
-    setPending(false);
-    if (!response.ok) {
+
+    try {
+      const response = await previewCustomerImportAction({
+        organizationId,
+        csv,
+      });
+
+      if (!response.ok) {
+        setPreview(null);
+        setPreviewError(response.error);
+        return;
+      }
+
+      setPreview(response.preview);
+      setConfirmation("");
+    } catch (error) {
+      console.error("Customer import preview request failed", error);
       setPreview(null);
-      setPreviewError(response.error);
-      return;
+      setPreviewError(
+        "The CSV preview request could not be completed. Please try again.",
+      );
+    } finally {
+      setPending(false);
     }
-    setPreview(response.preview);
-    setConfirmation("");
   };
+
   const execute = async () => {
     setPending(true);
     setImportError(null);
-    const response = await executeCustomerImportAction({ organizationId, csv, confirmation });
-    setPending(false);
-    if (!response.ok) {
-      setImportError(response.error);
-      return;
+
+    try {
+      const response = await executeCustomerImportAction({
+        organizationId,
+        csv,
+        confirmation,
+      });
+
+      if (!response.ok) {
+        setImportError(response.error);
+        return;
+      }
+
+      setResult(response.result as ImportResult);
+      setPreview(null);
+      setConfirmation("");
+    } catch (error) {
+      console.error("Customer import request failed", error);
+      setImportError(
+        "The Customer import request could not be completed. Please try again.",
+      );
+    } finally {
+      setPending(false);
     }
-    setResult(response.result as ImportResult);
-    setPreview(null);
-    setConfirmation("");
   };
   return (
     <div className="customer-data-workspace">
