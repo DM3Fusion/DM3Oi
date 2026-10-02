@@ -11281,3 +11281,22 @@ dialog.task-modal.intake-document-availability-modal {
   white-space:normal;
   overflow-wrap:anywhere;
 }
+
+/* Customer import correction guidance refinement */
+.customer-import-org-status{
+  min-width:0;
+  max-width:100%;
+}
+
+.customer-import-correction-instructions{
+  width:100%;
+  max-width:100%;
+  margin:0;
+  color:#7a3f1c;
+  font-size:12px;
+  font-weight:400;
+  line-height:1.35;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  word-break:break-word;
+}
