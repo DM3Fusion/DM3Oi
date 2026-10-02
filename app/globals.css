@@ -11449,3 +11449,10 @@ dialog.task-modal.intake-document-availability-modal {
     grid-column:auto;
   }
 }
+
+/* Customer import delete-source destructive action refinement */
+.customer-import-delete-source .danger-button{
+  border:1px solid #dc8b8b;
+  background:#fde8e8;
+  color:#8b1e1e;
+}
