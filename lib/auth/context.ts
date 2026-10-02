@@ -116,6 +116,15 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       return null;
     }
     if (portal.error) throw portal.error;
+
+    const userAvatarStartedAt = performance.now();
+    const userAvatarPromise = profile.data?.avatar_path
+      ? supabase.storage
+          .from("user-avatars")
+          .createSignedUrl(profile.data.avatar_path, 3600)
+          .then((result) => result.data?.signedUrl ?? null)
+      : Promise.resolve<string | null>(null);
+
     const isSuperAdmin = Boolean(platform.data?.length);
     const membershipRows = memberships.data ?? [];
     const allowedIds = membershipRows.map((row) => row.organization_id);
@@ -135,36 +144,37 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     const { data: organizationRows } = await organizationQuery;
     timing("organizations-query", organizationsStartedAt);
 
-    const organizationAvatarsStartedAt = performance.now();
-    const organizationAvatarUrls = await Promise.all((organizationRows ?? []).map(async (org) => ({
-      id: org.id,
-      url: org.avatar_path
-        ? (await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(org.avatar_path, 3600)).data?.signedUrl ?? null
-        : null,
-    })));
-    timing("organization-avatar-signing", organizationAvatarsStartedAt);
-
-    const organizations: AuthorizedOrganization[] = (
+    let organizations: AuthorizedOrganization[] = (
       organizationRows ?? []
     ).map((org) => ({
       id: org.id,
       name: org.name,
       slug: org.slug,
       avatarPath: org.avatar_path,
-      avatarUrl: organizationAvatarUrls.find((item) => item.id === org.id)?.url ?? null,
+      avatarUrl: null,
       role: isSuperAdmin
         ? "SUPER_ADMIN"
         : (membershipRows.find((row) => row.organization_id === org.id)?.role ??
           "STAFF_USER"),
     }));
+
     const selected = (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value;
     const selectedOrganization =
       organizations.find((org) => org.id === selected) ?? null;
-    const activeOrganization = isSuperAdmin
+
+    let activeOrganization = isSuperAdmin
       ? selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE
         ? selectedOrganization
         : null
       : selectedOrganization ?? organizations[0] ?? null;
+
+    const organizationAvatarStartedAt = performance.now();
+    const activeOrganizationAvatarPromise = activeOrganization?.avatarPath
+      ? supabase.storage
+          .from(ORGANIZATION_AVATAR_BUCKET)
+          .createSignedUrl(activeOrganization.avatarPath, 3600)
+          .then((result) => result.data?.signedUrl ?? null)
+      : Promise.resolve<string | null>(null);
     let license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null = null;
     let effectivePermissions = new Set<Permission>();
     if (activeOrganization) {
@@ -260,15 +270,29 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       profile.data?.display_name ||
       user.email ||
       "User";
-    const userAvatarStartedAt = performance.now();
-    const avatarUrl = profile.data?.avatar_path
-      ? (
-          await supabase.storage
-            .from("user-avatars")
-            .createSignedUrl(profile.data.avatar_path, 3600)
-        ).data?.signedUrl ?? null
-      : null;
+
+    const [activeOrganizationAvatarUrl, avatarUrl] = await Promise.all([
+      activeOrganizationAvatarPromise,
+      userAvatarPromise,
+    ]);
+
+    timing("organization-avatar-signing", organizationAvatarStartedAt);
     timing("user-avatar-signing", userAvatarStartedAt);
+
+    if (activeOrganization) {
+      const resolvedActiveOrganization: AuthorizedOrganization = {
+        ...activeOrganization,
+        avatarUrl: activeOrganizationAvatarUrl,
+      };
+
+      activeOrganization = resolvedActiveOrganization;
+      organizations = organizations.map((organization) =>
+        organization.id === resolvedActiveOrganization.id
+          ? resolvedActiveOrganization
+          : organization,
+      );
+    }
+
     timing("total", accessStartedAt);
 
     return {

@@ -11,13 +11,18 @@ export const dynamic="force-dynamic";
 export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Operational Intelligence for service businesses."};
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const access=await getAccessContext();
-  const unreadNotificationCount=access?.activeOrganization&&access.internalAccess
-    ?await getUnreadNotificationCount({organizationId:access.activeOrganization.id,userId:access.user.id})
-    :0;
 
-  const newTrialRequestCount=access?.isSuperAdmin
-    ?await getNewTrialRequestCount()
-    :0;
+  const [unreadNotificationCount, newTrialRequestCount] = await Promise.all([
+    access?.activeOrganization && access.internalAccess
+      ? getUnreadNotificationCount({
+          organizationId: access.activeOrganization.id,
+          userId: access.user.id,
+        })
+      : Promise.resolve(0),
+    access?.isSuperAdmin
+      ? getNewTrialRequestCount()
+      : Promise.resolve(0),
+  ]);
 
   return <html lang="en"><body><AnalyticsTracker /><AppShell access={access} applicationVersionLabel={getApplicationVersionLabel()} unreadNotificationCount={unreadNotificationCount} newTrialRequestCount={newTrialRequestCount}>{children}</AppShell></body></html>;
 }
