@@ -10642,6 +10642,14 @@ dialog.task-modal.intake-document-availability-modal {
 .customer-data-submit-form{
   max-width:52rem;
 }
+.customer-data-submit-form .form-actions{
+  margin-top:1rem;
+  padding-top:.5rem;
+}
+.customer-data-submit-form .primary-button{
+  min-height:2.75rem;
+  padding:.7rem 1.15rem;
+}
 .customer-data-submit-form input[type="file"]{
   padding:.7rem;
 }

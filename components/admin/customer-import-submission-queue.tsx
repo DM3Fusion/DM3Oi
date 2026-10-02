@@ -154,7 +154,7 @@ export function CustomerImportSubmissionQueue({
                 </label>
 
                 <label>
-                  <span>SUPER_ADMIN note</span>
+                  <span>system administrator note</span>
                   <textarea
                     name="superAdminNote"
                     rows={3}

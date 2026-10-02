@@ -47,7 +47,7 @@ export default async function Page({
       <PageHeader
         eyebrow="Relationships"
         title="Submit Customer Data"
-        description="Securely submit Excel or CSV Customer data for SUPER_ADMIN preparation and import."
+        description="Securely submit Excel or CSV Customer data for system administrator preparation and import."
         action={
           <Link className="secondary-button" href="/customers">
             Back to Customers
@@ -66,18 +66,6 @@ export default async function Page({
       ) : null}
 
       <section className="panel customer-data-step">
-        <div className="section-head">
-          <div>
-            <span className="step-kicker">Customer onboarding</span>
-            <h2>Submit source data</h2>
-            <p>
-              Upload the Customer data you already have. Excel and CSV files are
-              accepted. The file does not need to match DM3Oi&apos;s import
-              format.
-            </p>
-          </div>
-        </div>
-
         <div className="customer-data-guidance">
           <strong>Please include the following information for each Customer whenever available:</strong>
           <ul>
@@ -89,11 +77,6 @@ export default async function Page({
             <li>Email</li>
             <li>Phone Number</li>
           </ul>
-          <p>
-            SUPER_ADMIN will review and prepare the data before import.
-            Uploading a file does not create or modify Customer records.
-            Incomplete data may require follow-up before import.
-          </p>
         </div>
 
         <form
@@ -111,15 +94,13 @@ export default async function Page({
             <small>CSV, XLS, or XLSX · maximum 10 MB</small>
           </label>
 
-          <label>
-            <span>Note for SUPER_ADMIN</span>
-            <textarea
-              name="organizationNote"
-              rows={4}
-              maxLength={2000}
-              placeholder="Optional context about the source file, purchased list, column meanings, or data history."
-            />
-          </label>
+          <textarea
+            name="organizationNote"
+            rows={4}
+            maxLength={2000}
+            aria-label="Optional note for the system administrator"
+            placeholder="Optional context about the source file, purchased list, column meanings, or data history."
+          />
 
           <div className="form-actions">
             <PendingSubmitButton
@@ -136,10 +117,6 @@ export default async function Page({
         <div className="section-head">
           <div>
             <h2>Submission History</h2>
-            <p>
-              These files are reviewed and prepared by SUPER_ADMIN before any
-              Customer records are imported.
-            </p>
           </div>
         </div>
 
@@ -186,10 +163,6 @@ export default async function Page({
         ) : (
           <div className="empty compact-empty">
             <h2>No Customer data submissions yet</h2>
-            <p>
-              Use the form above when onboarding Customer data or submitting an
-              externally purchased list.
-            </p>
           </div>
         )}
       </section>
