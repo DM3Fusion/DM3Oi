@@ -31,7 +31,8 @@ test("customer filter UI is URL driven debounced clearable and server authorized
   assert.match(controls, /aria-label="Clear customer search"/);
   assert.match(controls, /placeholder="Search customers\.\.\."/);
   assert.match(controls, /<option value="active">Active<\/option><option value="inactive">Inactive<\/option>/);
-  assert.match(page, /getLiveOrganizationData\(\)/);
+  assert.match(page, /getCustomerRegisterData\(\)/);
+  assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
   assert.match(page, /data\.customers\.filter\(\(customer\) =>/);
   assert.match(page, /No customers match the current filters\./);
   assert.match(page, /<ApplicationIcon name="add" \/>New Customer/);

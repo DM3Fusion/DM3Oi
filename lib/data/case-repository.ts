@@ -402,6 +402,62 @@ async function buildCaseRepositoryProfileDirectory(
   };
 }
 
+export async function getCustomerRegisterData(): Promise<{
+  organizationId: string;
+  customers: CustomerRow[];
+  cases: Array<{
+    customer_id: string;
+    status: CaseRow["status"];
+  }>;
+}> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+
+  const [customerResult, caseResult] = await Promise.all([
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("name"),
+    supabase
+      .from("organization_cases")
+      .select("customer_id,status")
+      .eq("organization_id", organizationId),
+  ]);
+
+  const error =
+    customerResult.error ??
+    caseResult.error;
+
+  if (error) {
+    console.error("Customer register query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  return {
+    organizationId,
+    customers: requireOrganizationCustomers(
+      customerResult.data ?? [],
+    ),
+    cases: (caseResult.data ?? []) as Array<{
+      customer_id: string;
+      status: CaseRow["status"];
+    }>,
+  };
+}
+
 export async function getTaskRegisterData(): Promise<{
   organizationId: string;
   timezone: string;

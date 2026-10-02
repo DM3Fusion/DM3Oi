@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, PageHeader } from "@/components/ui";
-import { getLiveOrganizationData } from "@/lib/data/case-repository";
+import { getCustomerRegisterData } from "@/lib/data/case-repository";
 import { NavigableRow } from "@/components/navigable-row";
 import { formatPhone } from "@/lib/format-phone";
 import { CustomerFilters } from "@/components/customer-filters";
@@ -11,7 +11,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 export const metadata = { title: "Customers" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string }> }) {
-  const [data, query, access] = await Promise.all([getLiveOrganizationData(), searchParams, getAccessContext()]);
+  const [data, query, access] = await Promise.all([getCustomerRegisterData(), searchParams, getAccessContext()]);
   const q = normalizeCustomerQuery(query.q);
   const status = normalizeCustomerStatus(query.status);
   const customers = data.customers.filter((customer) => customerMatchesFilters(customer, q, status));
