@@ -194,6 +194,45 @@ test("internal repository derives readiness in a bounded authorized organization
   assert.doesNotMatch(repository, /for \([^)]*\)[\s\S]*await loadCaseRuleEvaluation/);
 });
 
+test("Case detail scopes operational loading and Rule evaluation to the requested Case", () => {
+  const repository = source("lib/data/case-repository.ts");
+  const start = repository.indexOf(
+    "export async function getLiveCase(caseId: string)",
+  );
+  const end = repository.indexOf(
+    "export const displayName =",
+    start,
+  );
+  const detailLoader = repository.slice(start, end);
+
+  assert.doesNotMatch(detailLoader, /getLiveOrganizationData\(\)/);
+
+  assert.match(
+    detailLoader,
+    /from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)[\s\S]*?\.eq\("id", caseId\)/,
+  );
+  assert.match(
+    detailLoader,
+    /from\("case_assignments"\)[\s\S]*?\.eq\("case_id", caseId\)/,
+  );
+  assert.match(
+    detailLoader,
+    /from\("organization_case_tasks"\)[\s\S]*?\.eq\("case_id", caseId\)/,
+  );
+  assert.match(
+    detailLoader,
+    /from\("organization_case_activity"\)[\s\S]*?\.eq\("case_id", caseId\)/,
+  );
+  assert.match(
+    detailLoader,
+    /from\("organization_service_requests"\)[\s\S]*?\.eq\("case_id", caseId\)/,
+  );
+  assert.match(
+    detailLoader,
+    /loadOrganizationCaseRuleEvaluationBundle\(\s*organizationId,\s*\[caseId\],?\s*\)/,
+  );
+});
+
 test("Case detail replaces the placeholder with accessible business-facing readiness", () => {
   const page = source("app/cases/[caseId]/page.tsx");
   const ui = source("components/ui.tsx");

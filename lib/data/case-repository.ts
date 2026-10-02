@@ -1133,38 +1133,400 @@ export async function getCasesRegisterData(): Promise<{
 }
 
 export async function getLiveCase(caseId: string) {
-  const data = await getLiveOrganizationData();
-  const item = data.cases.find((candidate) => candidate.id === caseId) ?? null;
-  if (!item) return { data, item, recentCommunications: [] as RecentCaseCommunication[] };
-  const linkedRequests = data.serviceRequests.filter(
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [
+    caseResult,
+    assignmentResult,
+    taskResult,
+    memberResult,
+    activityResult,
+    requestResult,
+    settingsResult,
+    platformAdminIds,
+    intakeResult,
+  ] = await Promise.all([
+    supabase
+      .from("organization_cases")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", caseId)
+      .maybeSingle(),
+    supabase
+      .from("case_assignments")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("case_id", caseId)
+      .eq("is_active", true),
+    supabase
+      .from("organization_case_tasks")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("case_id", caseId)
+      .order("sequence"),
+    supabase
+      .from("organization_members")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("organization_case_activity")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("case_id", caseId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("organization_service_requests")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("case_id", caseId)
+      .order("updated_at", { ascending: false }),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    getPlatformAdminUserIds(),
+    admin
+      .from("guided_case_intake_drafts")
+      .select("case_id,current_step,answers")
+      .eq("organization_id", organizationId)
+      .eq("case_id", caseId)
+      .is("finalized_at", null)
+      .maybeSingle(),
+  ]);
+
+  const requestError = (
+    requestResult as {
+      error?: {
+        code?: string;
+        message?: string;
+        details?: string;
+        hint?: string;
+      } | null;
+    }
+  ).error;
+
+  if (requestError) {
+    console.error("Case detail Service Request query failed", {
+      organizationId,
+      caseId,
+      code: requestError.code,
+      message: requestError.message,
+      details: requestError.details,
+      hint: requestError.hint,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const error =
+    caseResult.error ??
+    assignmentResult.error ??
+    taskResult.error ??
+    memberResult.error ??
+    activityResult.error ??
+    settingsResult.error ??
+    intakeResult.error;
+
+  if (error) {
+    console.error("Case detail query failed", {
+      organizationId,
+      caseId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const rawCase = caseResult.data;
+
+  if (!rawCase) {
+    return {
+      data: {
+        organizationId,
+        timezone: settingsResult.data?.timezone ?? "UTC",
+        cases: [] as LiveCase[],
+        customers: [] as CustomerRow[],
+        staff: [] as StaffMember[],
+        activities: [] as LiveOrganizationData["activities"],
+        serviceRequests: [] as ServiceRequestRow[],
+        activeRules: [] as { id: string; name: string }[],
+      },
+      item: null,
+      recentCommunications: [] as RecentCaseCommunication[],
+    };
+  }
+
+  const memberships = (memberResult.data ?? []).filter(
+    (member) => !platformAdminIds.has(member.user_id),
+  );
+
+  const assignments = assignmentResult.data ?? [];
+  const tasks = taskResult.data ?? [];
+  const rawActivities = activityResult.data ?? [];
+  const rawRequests =
+    (requestResult.data ?? []) as unknown as ServiceRequestRow[];
+
+  const profileIds = [
+    ...new Set([
+      ...memberships.map((row) => row.user_id),
+      ...(rawCase.manager_user_id ? [rawCase.manager_user_id] : []),
+      ...assignments.map((assignment) => assignment.user_id),
+      ...rawActivities.flatMap((activity) =>
+        activity.actor_user_id ? [activity.actor_user_id] : [],
+      ),
+    ]),
+  ];
+
+  const [
+    customerResult,
+    profileResult,
+    ruleEvaluationBundle,
+  ] = await Promise.all([
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("id", rawCase.customer_id)
+      .maybeSingle(),
+    profileIds.length
+      ? supabase
+          .from("profiles")
+          .select("*")
+          .in("id", profileIds)
+      : Promise.resolve({
+          data: [] as ProfileRow[],
+          error: null,
+        }),
+    loadOrganizationCaseRuleEvaluationBundle(
+      organizationId,
+      [caseId],
+    ),
+  ]);
+
+  const relatedError =
+    customerResult.error ??
+    profileResult.error;
+
+  if (relatedError) {
+    console.error("Case detail related-data query failed", {
+      organizationId,
+      caseId,
+      code: relatedError.code,
+      message: relatedError.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const customers = requireOrganizationCustomers(
+    customerResult.data ? [customerResult.data] : [],
+  );
+
+  const {
+    byProfile,
+    profileForOrganization,
+  } = await buildCaseRepositoryProfileDirectory(
+    profileResult.data ?? [],
+    platformAdminIds,
+  );
+
+  const ruleEvaluation =
+    ruleEvaluationBundle.evaluations.get(caseId)!;
+
+  const questions =
+    evaluatedCaseQuestionsFrom(ruleEvaluation);
+
+  const staffIds = assignments
+    .filter(
+      (assignment) =>
+        assignment.assignment_role === "STAFF",
+    )
+    .map((assignment) => assignment.user_id);
+
+  const totalIntakeSteps = guidedCaseIntakeSteps.length;
+  const intakeRow = intakeResult.data;
+
+  const intakeProgress = intakeRow
+    ? (() => {
+        const completedSteps = Math.min(
+          Math.max(intakeRow.current_step, 0),
+          totalIntakeSteps,
+        );
+
+        const answers =
+          intakeRow.answers &&
+          typeof intakeRow.answers === "object" &&
+          !Array.isArray(intakeRow.answers)
+            ? (intakeRow.answers as Record<string, unknown>)
+            : {};
+
+        return {
+          completedSteps,
+          totalSteps: totalIntakeSteps,
+          progressPercent:
+            totalIntakeSteps > 0
+              ? Math.round(
+                  (completedSteps / totalIntakeSteps) * 100,
+                )
+              : 0,
+          answers,
+        };
+      })()
+    : null;
+
+  const readiness = calculateCaseReadiness({
+    questions: questions.map((question) => ({
+      id: question.id,
+      label: question.question_text,
+      responseType: question.response_type,
+      responseValue: question.response?.response_value,
+      applicable: question.applicable,
+      effectiveRequired: question.effectiveRequired,
+    })),
+    tasks: tasks.map((task) => ({
+      id: task.id,
+      label: task.title,
+      status: task.status,
+      required: task.required,
+      blocking: task.blocking,
+    })),
+  });
+
+  const item: LiveCase = {
+    ...rawCase,
+    customer:
+      customers.find(
+        (customer) => customer.id === rawCase.customer_id,
+      ) ?? null,
+    manager: rawCase.manager_user_id
+      ? profileForOrganization(rawCase.manager_user_id)
+      : null,
+    assignedStaff: staffIds.flatMap((id) => {
+      const profile = profileForOrganization(id);
+      return profile ? [profile] : [];
+    }),
+    tasks,
+    questions,
+    ruleEvaluation,
+    intakeProgress,
+    progress: intakeProgress
+      ? {
+          ...readiness,
+          progressPercent: intakeProgress.progressPercent,
+          ready: false,
+          completedUnits: intakeProgress.completedSteps,
+          totalUnits: intakeProgress.totalSteps,
+        }
+      : readiness,
+  };
+
+  const staff: StaffMember[] =
+    memberships.flatMap((membership) => {
+      const profile = byProfile.get(membership.user_id);
+
+      return profile
+        ? [{ membership, profile }]
+        : [];
+    });
+
+  const activities: LiveOrganizationData["activities"] =
+    rawActivities.map((activity) => ({
+      ...activity,
+      actor: activity.actor_user_id
+        ? profileForOrganization(activity.actor_user_id)
+        : activity.actor_display_name
+          ? {
+              id: "masked-platform-actor",
+              display_name: activity.actor_display_name,
+              first_name: null,
+              last_name: null,
+              email: null,
+              phone: null,
+              title: null,
+              is_active: true,
+              avatar_path: null,
+              avatar_updated_at: null,
+              avatarUrl: null,
+              created_at: "",
+              updated_at: "",
+            }
+          : null,
+      caseNumber: rawCase.case_number,
+    }));
+
+  const linkedRequests = rawRequests.filter(
     (request) => request.case_id === item.id,
   );
-  const supabase = await createClient();
-  const result = linkedRequests.length
+
+  const data = {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    cases: [item],
+    customers,
+    staff,
+    activities,
+    serviceRequests: rawRequests,
+    activeRules: ruleEvaluationBundle.activeRules,
+  };
+
+  const messageResult = linkedRequests.length
     ? await supabase
         .from("organization_service_request_messages")
-        .select("id,organization_id,service_request_id,author_type,body,created_at")
+        .select(
+          "id,organization_id,service_request_id,author_type,body,created_at",
+        )
         .eq("organization_id", data.organizationId)
-        .in("service_request_id", linkedRequests.map((request) => request.id))
+        .in(
+          "service_request_id",
+          linkedRequests.map((request) => request.id),
+        )
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(5)
-    : { data: [] as CaseCommunicationMessage[], error: null };
-  if (result.error) {
+    : {
+        data: [] as CaseCommunicationMessage[],
+        error: null,
+      };
+
+  if (messageResult.error) {
     console.error("Recent Case communications query failed", {
-      code: result.error.code,
-      message: result.error.message,
+      organizationId,
+      caseId,
+      code: messageResult.error.code,
+      message: messageResult.error.message,
     });
+
     throw new DataAccessError();
   }
-  const recentCommunications = selectRecentCaseCommunications({
-    organizationId: data.organizationId,
-    caseId: item.id,
-    caseCustomerId: item.customer_id,
-    requests: linkedRequests,
-    messages: (result.data ?? []) as CaseCommunicationMessage[],
-  });
-  return { data, item, recentCommunications };
+
+  const recentCommunications =
+    selectRecentCaseCommunications({
+      organizationId: data.organizationId,
+      caseId: item.id,
+      caseCustomerId: item.customer_id,
+      requests: linkedRequests,
+      messages:
+        (messageResult.data ?? []) as CaseCommunicationMessage[],
+    });
+
+  return {
+    data,
+    item,
+    recentCommunications,
+  };
 }
 export const displayName = (profile: ProfileRow | null | undefined) =>
   profile?.display_name ||

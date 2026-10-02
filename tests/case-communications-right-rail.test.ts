@@ -59,7 +59,10 @@ test("recent communications use only authoritative Case and Service Request rela
   assert.match(repository, /request\.case_id === item\.id/);
   assert.match(repository, /from\("organization_service_request_messages"\)/);
   assert.match(repository, /\.eq\("organization_id", data\.organizationId\)/);
-  assert.match(repository, /\.in\("service_request_id", linkedRequests\.map\(\(request\) => request\.id\)\)/);
+  assert.match(
+    repository,
+    /\.in\(\s*"service_request_id",\s*linkedRequests\.map\(\(request\) => request\.id\),?\s*\)/,
+  );
   assert.match(repository, /caseCustomerId: item\.customer_id/);
 });
 

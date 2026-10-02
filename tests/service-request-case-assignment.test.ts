@@ -83,7 +83,10 @@ test("Case link history uses safe Case references and masked activity architectu
 test("communications follow the authoritative link without copying messages", () => {
   assert.match(caseRepository, /request\.case_id === item\.id/);
   assert.match(caseRepository, /from\("organization_service_request_messages"\)/);
-  assert.match(caseRepository, /\.in\("service_request_id", linkedRequests\.map\(\(request\) => request\.id\)\)/);
+  assert.match(
+    caseRepository,
+    /\.in\(\s*"service_request_id",\s*linkedRequests\.map\(\(request\) => request\.id\),?\s*\)/,
+  );
   assert.match(migration, /update public\.service_requests\s+set case_id=target_case_id/);
   assert.doesNotMatch(migration, /insert into public\.service_request_messages|update public\.service_request_messages/);
 });
