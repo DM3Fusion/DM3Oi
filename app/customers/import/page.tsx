@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { submitCustomerDataAction } from "@/app/customers/import/actions";
-import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Badge, PageHeader } from "@/components/ui";
+import { CustomerDataSubmitModal } from "@/components/customers/customer-data-submit-modal";
 import {
   canSubmitCustomerData,
   getCustomerImportSubmissions,
@@ -49,9 +48,12 @@ export default async function Page({
         title="Submit Customer Data"
         description="Securely upload customer data using an Excel or CSV file for platform administrator to import. Imported data files are not retained."
         action={
-          <Link className="secondary-button" href="/customers">
-            Back to Customers
-          </Link>
+          <div className="page-header-actions">
+            <CustomerDataSubmitModal />
+            <Link className="secondary-button" href="/customers">
+              Back to Customers
+            </Link>
+          </div>
         }
       />
 
@@ -64,54 +66,6 @@ export default async function Page({
           {query.error}
         </div>
       ) : null}
-
-      <section className="panel customer-data-step">
-        <div className="customer-data-guidance">
-          <strong>Please include the following information for each Customer:</strong>
-          <ul>
-            <li>Name</li>
-            <li>Street Address</li>
-            <li>City</li>
-            <li>State</li>
-            <li>ZIP Code</li>
-            <li>Email</li>
-            <li>Phone Number</li>
-          </ul>
-        </div>
-
-        <form
-          action={submitCustomerDataAction}
-          className="entity-form customer-data-submit-form"
-        >
-          <label>
-            <span>Excel or CSV file</span>
-            <input
-              type="file"
-              name="sourceFile"
-              accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-              required
-            />
-            <small>CSV, XLS, or XLSX · maximum 10 MB</small>
-          </label>
-
-          <textarea
-            name="organizationNote"
-            rows={4}
-            maxLength={2000}
-            aria-label="Optional note for the system administrator"
-            placeholder="Optional context about the source file, purchased list, column meanings, or data history."
-          />
-
-          <div className="form-actions">
-            <PendingSubmitButton
-              className="primary-button"
-              pendingLabel="Submitting…"
-            >
-              Submit Customer Data
-            </PendingSubmitButton>
-          </div>
-        </form>
-      </section>
 
       <section className="panel">
         <div className="section-head">
