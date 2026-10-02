@@ -112,6 +112,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
   }
 
   revalidatePath("/admin/customer-import");
+  redirect("/admin/customer-import");
 }
 
 export async function deleteCustomerImportSourceAction(form: FormData) {

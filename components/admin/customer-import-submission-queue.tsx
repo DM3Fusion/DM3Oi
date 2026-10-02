@@ -31,12 +31,15 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+const PLATFORM_ADMIN_TIMEZONE = "America/New_York";
+
 function formatDate(value: string | null) {
   if (!value) return "—";
 
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: PLATFORM_ADMIN_TIMEZONE,
   }).format(new Date(value));
 }
 
@@ -217,9 +220,7 @@ export function CustomerImportSubmissionQueue({
               {submission.reviewed_at ? (
                 <p className="muted customer-import-reviewed">
                   Last reviewed {formatDate(submission.reviewed_at)}
-                  {submission.reviewedBy
-                    ? ` by ${submission.reviewedBy}`
-                    : ""}
+                  {" by platform administrator"}
                 </p>
               ) : null}
             </article>
