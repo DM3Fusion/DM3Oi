@@ -11456,3 +11456,45 @@ dialog.task-modal.intake-document-availability-modal {
   background:#fde8e8;
   color:#8b1e1e;
 }
+
+/* Customer import delete row layout refinement */
+.customer-import-delete-source{
+  grid-template-columns:minmax(220px,320px) minmax(180px,240px);
+  justify-content:start;
+  align-items:end;
+  column-gap:14px;
+  row-gap:8px;
+}
+
+.customer-import-delete-source .danger-button{
+  width:100%;
+  min-height:43px;
+  padding:.65rem 1rem;
+  border:1px solid #dc8b8b;
+  border-radius:7px;
+  background:#fde8e8;
+  color:#8b1e1e;
+  font-weight:800;
+  text-align:center;
+}
+
+.customer-import-delete-source small{
+  grid-column:1/-1;
+  max-width:760px;
+  line-height:1.4;
+}
+
+@media(max-width:800px){
+  .customer-import-delete-source{
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-delete-source .danger-button{
+    width:max-content;
+    min-width:180px;
+  }
+
+  .customer-import-delete-source small{
+    grid-column:auto;
+  }
+}
