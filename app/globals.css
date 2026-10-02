@@ -10621,50 +10621,145 @@ dialog.task-modal.intake-document-availability-modal {
   gap:.65rem;
   flex-wrap:wrap;
 }
+
+.customer-data-step{
+  box-sizing:border-box;
+  width:100%;
+  padding:28px 30px 30px;
+  overflow:hidden;
+}
+
 .customer-data-guidance{
   display:grid;
-  gap:.65rem;
-  max-width:52rem;
-  padding:1rem;
-  border:1px solid var(--line);
-  border-radius:8px;
-  background:var(--surface-soft);
+  gap:16px;
+  width:100%;
+  max-width:none;
+  margin:0;
+  padding:0;
+  border:0;
+  border-radius:0;
+  background:transparent;
 }
+
+.customer-data-guidance strong{
+  display:block;
+  margin:0;
+  line-height:1.4;
+}
+
 .customer-data-guidance ul{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:4px 42px;
   margin:0;
-  padding-left:1.25rem;
-  columns:2;
+  padding-left:24px;
 }
-.customer-data-guidance p{
-  margin:0;
-  color:var(--muted);
-}
+
 .customer-data-submit-form{
-  max-width:52rem;
+  box-sizing:border-box;
+  width:100%;
+  max-width:none;
+  margin-top:30px;
+  gap:24px;
 }
-.customer-data-submit-form .form-actions{
-  margin-top:1rem;
-  padding-top:.5rem;
+
+.customer-data-submit-form>label{
+  display:grid;
+  width:100%;
+  min-width:0;
+  gap:8px;
 }
-.customer-data-submit-form .primary-button{
-  min-height:2.75rem;
-  padding:.7rem 1.15rem;
+
+.customer-data-submit-form>label>span{
+  display:block;
+  margin:0;
+  color:var(--ink);
+  font-weight:700;
 }
+
 .customer-data-submit-form input[type="file"]{
-  padding:.7rem;
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  padding:10px 0;
 }
+
 .customer-data-submit-form small{
+  display:block;
+  margin-top:2px;
   color:var(--muted);
 }
+
+.customer-data-submit-form textarea{
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  min-height:140px;
+  margin:0;
+  padding:14px 15px;
+  border:1px solid #c7d1dd;
+  border-radius:7px;
+  background:#fff;
+  color:var(--ink);
+  line-height:1.5;
+  resize:vertical;
+  outline:0;
+}
+
+.customer-data-submit-form textarea:focus{
+  border-color:#8290a5;
+  box-shadow:0 0 0 3px rgba(64,80,106,.1);
+}
+
+.customer-data-submit-form .form-actions{
+  width:100%;
+  margin:4px 0 0;
+  padding:22px 2px 2px;
+  border-top:1px solid var(--line);
+  justify-content:flex-end;
+}
+
+.customer-data-submit-form .primary-button{
+  min-height:46px;
+  margin:0;
+  padding:11px 18px;
+  border-radius:7px;
+}
+
 @media(max-width:700px){
   .page-header-actions{
+    width:100%;
     align-items:stretch;
     flex-direction:column;
   }
+
+  .customer-data-step{
+    padding:22px 18px 24px;
+  }
+
   .customer-data-guidance ul{
-    columns:1;
+    grid-template-columns:1fr;
+    gap:5px;
+  }
+
+  .customer-data-submit-form{
+    margin-top:24px;
+  }
+
+  .customer-data-submit-form .form-actions{
+    padding-top:18px;
+  }
+
+  .customer-data-submit-form .primary-button{
+    width:100%;
+    justify-content:center;
   }
 }
+
 
 /* SUPER_ADMIN Customer source-file queue */
 .customer-import-submission-queue{

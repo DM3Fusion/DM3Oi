@@ -67,7 +67,7 @@ export default async function Page({
 
       <section className="panel customer-data-step">
         <div className="customer-data-guidance">
-          <strong>Please include the following information for each Customer whenever available:</strong>
+          <strong>Please include the following information for each Customer:</strong>
           <ul>
             <li>Name</li>
             <li>Street Address</li>
