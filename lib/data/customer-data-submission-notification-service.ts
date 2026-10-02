@@ -37,8 +37,11 @@ const firstName = (profile: ProfileRow) =>
 
 const formatSubmittedAt = (value: string) =>
   new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZone: "America/New_York",
     timeZoneName: "short",
   }).format(new Date(value));
