@@ -11013,3 +11013,118 @@ dialog.task-modal.intake-document-availability-modal {
     justify-content:center;
   }
 }
+
+/* SUPER_ADMIN Customer submission register */
+.customer-import-submission{
+  display:block;
+  padding:0;
+  overflow:hidden;
+}
+
+.customer-import-submission-summary{
+  display:grid;
+  grid-template-columns:minmax(220px,1.4fr) minmax(420px,2fr) auto 18px;
+  align-items:center;
+  gap:18px;
+  min-height:74px;
+  padding:14px 16px;
+  cursor:pointer;
+  list-style:none;
+}
+
+.customer-import-submission-summary::-webkit-details-marker{
+  display:none;
+}
+
+.customer-import-submission-summary:hover{
+  background:#f8fafc;
+}
+
+.customer-import-submission-summary:focus-visible{
+  outline:2px solid #40506a;
+  outline-offset:-2px;
+}
+
+.customer-import-summary-identity{
+  display:grid;
+  min-width:0;
+  gap:3px;
+}
+
+.customer-import-summary-identity strong,
+.customer-import-summary-identity span{
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.customer-import-summary-identity span{
+  color:var(--muted);
+  font-size:.86rem;
+}
+
+.customer-import-summary-meta{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:18px;
+  min-width:0;
+}
+
+.customer-import-summary-meta>span{
+  display:grid;
+  gap:2px;
+  min-width:0;
+  color:var(--ink);
+}
+
+.customer-import-summary-meta small{
+  color:var(--muted);
+  font-size:.68rem;
+  font-weight:750;
+  letter-spacing:.35px;
+  text-transform:uppercase;
+}
+
+.customer-import-summary-chevron{
+  display:inline-block;
+  color:var(--muted);
+  font-size:24px;
+  line-height:1;
+  transform:rotate(0deg);
+  transition:transform .15s ease;
+}
+
+.customer-import-submission[open] .customer-import-summary-chevron{
+  transform:rotate(90deg);
+}
+
+.customer-import-submission-body{
+  display:grid;
+  gap:.9rem;
+  padding:16px;
+  border-top:1px solid var(--line);
+  background:#fbfcfd;
+}
+
+@media(max-width:1000px){
+  .customer-import-submission-summary{
+    grid-template-columns:minmax(200px,1fr) auto 18px;
+  }
+
+  .customer-import-summary-meta{
+    display:none;
+  }
+}
+
+@media(max-width:650px){
+  .customer-import-submission-summary{
+    grid-template-columns:minmax(0,1fr) auto 16px;
+    gap:10px;
+    padding:13px 14px;
+  }
+
+  .customer-import-summary-identity span{
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+}
