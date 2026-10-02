@@ -6,23 +6,10 @@ import type { Database } from "@/types/database.generated";
 import { hasTenantInternalAccess } from "./access-routing";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
-import { getEffectiveOrganizationPermissions, hasPermission, permissions, type OrganizationPermissionOverride, type Permission } from "@/lib/auth/permissions";
-import { resolveCustomerPortalAccesses } from "@/lib/auth/customer-portal-effectiveness";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { licenseQueryDataOrThrow } from "@/lib/auth/license-query";
+import { getEffectiveOrganizationPermissions, hasPermission, permissions, type ConfigurableOrganizationRole, type Permission } from "@/lib/auth/permissions";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
 type Role = Database["public"]["Enums"]["application_role"];
-type CurrentLicenseRow = Pick<
-  Database["public"]["Tables"]["organization_licenses"]["Row"],
-  | "license_status"
-  | "commercial_state"
-  | "starts_at"
-  | "expires_at"
-  | "grace_ends_at"
-  | "notice_days"
-  | "notification_thresholds"
->;
 export interface AuthorizedOrganization {
   id: string;
   name: string;
@@ -84,200 +71,191 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       return null;
     }
 
-    const identityStartedAt = performance.now();
-    const [profile, platform, memberships, portal] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("display_name,first_name,last_name,email,title,avatar_path,avatar_updated_at,is_active")
-        .eq("id", user.id)
-        .maybeSingle(),
-      supabase
-        .from("platform_user_roles")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("role", "SUPER_ADMIN")
-        .eq("is_active", true)
-        .limit(1),
-      supabase
-        .from("organization_members")
-        .select("organization_id,role")
-        .eq("user_id", user.id)
-        .eq("is_active", true),
-      supabase
-        .from("customer_portal_users")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_active", true),
-    ]);
-    timing("identity-and-access-lookups", identityStartedAt);
+    const selected =
+      (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value ?? null;
 
-    if (profile.data?.is_active === false) {
+    const requestedOrganizationId =
+      selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE
+        ? selected
+        : null;
+
+    const rpcStartedAt = performance.now();
+
+    // The fast access-context RPC is introduced by migration
+    // 20261002012000. Cast locally until generated Supabase types
+    // are refreshed as part of a deliberate schema-type update.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: rawContext, error: accessError } = await (supabase as any).rpc(
+      "get_my_access_context",
+      {
+        target_organization_id: requestedOrganizationId,
+      },
+    );
+
+    timing("access-context-rpc", rpcStartedAt);
+
+    if (accessError) {
+      throw accessError;
+    }
+
+    if (
+      !rawContext ||
+      typeof rawContext !== "object" ||
+      Array.isArray(rawContext)
+    ) {
       timing("total", accessStartedAt);
       return null;
     }
-    if (portal.error) throw portal.error;
 
-    const userAvatarStartedAt = performance.now();
-    const userAvatarPromise = profile.data?.avatar_path
-      ? supabase.storage
-          .from("user-avatars")
-          .createSignedUrl(profile.data.avatar_path, 3600)
-          .then((result) => result.data?.signedUrl ?? null)
-      : Promise.resolve<string | null>(null);
+    type RpcProfile = {
+      id: string;
+      display_name: string | null;
+      first_name: string | null;
+      last_name: string | null;
+      email: string | null;
+      title: string | null;
+      avatar_path: string | null;
+      avatar_updated_at: string | null;
+      is_active: boolean;
+    };
 
-    const isSuperAdmin = Boolean(platform.data?.length);
-    const membershipRows = memberships.data ?? [];
-    const allowedIds = membershipRows.map((row) => row.organization_id);
-    let organizationQuery = supabase
-      .from("organizations")
-      .select("id,name,slug,avatar_path,avatar_updated_at")
-      .eq("status", "ACTIVE")
-      .order("name");
-    if (!isSuperAdmin)
-      organizationQuery = organizationQuery.in(
-        "id",
-        allowedIds.length
-          ? allowedIds
-          : ["00000000-0000-0000-0000-000000000000"],
-      );
-    const organizationsStartedAt = performance.now();
-    const { data: organizationRows } = await organizationQuery;
-    timing("organizations-query", organizationsStartedAt);
+    type RpcOrganization = {
+      id: string;
+      name: string;
+      slug: string;
+      avatar_path: string | null;
+      avatar_updated_at: string | null;
+      role: Role;
+    };
+
+    type RpcPermissionOverride = {
+      role: ConfigurableOrganizationRole;
+      permission: string;
+      is_allowed: boolean;
+    };
+
+    type RpcLicense = {
+      license_status: Database["public"]["Enums"]["license_status"];
+      commercial_state: Database["public"]["Enums"]["commercial_state"];
+      starts_at: string | null;
+      expires_at: string | null;
+      grace_ends_at: string | null;
+      notice_days: number;
+      notification_thresholds: number[] | null;
+    };
+
+    type RpcAccessContext = {
+      profile?: RpcProfile | null;
+      is_super_admin?: boolean;
+      organizations?: RpcOrganization[];
+      active_organization_id?: string | null;
+      active_role?: Role | null;
+      permission_overrides?: RpcPermissionOverride[];
+      license?: RpcLicense | null;
+      customer_portal_ids?: string[];
+    };
+
+    const rpcContext = rawContext as RpcAccessContext;
+    const profile = rpcContext.profile ?? null;
+
+    if (!profile || profile.is_active !== true) {
+      timing("total", accessStartedAt);
+      return null;
+    }
+
+    const isSuperAdmin = Boolean(rpcContext.is_super_admin);
 
     let organizations: AuthorizedOrganization[] = (
-      organizationRows ?? []
-    ).map((org) => ({
-      id: org.id,
-      name: org.name,
-      slug: org.slug,
-      avatarPath: org.avatar_path,
+      rpcContext.organizations ?? []
+    ).map((organization) => ({
+      id: organization.id,
+      name: organization.name,
+      slug: organization.slug,
+      role: organization.role,
+      avatarPath: organization.avatar_path,
       avatarUrl: null,
-      role: isSuperAdmin
-        ? "SUPER_ADMIN"
-        : (membershipRows.find((row) => row.organization_id === org.id)?.role ??
-          "STAFF_USER"),
     }));
 
-    const selected = (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value;
-    const selectedOrganization =
-      organizations.find((org) => org.id === selected) ?? null;
+    let activeOrganization =
+      rpcContext.active_organization_id
+        ? organizations.find(
+            (organization) =>
+              organization.id === rpcContext.active_organization_id,
+          ) ?? null
+        : null;
 
-    let activeOrganization = isSuperAdmin
-      ? selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE
-        ? selectedOrganization
-        : null
-      : selectedOrganization ?? organizations[0] ?? null;
-
-    const organizationAvatarStartedAt = performance.now();
-    const activeOrganizationAvatarPromise = activeOrganization?.avatarPath
-      ? supabase.storage
-          .from(ORGANIZATION_AVATAR_BUCKET)
-          .createSignedUrl(activeOrganization.avatarPath, 3600)
-          .then((result) => result.data?.signedUrl ?? null)
-      : Promise.resolve<string | null>(null);
-    let license: (LicenseSnapshot & ReturnType<typeof effectiveLicense>) | null = null;
-    let effectivePermissions = new Set<Permission>();
-    if (activeOrganization) {
-      const overrideQuery = supabase
-        .from("organization_role_permissions")
-        .select("role,permission,is_allowed")
-        .eq("organization_id", activeOrganization.id)
-        .eq("role", activeOrganization.role);
-
-      // The licensing migration extends the generated schema at deployment time.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const licenseQuery = (supabase as any)
-        .from("organization_licenses")
-        .select(
-          "license_status,commercial_state,starts_at,expires_at,grace_ends_at,notice_days,notification_thresholds",
+    const effectivePermissions = activeOrganization
+      ? new Set(
+          getEffectiveOrganizationPermissions(
+            isSuperAdmin
+              ? "SUPER_ADMIN"
+              : activeOrganization.role,
+            (rpcContext.permission_overrides ?? [])
+              .filter((override) =>
+                permissions.some(
+                  (permission) =>
+                    permission === override.permission,
+                ),
+              )
+              .map((override) => ({
+                role: override.role,
+                permission: override.permission as Permission,
+                isAllowed: override.is_allowed,
+              })),
+          ),
         )
-        .eq("organization_id", activeOrganization.id)
-        .eq("is_current", true)
-        .maybeSingle();
+      : new Set<Permission>();
 
-      const organizationAccessStartedAt = performance.now();
-      const [overrideResult, licenseResult] = await Promise.all([
-        overrideQuery,
-        licenseQuery,
-      ]);
-      timing("permission-and-license-lookups", organizationAccessStartedAt);
+    let license:
+      | (LicenseSnapshot & ReturnType<typeof effectiveLicense>)
+      | null = null;
 
-      if (overrideResult.error) throw overrideResult.error;
-      if (licenseResult.error) {
-        console.error("Organization license lookup failed", {
-          organizationId: activeOrganization.id,
-          code: licenseResult.error.code ?? null,
-          message: licenseResult.error.message,
-        });
-      }
+    if (rpcContext.license) {
+      const licenseSnapshot: LicenseSnapshot = {
+        status: rpcContext.license.license_status,
+        commercialState: rpcContext.license.commercial_state,
+        startsAt: rpcContext.license.starts_at,
+        expiresAt: rpcContext.license.expires_at,
+        graceEndsAt: rpcContext.license.grace_ends_at,
+        noticeDays: rpcContext.license.notice_days,
+      };
 
-      const overrideRows = overrideResult.data ?? [];
-      const overrides = overrideRows
-        .filter((row) =>
-          permissions.some((permission) => permission === row.permission),
-        )
-        .map((row) => ({
-          role: row.role,
-          permission: row.permission,
-          isAllowed: row.is_allowed,
-        })) as OrganizationPermissionOverride[];
-
-      effectivePermissions = new Set(
-        getEffectiveOrganizationPermissions(
-          isSuperAdmin ? "SUPER_ADMIN" : activeOrganization.role,
-          overrides,
-        ),
-      );
-
-      const currentLicense = licenseQueryDataOrThrow<CurrentLicenseRow>(
-        licenseResult,
-      );
-      if (currentLicense) {
-        const licenseSnapshot: LicenseSnapshot = {
-          status: currentLicense.license_status,
-          commercialState: currentLicense.commercial_state,
-          startsAt: currentLicense.starts_at,
-          expiresAt: currentLicense.expires_at,
-          graceEndsAt: currentLicense.grace_ends_at,
-          noticeDays: currentLicense.notice_days,
-        };
-        license = {
-          ...licenseSnapshot,
-          ...effectiveLicense(licenseSnapshot),
-          ...currentLicense,
-          status: currentLicense.license_status,
-          commercialState: currentLicense.commercial_state,
-        };
-      }
+      license = {
+        ...licenseSnapshot,
+        ...effectiveLicense(licenseSnapshot),
+        notificationThresholds:
+          rpcContext.license.notification_thresholds ?? [],
+      };
     }
-    const portalStartedAt = performance.now();
-    const resolvedPortalAccesses = portal.data?.length
-      ? await resolveCustomerPortalAccesses(
-          createAdminClient(),
-          portal.data,
-          {
-            authAccountExists: true,
-            profileActive: profile.data?.is_active === true,
-          },
-        )
-      : [];
-    timing("portal-resolution", portalStartedAt);
 
-    const customerPortalIds = resolvedPortalAccesses
-      .filter((access) => access.effective)
-      .map((access) => access.link.customer_id);
-    const displayName =
-      profile.data?.display_name ||
-      user.email ||
-      "User";
+    const avatarStartedAt = performance.now();
 
-    const [activeOrganizationAvatarUrl, avatarUrl] = await Promise.all([
-      activeOrganizationAvatarPromise,
-      userAvatarPromise,
-    ]);
+    const [avatarUrl, activeOrganizationAvatarUrl] =
+      await Promise.all([
+        profile.avatar_path
+          ? supabase.storage
+              .from("user-avatars")
+              .createSignedUrl(profile.avatar_path, 3600)
+              .then(
+                (result) =>
+                  result.data?.signedUrl ?? null,
+              )
+          : Promise.resolve<string | null>(null),
+        activeOrganization?.avatarPath
+          ? supabase.storage
+              .from(ORGANIZATION_AVATAR_BUCKET)
+              .createSignedUrl(
+                activeOrganization.avatarPath,
+                3600,
+              )
+              .then(
+                (result) =>
+                  result.data?.signedUrl ?? null,
+              )
+          : Promise.resolve<string | null>(null),
+      ]);
 
-    timing("organization-avatar-signing", organizationAvatarStartedAt);
-    timing("user-avatar-signing", userAvatarStartedAt);
+    timing("avatar-signing", avatarStartedAt);
 
     if (activeOrganization) {
       const resolvedActiveOrganization: AuthorizedOrganization = {
@@ -286,6 +264,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       };
 
       activeOrganization = resolvedActiveOrganization;
+
       organizations = organizations.map((organization) =>
         organization.id === resolvedActiveOrganization.id
           ? resolvedActiveOrganization
@@ -293,14 +272,22 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       );
     }
 
+    const customerPortalIds =
+      rpcContext.customer_portal_ids ?? [];
+
+    const displayName =
+      profile.display_name ||
+      user.email ||
+      "User";
+
     timing("total", accessStartedAt);
 
     return {
       user,
       displayName,
-      profileEmail: profile.data?.email ?? null,
-      title: profile.data?.title ?? null,
-      avatarPath: profile.data?.avatar_path ?? null,
+      profileEmail: profile.email,
+      title: profile.title,
+      avatarPath: profile.avatar_path,
       avatarUrl,
       isSuperAdmin,
       organizations,
@@ -311,12 +298,16 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         isSuperAdmin ||
         organizations.length > 0 ||
         customerPortalIds.length > 0,
-      internalAccess: isSuperAdmin || organizations.length > 0,
+      internalAccess:
+        isSuperAdmin || organizations.length > 0,
       license,
       effectivePermissions,
     };
   } catch (error) {
-    console.error("Unable to resolve authenticated access context", error);
+    console.error(
+      "Unable to resolve authenticated access context",
+      error,
+    );
     return null;
   }
 }
