@@ -10844,22 +10844,46 @@ dialog.task-modal.intake-document-availability-modal {
   padding:.65rem .75rem;
   color:var(--ink);
 }
-.customer-import-review-form button{
+.customer-import-review-actions{
   grid-column:1/-1;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:1rem;
+  padding-top:.8rem;
+  border-top:1px solid var(--line);
 }
-.customer-import-delete-source{
+.customer-import-save-review{
+  flex:0 0 auto;
+  width:auto;
+  min-width:8.5rem;
+}
+.customer-import-delete-inline{
   display:grid;
   grid-template-columns:minmax(12rem,18rem) auto;
   gap:.65rem;
   align-items:end;
-  padding-top:.8rem;
-  border-top:1px solid var(--line);
+  margin-left:auto;
 }
-.customer-import-delete-source small{
+.customer-import-delete-inline label{
+  display:grid;
+  gap:.35rem;
+  font-size:.78rem;
+  font-weight:700;
+}
+.customer-import-delete-inline input{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#fff;
+  padding:.65rem .75rem;
+  color:var(--ink);
+}
+.customer-import-delete-inline small{
   grid-column:1/-1;
   color:var(--muted);
 }
-.customer-import-delete-source .danger-button{
+.customer-import-delete-inline .danger-button{
   border:1px solid #991b1b;
   border-radius:7px;
   background:#991b1b;
@@ -10867,6 +10891,7 @@ dialog.task-modal.intake-document-availability-modal {
   color:#fff;
   font-weight:800;
   cursor:pointer;
+  white-space:nowrap;
 }
 .customer-import-reviewed{
   margin:0;
@@ -10875,12 +10900,22 @@ dialog.task-modal.intake-document-availability-modal {
   .customer-import-submission-meta{
     grid-template-columns:repeat(2,minmax(0,1fr));
   }
-  .customer-import-review-form,
-  .customer-import-delete-source{
+  .customer-import-review-form{
     grid-template-columns:1fr;
   }
-  .customer-import-review-form button,
-  .customer-import-delete-source small{
+  .customer-import-review-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .customer-import-save-review{
+    width:max-content;
+  }
+  .customer-import-delete-inline{
+    width:100%;
+    grid-template-columns:1fr;
+    margin-left:0;
+  }
+  .customer-import-delete-inline small{
     grid-column:auto;
   }
 }

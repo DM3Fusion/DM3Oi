@@ -183,7 +183,7 @@ export function CustomerImportSubmissionQueue({
                   </label>
 
                   <label>
-                    <span>system administrator note</span>
+                    <span>Platform administrator note</span>
                     <textarea
                       name="superAdminNote"
                       rows={3}
@@ -213,54 +213,48 @@ export function CustomerImportSubmissionQueue({
                     </small>
                   </label>
 
-                  {submission.status !== "IMPORTED" ? (
-                    <PendingSubmitButton
-                      className="secondary-button"
-                      pendingLabel="Saving…"
-                    >
-                      Save Review
-                    </PendingSubmitButton>
-                  ) : (
-                    <p className="muted">
-                      Imported {formatDate(submission.imported_at)}
-                    </p>
-                  )}
+                  <div className="customer-import-review-actions">
+                    {submission.status !== "IMPORTED" ? (
+                      <PendingSubmitButton
+                        className="secondary-button customer-import-save-review"
+                        pendingLabel="Saving…"
+                      >
+                        Save Review
+                      </PendingSubmitButton>
+                    ) : (
+                      <p className="muted">
+                        Imported {formatDate(submission.imported_at)}
+                      </p>
+                    )}
+
+                    {!submission.source_file_deleted_at ? (
+                      <div className="customer-import-delete-inline">
+                        <label>
+                          <span>Delete source file</span>
+                          <input
+                            name="confirmation"
+                            autoComplete="off"
+                            placeholder="Type DELETE FILE"
+                            aria-label={`Delete source file confirmation for ${submission.original_filename}`}
+                          />
+                        </label>
+
+                        <PendingSubmitButton
+                          className="danger-button"
+                          pendingLabel="Deleting…"
+                          formAction={deleteCustomerImportSourceAction}
+                        >
+                          Delete Source File
+                        </PendingSubmitButton>
+
+                        <small>
+                          Removes only the private uploaded source file. The
+                          submission audit record and any imported Customers remain.
+                        </small>
+                      </div>
+                    ) : null}
+                  </div>
                 </form>
-
-                {!submission.source_file_deleted_at ? (
-                  <form
-                    action={deleteCustomerImportSourceAction}
-                    className="customer-import-delete-source"
-                  >
-                    <input
-                      type="hidden"
-                      name="submissionId"
-                      value={submission.id}
-                    />
-
-                    <label>
-                      <span>Delete source file</span>
-                      <input
-                        name="confirmation"
-                        autoComplete="off"
-                        placeholder="Type DELETE FILE"
-                        aria-label={`Delete source file confirmation for ${submission.original_filename}`}
-                      />
-                    </label>
-
-                    <PendingSubmitButton
-                      className="danger-button"
-                      pendingLabel="Deleting…"
-                    >
-                      Delete Source File
-                    </PendingSubmitButton>
-
-                    <small>
-                      Removes only the private uploaded source file. The
-                      submission audit record and any imported Customers remain.
-                    </small>
-                  </form>
-                ) : null}
 
                 {submission.reviewed_at ? (
                   <p className="muted customer-import-reviewed">

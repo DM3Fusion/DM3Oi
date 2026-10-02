@@ -83,7 +83,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
   }
 
   if (superAdminNote.length > 4000) {
-    throw new Error("System administrator notes must be 4,000 characters or fewer.");
+    throw new Error("Platform administrator notes must be 4,000 characters or fewer.");
   }
 
   if (correctionInstructions.length > 4000) {
@@ -127,7 +127,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
   }
 
   revalidatePath("/admin/customer-import");
-  redirect("/admin/customer-import");
+  revalidatePath("/customers/import");
 }
 
 export async function deleteCustomerImportSourceAction(form: FormData) {
