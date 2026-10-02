@@ -1,8 +1,8 @@
 import { Badge } from "@/components/ui";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { CustomerImportReviewForm } from "@/components/admin/customer-import-review-form";
+import { CustomerImportDeleteSourceForm } from "@/components/admin/customer-import-delete-source-form";
 import {
-  deleteCustomerImportSourceAction,
   downloadCustomerImportSourceAction,
 } from "@/app/admin/customer-import/submission-actions";
 
@@ -182,38 +182,11 @@ export function CustomerImportSubmissionQueue({
                 )}
 
                 {!submission.source_file_deleted_at ? (
-                  <form
-                    action={deleteCustomerImportSourceAction}
-                    className="customer-import-delete-source"
-                  >
-                    <input
-                      type="hidden"
-                      name="submissionId"
-                      value={submission.id}
-                    />
-
-                    <label>
-                      <span>Delete source file</span>
-                      <input
-                        name="confirmation"
-                        autoComplete="off"
-                        placeholder="Type DELETE FILE"
-                        aria-label={`Delete source file confirmation for ${submission.original_filename}`}
-                      />
-                    </label>
-
-                    <PendingSubmitButton
-                      className="danger-button"
-                      pendingLabel="Deleting…"
-                    >
-                      Delete Source File
-                    </PendingSubmitButton>
-
-                    <small>
-                      Removes only the private uploaded source file. The
-                      submission audit record and any imported Customers remain.
-                    </small>
-                  </form>
+                  <CustomerImportDeleteSourceForm
+                    submissionId={submission.id}
+                    fileName={submission.original_filename}
+                    fileDisposition={submission.file_disposition}
+                  />
                 ) : null}
 
                 {submission.reviewed_at ? (

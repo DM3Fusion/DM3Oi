@@ -173,27 +173,39 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
   const confirmation = text(form, "confirmation");
 
   if (!submissionId) {
-    throw new Error("Customer data submission was not found.");
+    return {
+      ok: false as const,
+      error: "Customer data submission was not found.",
+    };
   }
 
   if (confirmation !== "DELETE FILE") {
-    throw new Error('Type "DELETE FILE" to remove the staged source file.');
+    return {
+      ok: false as const,
+      error: 'Type "DELETE FILE" to remove the staged source file.',
+    };
   }
 
   const { admin, submission } = await loadSubmission(submissionId);
 
   if (submission.source_file_deleted_at) {
     revalidatePath("/admin/customer-import");
-    return;
+    revalidatePath("/customers/import");
+
+    return {
+      ok: true as const,
+    };
   }
 
   if (
     submission.file_disposition !== "DELETED_WITHOUT_PROCESSING" &&
     submission.file_disposition !== "DELETED_AFTER_PROCESSING"
   ) {
-    throw new Error(
-      "Set File Disposition to a deleted state and save the review before deleting the source file.",
-    );
+    return {
+      ok: false as const,
+      error:
+        "Set File Disposition to a deleted state and save the review before deleting the source file.",
+    };
   }
 
   const removed = await admin.storage
@@ -207,7 +219,10 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
       message: removed.error.message,
     });
 
-    throw new Error("The staged source file could not be deleted.");
+    return {
+      ok: false as const,
+      error: "The staged source file could not be deleted.",
+    };
   }
 
   const { error } = await admin
@@ -225,11 +240,17 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
       message: error.message,
     });
 
-    throw new Error(
-      "The source file was deleted, but its cleanup audit could not be finalized.",
-    );
+    return {
+      ok: false as const,
+      error:
+        "The source file was deleted, but its cleanup audit could not be finalized.",
+    };
   }
 
   revalidatePath("/admin/customer-import");
   revalidatePath("/customers/import");
+
+  return {
+    ok: true as const,
+  };
 }
