@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui";
 import { NavigableRow } from "@/components/navigable-row";
-import { getLiveOrganizationData, displayName } from "@/lib/data/case-repository";
+import { getServiceDeskData, displayName } from "@/lib/data/case-repository";
 import { formatServiceRequestUpdatedAt, serviceRequestLabel, serviceRequestPriorities, serviceRequestStatuses } from "@/lib/service-request-format";
 import { ApplicationIcon } from "@/components/application-icon";
 
 export const metadata = { title: "Service Requests" };
 
 export default async function Page({ searchParams }: { searchParams?: Promise<Record<string, string | undefined>> }) {
-  const data = await getLiveOrganizationData();
+  const data = await getServiceDeskData();
   const q = await searchParams;
   const term = (q?.q ?? "").toLowerCase();
   const status = q?.status === "open" || q?.status === "resolved" || serviceRequestStatuses.includes(q?.status as (typeof serviceRequestStatuses)[number]) ? q?.status : undefined;

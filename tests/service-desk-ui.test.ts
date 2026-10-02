@@ -2,6 +2,39 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 const source = (path: string) => readFileSync(path, "utf8");
+test("Service Desk list and creation surfaces use the dedicated lightweight loader", () => {
+  const dashboard = source("app/service-desk/page.tsx");
+  const register = source("app/service-desk/requests/page.tsx");
+  const create = source("app/service-desk/new/page.tsx");
+  const repository = source("lib/data/case-repository.ts");
+
+  for (const page of [dashboard, register, create]) {
+    assert.match(page, /getServiceDeskData\(\)/);
+    assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
+  }
+
+  const start = repository.indexOf(
+    "export async function getServiceDeskData",
+  );
+  const end = repository.indexOf(
+    "export async function getCustomerRegisterData",
+    start,
+  );
+  const loader = repository.slice(start, end);
+
+  assert.match(loader, /organization_service_requests/);
+  assert.match(loader, /organization_customers/);
+  assert.match(loader, /organization_members/);
+  assert.match(loader, /organization_settings/);
+  assert.match(loader, /getPlatformAdminUserIds\(\)/);
+  assert.match(loader, /maskPlatformProfile/);
+  assert.doesNotMatch(loader, /attachAuthorizedAvatarUrls/);
+  assert.doesNotMatch(loader, /organization_case_tasks/);
+  assert.doesNotMatch(loader, /case_assignments/);
+  assert.doesNotMatch(loader, /guided_case_intake_drafts/);
+  assert.doesNotMatch(loader, /loadOrganizationCaseRuleEvaluationBundle/);
+});
+
 test("service desk dashboard links recent work to the filtered register", () => {
   const page = source("app/service-desk/page.tsx");
   const register = source("app/service-desk/requests/page.tsx");

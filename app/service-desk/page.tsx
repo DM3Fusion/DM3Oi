@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui";
 import { NavigableRow } from "@/components/navigable-row";
-import { getLiveOrganizationData, displayName } from "@/lib/data/case-repository";
+import { getServiceDeskData, displayName } from "@/lib/data/case-repository";
 import { getServiceRequestMetrics } from "@/lib/live-dashboard-metrics";
 import { formatServiceRequestUpdatedAt } from "@/lib/service-request-format";
 import { getAccessContext } from "@/lib/auth/context";
@@ -9,7 +9,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
 export const metadata = { title: "Service Desk" };
 export default async function Page() {
-  const [data, access] = await Promise.all([getLiveOrganizationData(), getAccessContext()]);
+  const [data, access] = await Promise.all([getServiceDeskData(), getAccessContext()]);
   const metrics = getServiceRequestMetrics(data.serviceRequests);
   return (
     <>

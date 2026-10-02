@@ -402,6 +402,195 @@ async function buildCaseRepositoryProfileDirectory(
   };
 }
 
+export interface ServiceDeskRequest extends ServiceRequestRow {
+  customer: CustomerRow | null;
+  assigned: ProfileRow | null;
+}
+
+export interface ServiceDeskStaffMember {
+  membership: MemberRow;
+  profile: ProfileRow;
+}
+
+export interface ServiceDeskData {
+  organizationId: string;
+  timezone: string;
+  customers: CustomerRow[];
+  staff: ServiceDeskStaffMember[];
+  serviceRequests: ServiceDeskRequest[];
+}
+
+export async function getServiceDeskData(): Promise<ServiceDeskData> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [
+    customerResult,
+    memberResult,
+    requestResult,
+    settingsResult,
+    platformAdminIds,
+  ] = await Promise.all([
+    supabase
+      .from("organization_customers")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("name"),
+    supabase
+      .from("organization_members")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    supabase
+      .from("organization_service_requests")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("updated_at", { ascending: false }),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+    getPlatformAdminUserIds(),
+  ]);
+
+  const requestError = requestResult.error;
+
+  if (requestError) {
+    console.error("Service Desk request query failed", {
+      organizationId,
+      code: requestError.code,
+      message: requestError.message,
+      details: requestError.details,
+      hint: requestError.hint,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const error =
+    customerResult.error ??
+    memberResult.error ??
+    settingsResult.error;
+
+  if (error) {
+    console.error("Service Desk query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const memberships = (memberResult.data ?? []).filter(
+    (membership) => !platformAdminIds.has(membership.user_id),
+  );
+
+  const rawRequests =
+    (requestResult.data ?? []) as unknown as ServiceRequestRow[];
+
+  const profileIds = [
+    ...new Set([
+      ...memberships.map((membership) => membership.user_id),
+      ...rawRequests.flatMap((request) =>
+        request.assigned_user_id
+          ? [request.assigned_user_id]
+          : [],
+      ),
+    ]),
+  ];
+
+  const profileResult = profileIds.length
+    ? await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", profileIds)
+    : { data: [] as ProfileRow[], error: null };
+
+  if (profileResult.error) {
+    console.error("Service Desk profile query failed", {
+      organizationId,
+      code: profileResult.error.code,
+      message: profileResult.error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const profiles = (profileResult.data ?? []).map((profile) =>
+    maskPlatformProfile(profile, platformAdminIds),
+  );
+
+  const byProfile = new Map(
+    profiles.map((profile) => [profile.id, profile]),
+  );
+
+  const profileForOrganization = (
+    id: string,
+  ): ProfileRow | null =>
+    platformAdminIds.has(id)
+      ? {
+          id,
+          display_name: ORGANIZATION_SUPPORT_IDENTITY,
+          first_name: null,
+          last_name: null,
+          email: null,
+          phone: null,
+          title: null,
+          is_active: true,
+          avatar_path: null,
+          avatar_updated_at: null,
+          created_at: "",
+          updated_at: "",
+        }
+      : (byProfile.get(id) ?? null);
+
+  const customers = requireOrganizationCustomers(
+    customerResult.data ?? [],
+  );
+
+  const staff: ServiceDeskStaffMember[] =
+    memberships.flatMap((membership) => {
+      const profile = byProfile.get(membership.user_id);
+
+      return profile
+        ? [{ membership, profile }]
+        : [];
+    });
+
+  const serviceRequests: ServiceDeskRequest[] =
+    rawRequests.map((request) => ({
+      ...request,
+      customer:
+        customers.find(
+          (customer) =>
+            customer.id === request.customer_id,
+        ) ?? null,
+      assigned: request.assigned_user_id
+        ? profileForOrganization(
+            request.assigned_user_id,
+          )
+        : null,
+    }));
+
+  return {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    customers,
+    staff,
+    serviceRequests,
+  };
+}
+
 export async function getCustomerRegisterData(): Promise<{
   organizationId: string;
   customers: CustomerRow[];

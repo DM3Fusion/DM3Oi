@@ -244,6 +244,8 @@ test("destination filters reuse authorized organization data and shared semantic
   assert.match(cases, /matchesCaseRegisterFilters\(item, filters, data\.timezone\)/);
   assert.match(filters, /!\["COMPLETED", "NOT_APPLICABLE", "REQUIRED_UNAVAILABLE"\]\.includes\(task\.status\)/);
   assert.match(filters, /startOfOrganizationDay\(now, timezone\)/);
+  assert.match(requests, /getServiceDeskData\(\)/);
+  assert.doesNotMatch(requests, /getLiveOrganizationData\(\)/);
   assert.match(requests, /q\?\.status === "open"/);
   assert.match(requests, /serviceRequestStatuses\.includes/);
 });

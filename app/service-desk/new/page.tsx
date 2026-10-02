@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { ServiceRequestForm } from "@/components/service-request-form";
-import { getLiveOrganizationData, displayName } from "@/lib/data/case-repository";
+import { getServiceDeskData, displayName } from "@/lib/data/case-repository";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 export const metadata = { title: "New Service Request" };
 export default async function Page() {
-  const [data, access] = await Promise.all([getLiveOrganizationData(), getAccessContext()]);
+  const [data, access] = await Promise.all([getServiceDeskData(), getAccessContext()]);
   if (!hasPermission(access, "CREATE_SERVICE_REQUEST")) notFound();
   const canAssign = hasPermission(access, "ASSIGN_SERVICE_REQUEST");
   const staff = data.staff.filter((s) => roleHasPermission(s.membership.role, "VIEW_SERVICE_DESK")).map((s) => ({ id: s.profile.id, name: displayName(s.profile) }));
