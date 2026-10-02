@@ -54,7 +54,10 @@ export function matchesTaskSearch(task: TaskRow, caseNumber: string, query: stri
   return task.title.toLocaleLowerCase().includes(normalized) || caseNumber.toLocaleLowerCase().includes(normalized);
 }
 
-export function matchesCaseFilter(item: LiveCase, status?: CaseStatusFilter) {
+export function matchesCaseFilter(
+  item: Pick<LiveCase, "status">,
+  status?: CaseStatusFilter,
+) {
   if (!status) return true;
   if (status === "active") return isIncompleteCompatibilityCaseStatus(item.status);
   if (status === "new") return item.status === "NEW";
