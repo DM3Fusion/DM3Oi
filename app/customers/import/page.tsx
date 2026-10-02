@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Badge, PageHeader } from "@/components/ui";
 import { CustomerDataSubmitModal } from "@/components/customers/customer-data-submit-modal";
+import { CustomerImportSuccessNotice } from "@/components/customers/customer-import-success-notice";
 import {
   canSubmitCustomerData,
   getCustomerImportSubmissions,
@@ -58,7 +59,7 @@ export default async function Page({
       />
 
       {query.message ? (
-        <div className="success-alert page-notice">{query.message}</div>
+        <CustomerImportSuccessNotice message={query.message} />
       ) : null}
 
       {query.error ? (
@@ -102,7 +103,15 @@ export default async function Page({
                     </td>
                     <td>{formatBytes(submission.file_size_bytes)}</td>
                     <td>
-                      <Badge value={submission.status} />
+                      <div className="customer-import-org-status">
+                        <Badge value={submission.status} />
+                        {submission.status === "NEEDS_CORRECTION" &&
+                        submission.correction_instructions ? (
+                          <p className="customer-import-correction-instructions">
+                            {submission.correction_instructions}
+                          </p>
+                        ) : null}
+                      </div>
                     </td>
                     <td>{submission.organization_note || "—"}</td>
                     <td>

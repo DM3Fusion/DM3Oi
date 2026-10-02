@@ -40,7 +40,7 @@ export async function getCustomerImportSubmissions() {
     supabase
       .from("customer_import_submissions")
       .select(
-        "id,organization_id,uploaded_by_user_id,original_filename,file_size_bytes,mime_type,status,organization_note,created_at,updated_at,reviewed_at,imported_at,source_file_deleted_at",
+        "id,organization_id,uploaded_by_user_id,original_filename,file_size_bytes,mime_type,status,organization_note,correction_instructions,created_at,updated_at,reviewed_at,imported_at,source_file_deleted_at",
       )
       .eq("organization_id", context.activeOrganization.id)
       .order("created_at", { ascending: false })

@@ -68,6 +68,7 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
   const submissionId = text(form, "submissionId");
   const status = text(form, "status");
   const superAdminNote = text(form, "superAdminNote");
+  const correctionInstructions = text(form, "correctionInstructions");
 
   const allowed = new Set([
     "UPLOADED",
@@ -82,7 +83,17 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
   }
 
   if (superAdminNote.length > 4000) {
-    throw new Error("SUPER_ADMIN notes must be 4,000 characters or fewer.");
+    throw new Error("System administrator notes must be 4,000 characters or fewer.");
+  }
+
+  if (correctionInstructions.length > 4000) {
+    throw new Error("Correction instructions must be 4,000 characters or fewer.");
+  }
+
+  if (status === "NEEDS_CORRECTION" && !correctionInstructions) {
+    throw new Error(
+      "Correction instructions are required when Customer data needs correction.",
+    );
   }
 
   const { admin, submission } = await loadSubmission(submissionId);
@@ -96,6 +107,10 @@ export async function updateCustomerImportSubmissionAction(form: FormData) {
     .update({
       status,
       super_admin_note: superAdminNote || null,
+      correction_instructions:
+        status === "NEEDS_CORRECTION"
+          ? correctionInstructions
+          : null,
       reviewed_at: new Date().toISOString(),
       reviewed_by_user_id: context.user.id,
     })

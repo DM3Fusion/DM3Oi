@@ -16,6 +16,7 @@ type Submission = {
   status: string;
   organization_note: string | null;
   super_admin_note: string | null;
+  correction_instructions: string | null;
   created_at: string;
   reviewed_at: string | null;
   reviewedBy: string | null;
@@ -191,6 +192,25 @@ export function CustomerImportSubmissionQueue({
                       disabled={submission.status === "IMPORTED"}
                       placeholder="Internal preparation, mapping, or review notes."
                     />
+                  </label>
+
+                  <label className="customer-import-correction-field">
+                    <span>
+                      Correction instructions
+                      <small> Required for Needs Correction</small>
+                    </span>
+                    <textarea
+                      name="correctionInstructions"
+                      rows={3}
+                      maxLength={4000}
+                      defaultValue={submission.correction_instructions ?? ""}
+                      disabled={submission.status === "IMPORTED"}
+                      placeholder="Organization-visible instructions describing what must be corrected."
+                    />
+                    <small>
+                      Visible to the organization Owner/Admin only when the
+                      submission status is Needs Correction.
+                    </small>
                   </label>
 
                   {submission.status !== "IMPORTED" ? (

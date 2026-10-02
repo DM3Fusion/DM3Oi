@@ -121,7 +121,7 @@ export async function submitCustomerDataAction(form: FormData) {
   redirect(
     destination(
       "message",
-      "Customer data submitted for system administrator review.",
+      "Customer data submitted for platform administrator review.",
     ),
   );
 }

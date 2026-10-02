@@ -838,6 +838,7 @@ export type Database = {
       }
       customer_import_submissions: {
         Row: {
+          correction_instructions: string | null
           created_at: string
           file_size_bytes: number
           id: string
@@ -860,6 +861,7 @@ export type Database = {
           uploaded_by_user_id: string
         }
         Insert: {
+          correction_instructions?: string | null
           created_at?: string
           file_size_bytes: number
           id?: string
@@ -882,6 +884,7 @@ export type Database = {
           uploaded_by_user_id: string
         }
         Update: {
+          correction_instructions?: string | null
           created_at?: string
           file_size_bytes?: number
           id?: string
