@@ -11335,3 +11335,117 @@ dialog.task-modal.intake-document-availability-modal {
   overflow-wrap:anywhere;
   word-break:break-word;
 }
+
+
+/* Customer import review editor — compact review controls and independent delete row */
+.customer-import-review-form{
+  display:grid;
+  grid-template-columns:1fr;
+  gap:14px;
+  align-items:stretch;
+}
+
+.customer-import-review-top-row{
+  display:flex;
+  align-items:flex-end;
+  gap:12px;
+}
+
+.customer-import-review-status{
+  flex:0 1 260px;
+  width:min(260px,100%);
+}
+
+.customer-import-review-top-row .customer-import-save-review{
+  flex:0 0 auto;
+  width:auto;
+  min-width:132px;
+  min-height:43px;
+}
+
+.customer-import-review-notes-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:14px;
+  align-items:start;
+}
+
+.customer-import-review-notes-row>label{
+  min-width:0;
+}
+
+.customer-import-review-notes-row textarea{
+  min-height:108px;
+}
+
+.customer-import-review-notes-row .customer-import-correction-field{
+  grid-column:auto;
+}
+
+.customer-import-save-review.review-unsaved{
+  border:1px solid #dc8b8b;
+  border-radius:7px;
+  background:#fde8e8;
+  padding:.65rem 1rem;
+  color:#8b1e1e;
+  font-weight:800;
+  cursor:pointer;
+}
+
+.customer-import-save-review.review-saved{
+  border:1px solid #8ab99a;
+  border-radius:7px;
+  background:#e7f4eb;
+  padding:.65rem 1rem;
+  color:#23623a;
+  font-weight:800;
+}
+
+.customer-import-review-error{
+  margin:0;
+}
+
+.customer-import-delete-source{
+  display:grid;
+  grid-template-columns:minmax(220px,320px) auto;
+  gap:10px 12px;
+  align-items:end;
+  padding-top:14px;
+  border-top:1px solid var(--line);
+}
+
+.customer-import-delete-source label{
+  min-width:0;
+}
+
+.customer-import-delete-source small{
+  grid-column:1/-1;
+}
+
+@media(max-width:800px){
+  .customer-import-review-top-row{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .customer-import-review-status{
+    width:100%;
+    flex-basis:auto;
+  }
+
+  .customer-import-review-notes-row{
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-review-top-row .customer-import-save-review{
+    width:max-content;
+  }
+
+  .customer-import-delete-source{
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-delete-source small{
+    grid-column:auto;
+  }
+}

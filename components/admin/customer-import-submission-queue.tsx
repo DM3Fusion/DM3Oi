@@ -1,9 +1,9 @@
 import { Badge } from "@/components/ui";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { CustomerImportReviewForm } from "@/components/admin/customer-import-review-form";
 import {
   deleteCustomerImportSourceAction,
   downloadCustomerImportSourceAction,
-  updateCustomerImportSubmissionAction,
 } from "@/app/admin/customer-import/submission-actions";
 
 type Submission = {
@@ -150,111 +150,55 @@ export function CustomerImportSubmissionQueue({
                   </form>
                 ) : null}
 
-                <form
-                  action={updateCustomerImportSubmissionAction}
-                  className="customer-import-review-form"
-                >
-                  <input
-                    type="hidden"
-                    name="submissionId"
-                    value={submission.id}
+                {submission.status !== "IMPORTED" ? (
+                  <CustomerImportReviewForm
+                    submissionId={submission.id}
+                    initialStatus={submission.status}
+                    initialSuperAdminNote={submission.super_admin_note ?? ""}
+                    initialCorrectionInstructions={
+                      submission.correction_instructions ?? ""
+                    }
                   />
+                ) : (
+                  <p className="muted">
+                    Imported {formatDate(submission.imported_at)}
+                  </p>
+                )}
 
-                  <label>
-                    <span>Review status</span>
-                    <select
-                      name="status"
-                      defaultValue={submission.status}
-                      disabled={submission.status === "IMPORTED"}
+                {!submission.source_file_deleted_at ? (
+                  <form
+                    action={deleteCustomerImportSourceAction}
+                    className="customer-import-delete-source"
+                  >
+                    <input
+                      type="hidden"
+                      name="submissionId"
+                      value={submission.id}
+                    />
+
+                    <label>
+                      <span>Delete source file</span>
+                      <input
+                        name="confirmation"
+                        autoComplete="off"
+                        placeholder="Type DELETE FILE"
+                        aria-label={`Delete source file confirmation for ${submission.original_filename}`}
+                      />
+                    </label>
+
+                    <PendingSubmitButton
+                      className="danger-button"
+                      pendingLabel="Deleting…"
                     >
-                      <option value="UPLOADED">Uploaded</option>
-                      <option value="UNDER_REVIEW">Under Review</option>
-                      <option value="NEEDS_CORRECTION">
-                        Needs Correction
-                      </option>
-                      <option value="READY_TO_IMPORT">
-                        Ready to Import
-                      </option>
-                      <option value="REJECTED">Rejected</option>
-                      {submission.status === "IMPORTED" ? (
-                        <option value="IMPORTED">Imported</option>
-                      ) : null}
-                    </select>
-                  </label>
+                      Delete Source File
+                    </PendingSubmitButton>
 
-                  <label>
-                    <span>Platform administrator note</span>
-                    <textarea
-                      name="superAdminNote"
-                      rows={3}
-                      maxLength={4000}
-                      defaultValue={submission.super_admin_note ?? ""}
-                      disabled={submission.status === "IMPORTED"}
-                      placeholder="Internal preparation, mapping, or review notes."
-                    />
-                  </label>
-
-                  <label className="customer-import-correction-field">
-                    <span>
-                      Correction instructions
-                      <small> Required for Needs Correction</small>
-                    </span>
-                    <textarea
-                      name="correctionInstructions"
-                      rows={3}
-                      maxLength={4000}
-                      defaultValue={submission.correction_instructions ?? ""}
-                      disabled={submission.status === "IMPORTED"}
-                      placeholder="Organization-visible instructions describing what must be corrected."
-                    />
                     <small>
-                      Visible to the organization Owner/Admin only when the
-                      submission status is Needs Correction.
+                      Removes only the private uploaded source file. The
+                      submission audit record and any imported Customers remain.
                     </small>
-                  </label>
-
-                  <div className="customer-import-review-actions">
-                    {submission.status !== "IMPORTED" ? (
-                      <PendingSubmitButton
-                        className="secondary-button customer-import-save-review"
-                        pendingLabel="Saving…"
-                      >
-                        Save Review
-                      </PendingSubmitButton>
-                    ) : (
-                      <p className="muted">
-                        Imported {formatDate(submission.imported_at)}
-                      </p>
-                    )}
-
-                    {!submission.source_file_deleted_at ? (
-                      <div className="customer-import-delete-inline">
-                        <label>
-                          <span>Delete source file</span>
-                          <input
-                            name="confirmation"
-                            autoComplete="off"
-                            placeholder="Type DELETE FILE"
-                            aria-label={`Delete source file confirmation for ${submission.original_filename}`}
-                          />
-                        </label>
-
-                        <PendingSubmitButton
-                          className="danger-button"
-                          pendingLabel="Deleting…"
-                          formAction={deleteCustomerImportSourceAction}
-                        >
-                          Delete Source File
-                        </PendingSubmitButton>
-
-                        <small>
-                          Removes only the private uploaded source file. The
-                          submission audit record and any imported Customers remain.
-                        </small>
-                      </div>
-                    ) : null}
-                  </div>
-                </form>
+                  </form>
+                ) : null}
 
                 {submission.reviewed_at ? (
                   <p className="muted customer-import-reviewed">
