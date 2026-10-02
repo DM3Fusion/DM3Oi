@@ -8,6 +8,58 @@ import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
 import { getEffectiveOrganizationPermissions, hasPermission, permissions, type ConfigurableOrganizationRole, type Permission } from "@/lib/auth/permissions";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
+
+const ACCESS_AVATAR_CACHE_TTL_MS = 50 * 60 * 1000;
+const ACCESS_AVATAR_CACHE_MAX_ENTRIES = 256;
+
+type AccessAvatarCacheEntry = {
+  expiresAt: number;
+  url: string;
+};
+
+const accessAvatarUrlCache = new Map<string, AccessAvatarCacheEntry>();
+
+async function getCachedAccessAvatarUrl(
+  bucket: string,
+  path: string,
+  sign: () => Promise<string | null>,
+) {
+  const key = `${bucket}:${path}`;
+  const now = Date.now();
+  const cached = accessAvatarUrlCache.get(key);
+
+  if (cached && cached.expiresAt > now) {
+    return cached.url;
+  }
+
+  if (cached) {
+    accessAvatarUrlCache.delete(key);
+  }
+
+  let url: string | null;
+
+  try {
+    url = await sign();
+  } catch {
+    return null;
+  }
+
+  if (!url) return null;
+
+  if (accessAvatarUrlCache.size >= ACCESS_AVATAR_CACHE_MAX_ENTRIES) {
+    const oldestKey = accessAvatarUrlCache.keys().next().value;
+    if (typeof oldestKey === "string") {
+      accessAvatarUrlCache.delete(oldestKey);
+    }
+  }
+
+  accessAvatarUrlCache.set(key, {
+    expiresAt: now + ACCESS_AVATAR_CACHE_TTL_MS,
+    url,
+  });
+
+  return url;
+}
 type Role = Database["public"]["Enums"]["application_role"];
 export interface AuthorizedOrganization {
   id: string;
@@ -257,25 +309,35 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     const [avatarUrl, activeOrganizationAvatarUrl] =
       await Promise.all([
         profile.avatar_path
-          ? supabase.storage
-              .from("user-avatars")
-              .createSignedUrl(profile.avatar_path, 3600)
-              .then(
-                (result) =>
-                  result.data?.signedUrl ?? null,
-              )
+          ? getCachedAccessAvatarUrl(
+              "user-avatars",
+              profile.avatar_path,
+              () =>
+                supabase.storage
+                  .from("user-avatars")
+                  .createSignedUrl(profile.avatar_path!, 3600)
+                  .then(
+                    (result) =>
+                      result.data?.signedUrl ?? null,
+                  ),
+            )
           : Promise.resolve<string | null>(null),
         activeOrganization?.avatarPath
-          ? supabase.storage
-              .from(ORGANIZATION_AVATAR_BUCKET)
-              .createSignedUrl(
-                activeOrganization.avatarPath,
-                3600,
-              )
-              .then(
-                (result) =>
-                  result.data?.signedUrl ?? null,
-              )
+          ? getCachedAccessAvatarUrl(
+              ORGANIZATION_AVATAR_BUCKET,
+              activeOrganization.avatarPath,
+              () =>
+                supabase.storage
+                  .from(ORGANIZATION_AVATAR_BUCKET)
+                  .createSignedUrl(
+                    activeOrganization!.avatarPath!,
+                    3600,
+                  )
+                  .then(
+                    (result) =>
+                      result.data?.signedUrl ?? null,
+                  ),
+            )
           : Promise.resolve<string | null>(null),
       ]);
 

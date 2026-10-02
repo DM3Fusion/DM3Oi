@@ -82,6 +82,45 @@ test("active organization permissions licensing and private avatar signing remai
   );
 });
 
+test("access avatar URLs reuse exact immutable object paths inside the signed URL lifetime", () => {
+  assert.match(
+    context,
+    /ACCESS_AVATAR_CACHE_TTL_MS = 50 \* 60 \* 1000/,
+  );
+  assert.match(
+    context,
+    /ACCESS_AVATAR_CACHE_MAX_ENTRIES = 256/,
+  );
+  assert.match(
+    context,
+    /const accessAvatarUrlCache = new Map/,
+  );
+  assert.match(
+    context,
+    /const key = `\$\{bucket\}:\$\{path\}`/,
+  );
+  assert.match(
+    context,
+    /cached && cached\.expiresAt > now/,
+  );
+  assert.match(
+    context,
+    /getCachedAccessAvatarUrl\(\s*"user-avatars",\s*profile\.avatar_path/,
+  );
+  assert.match(
+    context,
+    /getCachedAccessAvatarUrl\(\s*ORGANIZATION_AVATAR_BUCKET,\s*activeOrganization\.avatarPath/,
+  );
+  assert.match(
+    context,
+    /createSignedUrl\(profile\.avatar_path!, 3600\)/,
+  );
+  assert.match(
+    context,
+    /createSignedUrl\(\s*activeOrganization!\.avatarPath!,\s*3600,?\s*\)/,
+  );
+});
+
 test("authorization helpers continue checking the shared authoritative context", () => {
   assert.match(context, /requireInternalContext[\s\S]*await getAccessContext\(\)[\s\S]*hasTenantInternalAccess/);
   assert.match(context, /requirePermission[\s\S]*await getAccessContext\(\)[\s\S]*hasPermission/);
