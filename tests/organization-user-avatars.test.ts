@@ -129,6 +129,6 @@ test("the shared shell continues to render its canonical avatar URL", () => {
   assert.match(accountMenu, /<UserAvatar displayName=\{displayName\} email=\{email\} src=\{avatarUrl\}/);
   assert.match(
     shellContext,
-    /supabase\.storage[\s\S]*\.from\("user-avatars"\)[\s\S]*\.createSignedUrl\(profile\.data\.avatar_path, 3600\)/,
+    /supabase\.storage[\s\S]*\.from\("user-avatars"\)[\s\S]*\.createSignedUrl\(profile\.avatar_path, 3600\)/,
   );
 });

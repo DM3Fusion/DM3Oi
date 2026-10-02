@@ -95,9 +95,28 @@ test("history navigation resynchronizes local search without a form submission",
 test("Tasks filters only the existing authorized organization dataset and distinguishes empty states", () => {
   const page = source("app/tasks/page.tsx");
   const repository = source("lib/data/case-repository.ts");
-  assert.match(page, /getLiveOrganizationData\(\)/);
-  assert.match(page, /matchesTaskFilter\(task, status, due, data\.timezone\) && matchesTaskSearch\(task, item\.case_number, q\)/);
-  assert.match(repository, /\.from\("organization_case_tasks"\)[\s\S]*?\.eq\("organization_id", organizationId\)/);
+
+  assert.match(page, /getTaskRegisterData\(\)/);
+  assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
+
+  assert.match(
+    page,
+    /matchesTaskFilter\(task, status, due, data\.timezone\)[\s\S]*matchesTaskSearch\(task, item\.case_number, q\)/,
+  );
+
+  assert.match(
+    repository,
+    /export async function getTaskRegisterData[\s\S]*\.from\("organization_case_tasks"\)[\s\S]*\.eq\("organization_id", organizationId\)/,
+  );
+  assert.match(
+    repository,
+    /export async function getTaskRegisterData[\s\S]*\.from\("organization_cases"\)[\s\S]*\.select\("id,case_number"\)/,
+  );
+  assert.match(
+    repository,
+    /export async function getTaskRegisterData[\s\S]*\.from\("organization_settings"\)[\s\S]*\.select\("timezone"\)/,
+  );
+
   assert.match(page, /No tasks match these filters\./);
   assert.match(page, /No tasks are available\./);
 });

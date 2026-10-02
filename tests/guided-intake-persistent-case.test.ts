@@ -111,7 +111,7 @@ test("Steps 3 through 6 retain one server-issued Case identity", () => {
   assert.match(finalizeSql, /draft_row\.case_id is null[\s\S]*has not been materialized/);
   assert.match(
     draftLoader,
-    /currentStep: data\.case_id[\s\S]*Math\.max\(2, data\.current_step\)[\s\S]*Math\.min\(1, data\.current_step\)/,
+    /currentStep: data\.case_id[\s\S]*Math\.max\([\s\S]*noticeSentFollowUpIds\.length \? 3 : 2,[\s\S]*data\.current_step[\s\S]*Math\.min\(1, data\.current_step\)/,
   );
 });
 

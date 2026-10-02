@@ -50,21 +50,33 @@ test("each uncached resolution still reads authoritative request and authorizati
 
   assert.match(resolver, /await createClient\(\)/);
   assert.match(resolver, /supabase\.auth\.getUser\(\)/);
-  assert.match(resolver, /\.from\("profiles"\)/);
-  assert.match(resolver, /\.from\("platform_user_roles"\)/);
-  assert.match(resolver, /\.from\("organization_members"\)/);
-  assert.match(resolver, /\.from\("customer_portal_users"\)/);
   assert.match(resolver, /\(await cookies\(\)\)\.get\(ACTIVE_ORGANIZATION_COOKIE\)/);
-  assert.match(resolver, /\.from\("organization_role_permissions"\)/);
-  assert.match(resolver, /\.from\("organization_licenses"\)/);
+  assert.match(resolver, /get_my_access_context/);
+  assert.match(resolver, /target_organization_id: requestedOrganizationId/);
+
+  assert.doesNotMatch(resolver, /\.from\("profiles"\)/);
+  assert.doesNotMatch(resolver, /\.from\("platform_user_roles"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_members"\)/);
+  assert.doesNotMatch(resolver, /\.from\("customer_portal_users"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_role_permissions"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_licenses"\)/);
 });
 
 test("active organization permissions licensing and private avatar signing remain in one resolution", () => {
-  assert.match(context, /organizations\.find\(\(org\) => org\.id === selected\)/);
+  assert.match(
+    context,
+    /rpcContext\.active_organization_id[\s\S]*organizations\.find/,
+  );
   assert.match(context, /getEffectiveOrganizationPermissions/);
   assert.match(context, /effectiveLicense/);
-  assert.match(context, /ORGANIZATION_AVATAR_BUCKET[\s\S]*createSignedUrl\(org\.avatar_path, 3600\)/);
-  assert.match(context, /\.from\("user-avatars"\)[\s\S]*createSignedUrl\(profile\.data\.avatar_path, 3600\)/);
+  assert.match(
+    context,
+    /ORGANIZATION_AVATAR_BUCKET[\s\S]*createSignedUrl/,
+  );
+  assert.match(
+    context,
+    /\.from\("user-avatars"\)[\s\S]*createSignedUrl/,
+  );
 });
 
 test("authorization helpers continue checking the shared authoritative context", () => {

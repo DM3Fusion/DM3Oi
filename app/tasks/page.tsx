@@ -2,19 +2,32 @@ import Link from "next/link";
 import { Badge, PageHeader } from "@/components/ui";
 import { TaskFilters } from "@/components/task-filters";
 import { NavigableRow } from "@/components/navigable-row";
-import { getLiveOrganizationData } from "@/lib/data/case-repository";
+import { getTaskRegisterData } from "@/lib/data/case-repository";
 import { formatOrganizationDate } from "@/lib/organization-timezone";
 import { matchesTaskFilter, matchesTaskSearch, normalizeTaskDue, normalizeTaskQuery, normalizeTaskStatus, taskStatusLabels } from "@/lib/operational-filters";
 
 type Params = { q?: string; status?: string; due?: string };
 
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
-  const [data, query] = await Promise.all([getLiveOrganizationData(), searchParams]);
+  const [data, query] = await Promise.all([getTaskRegisterData(), searchParams]);
   const q = normalizeTaskQuery(query.q);
   const status = normalizeTaskStatus(query.status);
   const due = normalizeTaskDue(query.due);
-  const allRows = data.cases.flatMap((item) => item.tasks.map((task) => ({ task, item })));
-  const rows = allRows.filter(({ task, item }) => matchesTaskFilter(task, status, due, data.timezone) && matchesTaskSearch(task, item.case_number, q));
+
+  const casesById = new Map(
+    data.cases.map((item) => [item.id, item]),
+  );
+
+  const allRows = data.tasks.flatMap((task) => {
+    const item = casesById.get(task.case_id);
+    return item ? [{ task, item }] : [];
+  });
+
+  const rows = allRows.filter(
+    ({ task, item }) =>
+      matchesTaskFilter(task, status, due, data.timezone) &&
+      matchesTaskSearch(task, item.case_number, q),
+  );
   const hasFilters = Boolean(q || status || due);
   const statusLabel = status === "open" ? "Open" : status ? taskStatusLabels[status] : undefined;
   const dueLabel = due === "today" ? "Due Today" : due === "overdue" ? "Overdue" : undefined;

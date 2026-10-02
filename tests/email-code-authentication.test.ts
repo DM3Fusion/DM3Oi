@@ -68,9 +68,14 @@ test("post-auth access routing preserves internal, portal, platform, and unprovi
     accessRouting,
     /if \(\(access\.customerPortalCount \?\? 0\) > 0\) return "PORTAL"/,
   );
-  assert.match(context, /customer_portal_users/);
-  assert.match(context, /platform_user_roles/);
-  assert.match(context, /organization_members/);
+  const fastAccess = source(
+    "supabase/migrations/20261002012000_dm3oi_fast_access_context.sql",
+  );
+  assert.match(context, /get_my_access_context/);
+  assert.match(context, /customer_portal_ids/);
+  assert.match(fastAccess, /customer_portal_users/);
+  assert.match(fastAccess, /platform_user_roles|is_super_admin/);
+  assert.match(fastAccess, /organization_members/);
 });
 
 test("internal and Customer Portal invitation acceptance remains separate and compatible", () => {

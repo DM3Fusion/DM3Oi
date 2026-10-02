@@ -402,6 +402,61 @@ async function buildCaseRepositoryProfileDirectory(
   };
 }
 
+export async function getTaskRegisterData(): Promise<{
+  organizationId: string;
+  timezone: string;
+  tasks: TaskRow[];
+  cases: Array<{ id: string; case_number: string }>;
+}> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [taskResult, caseResult, settingsResult] = await Promise.all([
+    supabase
+      .from("organization_case_tasks")
+      .select("*")
+      .eq("organization_id", organizationId)
+      .order("sequence"),
+    supabase
+      .from("organization_cases")
+      .select("id,case_number")
+      .eq("organization_id", organizationId),
+    admin
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+  ]);
+
+  const error =
+    taskResult.error ??
+    caseResult.error ??
+    settingsResult.error;
+
+  if (error) {
+    console.error("Task register query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+    throw new DataAccessError();
+  }
+
+  return {
+    organizationId,
+    timezone: settingsResult.data?.timezone ?? "UTC",
+    tasks: taskResult.data ?? [],
+    cases: caseResult.data ?? [],
+  };
+}
+
 export async function getCasesRegisterData(): Promise<{
   organizationId: string;
   timezone: string;

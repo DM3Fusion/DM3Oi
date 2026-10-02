@@ -44,7 +44,7 @@ test("mobile destinations derive from the existing effective-permission navigati
 });
 
 test("mobile Communications badge reuses the root unread count and disappears at zero", () => {
-  assert.match(layout, /getUnreadNotificationCount\(\{organizationId:access\.activeOrganization\.id,userId:access\.user\.id\}\)/);
+  assert.match(layout, /getUnreadNotificationCount\(\{\s*organizationId:\s*access\.activeOrganization\.id,\s*userId:\s*access\.user\.id,\s*\}\)/);
   assert.match(shell, /unreadCount: item\.href === "\/communications" \? liveUnreadNotificationCount : undefined/);
   assert.match(shell, /useState\(unreadNotificationCount\)/);
   assert.match(navigation, /unreadCount > 0 \? <span className="mobile-navigation-badge"/);
@@ -121,7 +121,7 @@ test("mobile Account omits secondary destinations absent from effective permissi
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/admin/email-templates", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/users", "/admin/case-cleanup", "/admin/email-templates", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
 });
 
 test("mobile More orders authorized organization destinations without bypassing permissions", () => {

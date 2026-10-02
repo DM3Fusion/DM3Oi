@@ -238,7 +238,8 @@ test("destination filters reuse authorized organization data and shared semantic
   const cases = source("app/cases/page.tsx");
   const requests = source("app/service-desk/requests/page.tsx");
   const filters = source("lib/operational-filters.ts");
-  assert.match(tasks, /getLiveOrganizationData\(\)/);
+  assert.match(tasks, /getTaskRegisterData\(\)/);
+  assert.doesNotMatch(tasks, /getLiveOrganizationData\(\)/);
   assert.match(tasks, /matchesTaskFilter\(task, status, due, data\.timezone\)/);
   assert.match(cases, /matchesCaseRegisterFilters\(item, filters, data\.timezone\)/);
   assert.match(filters, /!\["COMPLETED", "NOT_APPLICABLE", "REQUIRED_UNAVAILABLE"\]\.includes\(task\.status\)/);

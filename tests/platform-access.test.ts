@@ -18,7 +18,7 @@ test("organization sidebar shows canonical profile display name with safe fallba
   const shell = readFileSync("components/layout/app-shell.tsx", "utf8");
   const context = readFileSync("lib/auth/context.ts", "utf8");
   assert.match(shell, /className="sidebar-user-name">\{access\.displayName\}/);
-  assert.match(context, /profile\.data\?\.display_name/);
+  assert.match(context, /profile\.display_name/);
   assert.match(context, /user\.email \|\|\n      "User"/);
   assert.match(shell, /SUPER ADMIN/);
 });
@@ -50,17 +50,36 @@ test("portal-only sessions pass middleware access gating",()=>{const source=read
 
 test("SUPER_ADMIN organization context requires an explicit valid organization selection", () => {
   const context = readFileSync("lib/auth/context.ts", "utf8");
+  const migration = readFileSync(
+    "supabase/migrations/20261002012000_dm3oi_fast_access_context.sql",
+    "utf8",
+  );
 
   assert.match(
     context,
-    /const selectedOrganization =[\s\S]*?organizations\.find\(\(org\) => org\.id === selected\) \?\? null;/,
+    /const requestedOrganizationId =[\s\S]*selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE[\s\S]*\? selected[\s\S]*: null;/,
   );
   assert.match(
     context,
-    /const activeOrganization = isSuperAdmin[\s\S]*?\? selected && selected !== PLATFORM_CONTEXT_COOKIE_VALUE[\s\S]*?\? selectedOrganization[\s\S]*?: null/,
+    /get_my_access_context[\s\S]*target_organization_id: requestedOrganizationId/,
   );
   assert.match(
     context,
-    /: selectedOrganization \?\? organizations\[0\] \?\? null;/,
+    /rpcContext\.active_organization_id[\s\S]*organizations\.find/,
+  );
+
+  assert.match(
+    migration,
+    /if super_admin then[\s\S]*if target_organization_id is not null[\s\S]*where o\.id = target_organization_id[\s\S]*and o\.status = 'ACTIVE'[\s\S]*active_organization_id := target_organization_id/,
+  );
+
+  assert.match(
+    migration,
+    /else[\s\S]*from public\.organization_members m[\s\S]*m\.user_id = actor_id[\s\S]*m\.is_active[\s\S]*o\.status = 'ACTIVE'/,
+  );
+
+  assert.match(
+    migration,
+    /if active_organization_id is null then[\s\S]*order by o\.name[\s\S]*limit 1;/,
   );
 });

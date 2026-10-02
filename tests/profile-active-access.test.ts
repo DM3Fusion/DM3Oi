@@ -13,13 +13,32 @@ const source = (path: string) => readFileSync(path, "utf8");
 test("inactive profiles are rejected by proxy and request-scoped access resolution", () => {
   const proxy = source("proxy.ts");
   const context = source("lib/auth/context.ts");
-  assert.match(proxy, /from\("profiles"\)\.select\("is_active"\)\.eq\("id",user\.id\)\.maybeSingle\(\)/);
+  const migration = source(
+    "supabase/migrations/20261002012000_dm3oi_fast_access_context.sql",
+  );
+
+  assert.match(
+    proxy,
+    /from\("profiles"\)\.select\("is_active"\)\.eq\("id",user\.id\)\.maybeSingle\(\)/,
+  );
   assert.match(proxy, /profile\.data\?\.is_active===false/);
-  assert.match(context, /avatar_updated_at,is_active/);
-  assert.match(context, /if \(profile\.data\?\.is_active === false\)\s*\{[\s\S]*?return null;[\s\S]*?\}/);
+
+  assert.match(context, /get_my_access_context/);
+  assert.match(
+    context,
+    /if \(!profile \|\| profile\.is_active !== true\)[\s\S]*?return null;/,
+  );
+
+  assert.match(migration, /from public\.profiles/);
+  assert.match(migration, /where id = actor_id/);
+  assert.match(
+    migration,
+    /if profile_row\.id is null or profile_row\.is_active is not true then[\s\S]*?return null;/,
+  );
   assert.ok(
-    context.indexOf("if (profile.data?.is_active === false)") <
-      context.indexOf("const isSuperAdmin"),
+    migration.indexOf(
+      "if profile_row.id is null or profile_row.is_active is not true",
+    ) < migration.indexOf("select public.is_super_admin(actor_id)"),
   );
 });
 
@@ -70,9 +89,35 @@ test("ineffective portal links do not grant generic permission or provisioning",
   );
 
   const context = source("lib/auth/context.ts");
-  assert.match(context, /resolvedPortalAccesses[\s\S]*filter\(\(access\) => access\.effective\)[\s\S]*map\(\(access\) => access\.link\.customer_id\)/);
+  const migration = source(
+    "supabase/migrations/20261002012000_dm3oi_fast_access_context.sql",
+  );
+
+  assert.match(
+    context,
+    /const customerPortalIds =[\s\S]*rpcContext\.customer_portal_ids \?\? \[\]/,
+  );
   assert.match(context, /customerPortalCount: customerPortalIds\.length/);
   assert.match(context, /provisioned:[\s\S]*customerPortalIds\.length > 0/);
+
+  assert.match(migration, /from public\.customer_portal_users cpu/);
+  assert.match(
+    migration,
+    /join public\.organizations o[\s\S]*o\.id = cpu\.organization_id/,
+  );
+  assert.match(
+    migration,
+    /join public\.customers c[\s\S]*c\.id = cpu\.customer_id[\s\S]*c\.organization_id = cpu\.organization_id/,
+  );
+  assert.match(
+    migration,
+    /left join public\.organization_settings s[\s\S]*s\.organization_id = cpu\.organization_id/,
+  );
+  assert.match(migration, /where cpu\.user_id = actor_id/);
+  assert.match(migration, /and cpu\.is_active/);
+  assert.match(migration, /and o\.status = 'ACTIVE'/);
+  assert.match(migration, /and c\.status = 'ACTIVE'/);
+  assert.match(migration, /and s\.portal_enabled is distinct from false/);
 });
 
 test("directory and portal context share the effective portal predicate", () => {
