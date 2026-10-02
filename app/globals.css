@@ -10564,3 +10564,52 @@ dialog.task-modal.intake-document-availability-modal {
     font-size: 0.9rem;
   }
 }
+
+.trial-request-delete-form {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.trial-request-delete-form > p {
+  margin: 0;
+  max-width: 54rem;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.trial-request-delete-confirmation {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 42rem;
+}
+
+.trial-request-delete-confirmation > span {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.trial-request-delete-confirmation input {
+  width: 100%;
+  min-height: 2.75rem;
+}
+
+.trial-request-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.25rem;
+}
+
+.trial-request-delete-actions .danger-button {
+  min-width: 12rem;
+}
+
+@media (max-width: 600px) {
+  .trial-request-delete-actions {
+    justify-content: stretch;
+  }
+
+  .trial-request-delete-actions .danger-button {
+    width: 100%;
+  }
+}

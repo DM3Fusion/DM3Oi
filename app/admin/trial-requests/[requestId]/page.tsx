@@ -802,7 +802,7 @@ export default async function TrialRequestDetailPage({
 
         <form
           action={permanentlyDeleteTrialRequestAction}
-          className="form-stack"
+          className="trial-request-delete-form"
         >
           <input
             type="hidden"
@@ -815,7 +815,7 @@ export default async function TrialRequestDetailPage({
             audit retains a snapshot of the Trial Request and its review history.
           </p>
 
-          <label>
+          <label className="trial-request-delete-confirmation">
             <span>
               Type{" "}
               <strong>
@@ -831,7 +831,7 @@ export default async function TrialRequestDetailPage({
             />
           </label>
 
-          <div className="form-actions">
+          <div className="trial-request-delete-actions">
             <PendingSubmitButton
               className="secondary-button danger-button"
               pendingLabel="Deleting Trial Request…"
