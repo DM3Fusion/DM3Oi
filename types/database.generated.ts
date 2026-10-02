@@ -836,6 +836,83 @@ export type Database = {
           },
         ]
       }
+      customer_import_submissions: {
+        Row: {
+          created_at: string
+          file_size_bytes: number
+          id: string
+          import_result: Json | null
+          imported_at: string | null
+          imported_by_user_id: string | null
+          mime_type: string
+          organization_id: string
+          organization_note: string | null
+          original_filename: string
+          reviewed_at: string | null
+          reviewed_by_user_id: string | null
+          source_file_deleted_at: string | null
+          source_file_deleted_by_user_id: string | null
+          status: string
+          storage_bucket: string
+          storage_path: string
+          super_admin_note: string | null
+          updated_at: string
+          uploaded_by_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size_bytes: number
+          id?: string
+          import_result?: Json | null
+          imported_at?: string | null
+          imported_by_user_id?: string | null
+          mime_type: string
+          organization_id: string
+          organization_note?: string | null
+          original_filename: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          source_file_deleted_at?: string | null
+          source_file_deleted_by_user_id?: string | null
+          status?: string
+          storage_bucket?: string
+          storage_path: string
+          super_admin_note?: string | null
+          updated_at?: string
+          uploaded_by_user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size_bytes?: number
+          id?: string
+          import_result?: Json | null
+          imported_at?: string | null
+          imported_by_user_id?: string | null
+          mime_type?: string
+          organization_id?: string
+          organization_note?: string | null
+          original_filename?: string
+          reviewed_at?: string | null
+          reviewed_by_user_id?: string | null
+          source_file_deleted_at?: string | null
+          source_file_deleted_by_user_id?: string | null
+          status?: string
+          storage_bucket?: string
+          storage_path?: string
+          super_admin_note?: string | null
+          updated_at?: string
+          uploaded_by_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_import_submissions_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guided_case_intake_drafts: {
         Row: {
           answers: Json

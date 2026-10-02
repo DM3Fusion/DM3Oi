@@ -2,6 +2,7 @@ import "server-only";
 
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { findDuplicateCustomerPairs } from "@/lib/customer-data-management";
 import { requireOrganizationCustomers } from "@/lib/data/organization-customers";
 
@@ -86,4 +87,93 @@ export async function getDuplicateWorkspace(organizationId?: string) {
   if (error || historyError) throw new Error("Duplicate Customer data could not be loaded.");
   const rows = requireOrganizationCustomers(customers ?? []);
   return { organizations, selected, customers: rows, pairs: findDuplicateCustomerPairs(rows), history: history ?? [] };
+}
+
+export async function getCustomerImportSubmissionQueue() {
+  await requireSuperAdmin();
+
+  const admin = createAdminClient();
+
+  const { data: submissions, error } = await admin
+    .from("customer_import_submissions")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error) {
+    console.error("Customer import submission queue failed", {
+      code: error.code,
+      message: error.message,
+    });
+    throw new Error("Customer import submissions could not be loaded.");
+  }
+
+  const rows = submissions ?? [];
+  const organizationIds = [...new Set(rows.map((row) => row.organization_id))];
+  const userIds = [
+    ...new Set(
+      rows.flatMap((row) =>
+        [
+          row.uploaded_by_user_id,
+          row.reviewed_by_user_id,
+          row.imported_by_user_id,
+          row.source_file_deleted_by_user_id,
+        ].filter((value): value is string => Boolean(value)),
+      ),
+    ),
+  ];
+
+  const [organizationsResult, profilesResult] = await Promise.all([
+    organizationIds.length
+      ? admin
+          .from("organizations")
+          .select("id,name")
+          .in("id", organizationIds)
+      : Promise.resolve({ data: [], error: null }),
+    userIds.length
+      ? admin
+          .from("profiles")
+          .select("id,display_name,email")
+          .in("id", userIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (organizationsResult.error || profilesResult.error) {
+    const queryError =
+      organizationsResult.error ?? profilesResult.error;
+
+    console.error("Customer import submission identity lookup failed", {
+      code: queryError?.code ?? null,
+      message: queryError?.message ?? null,
+    });
+
+    throw new Error("Customer import submissions could not be loaded.");
+  }
+
+  const organizations = new Map(
+    (organizationsResult.data ?? []).map((organization) => [
+      organization.id,
+      organization.name,
+    ]),
+  );
+
+  const profiles = new Map(
+    (profilesResult.data ?? []).map((profile) => [
+      profile.id,
+      profile.display_name ||
+        profile.email ||
+        "Unknown user",
+    ]),
+  );
+
+  return rows.map((row) => ({
+    ...row,
+    organizationName:
+      organizations.get(row.organization_id) ?? "Unknown organization",
+    uploadedBy:
+      profiles.get(row.uploaded_by_user_id) ?? "Unknown user",
+    reviewedBy: row.reviewed_by_user_id
+      ? profiles.get(row.reviewed_by_user_id) ?? "Unknown user"
+      : null,
+  }));
 }

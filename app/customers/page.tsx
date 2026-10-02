@@ -22,7 +22,21 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         eyebrow="Relationships"
         title="Customers"
         action={
-          hasPermission(access, "CREATE_CUSTOMER") ? (
+          access?.activeOrganization &&
+          !access.isSuperAdmin &&
+          (access.activeOrganization.role === "BUSINESS_OWNER" ||
+            access.activeOrganization.role === "BUSINESS_ADMIN") ? (
+            <div className="page-header-actions">
+              <Link className="secondary-button" href="/customers/import">
+                Submit Customer Data
+              </Link>
+              {hasPermission(access, "CREATE_CUSTOMER") ? (
+                <Link className="primary-button" href="/customers/new">
+                  <ApplicationIcon name="add" />New Customer
+                </Link>
+              ) : null}
+            </div>
+          ) : hasPermission(access, "CREATE_CUSTOMER") ? (
             <Link className="primary-button" href="/customers/new">
               <ApplicationIcon name="add" />New Customer
             </Link>
