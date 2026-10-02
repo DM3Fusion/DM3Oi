@@ -79,7 +79,10 @@ export interface CaseRegisterRow {
   due_at: CaseRow["due_at"];
   manager_user_id: CaseRow["manager_user_id"];
   customer_id: CaseRow["customer_id"];
-  customer: Pick<CustomerRow, "id" | "name"> | null;
+  customer: {
+    id: string | null;
+    name: string | null;
+  } | null;
   assignedStaff: AvatarProfileRow[];
   progress: Pick<CaseReadiness, "progressPercent">;
   nextTaskDueAt: string | null;

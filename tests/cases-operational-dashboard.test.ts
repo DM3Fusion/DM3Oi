@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import type { LiveCase } from "../lib/data/case-repository.ts";
+import type { CaseRegisterRow } from "../lib/data/case-repository.ts";
 import {
   caseViewHref,
   getCaseDashboardCounts,
@@ -13,7 +13,7 @@ import {
 
 const source = (path: string) => readFileSync(path, "utf8");
 
-const liveCase = (overrides: Partial<LiveCase> = {}) => ({
+const liveCase = (overrides: Partial<CaseRegisterRow> = {}) => ({
   case_number: "CASE-1001",
   title: "Payroll review",
   customer: { name: "Mimms Tax" },
@@ -23,7 +23,7 @@ const liveCase = (overrides: Partial<LiveCase> = {}) => ({
   manager_user_id: "manager-1",
   assignedStaff: [],
   ...overrides,
-}) as LiveCase;
+}) as CaseRegisterRow;
 
 test("case KPI counts use the full supplied authorized population and established status mappings", () => {
   const now = new Date("2026-09-07T16:00:00Z");
@@ -62,7 +62,7 @@ test("operational views normalize safely and use manager plus staff assignment s
   assert.equal(normalizeCaseView("overdue"), "overdue");
   assert.equal(normalizeCaseView("invalid"), undefined);
   assert.equal(matchesCaseView(liveCase({ manager_user_id: null, assignedStaff: [] }), "unassigned", "UTC"), true);
-  assert.equal(matchesCaseView(liveCase({ manager_user_id: null, assignedStaff: [{} as LiveCase["assignedStaff"][number]] }), "unassigned", "UTC"), false);
+  assert.equal(matchesCaseView(liveCase({ manager_user_id: null, assignedStaff: [{} as CaseRegisterRow["assignedStaff"][number]] }), "unassigned", "UTC"), false);
 });
 
 test("KPI views combine with search, status, priority, and assignment filters", () => {

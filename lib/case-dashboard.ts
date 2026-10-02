@@ -37,13 +37,13 @@ export const normalizeRawCaseStatus = (value?: string): CaseRegisterRow["status"
 export const isCaseUnassigned = (item: CaseRegisterRow) =>
   !item.manager_user_id && item.assignedStaff.length === 0;
 
-export function isCaseOverdue(item: LiveCase, timezone: string, now = new Date()) {
+export function isCaseOverdue(item: CaseRegisterRow, timezone: string, now = new Date()) {
   if (!item.due_at || !isIncompleteCompatibilityCaseStatus(item.status)) return false;
   const dueAt = new Date(item.due_at);
   return !Number.isNaN(dueAt.getTime()) && dueAt < startOfOrganizationDay(now, timezone);
 }
 
-export function matchesCaseView(item: LiveCase, view: CaseView | undefined, timezone: string, now = new Date()) {
+export function matchesCaseView(item: CaseRegisterRow, view: CaseView | undefined, timezone: string, now = new Date()) {
   if (!view) return true;
   if (view === "in-progress") return matchesCaseFilter(item, "in-progress");
   if (view === "waiting") return matchesCaseFilter(item, "waiting");
@@ -63,7 +63,7 @@ export function getCaseDashboardCounts(items: CaseRegisterRow[], timezone: strin
   };
 }
 
-export function matchesCaseRegisterFilters(item: LiveCase, filters: CaseRegisterFilters, timezone: string, now = new Date()) {
+export function matchesCaseRegisterFilters(item: CaseRegisterRow, filters: CaseRegisterFilters, timezone: string, now = new Date()) {
   const query = (filters.query ?? "").toLowerCase();
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
