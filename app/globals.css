@@ -11189,3 +11189,66 @@ dialog.task-modal.intake-document-availability-modal {
     margin:0;
   }
 }
+
+/* SUPER_ADMIN Customer submission register final alignment */
+.customer-import-submission-list{
+  padding:0 16px 16px;
+}
+
+.customer-import-submission-summary{
+  grid-template-columns:
+    minmax(250px,1.45fr)
+    minmax(180px,.85fr)
+    minmax(90px,.45fr)
+    minmax(130px,.65fr)
+    minmax(150px,.7fr)
+    18px;
+  text-align:left;
+}
+
+.customer-import-summary-identity,
+.customer-import-summary-meta>span,
+.customer-import-submission-summary>.badge{
+  justify-self:stretch;
+  text-align:left;
+}
+
+.customer-import-summary-meta>span{
+  align-items:start;
+  justify-items:start;
+}
+
+.customer-import-submission-summary>.badge{
+  width:max-content;
+  margin-left:18px;
+  margin-right:18px;
+}
+
+.customer-import-summary-chevron{
+  justify-self:end;
+}
+
+.customer-import-submission{
+  border-radius:8px;
+}
+
+@media(max-width:1000px){
+  .customer-import-submission-list{
+    padding-inline:12px;
+  }
+
+  .customer-import-submission-summary{
+    grid-template-columns:minmax(220px,1fr) auto 18px;
+  }
+
+  .customer-import-submission-summary>.badge{
+    justify-self:start;
+    margin:0;
+  }
+}
+
+@media(max-width:650px){
+  .customer-import-submission-list{
+    padding-inline:10px;
+  }
+}
