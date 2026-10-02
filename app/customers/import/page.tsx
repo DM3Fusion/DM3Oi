@@ -37,7 +37,7 @@ export default async function Page({
     notFound();
   }
 
-  const [{ submissions }, query] = await Promise.all([
+  const [{ submissions, timezone }, query] = await Promise.all([
     getCustomerImportSubmissions(),
     searchParams,
   ]);
@@ -140,6 +140,7 @@ export default async function Page({
                       {new Intl.DateTimeFormat("en-US", {
                         dateStyle: "medium",
                         timeStyle: "short",
+                        timeZone: timezone,
                       }).format(new Date(submission.created_at))}
                     </td>
                     <td>

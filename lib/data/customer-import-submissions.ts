@@ -36,14 +36,21 @@ export async function getCustomerImportSubmissions() {
   const context = await requireCustomerDataSubmitter();
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("customer_import_submissions")
-    .select(
-      "id,organization_id,uploaded_by_user_id,original_filename,file_size_bytes,mime_type,status,organization_note,created_at,updated_at,reviewed_at,imported_at,source_file_deleted_at",
-    )
-    .eq("organization_id", context.activeOrganization.id)
-    .order("created_at", { ascending: false })
-    .limit(50);
+  const [{ data, error }, { data: organizationSettings }] = await Promise.all([
+    supabase
+      .from("customer_import_submissions")
+      .select(
+        "id,organization_id,uploaded_by_user_id,original_filename,file_size_bytes,mime_type,status,organization_note,created_at,updated_at,reviewed_at,imported_at,source_file_deleted_at",
+      )
+      .eq("organization_id", context.activeOrganization.id)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", context.activeOrganization.id)
+      .maybeSingle(),
+  ]);
 
   if (error) {
     console.error("Customer data submissions could not be loaded", {
@@ -57,5 +64,6 @@ export async function getCustomerImportSubmissions() {
   return {
     context,
     submissions: data ?? [],
+    timezone: organizationSettings?.timezone || "UTC",
   };
 }
