@@ -32,6 +32,21 @@ type TrialRequestActionDatabase = Database & {
           id: string;
         };
       };
+      permanently_delete_trial_request: {
+        Args: {
+          target_trial_request_id: string;
+          confirmation_text: string;
+        };
+        Returns: {
+          auditId: string;
+          trialRequestId: string;
+          requestNumber: number;
+          businessName: string;
+          status: string;
+          convertedOrganizationId: string | null;
+          historyDeleted: number;
+        };
+      };
     };
   };
 };
@@ -457,6 +472,68 @@ export async function reviewTrialRequestQualificationAction(
       path,
       "message",
       "Qualification review saved.",
+    ),
+  );
+}
+
+export async function permanentlyDeleteTrialRequestAction(
+  form: FormData,
+) {
+  await requireSuperAdmin();
+
+  const requestId = value(form, "requestId");
+  const confirmation = value(form, "confirmation");
+  const path = `/admin/trial-requests/${requestId}`;
+
+  if (!requestId) {
+    redirect(
+      destination(
+        "/admin/trial-requests",
+        "error",
+        "Trial Request was not specified.",
+      ),
+    );
+  }
+
+  const supabase = (await createClient()) as ReturnType<
+    typeof import("@supabase/ssr").createServerClient<TrialRequestActionDatabase>
+  >;
+
+  const result = await supabase.rpc(
+    "permanently_delete_trial_request",
+    {
+      target_trial_request_id: requestId,
+      confirmation_text: confirmation,
+    },
+  );
+
+  if (result.error) {
+    console.error("SUPER_ADMIN Trial Request deletion failed", {
+      requestId,
+      code: result.error.code,
+      message: result.error.message,
+    });
+
+    const message =
+      result.error.message.includes("confirmation text")
+        ? "The deletion confirmation did not match."
+        : result.error.message.includes("trial request not found")
+          ? "The Trial Request no longer exists."
+          : "The Trial Request could not be deleted.";
+
+    redirect(destination(path, "error", message));
+  }
+
+  revalidatePath("/admin/trial-requests");
+  revalidatePath(path);
+  revalidatePath("/");
+  revalidatePath("/admin/organizations");
+
+  redirect(
+    destination(
+      "/admin/trial-requests",
+      "message",
+      `Trial Request #${result.data.requestNumber} permanently deleted. Any converted Organization was preserved.`,
     ),
   );
 }

@@ -10,6 +10,7 @@ import {
   type TrialRequestUseCase,
 } from "@/lib/trial-requests";
 import {
+  permanentlyDeleteTrialRequestAction,
   reviewTrialRequestQualificationAction,
   transitionTrialRequestAction,
 } from "./actions";
@@ -783,6 +784,62 @@ export default async function TrialRequestDetailPage({
             No review activity yet.
           </div>
         )}
+      </section>
+
+      <section className="panel admin-danger-zone">
+        <div className="section-head">
+          <div>
+            <span className="admin-danger-zone-label">Danger Zone</span>
+            <h2>Delete Trial Request</h2>
+            <p>
+              Permanently delete this Trial Request and its review history.
+              {request.converted_organization_id
+                ? " The Organization created from this request will be preserved."
+                : ""}
+            </p>
+          </div>
+        </div>
+
+        <form
+          action={permanentlyDeleteTrialRequestAction}
+          className="form-stack"
+        >
+          <input
+            type="hidden"
+            name="requestId"
+            value={request.id}
+          />
+
+          <p>
+            This action cannot be reversed. The permanent platform deletion
+            audit retains a snapshot of the Trial Request and its review history.
+          </p>
+
+          <label>
+            <span>
+              Type{" "}
+              <strong>
+                DELETE TRIAL REQUEST #{request.request_number}
+              </strong>{" "}
+              to confirm
+            </span>
+            <input
+              name="confirmation"
+              autoComplete="off"
+              required
+              placeholder={`DELETE TRIAL REQUEST #${request.request_number}`}
+            />
+          </label>
+
+          <div className="form-actions">
+            <PendingSubmitButton
+              className="secondary-button danger-button"
+              pendingLabel="Deleting Trial Request…"
+            >
+              Delete Trial Request
+            </PendingSubmitButton>
+          </div>
+        </form>
       </section>
     </>
   );
