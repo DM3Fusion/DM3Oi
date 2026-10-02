@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
-import type { User } from "@supabase/supabase-js";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.generated";
 import { hasTenantInternalAccess } from "./access-routing";
@@ -18,8 +17,13 @@ export interface AuthorizedOrganization {
   avatarPath: string | null;
   avatarUrl: string | null;
 }
+export interface AccessIdentity {
+  id: string;
+  email?: string;
+}
+
 export interface AccessContext {
-  user: User;
+  user: AccessIdentity;
   displayName: string;
   profileEmail: string | null;
   title: string | null;
@@ -62,14 +66,34 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
 
     const authStartedAt = performance.now();
     const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    timing("auth.getUser", authStartedAt);
+      data: claimsData,
+      error: claimsError,
+    } = await supabase.auth.getClaims();
+    timing("auth.getClaims", authStartedAt);
 
-    if (!user) {
+    if (claimsError) {
+      throw claimsError;
+    }
+
+    const claims = claimsData?.claims;
+    const userId =
+      typeof claims?.sub === "string"
+        ? claims.sub
+        : null;
+    const userEmail =
+      typeof claims?.email === "string"
+        ? claims.email
+        : undefined;
+
+    if (!userId) {
       timing("total", accessStartedAt);
       return null;
     }
+
+    const user: AccessIdentity = {
+      id: userId,
+      email: userEmail,
+    };
 
     const selected =
       (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value ?? null;

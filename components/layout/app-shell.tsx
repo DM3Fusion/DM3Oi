@@ -109,6 +109,8 @@ export function AppShell({
       }
     };
 
+    void reconcileOrganizationAttention();
+
     const reconciliationInterval = window.setInterval(() => {
       void reconcileOrganizationAttention();
     }, 30_000);
@@ -157,6 +159,8 @@ export function AppShell({
         setLiveNewTrialRequestCount(count ?? 0);
       }
     };
+
+    void refreshTrialRequestCount();
 
     const reconciliationInterval = window.setInterval(() => {
       void refreshTrialRequestCount();

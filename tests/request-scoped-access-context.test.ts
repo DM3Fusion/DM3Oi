@@ -49,7 +49,10 @@ test("each uncached resolution still reads authoritative request and authorizati
   );
 
   assert.match(resolver, /await createClient\(\)/);
-  assert.match(resolver, /supabase\.auth\.getUser\(\)/);
+  assert.match(resolver, /supabase\.auth\.getClaims\(\)/);
+  assert.match(resolver, /typeof claims\?\.sub === "string"/);
+  assert.match(resolver, /typeof claims\?\.email === "string"/);
+  assert.doesNotMatch(resolver, /supabase\.auth\.getUser\(\)/);
   assert.match(resolver, /\(await cookies\(\)\)\.get\(ACTIVE_ORGANIZATION_COOKIE\)/);
   assert.match(resolver, /get_my_access_context/);
   assert.match(resolver, /target_organization_id: requestedOrganizationId/);
