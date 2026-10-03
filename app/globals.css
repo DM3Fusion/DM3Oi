@@ -11718,37 +11718,22 @@ dialog.task-modal.intake-document-availability-modal {
 .business-reach-metrics {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
+  gap: 11px;
+  margin: 0 18px 16px;
+}
+
+.business-reach-kpi {
+  align-items: center;
+  text-align: center;
+}
+
+.business-reach-kpi dt,
+.business-reach-kpi dd {
   margin: 0;
-  border-block: 1px solid var(--line);
-  background: var(--line);
 }
 
-.business-reach-metrics > div {
-  min-width: 0;
-  padding: 12px 18px;
-  background: #fff;
-}
-
-.business-reach-metrics dt {
-  color: #52677d;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: .45px;
-  text-transform: uppercase;
-}
-
-.business-reach-metrics dd {
-  margin: 5px 0 0;
-  color: #10233f;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.business-reach-metrics dd small {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 650;
+.business-reach-kpi dd span {
+  margin-top: 2px;
 }
 
 .business-reach-map {
@@ -11820,10 +11805,8 @@ dialog.task-modal.intake-document-availability-modal {
 
   .business-reach-metrics {
     grid-template-columns: 1fr;
-  }
-
-  .business-reach-metrics > div {
-    padding: 11px 16px;
+    gap: 9px;
+    margin: 0 16px 14px;
   }
 
   .business-reach-map {

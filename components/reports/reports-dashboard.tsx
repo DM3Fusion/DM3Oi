@@ -54,16 +54,16 @@ function BusinessReach({
       {mapAction}
     </div>
     {!report.available ? <div className="no-results">Business Reach requires Customer access.</div> : report.loadError ? <div className="no-results">Business Reach is temporarily unavailable. Operational reports are unaffected.</div> : <>
-      <dl className="business-reach-metrics" aria-label="Current customer geographic coverage">
-        <div><dt>Customers mapped</dt><dd>{report.mappedCustomers.toLocaleString("en-US")}</dd></div>
-        <div><dt>Without mapped location</dt><dd>{report.unmappedCustomers.toLocaleString("en-US")}</dd></div>
-        <div><dt>Geographic coverage</dt><dd>{report.geographicCoverage.toLocaleString("en-US")} <small>ZIP {report.geographicCoverage === 1 ? "area" : "areas"}</small></dd></div>
+      <dl className="business-reach-metrics" aria-label="Current customer geographic footprint">
+        <div className="report-kpi business-reach-kpi"><dt><small>Customers mapped</small></dt><dd><strong>{report.mappedCustomers.toLocaleString("en-US")}</strong></dd></div>
+        <div className="report-kpi business-reach-kpi"><dt><small>Without mapped location</small></dt><dd><strong>{report.unmappedCustomers.toLocaleString("en-US")}</strong></dd></div>
+        <div className="report-kpi business-reach-kpi"><dt><small>Unique locations</small></dt><dd><strong>{report.uniqueLocations.toLocaleString("en-US")}</strong><span>mapped {report.uniqueLocations === 1 ? "location" : "locations"}</span></dd></div>
       </dl>
       {status === "mapped" ? <p className="business-reach-notice success-alert">Customer locations were mapped from the next available batch.</p> : null}
       {status === "empty" ? <p className="business-reach-notice">All current customer locations have already been evaluated.</p> : null}
       {status === "error" ? <p className="business-reach-notice form-alert">Customer locations could not be mapped. Existing report data is unchanged.</p> : null}
-      {report.activeCustomers === 0 ? <div className="business-reach-empty"><h3>No customers yet</h3><p>Business Reach will appear after active customers are added.</p></div> : report.points.length === 0 ? <div className="business-reach-empty"><h3>No mapped customer locations</h3><p>{report.pendingCustomers > 0 ? "Map customer locations to build the current geographic footprint." : "Current customers do not have usable U.S. ZIP codes."}</p></div> : <BusinessReachMap points={report.points} />}
-      {report.unmappableCustomers > 0 ? <p className="business-reach-note">{report.unmappableCustomers.toLocaleString("en-US")} active {report.unmappableCustomers === 1 ? "customer has" : "customers have"} an address that could not be mapped. Update the ZIP code to make it eligible for the next mapping batch.</p> : null}
+      {report.activeCustomers === 0 ? <div className="business-reach-empty"><h3>No customers yet</h3><p>Business Reach will appear after active customers are added.</p></div> : report.points.length === 0 ? <div className="business-reach-empty"><h3>No mapped customer locations</h3><p>{report.pendingCustomers > 0 ? "Map customer locations to build the current geographic footprint." : "Current customers do not have usable U.S. service addresses."}</p></div> : <BusinessReachMap points={report.points} />}
+      {report.unmappableCustomers > 0 ? <p className="business-reach-note">{report.unmappableCustomers.toLocaleString("en-US")} active {report.unmappableCustomers === 1 ? "customer has" : "customers have"} a service address that could not be mapped. Update the full address to make it eligible for the next mapping batch.</p> : null}
       {report.pendingCustomers > 0 ? <p className="business-reach-note">{report.pendingCustomers.toLocaleString("en-US")} active {report.pendingCustomers === 1 ? "customer is" : "customers are"} awaiting the explicit mapping operation. Up to 500 are evaluated per request.</p> : null}
     </>}
   </section>;

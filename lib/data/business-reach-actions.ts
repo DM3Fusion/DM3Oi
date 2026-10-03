@@ -6,9 +6,11 @@ import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import {
   businessReachGeocodeBatchLimit,
-  geocodeBusinessReachCandidate,
+  buildBusinessReachAddressBatch,
+  buildBusinessReachGeocodeWrites,
   parseBusinessReachCandidates,
 } from "@/lib/business-reach";
+import { BusinessReachGeocoderError, geocodeBusinessReachAddresses } from "@/lib/data/business-reach-geocoder";
 import { reportPeriodKeys } from "@/lib/reporting";
 
 const reportsReturnUrl = (formData: FormData, reach: "mapped" | "empty" | "error") => {
@@ -49,7 +51,25 @@ export async function mapBusinessReachCustomersAction(formData: FormData) {
 
   const candidates = parseBusinessReachCandidates(candidateResult.data);
   if (!candidates.length) redirect(reportsReturnUrl(formData, "empty"));
-  const rows = candidates.map(geocodeBusinessReachCandidate);
+  const batch = buildBusinessReachAddressBatch(candidates);
+  let geocoded;
+  try {
+    geocoded = await geocodeBusinessReachAddresses(batch.uniqueAddresses);
+  } catch (error) {
+    const providerError = error instanceof BusinessReachGeocoderError ? error : null;
+    console.error("Business Reach provider request failed", {
+      provider: "US_CENSUS_BATCH",
+      candidateCount: candidates.length,
+      uniqueAddressCount: batch.uniqueAddresses.length,
+      errorClass: providerError?.kind ?? "UNKNOWN",
+      status: providerError?.status ?? null,
+    });
+    redirect(reportsReturnUrl(formData, "error"));
+  }
+  const rows = [
+    ...batch.invalidWrites,
+    ...buildBusinessReachGeocodeWrites(batch.uniqueAddresses, geocoded),
+  ];
   const saveResult = await supabase.rpc("save_business_reach_geocodes" as never, {
     target_organization_id: organizationId,
     target_rows: rows,

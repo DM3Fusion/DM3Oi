@@ -1,8 +1,7 @@
 import { createHash } from "node:crypto";
-import zipcodes from "zipcodes";
 
 export const businessReachGeocodeBatchLimit = 500;
-export const businessReachGeocodeSource = "ZIPCODES_US_ZIP_CENTROID" as const;
+export const businessReachGeocodeSource = "US_CENSUS_BATCH" as const;
 
 export type BusinessReachPoint = {
   latitude: number;
@@ -18,7 +17,7 @@ export type BusinessReachData = {
   unmappedCustomers: number;
   pendingCustomers: number;
   unmappableCustomers: number;
-  geographicCoverage: number;
+  uniqueLocations: number;
   points: BusinessReachPoint[];
   loadError: boolean;
 };
@@ -42,6 +41,24 @@ export type BusinessReachGeocodeWrite = {
   locationKey: string | null;
   latitude: number | null;
   longitude: number | null;
+};
+
+export type NormalizedBusinessReachAddress = {
+  streetAddress: string;
+  city: string;
+  state: string;
+  postalCode: string;
+};
+
+export type BusinessReachAddressGroup = {
+  key: string;
+  address: NormalizedBusinessReachAddress;
+  candidates: BusinessReachCandidate[];
+};
+
+export type BusinessReachGeocodeResult = {
+  latitude: number;
+  longitude: number;
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -78,24 +95,45 @@ export function normalizeBusinessReachPayload(
     unmappedCustomers: nonNegativeInteger(value.unmappedCustomers),
     pendingCustomers: nonNegativeInteger(value.pendingCustomers),
     unmappableCustomers: nonNegativeInteger(value.unmappableCustomers),
-    geographicCoverage: nonNegativeInteger(value.geographicCoverage),
+    uniqueLocations: nonNegativeInteger(value.uniqueLocations),
     points,
     loadError: false,
   };
 }
 
 const normalizedAddressPart = (value: string | null | undefined) =>
-  value?.trim().toLowerCase() ?? "";
+  value?.trim().replace(/\s+/g, " ").toLowerCase() ?? "";
+
+const normalizedAddressParts = (address: BusinessReachAddress) => ({
+  streetAddress: normalizedAddressPart(address.streetAddress),
+  city: normalizedAddressPart(address.city),
+  state: normalizedAddressPart(address.state),
+  postalCode: normalizedAddressPart(address.postalCode),
+});
 
 export function fingerprintBusinessReachAddress(address: BusinessReachAddress) {
+  const normalized = normalizedAddressParts(address);
   return createHash("md5")
     .update([
-      address.streetAddress,
-      address.city,
-      address.state,
-      address.postalCode,
-    ].map(normalizedAddressPart).join("\u001f"))
+      normalized.streetAddress,
+      normalized.city,
+      normalized.state,
+      normalized.postalCode,
+    ].join("\u001f"))
     .digest("hex");
+}
+
+export function normalizeBusinessReachAddress(
+  address: BusinessReachAddress,
+): NormalizedBusinessReachAddress | null {
+  const normalized = normalizedAddressParts(address);
+  if (!normalized.streetAddress || !normalized.city || !/^[a-z]{2}$/.test(normalized.state) || !/^\d{5}(?:-\d{4})?$/.test(normalized.postalCode)) return null;
+  return {
+    streetAddress: normalized.streetAddress,
+    city: normalized.city,
+    state: normalized.state.toUpperCase(),
+    postalCode: normalized.postalCode,
+  };
 }
 
 export function parseBusinessReachCandidates(payload: unknown): BusinessReachCandidate[] {
@@ -114,30 +152,51 @@ export function parseBusinessReachCandidates(payload: unknown): BusinessReachCan
   });
 }
 
-export function geocodeBusinessReachCandidate(
-  candidate: BusinessReachCandidate,
-): BusinessReachGeocodeWrite {
-  const match = candidate.postalCode?.trim().match(/^(\d{5})(?:-\d{4})?$/);
-  const location = match ? zipcodes.lookup(match[1]) : undefined;
-  if (!match || !location || !isValidBusinessReachCoordinate(location.latitude, location.longitude)) {
-    return {
-      customerId: candidate.customerId,
-      addressFingerprint: candidate.addressFingerprint,
-      status: "UNMAPPABLE",
-      locationKey: null,
-      latitude: null,
-      longitude: null,
-    };
-  }
+const unmappableWrite = (candidate: BusinessReachCandidate): BusinessReachGeocodeWrite => ({
+  customerId: candidate.customerId,
+  addressFingerprint: candidate.addressFingerprint,
+  status: "UNMAPPABLE",
+  locationKey: null,
+  latitude: null,
+  longitude: null,
+});
 
-  return {
-    customerId: candidate.customerId,
-    addressFingerprint: candidate.addressFingerprint,
-    status: "MAPPED",
-    locationKey: match[1],
-    latitude: location.latitude,
-    longitude: location.longitude,
-  };
+export function buildBusinessReachAddressBatch(candidates: BusinessReachCandidate[]) {
+  const grouped = new Map<string, BusinessReachAddressGroup>();
+  const invalidWrites: BusinessReachGeocodeWrite[] = [];
+  for (const candidate of candidates.slice(0, businessReachGeocodeBatchLimit)) {
+    const address = normalizeBusinessReachAddress(candidate);
+    if (!address) {
+      invalidWrites.push(unmappableWrite(candidate));
+      continue;
+    }
+    const key = fingerprintBusinessReachAddress(address);
+    const existing = grouped.get(key);
+    if (existing) existing.candidates.push(candidate);
+    else grouped.set(key, { key, address, candidates: [candidate] });
+  }
+  return { uniqueAddresses: [...grouped.values()], invalidWrites };
+}
+
+export function buildBusinessReachGeocodeWrites(
+  groups: BusinessReachAddressGroup[],
+  results: ReadonlyMap<string, BusinessReachGeocodeResult>,
+): BusinessReachGeocodeWrite[] {
+  return groups.flatMap((group) => {
+    const result = results.get(group.key);
+    return group.candidates.map((candidate) =>
+      result && isValidBusinessReachCoordinate(result.latitude, result.longitude)
+        ? {
+            customerId: candidate.customerId,
+            addressFingerprint: candidate.addressFingerprint,
+            status: "MAPPED" as const,
+            locationKey: group.key,
+            latitude: result.latitude,
+            longitude: result.longitude,
+          }
+        : unmappableWrite(candidate),
+    );
+  });
 }
 
 export const unavailableBusinessReach = (canRefresh = false): BusinessReachData => ({
@@ -148,7 +207,7 @@ export const unavailableBusinessReach = (canRefresh = false): BusinessReachData 
   unmappedCustomers: 0,
   pendingCustomers: 0,
   unmappableCustomers: 0,
-  geographicCoverage: 0,
+  uniqueLocations: 0,
   points: [],
   loadError: false,
 });
