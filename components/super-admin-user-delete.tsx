@@ -7,14 +7,14 @@ import {
   deleteRevokedPlatformUserAction,
 } from "@/lib/data/platform-actions";
 
-function DeleteButton() {
+function DeleteButton({ confirmed }: { confirmed: boolean }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
-      className="secondary-button"
-      disabled={pending}
+      className={`secondary-button permanent-delete-button ${confirmed ? "confirmed" : ""}`.trim()}
+      disabled={pending || !confirmed}
     >
       {pending ? "Deleting…" : "Delete permanently"}
     </button>
@@ -100,7 +100,7 @@ export function SuperAdminUserDelete({
             />
           </label>
           <div className="form-actions">
-            <DeleteButton />
+            <DeleteButton confirmed={confirmation === "DELETE"} />
           </div>
         </form>
       </div>

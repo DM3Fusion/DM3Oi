@@ -11676,3 +11676,28 @@ dialog.task-modal.intake-document-availability-modal {
   outline-offset: 2px;
   border-color: var(--dm3oi-cyan);
 }
+
+/* Permanent deletion confirmation state */
+.permanent-delete-button {
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease;
+}
+
+.permanent-delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.permanent-delete-button.confirmed:not(:disabled) {
+  background: #fff1f0;
+  border-color: #e4a09a;
+  color: #a2342d;
+}
+
+.permanent-delete-button.confirmed:not(:disabled):hover {
+  background: #fde2df;
+  border-color: #d98279;
+}
