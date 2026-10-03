@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { classifyAccess } from "@/lib/data/user-provisioning";
 import {
   attachAuthorizedAvatarUrls,
+  attachAvatarUrls,
   type ProfileWithAvatar,
 } from "@/lib/data/avatar-urls";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
