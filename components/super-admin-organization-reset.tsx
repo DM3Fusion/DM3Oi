@@ -45,7 +45,6 @@ const previewRows = [
   ["Customer number counters", "customerNumberCounters"],
   ["Service request annual counters", "serviceRequestAnnualNumberCounters"],
   ["Analytics live sessions", "analyticsLiveSessions"],
-  ["Analytics page views", "analyticsPageViews"],
 ] as const;
 
 function PreviewButton() {
@@ -143,15 +142,16 @@ export function SuperAdminOrganizationReset({
           This permanently removes organization users other than the selected
           Business Owner, Customer Portal access, customers, cases, service
           requests, communications, Customer data submissions, notifications,
-          analytics, membership history, and transactional counters for this
-          organization.
+          membership history, transactional counters, and live presence for
+          this organization.
         </p>
 
         <p>
           The organization, selected Business Owner identity and membership,
           organization settings, case types, lifecycle configuration, role
           permissions, licensing, Questions & Rules configuration, and platform
-          landing-page configuration are preserved.
+          landing-page configuration are preserved. Historical Platform
+          Analytics are retained.
         </p>
 
         <p>

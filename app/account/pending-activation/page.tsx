@@ -41,13 +41,13 @@ export default async function PendingActivationPage() {
           : `Your invitation to ${organizationName} has not completed email verification.`
       }
     >
-      <PendingActivationReconciler />
       <div className="auth-message">
         {verified
-          ? "An administrator must activate your organization access before you can use DM3Oi. This page will update automatically after activation."
+          ? "An administrator must activate your organization access before you can use DM3Oi. After activation, check your status or refresh this page."
           : "Use the verification code or invitation link sent to your email."}
       </div>
       <div className="form-actions">
+        {verified ? <PendingActivationReconciler /> : null}
         <form action={signOutAction}>
           <button className="secondary-button">Sign out</button>
         </form>

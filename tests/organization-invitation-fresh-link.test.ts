@@ -194,22 +194,13 @@ test("pending organization identities reach awaiting activation without gaining 
   );
 });
 
-test("organization shell reconciles personal Inbox attention and open Users views", () => {
+test("organization shell renders server-loaded Inbox attention without background reconciliation", () => {
   const shell = source("components/layout/app-shell.tsx");
 
-  assert.match(shell, /liveUnreadNotificationCount/);
-  assert.match(shell, /get_my_unread_notification_count/);
-  assert.match(
-    shell,
-    /target_organization_id:\s*access\.activeOrganization!\.id/,
-  );
-  assert.match(shell, /window\.setInterval[\s\S]*30_000/);
-  assert.match(shell, /window\.addEventListener\("focus"/);
-  assert.match(shell, /visibilitychange/);
-  assert.match(
-    shell,
-    /pathname === "\/users" \|\| pathname\.startsWith\("\/users\/"\)[\s\S]*router\.refresh\(\)/,
-  );
+  assert.match(shell, /href === "\/communications" && unreadNotificationCount > 0/);
+  assert.doesNotMatch(shell, /liveUnreadNotificationCount/);
+  assert.doesNotMatch(shell, /get_my_unread_notification_count/);
+  assert.doesNotMatch(shell, /window\.setInterval|visibilitychange|router\.refresh\(\)/);
 });
 
 

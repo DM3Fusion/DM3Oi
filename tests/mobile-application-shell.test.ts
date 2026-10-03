@@ -43,13 +43,11 @@ test("mobile destinations derive from the existing effective-permission navigati
   assert.match(applicationNavigation, /organizationNavigation\.filter\(\(item\) => hasPermission\(context, item\.permission\)\)/);
 });
 
-test("mobile Communications badge reconciles client-side and disappears at zero", () => {
-  assert.doesNotMatch(layout, /getUnreadNotificationCount|getNewTrialRequestCount/);
-  assert.match(layout, /unreadNotificationCount=\{0\}/);
-  assert.match(shell, /void reconcileOrganizationAttention\(\)/);
-  assert.match(shell, /get_my_unread_notification_count/);
-  assert.match(shell, /unreadCount: item\.href === "\/communications" \? liveUnreadNotificationCount : undefined/);
-  assert.match(shell, /useState\(unreadNotificationCount\)/);
+test("mobile Communications badge uses the count loaded by the server", () => {
+  assert.match(layout, /getUnreadNotificationCount/);
+  assert.match(layout, /unreadNotificationCount=\{unreadNotificationCount\}/);
+  assert.match(shell, /unreadCount: item\.href === "\/communications" \? unreadNotificationCount : undefined/);
+  assert.doesNotMatch(shell, /get_my_unread_notification_count|liveUnreadNotificationCount/);
   assert.match(navigation, /unreadCount > 0 \? <span className="mobile-navigation-badge"/);
   assert.match(navigation, /unreadCount > 99 \? "99\+" : unreadCount/);
   assert.doesNotMatch(navigation, /getUnreadNotificationCount|notifications/);

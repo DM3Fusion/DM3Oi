@@ -1696,6 +1696,8 @@ export type Database = {
       }
       analytics_page_views: {
         Row: {
+          analytics_organization_key: string | null
+          analytics_user_key: string | null
           browser: string
           city: string | null
           country_code: string | null
@@ -1715,6 +1717,8 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          analytics_organization_key?: string | null
+          analytics_user_key?: string | null
           browser: string
           city?: string | null
           country_code?: string | null
@@ -1734,6 +1738,8 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          analytics_organization_key?: string | null
+          analytics_user_key?: string | null
           browser?: string
           city?: string | null
           country_code?: string | null
@@ -3454,6 +3460,13 @@ created_at: string
           reported_sent_at: string | null
           task_id: string
         }[]
+      }
+      get_platform_analytics: {
+        Args: {
+          target_end_exclusive: string | null
+          target_start: string | null
+        }
+        Returns: Json
       }
       get_case_progress: {
         Args: { target_case_id: string }

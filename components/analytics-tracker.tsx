@@ -5,26 +5,6 @@ import { usePathname } from "next/navigation";
 
 import { analyticsSessionId } from "@/lib/analytics-session";
 
-const HEARTBEAT_INTERVAL_MS = 60 * 1000;
-
-async function sendPresenceHeartbeat() {
-  try {
-    await fetch("/api/analytics/presence", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        action: "heartbeat",
-        sessionId: analyticsSessionId(),
-      }),
-      keepalive: true,
-    });
-  } catch {
-    // Presence must never interrupt the application.
-  }
-}
-
 export function AnalyticsTracker() {
   const pathname = usePathname();
 
@@ -117,57 +97,6 @@ export function AnalyticsTracker() {
       window.removeEventListener(
         "touchstart",
         sendInteractionEvidence,
-      );
-    };
-  }, []);
-
-  useEffect(() => {
-    void sendPresenceHeartbeat();
-
-    const intervalId = window.setInterval(
-      () => {
-        if (
-          document.visibilityState === "visible"
-        ) {
-          void sendPresenceHeartbeat();
-        }
-      },
-      HEARTBEAT_INTERVAL_MS,
-    );
-
-    const handleVisibilityChange = () => {
-      if (
-        document.visibilityState === "visible"
-      ) {
-        void sendPresenceHeartbeat();
-      }
-    };
-
-    const handleFocus = () => {
-      void sendPresenceHeartbeat();
-    };
-
-    document.addEventListener(
-      "visibilitychange",
-      handleVisibilityChange,
-    );
-
-    window.addEventListener(
-      "focus",
-      handleFocus,
-    );
-
-    return () => {
-      window.clearInterval(intervalId);
-
-      document.removeEventListener(
-        "visibilitychange",
-        handleVisibilityChange,
-      );
-
-      window.removeEventListener(
-        "focus",
-        handleFocus,
       );
     };
   }, []);

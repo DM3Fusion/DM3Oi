@@ -216,6 +216,8 @@ export async function POST(request: NextRequest) {
       session_id: sessionId,
       user_id: userId,
       organization_id: organizationId,
+      analytics_user_key: userId,
+      analytics_organization_key: organizationId,
       path,
       normalized_path: normalizeAnalyticsPath(path),
       referrer_host: analyticsReferrerHost(referrer),

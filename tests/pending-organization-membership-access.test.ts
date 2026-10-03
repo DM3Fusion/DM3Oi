@@ -64,24 +64,22 @@ test("pending activation page uses the same self-only membership projection", ()
 });
 
 
-test("verified pending activation reconciles automatically into active access", () => {
+test("verified pending activation offers an explicit status check without polling", () => {
   const page = source("app/account/pending-activation/page.tsx");
   const reconciler = source("components/pending-activation-reconciler.tsx");
 
-  assert.match(page, /<PendingActivationReconciler \/>/);
+  assert.match(page, /verified \? <PendingActivationReconciler \/> : null/);
   assert.match(
     page,
-    /This page will update automatically after activation\./,
+    /After activation, check your status or refresh this page\./,
   );
+  assert.doesNotMatch(page, /update automatically/);
   assert.doesNotMatch(page, /After activation, sign in again to continue\./);
 
-  assert.match(reconciler, /window\.setInterval\(reconcile, 5_000\)/);
+  assert.match(reconciler, /Check activation/);
+  assert.match(reconciler, /onClick=\{\(\) => startTransition\(\(\) => router\.refresh\(\)\)\}/);
   assert.match(reconciler, /router\.refresh\(\)/);
-  assert.match(reconciler, /window\.addEventListener\("focus", reconcile\)/);
-  assert.match(
-    reconciler,
-    /document\.addEventListener\("visibilitychange", refreshOnVisibility\)/,
-  );
+  assert.doesNotMatch(reconciler, /setInterval|setTimeout|useEffect|focus|visibilitychange/);
 
   assert.match(
     page,

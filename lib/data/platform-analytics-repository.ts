@@ -1,18 +1,14 @@
 import "server-only";
 
 import { requireSuperAdmin } from "@/lib/auth/context";
-import { analyticsLiveActivityCutoffIso } from "@/lib/analytics";
-import { createAdminClient } from "@/lib/supabase/admin";
-import type { Database } from "@/types/database.generated";
-
-type PageView =
-  Database["public"]["Tables"]["analytics_page_views"]["Row"];
+import { createClient } from "@/lib/supabase/server";
 
 export type PlatformAnalyticsRange =
   | "today"
   | "7d"
   | "30d"
   | "90d"
+  | "all"
   | "custom";
 
 export type PlatformAnalyticsQuery = {
@@ -35,8 +31,6 @@ export type PlatformAnalytics = {
   sessions: number;
   users: number;
   organizations: number;
-  activeUsers: number;
-  activeSessions: number;
   trafficDays: {
     key: string;
     label: string;
@@ -57,6 +51,20 @@ export type PlatformAnalytics = {
   }[];
 };
 
+type PlatformAnalyticsAggregate = {
+  pageViews: number;
+  sessions: number;
+  users: number;
+  organizations: number;
+  trafficDays: { key: string; value: number }[];
+  deviceBreakdown: PlatformAnalyticsDatum[];
+  browserBreakdown: PlatformAnalyticsDatum[];
+  operatingSystemBreakdown: PlatformAnalyticsDatum[];
+  trafficTypeBreakdown: PlatformAnalyticsDatum[];
+  topPages: { path: string; pageViews: number }[];
+  geography: { label: string; pageViews: number }[];
+};
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function utcDateKey(date: Date) {
@@ -70,10 +78,7 @@ function parseUtcDate(value: string | undefined) {
 
   const date = new Date(`${value}T00:00:00.000Z`);
 
-  if (
-    Number.isNaN(date.getTime()) ||
-    utcDateKey(date) !== value
-  ) {
+  if (Number.isNaN(date.getTime()) || utcDateKey(date) !== value) {
     return null;
   }
 
@@ -82,11 +87,7 @@ function parseUtcDate(value: string | undefined) {
 
 function startOfUtcDay(date: Date) {
   return new Date(
-    Date.UTC(
-      date.getUTCFullYear(),
-      date.getUTCMonth(),
-      date.getUTCDate(),
-    ),
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
   );
 }
 
@@ -102,61 +103,30 @@ function rangeLabel(date: Date) {
   }).format(date);
 }
 
-function titleCase(value: string) {
-  return value
-    .toLowerCase()
-    .split("_")
-    .map(
-      (part) =>
-        part.charAt(0).toUpperCase() +
-        part.slice(1),
-    )
-    .join(" ");
-}
-
-function increment(
-  map: Map<string, number>,
-  key: string | null | undefined,
-) {
-  if (!key) return;
-
-  map.set(key, (map.get(key) ?? 0) + 1);
-}
-
-function sortedBreakdown(
-  map: Map<string, number>,
-  limit?: number,
-): PlatformAnalyticsDatum[] {
-  const rows = [...map.entries()]
-    .map(([label, value]) => ({
-      label,
-      value,
-    }))
-    .sort(
-      (a, b) =>
-        b.value - a.value ||
-        a.label.localeCompare(b.label),
-    );
-
-  return typeof limit === "number"
-    ? rows.slice(0, limit)
-    : rows;
-}
-
-function resolveRange(
-  query: PlatformAnalyticsQuery,
-  now = new Date(),
-) {
+function resolveRange(query: PlatformAnalyticsQuery, now = new Date()) {
   const requestedRange: PlatformAnalyticsRange =
     query.analyticsRange === "today" ||
     query.analyticsRange === "30d" ||
     query.analyticsRange === "90d" ||
+    query.analyticsRange === "all" ||
     query.analyticsRange === "custom"
       ? query.analyticsRange
       : "7d";
 
   const today = startOfUtcDay(now);
   const tomorrow = addUtcDays(today, 1);
+  const fallbackStart = addUtcDays(tomorrow, -7);
+
+  if (requestedRange === "all") {
+    return {
+      range: requestedRange,
+      start: null,
+      endExclusive: now,
+      from: utcDateKey(fallbackStart),
+      through: utcDateKey(today),
+      customRangeError: null,
+    };
+  }
 
   if (requestedRange !== "custom") {
     const days =
@@ -168,10 +138,7 @@ function resolveRange(
             ? 90
             : 7;
 
-    const start = addUtcDays(
-      tomorrow,
-      -days,
-    );
+    const start = addUtcDays(tomorrow, -days);
 
     return {
       range: requestedRange,
@@ -183,33 +150,17 @@ function resolveRange(
     };
   }
 
-  const fallbackStart = addUtcDays(
-    tomorrow,
-    -7,
-  );
-
-  const from =
-    parseUtcDate(query.analyticsFrom) ??
-    fallbackStart;
-
-  const through =
-    parseUtcDate(query.analyticsThrough) ??
-    today;
-
+  const from = parseUtcDate(query.analyticsFrom) ?? fallbackStart;
+  const through = parseUtcDate(query.analyticsThrough) ?? today;
   const dayCount =
-    Math.floor(
-      (through.getTime() - from.getTime()) /
-        DAY_MS,
-    ) + 1;
+    Math.floor((through.getTime() - from.getTime()) / DAY_MS) + 1;
 
   let customRangeError: string | null = null;
 
   if (through.getTime() < from.getTime()) {
-    customRangeError =
-      "Through date must be on or after From date.";
+    customRangeError = "Through date must be on or after From date.";
   } else if (dayCount > 366) {
-    customRangeError =
-      "Custom reporting periods cannot exceed 366 days.";
+    customRangeError = "Custom reporting periods cannot exceed 366 days.";
   }
 
   if (customRangeError) {
@@ -233,33 +184,30 @@ function resolveRange(
   };
 }
 
-function deviceLabel(row: PageView) {
-  if (row.device_model) {
-    return row.device_model;
-  }
+function asAggregate(value: unknown): PlatformAnalyticsAggregate {
+  const row = value as Partial<PlatformAnalyticsAggregate> | null;
 
-  return titleCase(row.device_type);
-}
-
-function trafficLabel(value: string) {
-  if (value === "HUMAN") return "Human";
-  if (value === "LIKELY_BOT") {
-    return "Likely Bot";
-  }
-  return "Unclassified";
-}
-
-function geographyLabel(row: PageView) {
-  const parts = [
-    row.city,
-    row.region_code,
-    row.country_code,
-  ].filter(
-    (value): value is string =>
-      Boolean(value?.trim()),
-  );
-
-  return parts.join(", ") || "Unknown";
+  return {
+    pageViews: Number(row?.pageViews ?? 0),
+    sessions: Number(row?.sessions ?? 0),
+    users: Number(row?.users ?? 0),
+    organizations: Number(row?.organizations ?? 0),
+    trafficDays: Array.isArray(row?.trafficDays) ? row.trafficDays : [],
+    deviceBreakdown: Array.isArray(row?.deviceBreakdown)
+      ? row.deviceBreakdown
+      : [],
+    browserBreakdown: Array.isArray(row?.browserBreakdown)
+      ? row.browserBreakdown
+      : [],
+    operatingSystemBreakdown: Array.isArray(row?.operatingSystemBreakdown)
+      ? row.operatingSystemBreakdown
+      : [],
+    trafficTypeBreakdown: Array.isArray(row?.trafficTypeBreakdown)
+      ? row.trafficTypeBreakdown
+      : [],
+    topPages: Array.isArray(row?.topPages) ? row.topPages : [],
+    geography: Array.isArray(row?.geography) ? row.geography : [],
+  };
 }
 
 export async function getPlatformAnalytics(
@@ -267,123 +215,36 @@ export async function getPlatformAnalytics(
 ): Promise<PlatformAnalytics> {
   await requireSuperAdmin();
 
-  const supabase = createAdminClient();
+  const supabase = await createClient();
   const range = resolveRange(query);
 
-  const [pageViewsResult, liveResult] =
-    await Promise.all([
-      supabase
-        .from("analytics_page_views")
-        .select("*")
-        .gte(
-          "created_at",
-          range.start.toISOString(),
-        )
-        .lt(
-          "created_at",
-          range.endExclusive.toISOString(),
-        )
-        .order("created_at", {
-          ascending: true,
-        }),
-      supabase
-        .from("analytics_live_sessions")
-        .select(
-          "session_id,user_id,organization_id,last_seen_at,signed_out_at",
-        )
-        .is("signed_out_at", null)
-        .gte(
-          "last_seen_at",
-          analyticsLiveActivityCutoffIso(),
-        ),
-    ]);
+  const aggregateResult = await supabase.rpc("get_platform_analytics", {
+    target_start: range.start?.toISOString() ?? null,
+    target_end_exclusive: range.endExclusive.toISOString(),
+  });
 
-  const error =
-    pageViewsResult.error ?? liveResult.error;
+  const error = aggregateResult.error;
 
   if (error) {
-    console.error(
-      "Platform analytics query failed",
-      {
-        code: error.code,
-        message: error.message,
-      },
-    );
+    console.error("Platform analytics query failed", {
+      code: error.code,
+      message: error.message,
+    });
 
-    throw new Error(
-      "Platform analytics data is temporarily unavailable.",
-    );
+    throw new Error("Platform analytics data is temporarily unavailable.");
   }
 
-  const pageViews =
-    pageViewsResult.data ?? [];
-  const liveSessions =
-    liveResult.data ?? [];
+  const aggregate = asAggregate(aggregateResult.data);
+  const dailyTraffic = new Map(
+    aggregate.trafficDays.map((day) => [day.key, Number(day.value)]),
+  );
 
-  const sessionIds = new Set<string>();
-  const userIds = new Set<string>();
-  const organizationIds = new Set<string>();
-  const activeUserIds = new Set<string>();
-
-  const pageMap = new Map<string, number>();
-  const deviceMap = new Map<string, number>();
-  const browserMap = new Map<string, number>();
-  const operatingSystemMap =
-    new Map<string, number>();
-  const trafficTypeMap =
-    new Map<string, number>();
-  const geographyMap =
-    new Map<string, number>();
-  const dailyTrafficMap =
-    new Map<string, number>();
-
-  for (const row of pageViews) {
-    sessionIds.add(row.session_id);
-
-    if (row.user_id) {
-      userIds.add(row.user_id);
-    }
-
-    if (row.organization_id) {
-      organizationIds.add(
-        row.organization_id,
-      );
-    }
-
-    increment(
-      pageMap,
-      row.normalized_path,
-    );
-    increment(
-      deviceMap,
-      deviceLabel(row),
-    );
-    increment(browserMap, row.browser);
-    increment(
-      operatingSystemMap,
-      row.operating_system,
-    );
-    increment(
-      trafficTypeMap,
-      trafficLabel(row.traffic_type),
-    );
-    increment(
-      geographyMap,
-      geographyLabel(row),
-    );
-    increment(
-      dailyTrafficMap,
-      row.created_at.slice(0, 10),
-    );
-  }
-
-  for (const row of liveSessions) {
-    activeUserIds.add(row.user_id);
-  }
-
+  const firstAllTimeDay = parseUtcDate(aggregate.trafficDays[0]?.key);
+  const chartStart = range.start ?? firstAllTimeDay ?? startOfUtcDay(new Date());
   const trafficDays = [];
+
   for (
-    let day = range.start;
+    let day = chartStart;
     day < range.endExclusive;
     day = addUtcDays(day, 1)
   ) {
@@ -392,69 +253,29 @@ export async function getPlatformAnalytics(
     trafficDays.push({
       key,
       label: rangeLabel(day),
-      value: dailyTrafficMap.get(key) ?? 0,
+      value: dailyTraffic.get(key) ?? 0,
     });
   }
 
-  const topPages = [...pageMap.entries()]
-    .map(([path, pageViews]) => ({
-      path,
-      pageViews,
-    }))
-    .sort(
-      (a, b) =>
-        b.pageViews - a.pageViews ||
-        a.path.localeCompare(b.path),
-    );
-
-  const geography = [
-    ...geographyMap.entries(),
-  ]
-    .map(([label, pageViews]) => ({
-      label,
-      pageViews,
-    }))
-    .sort(
-      (a, b) =>
-        b.pageViews - a.pageViews ||
-        a.label.localeCompare(b.label),
-    );
-
   return {
     range: range.range,
-    from: range.from,
+    from:
+      range.range === "all" && firstAllTimeDay
+        ? utcDateKey(firstAllTimeDay)
+        : range.from,
     through: range.through,
-    customRangeError:
-      range.customRangeError,
-    pageViews: pageViews.length,
-    sessions: sessionIds.size,
-    users: userIds.size,
-    organizations: organizationIds.size,
-    activeUsers: activeUserIds.size,
-    activeSessions: liveSessions.length,
+    customRangeError: range.customRangeError,
+    pageViews: aggregate.pageViews,
+    sessions: aggregate.sessions,
+    users: aggregate.users,
+    organizations: aggregate.organizations,
     trafficDays,
-    maxTrafficCount: Math.max(
-      1,
-      ...trafficDays.map(
-        (day) => day.value,
-      ),
-    ),
-    deviceBreakdown: sortedBreakdown(
-      deviceMap,
-      5,
-    ),
-    browserBreakdown: sortedBreakdown(
-      browserMap,
-      5,
-    ),
-    operatingSystemBreakdown:
-      sortedBreakdown(
-        operatingSystemMap,
-        5,
-      ),
-    trafficTypeBreakdown:
-      sortedBreakdown(trafficTypeMap),
-    topPages,
-    geography,
+    maxTrafficCount: Math.max(1, ...trafficDays.map((day) => day.value)),
+    deviceBreakdown: aggregate.deviceBreakdown,
+    browserBreakdown: aggregate.browserBreakdown,
+    operatingSystemBreakdown: aggregate.operatingSystemBreakdown,
+    trafficTypeBreakdown: aggregate.trafficTypeBreakdown,
+    topPages: aggregate.topPages,
+    geography: aggregate.geography,
   };
 }

@@ -12,6 +12,9 @@ function read(relativePath: string) {
 const migration = read(
   "supabase/migrations/20260925180000_dm3oi_super_admin_permanent_organization_delete.sql",
 );
+const analyticsDurabilityMigration = read(
+  "supabase/migrations/20261003102000_dm3oi_permanent_delete_preserves_platform_analytics.sql",
+);
 const actions = read("lib/data/platform-actions.ts");
 const detailPage = read(
   "app/admin/organizations/[organizationId]/page.tsx",
@@ -266,7 +269,6 @@ test("organization-owned operational data is explicitly purged before organizati
     "delete from public.question_definitions",
     "delete from public.organization_membership_events",
     "delete from public.analytics_live_sessions",
-    "delete from public.analytics_page_views",
   ];
 
   for (const statement of requiredDeletes) {
@@ -612,7 +614,6 @@ test("preview exposes identity, operational, configuration, audit, and trial imp
     "customerNumberCounters",
     "serviceRequestAnnualNumberCounters",
     "analyticsLiveSessions",
-    "analyticsPageViews",
     "resetAuditRows",
     "trialRequestLinks",
   ];
@@ -624,4 +625,13 @@ test("preview exposes identity, operational, configuration, audit, and trial imp
       `preview must include ${key}`,
     );
   }
+
+  assert.match(
+    analyticsDurabilityMigration,
+    /result - 'analyticsPageViews'/,
+  );
+  assert.doesNotMatch(
+    analyticsDurabilityMigration,
+    /delete from public\.analytics_page_views/i,
+  );
 });

@@ -39,7 +39,6 @@ export type OrganizationResetPreview = {
  customerNumberCounters:number;
  serviceRequestAnnualNumberCounters:number;
  analyticsLiveSessions:number;
- analyticsPageViews:number;
 };
 
 type OrganizationResetResult = Record<string,unknown> & {
@@ -901,7 +900,6 @@ export type PermanentOrganizationDeletionPreview = {
  customerNumberCounters:number;
  serviceRequestAnnualNumberCounters:number;
  analyticsLiveSessions:number;
- analyticsPageViews:number;
  resetAuditRows:number;
  trialRequestLinks:number;
 };

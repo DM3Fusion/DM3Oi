@@ -12,6 +12,10 @@ const cleanupMigration = source(
   "supabase/migrations/20260925170000_dm3oi_complete_organization_reset_identity_cleanup.sql",
 );
 
+const durabilityMigration = source(
+  "supabase/migrations/20261003101000_dm3oi_reset_preserves_platform_analytics.sql",
+);
+
 const resetAction = source("lib/data/platform-actions.ts");
 const globalDeletion = source(
   "lib/data/platform-user-global-deletion.ts",
@@ -106,14 +110,17 @@ test("service request message immutability exception is organization scoped and 
   assert.doesNotMatch(migration, /disable trigger|enable trigger/i);
 });
 
-test("reset records actual row counts for every destructive statement", () => {
+test("current reset records every operational deletion and preserves page views", () => {
+  const currentReset = durabilityMigration.match(
+    /create or replace function public\.reset_organization_company_and_users_without_email_deliveries\([\s\S]*?\n\$\$;/,
+  )?.[0] ?? "";
   const deleteStatements =
-    migration.match(/delete from public\.[a-z0-9_]+/gi) ?? [];
+    currentReset.match(/delete from public\.[a-z0-9_]+/gi) ?? [];
   const rowCounts =
-    migration.match(/get diagnostics deleted_count = row_count;/gi) ?? [];
+    currentReset.match(/get diagnostics deleted_count = row_count;/gi) ?? [];
 
-  assert.equal(deleteStatements.length, 21);
-  assert.equal(rowCounts.length, 21);
+  assert.equal(deleteStatements.length, 20);
+  assert.equal(rowCounts.length, 20);
 
   const expectedKeys = [
     "serviceRequestCommunications",
@@ -136,18 +143,23 @@ test("reset records actual row counts for every destructive statement", () => {
     "customerNumberCounters",
     "serviceRequestAnnualNumberCounters",
     "analyticsLiveSessions",
-    "analyticsPageViews",
   ];
 
   for (const key of expectedKeys) {
     assert.match(
-      migration,
+      currentReset,
       new RegExp(
         `jsonb_build_object\\('${key}',\\s*deleted_count\\)`,
       ),
       `missing actual deletion count for ${key}`,
     );
   }
+
+  assert.doesNotMatch(
+    currentReset,
+    /delete from public\.analytics_page_views/i,
+  );
+  assert.match(durabilityMigration, /result - 'analyticsPageViews'/);
 });
 
 test("reset preview includes all transactional counters", () => {

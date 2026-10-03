@@ -13,6 +13,7 @@ const analyticsRanges = [
   { key: "7d", label: "7 Days" },
   { key: "30d", label: "30 Days" },
   { key: "90d", label: "90 Days" },
+  { key: "all", label: "All Time" },
   { key: "custom", label: "Custom" },
 ] as const;
 
@@ -197,40 +198,17 @@ export function PlatformDashboard({
           </article>
 
           <article className="management-kpi">
-            <span>Users</span>
+            <span>Active Users</span>
             <strong>{analytics.users}</strong>
           </article>
 
           <article className="management-kpi">
-            <span>Organizations</span>
+            <span>Active Organizations</span>
             <strong>
               {analytics.organizations}
             </strong>
           </article>
         </div>
-
-        <article className="admin-live-activity">
-          <div>
-            <span className="eyebrow">
-              Live Activity
-            </span>
-            <strong>
-              {analytics.activeUsers} Active{" "}
-              {analytics.activeUsers === 1
-                ? "User"
-                : "Users"}{" "}
-              · {analytics.activeSessions} Active{" "}
-              {analytics.activeSessions === 1
-                ? "Session"
-                : "Sessions"}
-            </strong>
-          </div>
-
-          <p>
-            Live authenticated sessions.
-            Inactive sessions expire after 5 minutes.
-          </p>
-        </article>
 
         <div className="admin-analytics-grid">
           <article className="admin-analytics-panel admin-analytics-traffic">

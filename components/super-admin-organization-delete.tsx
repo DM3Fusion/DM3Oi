@@ -47,7 +47,6 @@ const previewRows = [
   ["Customer number counters", "customerNumberCounters"],
   ["Service request annual counters", "serviceRequestAnnualNumberCounters"],
   ["Analytics live sessions", "analyticsLiveSessions"],
-  ["Analytics page views", "analyticsPageViews"],
   ["Historical reset audits retained", "resetAuditRows"],
   ["Trial Request conversion links retained", "trialRequestLinks"],
 ] as const;
@@ -110,8 +109,9 @@ export function SuperAdminOrganizationDelete({
         <p>
           This permanently removes the organization and all organization-owned
           operational data, configuration, licensing, Questions & Rules,
-          Customer Portal access, memberships, counters, analytics, and
-          organization Storage assets.
+          Customer Portal access, memberships, counters, live presence, and
+          organization Storage assets. Historical Platform Analytics are
+          retained.
         </p>
 
         <p>

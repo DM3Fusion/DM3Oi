@@ -107,7 +107,7 @@ test("phone Dashboard retains complete readiness content and centered KPI summar
 test("Inbox is the shared navigation label while Communications remains the workspace", () => {
   assert.match(navigation, /href: "\/communications", label: "Inbox", icon: "communications", permission: "VIEW_COMMUNICATIONS"/);
   assert.match(navigation, /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/);
-  assert.match(shell, /item\.href === "\/communications" \? liveUnreadNotificationCount/);
+  assert.match(shell, /item\.href === "\/communications" \? unreadNotificationCount/);
   assert.match(source("app/communications/page.tsx"), /title="Communications"/);
   assert.match(source("lib/data/communications-repository.ts"), /export async function getNotifications/);
   assert.doesNotMatch(navigation, /href: "\/inbox"/);
