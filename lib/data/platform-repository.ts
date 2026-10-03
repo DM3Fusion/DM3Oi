@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { classifyAccess } from "@/lib/data/user-provisioning";
-import { attachAvatarUrls, type ProfileWithAvatar } from "@/lib/data/avatar-urls";
+import {
+  attachAuthorizedAvatarUrls,
+  type ProfileWithAvatar,
+} from "@/lib/data/avatar-urls";
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
@@ -150,7 +153,9 @@ async function loadPlatformData() {
     });
     throw new Error("Platform administration data is temporarily unavailable.");
   }
-  const hydratedProfiles = await attachAvatarUrls(supabase, profiles.data ?? []);
+  const hydratedProfiles = await attachAuthorizedAvatarUrls(
+    profiles.data ?? [],
+  );
   const organizationsWithAvatars = await Promise.all((organizations.data ?? []).map(async (org) => {
     if (!org.avatar_path) return { ...org, avatarUrl: null };
     const signed = await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(org.avatar_path, 3600);
