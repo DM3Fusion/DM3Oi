@@ -1931,6 +1931,101 @@ export async function deleteRevokedPlatformUserAction(form:FormData){
   redirect(destination(returnTo,"message","User permanently deleted."));
 }
 
+
+export async function deleteOrphanedPlatformUserAction(form:FormData){
+  const access=await requireSuperAdmin();
+  const userId=value(form,"userId");
+  const confirmation=value(form,"confirmation");
+  const path=`/admin/users/${userId}`;
+
+  if(confirmation!=="DELETE"){
+    redirect(destination(
+      path,
+      "error",
+      "Type DELETE exactly to confirm permanent deletion.",
+    ));
+  }
+
+  if(access.user.id===userId){
+    redirect(destination(
+      path,
+      "error",
+      "You cannot permanently delete your own platform identity.",
+    ));
+  }
+
+  const admin=createAdminClient();
+
+  /*
+   * Reconfirm that this is still an orphan immediately before deletion.
+   * A newly-created membership must stop the delete even if the page was
+   * rendered while the identity had no organization access.
+   */
+  const memberships=await admin
+    .from("organization_members")
+    .select("id",{count:"exact",head:true})
+    .eq("user_id",userId);
+
+  if(memberships.error){
+    console.error("Orphan identity membership recheck failed",{
+      message:memberships.error.message,
+      userId,
+    });
+    redirect(destination(
+      path,
+      "error",
+      "The identity could not be safely rechecked.",
+    ));
+  }
+
+  if((memberships.count??0)>0){
+    redirect(destination(
+      path,
+      "error",
+      "This identity now has organization access and is no longer orphaned.",
+    ));
+  }
+
+  const {
+    getGlobalUserDeletionEligibility,
+  }=await import("@/lib/data/platform-user-global-deletion");
+
+  const eligibility=await getGlobalUserDeletionEligibility(userId);
+
+  if(!eligibility.eligible){
+    redirect(destination(
+      path,
+      "error",
+      eligibility.blockers[0]??"Permanent deletion is unavailable.",
+    ));
+  }
+
+  const result=await admin.auth.admin.deleteUser(userId);
+
+  if(result.error){
+    console.error("Permanent orphaned platform identity deletion failed",{
+      message:result.error.message,
+      userId,
+    });
+    redirect(destination(
+      path,
+      "error",
+      "The orphaned identity could not be permanently deleted.",
+    ));
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/organizations");
+  revalidatePath("/users");
+
+  redirect(destination(
+    "/admin/users",
+    "message",
+    "Orphaned user identity permanently deleted.",
+  ));
+}
+
 export type OrganizationCaseDeletionPreview = {
  organizationId:string;
  organizationName:string;

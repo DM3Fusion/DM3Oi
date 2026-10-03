@@ -14,6 +14,7 @@ import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility
 import { ApplicationIcon } from "@/components/application-icon";
 import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
 import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
+import { getGlobalUserDeletionEligibility } from "@/lib/data/platform-user-global-deletion";
 
 const roles = [
   "BUSINESS_OWNER",
@@ -48,6 +49,11 @@ export default async function Page({
   const deletionEligibility = revokedMembership
     ? await getPlatformUserDeletionEligibility(user.id, revokedMembership.id)
     : null;
+
+  const orphanDeletionEligibility =
+    user.memberships.length === 0
+      ? await getGlobalUserDeletionEligibility(user.id)
+      : null;
 
   const isOwnProfile = access?.user.id === user.id;
   const activeOrganizations = organizations.filter(
@@ -303,6 +309,31 @@ export default async function Page({
                 "Dependency checks could not be completed.",
               ]
             }
+          />
+        </section>
+      ) : null}
+
+      {user.memberships.length === 0 ? (
+        <section className="panel detail-section">
+          <div className="section-head">
+            <div>
+              <h2>Orphaned identity cleanup</h2>
+              <p>
+                SUPER_ADMIN permanent deletion for an identity with no
+                organization membership.
+              </p>
+            </div>
+          </div>
+          <SuperAdminUserDelete
+            userId={user.id}
+            displayName={name}
+            email={user.email ?? ""}
+            blockers={
+              orphanDeletionEligibility?.blockers ?? [
+                "Dependency checks could not be completed.",
+              ]
+            }
+            orphaned
           />
         </section>
       ) : null}

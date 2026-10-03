@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { deleteRevokedPlatformUserAction } from "@/lib/data/platform-actions";
+import {
+  deleteOrphanedPlatformUserAction,
+  deleteRevokedPlatformUserAction,
+} from "@/lib/data/platform-actions";
 
 function DeleteButton() {
   const { pending } = useFormStatus();
@@ -26,14 +29,16 @@ export function SuperAdminUserDelete({
   email,
   blockers,
   returnTo,
+  orphaned = false,
 }: {
   userId: string;
-  membershipId: string;
-  organizationId: string;
+  membershipId?: string;
+  organizationId?: string;
   displayName: string;
   email: string;
   blockers: string[];
   returnTo?: "/users";
+  orphaned?: boolean;
 }) {
   const [confirmation, setConfirmation] = useState("");
 
@@ -64,13 +69,24 @@ export function SuperAdminUserDelete({
         </p>
         <p>
           This removes the Auth identity and profile and cannot be undone.
-          Organization access must already be revoked and all retained
-          dependencies must remain clear.
+          {orphaned
+            ? " The identity must have no remaining organization, platform, portal, or retained business dependencies."
+            : " Organization access must already be revoked and all retained dependencies must remain clear."}
         </p>
-        <form action={deleteRevokedPlatformUserAction}>
+        <form
+          action={
+            orphaned
+              ? deleteOrphanedPlatformUserAction
+              : deleteRevokedPlatformUserAction
+          }
+        >
           <input type="hidden" name="userId" value={userId} />
-          <input type="hidden" name="membershipId" value={membershipId} />
-          <input type="hidden" name="organizationId" value={organizationId} />
+          {!orphaned && membershipId ? (
+            <input type="hidden" name="membershipId" value={membershipId} />
+          ) : null}
+          {!orphaned && organizationId ? (
+            <input type="hidden" name="organizationId" value={organizationId} />
+          ) : null}
           {returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <label>
             <span>Type DELETE to confirm</span>
