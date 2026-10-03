@@ -77,7 +77,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Operationsistration"
+        eyebrow="Platform Administration"
         title={<span className="organization-header-title"><a href="#organization-avatar" className="organization-avatar-link" aria-label="Manage organization avatar"><OrganizationAvatar name={organization.name} src={organization.avatarUrl} size="lg" /></a><span>{organization.name}</span></span>}
         description={`Organization administration · ${organization.slug}`}
         action={

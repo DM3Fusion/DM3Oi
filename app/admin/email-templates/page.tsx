@@ -48,7 +48,7 @@ export default async function EmailTemplatesPage({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Operationsistration"
+        eyebrow="Platform Administration"
         title="Email Templates"
         description="Manage transactional email content for DM3Oi. Templates are platform-managed and apply across organizations."
       />

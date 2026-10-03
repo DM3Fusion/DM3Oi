@@ -40,7 +40,7 @@ export const platformOrganizationSetupNavigation = [
 ] as const satisfies readonly ApplicationNavigationItem[];
 
 export const platformNavigation = [
-  { href: "/", label: "Back Office", icon: "platform" },
+  { href: "/", label: "Platform Console", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
   { href: "/admin/organizations/new", label: "New Organization", icon: "add" },
   { href: "/admin/users", label: "Users / Access", icon: "users" },

@@ -55,8 +55,8 @@ export default async function Page({
     return (
       <>
         <PageHeader
-          eyebrow="Platform Operationsistration"
-          title="Back Office"
+          eyebrow="Platform Administration"
+          title="Platform Console"
         />
         <PlatformDashboard
           analytics={analytics}

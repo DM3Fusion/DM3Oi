@@ -78,7 +78,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Operationsistration"
+        eyebrow="Platform Administration"
         title="Configuration Templates"
         description="Capture reusable Question and Rule configuration from an existing organization."
       />

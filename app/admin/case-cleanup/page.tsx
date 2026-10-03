@@ -29,7 +29,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Operationsistration"
+        eyebrow="Platform Administration"
         title="Case Cleanup"
         description="SUPER_ADMIN-only permanent cleanup of selected test Cases."
       />

@@ -65,7 +65,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Operationsistration"
+        eyebrow="Platform Administration"
         title={name}
       />
       {query.message ? (

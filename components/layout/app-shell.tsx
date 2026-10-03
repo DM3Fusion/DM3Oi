@@ -174,7 +174,7 @@ export function AppShell({
         </div>
         {access?.isSuperAdmin && org && !platformContext ? (
           <form action={returnToBackOfficeAction} className="back-office-link">
-            <button><ApplicationIcon name="back" />Back Office</button>
+            <button><ApplicationIcon name="back" />Platform Console</button>
           </form>
         ) : null}
         <nav aria-label="Primary navigation">
