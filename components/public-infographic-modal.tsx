@@ -41,7 +41,7 @@ export function PublicInfographicModal() {
         className="public-home-overview-button"
         onClick={() => setOpen(true)}
       >
-        View DM3Oi Overview
+        Download
       </button>
 
       {open ? (

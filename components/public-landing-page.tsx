@@ -218,6 +218,10 @@ export function PublicLandingPage({
                 />
               </picture>
             </div>
+
+            <div className="public-home-overview-action">
+              <PublicInfographicModal />
+            </div>
           </div>
         </section>
 
@@ -298,8 +302,6 @@ export function PublicLandingPage({
       </section>
 
       <div className="public-home-bottom-trial">
-        <PublicInfographicModal />
-
         <Link
           href="/request-trial"
           className="public-home-trial-button"

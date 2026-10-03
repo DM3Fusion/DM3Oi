@@ -12247,3 +12247,10 @@ dialog.task-modal.intake-document-availability-modal {
     padding: 8px;
   }
 }
+
+.public-home-overview-action {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.75rem;
+  margin-bottom: 1rem;
+}
