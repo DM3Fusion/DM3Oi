@@ -3,9 +3,10 @@ import { cookies } from "next/headers";import { redirect } from "next/navigation
 import type { OrganizationDetailsValues } from "@/lib/platform-organization-details";
 type AppRole=Database["public"]["Enums"]["application_role"];type OrgStatus=Database["public"]["Enums"]["organization_status"];const internalRoles:AppRole[]=["BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER","STAFF_USER"];
 const value=(form:FormData,key:string)=>String(form.get(key)??"").trim();const slugify=(input:string)=>input.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");const destination=(path:string,key:string,message:string,extraKey?:string,extraValue?:string)=>{
- const params=new URLSearchParams({[key]:message});
- if(extraKey&&extraValue)params.set(extraKey,extraValue);
- return `${path}?${params.toString()}`;
+ const url=new URL(path,"https://dm3oi.local");
+ url.searchParams.set(key,message);
+ if(extraKey&&extraValue)url.searchParams.set(extraKey,extraValue);
+ return `${url.pathname}${url.search}${url.hash}`;
 };
 async function findAuthUserByEmail(admin:ReturnType<typeof createAdminClient>,email:string){for(let page=1;page<=20;page+=1){const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=data.users.find(user=>user.email?.toLowerCase()===email.toLowerCase());if(found)return found;if(data.users.length<100)break;}return null}
 const friendly=(message:string)=>{if(message.includes("user identity already belongs to another organization"))return "This email address is already associated with another organization and cannot be added to this organization.";if(message.includes("slug already"))return "That organization slug is already in use.";if(message.includes("maximum active BUSINESS_OWNER"))return "This organization already has the maximum of 2 active Business Owners.";if(message.includes("maximum active BUSINESS_ADMIN"))return "This organization already has the maximum of 2 active Business Administrators.";if(message.includes("profile not found"))return "No registered DM3Oi user was found with that email. Ask the user to register first, then provision access here.";if(message.includes("invalid organization role"))return "Select a valid organization role.";if(message.includes("not authorized"))return "You are not authorized to perform this platform action.";return "The platform change could not be completed."};
