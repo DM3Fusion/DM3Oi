@@ -1,7 +1,10 @@
 import Link from "next/link";
-import type { OperationalReport } from "@/lib/data/reports-repository";
+import type { BusinessReachReport, OperationalReport } from "@/lib/data/reports-repository";
 import { reportPeriodKeys, reportPeriodLabels } from "@/lib/reporting";
 import { ApplicationIcon } from "@/components/application-icon";
+import { BusinessReachMap } from "@/components/reports/business-reach-map";
+import { mapBusinessReachCustomersAction } from "@/lib/data/business-reach-actions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 
 const formatDays = (value: number | null) => value === null ? "—" : `${value.toFixed(value < 10 ? 1 : 0)} days`;
 const formatKpi = (label: string, value: number | null) => {
@@ -27,7 +30,46 @@ function CompactTrend({ label, rows }: { label: string; rows: Array<{ key: strin
   return rows.length ? <div className="report-compact-trend" role="list" aria-label={label}>{rows.map((item) => <div key={item.key} role="listitem"><span>{item.key}</span><strong>{item.primary}</strong>{item.secondary ? <small>{item.secondary}</small> : null}</div>)}</div> : <div className="no-results">No trend is available for this period.</div>;
 }
 
-export function ReportsDashboard({ report }: { report: OperationalReport }) {
+function BusinessReach({
+  report,
+  period,
+  status,
+}: {
+  report: BusinessReachReport;
+  period: OperationalReport["period"];
+  status?: string;
+}) {
+  const mapAction = report.available && !report.loadError && report.canRefresh && report.pendingCustomers > 0 ? (
+    <form action={mapBusinessReachCustomersAction}>
+      <input type="hidden" name="period" value={period.key} />
+      <input type="hidden" name="compare" value={period.comparison} />
+      {period.key === "custom" ? <><input type="hidden" name="from" value={period.range.from} /><input type="hidden" name="to" value={period.range.to} /></> : null}
+      <PendingSubmitButton className="secondary-button" pendingLabel="Mapping locations…">Map customer locations</PendingSubmitButton>
+    </form>
+  ) : null;
+
+  return <section className="panel report-panel business-reach">
+    <div className="section-head">
+      <div><h2>Business Reach</h2><p>Customer concentration based on service addresses.</p></div>
+      {mapAction}
+    </div>
+    {!report.available ? <div className="no-results">Business Reach requires Customer access.</div> : report.loadError ? <div className="no-results">Business Reach is temporarily unavailable. Operational reports are unaffected.</div> : <>
+      <dl className="business-reach-metrics" aria-label="Current customer geographic coverage">
+        <div><dt>Customers mapped</dt><dd>{report.mappedCustomers.toLocaleString("en-US")}</dd></div>
+        <div><dt>Without mapped location</dt><dd>{report.unmappedCustomers.toLocaleString("en-US")}</dd></div>
+        <div><dt>Geographic coverage</dt><dd>{report.geographicCoverage.toLocaleString("en-US")} <small>ZIP {report.geographicCoverage === 1 ? "area" : "areas"}</small></dd></div>
+      </dl>
+      {status === "mapped" ? <p className="business-reach-notice success-alert">Customer locations were mapped from the next available batch.</p> : null}
+      {status === "empty" ? <p className="business-reach-notice">All current customer locations have already been evaluated.</p> : null}
+      {status === "error" ? <p className="business-reach-notice form-alert">Customer locations could not be mapped. Existing report data is unchanged.</p> : null}
+      {report.activeCustomers === 0 ? <div className="business-reach-empty"><h3>No customers yet</h3><p>Business Reach will appear after active customers are added.</p></div> : report.points.length === 0 ? <div className="business-reach-empty"><h3>No mapped customer locations</h3><p>{report.pendingCustomers > 0 ? "Map customer locations to build the current geographic footprint." : "Current customers do not have usable U.S. ZIP codes."}</p></div> : <BusinessReachMap points={report.points} />}
+      {report.unmappableCustomers > 0 ? <p className="business-reach-note">{report.unmappableCustomers.toLocaleString("en-US")} active {report.unmappableCustomers === 1 ? "customer has" : "customers have"} an address that could not be mapped. Update the ZIP code to make it eligible for the next mapping batch.</p> : null}
+      {report.pendingCustomers > 0 ? <p className="business-reach-note">{report.pendingCustomers.toLocaleString("en-US")} active {report.pendingCustomers === 1 ? "customer is" : "customers are"} awaiting the explicit mapping operation. Up to 500 are evaluated per request.</p> : null}
+    </>}
+  </section>;
+}
+
+export function ReportsDashboard({ report, businessReach, reachStatus }: { report: OperationalReport; businessReach: BusinessReachReport; reachStatus?: string }) {
   const { period, capabilities } = report;
   const availableKpis = report.kpis.filter((kpi) => kpi.value !== null);
   const maximumVolume = Math.max(1, ...report.caseVolume.flatMap((item) => [item.opened, item.completed]));
@@ -39,6 +81,7 @@ export function ReportsDashboard({ report }: { report: OperationalReport }) {
       <label className="report-custom-date"><span>To</span><input type="date" name="to" defaultValue={period.key === "custom" ? period.range.to : ""} /></label>
       <button className="primary-button" type="submit"><ApplicationIcon name="filter" />Apply</button>
     </form>
+    <BusinessReach report={businessReach} period={period} status={reachStatus} />
     <div className="report-period-summary"><strong>{period.label}</strong><span>{formatDate(period.range.from)}–{formatDate(period.range.to)} · {period.timezone} · {period.bucket === "day" ? "Daily" : period.bucket === "week" ? "Weekly" : "Monthly"} buckets</span></div>
 
     {availableKpis.length ? <section className="report-kpis" aria-label="Historical performance summary">{availableKpis.map((kpi) => {

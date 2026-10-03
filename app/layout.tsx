@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
+import "leaflet/dist/leaflet.css";
 import "./globals.css";
 import "./customer-portal-onboarding.css";
 import { AppShell } from "@/components/layout/app-shell";

@@ -48,7 +48,7 @@ test("platform access remains distinct from organization membership", () => {
       activeOrganizationMembership: false,
       activePortalAccess: false,
     }),
-    "Platform Admin",
+    "Platform Operations",
   );
 });
 

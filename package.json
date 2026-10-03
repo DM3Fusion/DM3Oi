@@ -12,9 +12,11 @@
     "db:test": "scripts/test-database.sh"
   },
   "dependencies": {
+    "@linkurious/leaflet-heat": "^0.2.6",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "@types/nodemailer": "^8.0.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.542.0",
     "next": "^16.3.2",
     "nodemailer": "^10.0.0",
@@ -25,6 +27,7 @@
     "zipcodes": "^8.0.0"
   },
   "devDependencies": {
+    "@types/leaflet": "^1.9.22",
     "@types/node": "^22.10.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",

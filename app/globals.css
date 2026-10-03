@@ -11701,3 +11701,132 @@ dialog.task-modal.intake-document-availability-modal {
   background: #fde2df;
   border-color: #d98279;
 }
+
+.business-reach {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.business-reach .section-head {
+  align-items: center;
+}
+
+.business-reach .section-head form {
+  flex: none;
+}
+
+.business-reach-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  border-block: 1px solid var(--line);
+  background: var(--line);
+}
+
+.business-reach-metrics > div {
+  min-width: 0;
+  padding: 12px 18px;
+  background: #fff;
+}
+
+.business-reach-metrics dt {
+  color: #52677d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .45px;
+  text-transform: uppercase;
+}
+
+.business-reach-metrics dd {
+  margin: 5px 0 0;
+  color: #10233f;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.business-reach-metrics dd small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.business-reach-map {
+  z-index: 0;
+  width: 100%;
+  height: clamp(300px, 34vw, 390px);
+  background: #edf1f3;
+}
+
+.business-reach-map .leaflet-tile-pane {
+  filter: grayscale(.72) saturate(.58) brightness(1.04);
+}
+
+.business-reach-map .leaflet-control-attribution {
+  color: #52677d;
+  font-size: 9px;
+}
+
+.business-reach-empty {
+  display: grid;
+  min-height: 220px;
+  place-content: center;
+  padding: 32px;
+  background: #f8fafc;
+  text-align: center;
+}
+
+.business-reach-empty h3 {
+  margin: 0 0 7px;
+  color: #263548;
+}
+
+.business-reach-empty p,
+.business-reach-note,
+.business-reach-notice {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.business-reach-empty p {
+  margin: 0;
+}
+
+.business-reach-note {
+  margin: 0;
+  padding: 10px 18px;
+  border-top: 1px solid var(--line);
+}
+
+.business-reach-notice {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 9px 18px;
+}
+
+@media(max-width: 600px) {
+  .business-reach .section-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .business-reach .section-head form,
+  .business-reach .section-head button {
+    width: 100%;
+  }
+
+  .business-reach-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .business-reach-metrics > div {
+    padding: 11px 16px;
+  }
+
+  .business-reach-map {
+    height: 300px;
+  }
+}

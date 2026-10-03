@@ -5,6 +5,11 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { buildOperationalReport, isCanonicalReportParams, resolveReportingPeriod, startOfReportingDay } from "@/lib/reporting";
+import {
+  failedBusinessReach,
+  normalizeBusinessReachPayload,
+  unavailableBusinessReach,
+} from "@/lib/business-reach";
 
 export class ReportsDataError extends Error {
   constructor() {
@@ -14,6 +19,25 @@ export class ReportsDataError extends Error {
 }
 
 export type ReportSearchParams = { period?: string; compare?: string; from?: string; to?: string };
+
+export async function getBusinessReach() {
+  const access = await getAccessContext();
+  if (!access?.activeOrganization || !hasPermission(access, "VIEW_REPORTS")) redirect("/");
+  const canViewCustomers = hasPermission(access, "VIEW_CUSTOMERS");
+  const canRefresh = canViewCustomers && hasPermission(access, "EDIT_CUSTOMER");
+  if (!canViewCustomers) return unavailableBusinessReach(false);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_business_reach" as never, {
+    target_organization_id: access.activeOrganization.id,
+  } as never);
+  if (error) {
+    console.error("Business Reach query failed", { code: error.code, message: error.message });
+    return failedBusinessReach(canRefresh);
+  }
+
+  return normalizeBusinessReachPayload(data, canRefresh);
+}
 
 export async function getOperationalReport(params: ReportSearchParams, now = new Date()) {
   const access = await getAccessContext();
@@ -132,3 +156,4 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
 }
 
 export type OperationalReport = Awaited<ReturnType<typeof getOperationalReport>>;
+export type BusinessReachReport = Awaited<ReturnType<typeof getBusinessReach>>;
