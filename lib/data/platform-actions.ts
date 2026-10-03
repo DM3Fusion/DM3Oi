@@ -10,6 +10,62 @@ const value=(form:FormData,key:string)=>String(form.get(key)??"").trim();const s
 async function findAuthUserByEmail(admin:ReturnType<typeof createAdminClient>,email:string){for(let page=1;page<=20;page+=1){const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=data.users.find(user=>user.email?.toLowerCase()===email.toLowerCase());if(found)return found;if(data.users.length<100)break;}return null}
 const friendly=(message:string)=>{if(message.includes("user identity already belongs to another organization"))return "This email address is already associated with another organization and cannot be added to this organization.";if(message.includes("slug already"))return "That organization slug is already in use.";if(message.includes("maximum active BUSINESS_OWNER"))return "This organization already has the maximum of 2 active Business Owners.";if(message.includes("maximum active BUSINESS_ADMIN"))return "This organization already has the maximum of 2 active Business Administrators.";if(message.includes("profile not found"))return "No registered DM3Oi user was found with that email. Ask the user to register first, then provision access here.";if(message.includes("invalid organization role"))return "Select a valid organization role.";if(message.includes("not authorized"))return "You are not authorized to perform this platform action.";return "The platform change could not be completed."};
 async function rpcError<T>(operation:PromiseLike<{data:T;error:{message:string;code:string}|null}>,path:string){const result=await operation;if(result.error){console.error("Platform mutation failed",{code:result.error.code,message:result.error.message});redirect(destination(path,"error",friendly(result.error.message)))}return result.data}
+type OrganizationRow=Database["public"]["Tables"]["organizations"]["Row"];
+
+type TrialOrganizationConversionDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   convert_trial_request_to_organization:{
+    Args:{
+     target_trial_request_id:string;
+     target_organization_name:string;
+     target_organization_slug:string;
+     target_conversion_note:string;
+     target_owner_user_id:string;
+     target_owner_email:string;
+     target_owner_identity_verified:boolean;
+    };
+    Returns:OrganizationRow;
+   };
+   convert_trial_request_to_organization_with_configuration_template:{
+    Args:{
+     target_trial_request_id:string;
+     target_organization_name:string;
+     target_organization_slug:string;
+     target_conversion_note:string;
+     target_owner_user_id:string;
+     target_owner_email:string;
+     target_owner_identity_verified:boolean;
+     target_template_id:string;
+    };
+    Returns:OrganizationRow;
+   };
+  };
+ };
+};
+
+type PlatformOrganizationCreationDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   create_organization:{
+    Args:{
+     target_name:string;
+     target_slug:string;
+    };
+    Returns:OrganizationRow;
+   };
+   create_organization_with_configuration_template:{
+    Args:{
+     target_name:string;
+     target_slug:string;
+     target_template_id:string;
+    };
+    Returns:OrganizationRow;
+   };
+  };
+ };
+};
+
 export type OrganizationResetPreview = {
  organizationId:string;
  organizationName:string;
@@ -137,7 +193,7 @@ export async function createOrganizationAction(form:FormData){
   if(!ownerDisplayName||ownerDisplayName.length>100)redirect(destination(newPath,"error","Enter the initial Business Owner name."));
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)||ownerEmail.length>254)redirect(destination(newPath,"error","Enter a valid initial Business Owner email address."));
 
-  const session=await createClient();
+  const session=(await createClient()) as ReturnType<typeof import("@supabase/ssr").createServerClient<TrialOrganizationConversionDatabase>>;
   const admin=createAdminClient();
 
   let ownerAuthUser;
@@ -281,7 +337,9 @@ export async function createOrganizationAction(form:FormData){
   redirect(`/admin/organizations/${result.data.id}?message=${encodeURIComponent(createdOwnerIdentity?"Organization created from Trial Request and Business Owner invited.":"Organization created from Trial Request and Business Owner provisioned.")}`);
  }
 
- const supabase=await createClient();
+ const supabase=(await createClient()) as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<PlatformOrganizationCreationDatabase>
+ >;
  const organizationCreateRequest=configurationTemplateId
   ?supabase.rpc("create_organization_with_configuration_template",{
     target_name:name,

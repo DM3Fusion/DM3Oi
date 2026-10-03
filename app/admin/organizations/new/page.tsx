@@ -28,6 +28,13 @@ type TrialRequestForOrganization = {
   converted_organization_id: string | null;
 };
 
+type PublishedConfigurationTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  version: number;
+};
+
 type OrganizationNewDatabase = Database & {
   public: Database["public"] & {
     Tables: Database["public"]["Tables"] & {
@@ -36,6 +43,12 @@ type OrganizationNewDatabase = Database & {
         Insert: never;
         Update: never;
         Relationships: [];
+      };
+    };
+    Functions: Database["public"]["Functions"] & {
+      get_published_configuration_templates: {
+        Args: Record<string, never>;
+        Returns: PublishedConfigurationTemplate[];
       };
     };
   };
@@ -117,7 +130,9 @@ export default async function Page({
     }
   }
 
-  const templateClient = await createClient();
+  const templateClient = (await createClient()) as ReturnType<
+    typeof import("@supabase/ssr").createServerClient<OrganizationNewDatabase>
+  >;
   const templateResult = await templateClient.rpc(
     "get_published_configuration_templates",
   );
@@ -129,7 +144,8 @@ export default async function Page({
     });
   }
 
-  const configurationTemplates = templateResult.data ?? [];
+  const configurationTemplates =
+    (templateResult.data ?? []) as PublishedConfigurationTemplate[];
 
   const error = params.error || trialRequestError;
   const cancelHref = trialRequestId
