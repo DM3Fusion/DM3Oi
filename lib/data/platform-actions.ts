@@ -28,7 +28,7 @@ type TrialOrganizationConversionDatabase=Database&{
     };
     Returns:OrganizationRow;
    };
-   convert_trial_request_to_organization_with_configuration_template:{
+   convert_qualified_trial_with_template:{
     Args:{
      target_trial_request_id:string;
      target_organization_name:string;
@@ -303,7 +303,7 @@ export async function createOrganizationAction(form:FormData){
   const identityVerified=Boolean(ownerAuthUser?.email_confirmed_at||ownerAuthUser?.last_sign_in_at);
 
   const result=configurationTemplateId
-   ?await session.rpc("convert_trial_request_to_organization_with_configuration_template",{
+   ?await session.rpc("convert_qualified_trial_with_template",{
      target_trial_request_id:trialRequestId,
      target_organization_name:name,
      target_organization_slug:slug,
