@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { PublicInfographicModal } from "@/components/public-infographic-modal";
 
 import {
   defaultPublicLandingPageContent,
@@ -297,6 +298,8 @@ export function PublicLandingPage({
       </section>
 
       <div className="public-home-bottom-trial">
+        <PublicInfographicModal />
+
         <Link
           href="/request-trial"
           className="public-home-trial-button"
