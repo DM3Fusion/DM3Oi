@@ -11650,3 +11650,29 @@ dialog.task-modal.intake-document-availability-modal {
     width: 100%;
   }
 }
+
+/* Make permanent-delete confirmation field unmistakable */
+.admin-permanent-delete input[name="confirmation"] {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid #9aa9ba;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+  color: #172033;
+  font: inherit;
+}
+
+.admin-permanent-delete input[name="confirmation"]::placeholder {
+  color: #7a8798;
+  opacity: 1;
+}
+
+.admin-permanent-delete input[name="confirmation"]:focus {
+  outline: 2px solid var(--dm3oi-cyan);
+  outline-offset: 2px;
+  border-color: var(--dm3oi-cyan);
+}
