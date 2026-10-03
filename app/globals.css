@@ -11597,3 +11597,56 @@ dialog.task-modal.intake-document-availability-modal {
     background:#e8edf2;
   }
 }
+
+/* SUPER_ADMIN permanent identity deletion controls */
+.admin-permanent-delete form {
+  display: grid;
+  gap: 14px;
+  max-width: 520px;
+  margin-top: 18px;
+}
+
+.admin-permanent-delete form label {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+}
+
+.admin-permanent-delete form label > span {
+  font-weight: 700;
+}
+
+.admin-permanent-delete form input[name="confirmation"] {
+  width: 100%;
+  max-width: 420px;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.admin-permanent-delete .form-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: auto;
+  margin: 0;
+}
+
+.admin-permanent-delete .form-actions button {
+  width: auto;
+  min-width: 170px;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .admin-permanent-delete form {
+    max-width: 100%;
+  }
+
+  .admin-permanent-delete form input[name="confirmation"] {
+    max-width: 100%;
+  }
+
+  .admin-permanent-delete .form-actions button {
+    width: 100%;
+  }
+}
