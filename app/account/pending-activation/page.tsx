@@ -2,16 +2,17 @@ import { AuthCard } from "@/components/auth-card";
 import { PendingActivationReconciler } from "@/components/pending-activation-reconciler";
 import { redirect } from "next/navigation";
 import { signOutAction } from "@/lib/auth/actions";
+import { getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { getMyPendingOrganizationMembership } from "@/lib/auth/pending-organization-membership";
 
 export default async function PendingActivationPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const [access, supabase] = await Promise.all([
+    getAccessContext(),
+    createClient(),
+  ]);
 
-  if (!user) redirect("/login");
+  if (!access?.user) redirect("/login");
 
   const membership = await getMyPendingOrganizationMembership(supabase);
 
@@ -19,7 +20,7 @@ export default async function PendingActivationPage() {
     const { data: activeMembership } = await supabase
       .from("organization_members")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", access.user.id)
       .eq("status", "ACTIVE")
       .eq("is_active", true)
       .limit(1)

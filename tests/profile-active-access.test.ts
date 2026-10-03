@@ -16,12 +16,15 @@ test("inactive profiles are rejected by proxy and request-scoped access resoluti
   const migration = source(
     "supabase/migrations/20261002012000_dm3oi_fast_access_context.sql",
   );
-
-  assert.match(
-    proxy,
-    /from\("profiles"\)\.select\("is_active"\)\.eq\("id",user\.id\)\.maybeSingle\(\)/,
+  const routeStateMigration = source(
+    "supabase/migrations/20261003120000_dm3oi_route_access_state.sql",
   );
-  assert.match(proxy, /profile\.data\?\.is_active===false/);
+
+  assert.match(proxy, /rpc\("get_my_route_access_state"\)/);
+  assert.match(proxy, /profileActive=routeState\?\.profile_active===true/);
+  assert.match(proxy, /if\(!profileActive\)/);
+  assert.match(routeStateMigration, /from public\.profiles profile/);
+  assert.match(routeStateMigration, /where profile\.id = actor_id/);
 
   assert.match(context, /get_my_access_context/);
   assert.match(

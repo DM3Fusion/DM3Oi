@@ -87,6 +87,7 @@ test("invitation completion is public to the access guard and failures stay expl
 
 test("confirmed-but-INVITED organization identities remain resendable for lifecycle recovery", () => {
   const actions = source("lib/data/user-invitation-actions.ts");
+  const evaluator = source("lib/data/invitation-eligibility.ts");
   const eligibility = actions.slice(
     actions.indexOf("export async function getInvitationEligibility"),
     actions.indexOf("export async function updateUserProfileAction"),
@@ -96,8 +97,10 @@ test("confirmed-but-INVITED organization identities remain resendable for lifecy
     actions.indexOf("export async function getInvitationEligibility"),
   );
 
-  assert.match(eligibility, /member\.status !== "INVITED"/);
-  assert.match(eligibility, /return !error && Boolean\(data\?\.user\?\.email\)/);
+  assert.match(eligibility, /membershipStatus: membershipResult\.data\?\.status/);
+  assert.match(eligibility, /evaluateInvitationEligibility/);
+  assert.match(evaluator, /facts\.membershipStatus === "INVITED"/);
+  assert.match(evaluator, /if \(facts\.organizationId\) \{/);
   assert.match(resend, /!organizationId && \(targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at\)/);
   assert.match(resend, /targetUser\.email_confirmed_at \|\| targetUser\.last_sign_in_at[\s\S]*\? "magiclink"[\s\S]*: "invite"/);
   assert.match(resend, /type: resendLinkType/);
@@ -178,7 +181,7 @@ test("pending organization identities reach awaiting activation without gaining 
 
   assert.match(
     proxy,
-    /getMyPendingOrganizationMembership\(supabase\)/,
+    /rpc\("get_my_route_access_state"\)/,
   );
   assert.doesNotMatch(
     proxy,

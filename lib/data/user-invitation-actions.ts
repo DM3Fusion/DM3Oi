@@ -20,6 +20,7 @@ import type { User } from "@supabase/supabase-js";
 import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permissions";
 import { resolvePendingInviteIdentityRepair } from "@/lib/data/pending-invite-identity";
 import { sendOrganizationInvitationEmail } from "@/lib/data/organization-invitation-email-service";
+import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -874,17 +875,38 @@ export async function getInvitationEligibility(userId: string, organizationId?: 
     const admin = createAdminClient();
     if (organizationId) {
       const session = await createClient();
-      const [{ data: member }, { data: platformRole }] = await Promise.all([
+      const [membershipResult, platformRoleResult, authResult] = await Promise.all([
         session.from("organization_members").select("id,status").eq("organization_id", organizationId).eq("user_id", userId).maybeSingle(),
         admin.from("platform_user_roles").select("id").eq("user_id", userId).eq("role", "SUPER_ADMIN").eq("is_active", true).maybeSingle(),
+        admin.auth.admin.getUserById(userId),
       ]);
-      if (!member || member.status !== "INVITED" || (!access.isSuperAdmin && platformRole)) return false;
-      const { data, error } = await admin.auth.admin.getUserById(userId);
-      return !error && Boolean(data?.user?.email);
+      if (
+        membershipResult.error ||
+        platformRoleResult.error ||
+        authResult.error
+      ) return false;
+      return evaluateInvitationEligibility({
+        organizationId,
+        membershipStatus: membershipResult.data?.status,
+        targetHasActiveSuperAdminRole: Boolean(platformRoleResult.data),
+        authEmail: authResult.data.user?.email,
+        authEmailConfirmedAt: authResult.data.user?.email_confirmed_at,
+        authLastSignInAt: authResult.data.user?.last_sign_in_at,
+        actorIsSuperAdmin: access.isSuperAdmin,
+        actorCanManageOrganization: Boolean(orgAdmin),
+      });
     }
     const { data, error } = await admin.auth.admin.getUserById(userId);
     const user = data?.user;
-    return !error && Boolean(user?.email) && !user?.email_confirmed_at && !user?.last_sign_in_at;
+    if (error) return false;
+    return evaluateInvitationEligibility({
+      targetHasActiveSuperAdminRole: false,
+      authEmail: user?.email,
+      authEmailConfirmedAt: user?.email_confirmed_at,
+      authLastSignInAt: user?.last_sign_in_at,
+      actorIsSuperAdmin: access.isSuperAdmin,
+      actorCanManageOrganization: false,
+    });
   } catch { return false; }
 }
 export async function updateUserProfileAction(form: FormData) {

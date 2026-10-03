@@ -3780,6 +3780,16 @@ created_at: string
         Args: { target_organization_id: string }
         Returns: number
       }
+      get_my_route_access_state: {
+        Args: never
+        Returns: {
+          has_active_customer_portal_access: boolean
+          has_active_organization_access: boolean
+          has_active_super_admin_access: boolean
+          has_pending_organization_membership: boolean
+          profile_active: boolean
+        }[]
+      }
       mark_all_notifications_read: {
         Args: { target_organization_id: string }
         Returns: number

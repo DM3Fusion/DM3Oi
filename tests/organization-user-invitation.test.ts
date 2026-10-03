@@ -98,7 +98,8 @@ test("invitation reuses canonical Auth, profile, and membership infrastructure",
   assert.match(actions, /deleteUser\(userId\)|deleteUser\(targetUserId\)/);
   assert.match(actions, /revalidatePath\("\/users"\)/);
   assert.match(actions, /Invitation sent\./);
-  assert.match(usersPage, /getInvitationEligibility/);
+  assert.match(usersPage, /evaluateInvitationEligibility/);
+  assert.doesNotMatch(usersPage, /getInvitationEligibility/);
   assert.match(usersPage, /ResendInviteButton/);
 });
 

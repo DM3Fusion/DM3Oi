@@ -33,17 +33,17 @@ test("pending organization membership lookup is authenticated self-only and narr
   );
 });
 
-test("proxy resolves pending organization access without broad inactive-membership RLS reads", () => {
+test("proxy resolves pending organization access through the consolidated self-only state", () => {
   const proxy = source("proxy.ts");
 
-  assert.match(proxy, /getMyPendingOrganizationMembership\(supabase\)/);
+  assert.match(proxy, /rpc\("get_my_route_access_state"\)/);
   assert.match(
     proxy,
-    /const hasPendingOrganizationAccess=Boolean\(pendingMembership\)/,
+    /hasPendingOrganizationAccess=routeState\?\.has_pending_organization_membership===true/,
   );
   assert.doesNotMatch(
     proxy,
-    /organization_members"\)\.select\("id,status"\)\.eq\("user_id",user\.id\)\.eq\("is_active",false\)/,
+    /getMyPendingOrganizationMembership|\.from\("organization_members"\)/,
   );
   assert.match(
     proxy,
@@ -57,6 +57,8 @@ test("pending activation page uses the same self-only membership projection", ()
   assert.match(page, /getMyPendingOrganizationMembership\(supabase\)/);
   assert.match(page, /membership\.organization_name/);
   assert.match(page, /membership\.status === "VERIFIED"/);
+  assert.match(page, /getAccessContext\(\)/);
+  assert.doesNotMatch(page, /auth\.getUser\(\)/);
   assert.doesNotMatch(
     page,
     /\.from\("organization_members"\)[\s\S]{0,220}\.in\("status", \["INVITED", "VERIFIED"\]\)/,

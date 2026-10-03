@@ -3,29 +3,26 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getPublicEnvironment } from "@/lib/config/env";
 import { safeInternalPath } from "@/lib/auth/redirects";
 import type { Database } from "@/types/database.generated";
-import { getMyPendingOrganizationMembership } from "@/lib/auth/pending-organization-membership";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out"];
 const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction","/api/analytics/presence"]);
 export async function proxy(request:NextRequest){
- let response=NextResponse.next({request}); const env=getPublicEnvironment(); const pathname=request.nextUrl.pathname;
+ let response=NextResponse.next({request}); const pathname=request.nextUrl.pathname;
  if(pathname==="/auth/callback") return response;
- if(!env.configured){if(isProtected(pathname))return NextResponse.redirect(new URL("/login?error=Supabase%20environment%20variables%20are%20not%20configured.",request.url));return response;}
+ if(publicAnalyticsRoutes.has(pathname)) return response;
+ const protectedRoute=isProtected(pathname); const env=getPublicEnvironment();
+ if(!env.configured){if(protectedRoute)return NextResponse.redirect(new URL("/login?error=Supabase%20environment%20variables%20are%20not%20configured.",request.url));return response;}
  const supabase=createServerClient<Database>(env.supabaseUrl,env.supabaseAnonKey,{cookies:{getAll:()=>request.cookies.getAll(),setAll(items){items.forEach(({name,value})=>request.cookies.set(name,value));response=NextResponse.next({request});items.forEach(({name,value,options})=>response.cookies.set(name,value,options));}}});
  const {data:{user}}=await supabase.auth.getUser();
- if(!user&&isProtected(pathname)){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
+ if(!user&&protectedRoute){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
  if(user&&pathname==="/login")return NextResponse.redirect(new URL("/",request.url));
- if(user&&isProtected(pathname)){
-  const [profile,platform,activeMembership,pendingMembership,portal]=await Promise.all([
-   supabase.from("profiles").select("is_active").eq("id",user.id).maybeSingle(),
-   supabase.from("platform_user_roles").select("id").eq("user_id",user.id).eq("role","SUPER_ADMIN").eq("is_active",true).limit(1),
-   supabase.from("organization_members").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
-   getMyPendingOrganizationMembership(supabase),
-   supabase.from("customer_portal_users").select("id").eq("user_id",user.id).eq("is_active",true).limit(1),
-  ]);
-  const hasActiveAccess=Boolean(platform.data?.length||activeMembership.data?.length||portal.data?.length);
-  const hasPendingOrganizationAccess=Boolean(pendingMembership);
+ if(user&&protectedRoute){
+  const {data:routeState,error:routeStateError}=await supabase.rpc("get_my_route_access_state").maybeSingle();
+  if(routeStateError)console.error("Proxy route access state lookup failed",{code:routeStateError.code,message:routeStateError.message});
+  const profileActive=routeState?.profile_active===true;
+  const hasActiveAccess=Boolean(routeState?.has_active_super_admin_access||routeState?.has_active_organization_access||routeState?.has_active_customer_portal_access);
+  const hasPendingOrganizationAccess=routeState?.has_pending_organization_membership===true;
 
-  if(profile.data?.is_active===false){
+  if(!profileActive){
    if(pathname!=="/account/unprovisioned")return NextResponse.redirect(new URL("/account/unprovisioned",request.url));
   }else if(!hasActiveAccess&&hasPendingOrganizationAccess){
    if(pathname!=="/account/pending-activation")return NextResponse.redirect(new URL("/account/pending-activation",request.url));

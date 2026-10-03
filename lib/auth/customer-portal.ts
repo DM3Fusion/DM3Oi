@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -62,7 +63,7 @@ export async function resolveEffectiveCustomerPortalAccessesForUser(
   };
 }
 
-export async function getCustomerPortalContext(): Promise<CustomerPortalContext | null> {
+async function resolveCustomerPortalContext(): Promise<CustomerPortalContext | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -88,6 +89,10 @@ export async function getCustomerPortalContext(): Promise<CustomerPortalContext 
   const effectiveSettings = resolved.settings ?? { portal_enabled: true, portal_submission_enabled: true, portal_show_priority: true, timezone: "UTC" };
   return { user, access: resolved.link, organization: resolved.organization, customer: resolved.customer, links: effectiveAccesses.map((item) => item.link), settings: effectiveSettings, reason: "VALID" };
 }
+
+// React clears cache() between Server Component requests. Portal layouts and
+// pages share one authoritative resolution without persisting user data.
+export const getCustomerPortalContext = cache(resolveCustomerPortalContext);
 
 export async function requireCustomerPortalContext(): Promise<CustomerPortalContext> {
   const context = await getCustomerPortalContext();

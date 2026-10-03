@@ -5,7 +5,7 @@ import { requirePermission } from "@/lib/auth/context";
 import { canInviteOrganizationUsers } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
+import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 import { UrlSearch } from "@/components/question-search";
 import { normalizeUserQuery, userMatchesSearch } from "@/lib/user-filters";
 import { NavigableRow } from "@/components/navigable-row";
@@ -78,6 +78,8 @@ export default async function Page({
         error || !data.user
           ? null
           : {
+              email: data.user.email ?? null,
+              emailConfirmedAt: data.user.email_confirmed_at ?? null,
               lastSignInAt: data.user.last_sign_in_at ?? null,
             },
       ] as const;
@@ -85,11 +87,23 @@ export default async function Page({
   );
   const authByUserId = new Map(authUsers);
 
-  const eligible = await Promise.all(
-    rows.map(
-      async (m) =>
-        [m.user_id, await getInvitationEligibility(m.user_id, org.id)] as const,
-    ),
+  const eligible = new Map(
+    rows.map((member) => {
+      const authUser = authByUserId.get(member.user_id);
+      return [
+        member.user_id,
+        evaluateInvitationEligibility({
+          organizationId: org.id,
+          membershipStatus: member.status,
+          targetHasActiveSuperAdminRole: platformAdminIds.has(member.user_id),
+          authEmail: authUser?.email,
+          authEmailConfirmedAt: authUser?.emailConfirmedAt,
+          authLastSignInAt: authUser?.lastSignInAt,
+          actorIsSuperAdmin: context.isSuperAdmin,
+          actorCanManageOrganization: canManageUsers,
+        }),
+      ] as const;
+    }),
   );
   return (
     <>
@@ -214,7 +228,7 @@ export default async function Page({
                           )}
 
                           {m.status === "INVITED" &&
-                          eligible.find(([id]) => id === m.user_id)?.[1] ? (
+                          eligible.get(m.user_id) ? (
                             <ResendInviteButton
                               userId={m.user_id}
                               organizationId={org.id}

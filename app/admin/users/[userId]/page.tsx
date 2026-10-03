@@ -9,8 +9,8 @@ import {
   addUserMembershipAction,
   updateUserMembershipAction,
   transitionUserMembershipAction,
-  getInvitationEligibility,
 } from "@/lib/data/user-invitation-actions";
+import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 import { ApplicationIcon } from "@/components/application-icon";
 import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
 import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
@@ -34,7 +34,14 @@ export default async function Page({
     getPlatformUser(userId),
     getAccessContext(),
   ]);
-  const invitationEligible = await getInvitationEligibility(user.id);
+  const invitationEligible = evaluateInvitationEligibility({
+    targetHasActiveSuperAdminRole: user.platformAdmin,
+    authEmail: user.authEmail,
+    authEmailConfirmedAt: user.emailConfirmedAt,
+    authLastSignInAt: user.lastSignInAt,
+    actorIsSuperAdmin: access?.isSuperAdmin === true,
+    actorCanManageOrganization: false,
+  });
   const revokedMembership =
     user.memberships.find((membership) => membership.status === "REVOKED") ??
     null;

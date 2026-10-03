@@ -76,13 +76,24 @@ test("organization user detail signs only the membership-scoped profile avatar",
   assert.match(detail, /hasPermission\(access, "VIEW_USERS"\)/);
   assert.match(detail, /\.eq\("id", membershipId\)/);
   assert.match(detail, /\.eq\("organization_id", access\.activeOrganization\.id\)/);
-  assert.match(detail, /getPlatformAdminUserIds\(\)[\s\S]*has\(membership\.user_id\)\)notFound\(\)/);
+  assert.match(detail, /const platformAdminIds = await getPlatformAdminUserIds\(\)/);
+  assert.match(
+    detail,
+    /const targetHasActiveSuperAdminRole = platformAdminIds\.has\(\s*membership\.user_id,?\s*\)/,
+  );
+  assert.match(
+    detail,
+    /if \(targetHasActiveSuperAdminRole\) notFound\(\)/,
+  );
   assert.ok(
     detail.indexOf("getPlatformAdminUserIds()") <
       detail.indexOf("attachAuthorizedAvatarUrls("),
   );
   assert.match(detail, /attachAuthorizedAvatarUrls\(\[membershipProfile\]\)/);
-  assert.doesNotMatch(detail, /createAdminClient/);
+  assert.ok(
+    detail.indexOf("attachAuthorizedAvatarUrls([membershipProfile])") <
+      detail.indexOf("createAdminClient().auth.admin.getUserById"),
+  );
   assert.match(detail, /src=\{profile\?\.avatarUrl\}/);
   assert.match(detail, /size="lg"/);
 });

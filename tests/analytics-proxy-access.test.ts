@@ -52,7 +52,7 @@ test("the analytics exemption does not make unrelated or nested API routes publi
   assert.doesNotMatch(proxy, /pathname\.startsWith\(`\/api\/analytics/);
   assert.match(
     proxy,
-    /if\(!user&&isProtected\(pathname\)\)\{const target=new URL\("\/login"/,
+    /if\(!user&&protectedRoute\)\{const target=new URL\("\/login"/,
   );
 });
 
@@ -63,5 +63,12 @@ test("existing public routes and authenticated proxy behavior remain unchanged",
   );
   assert.match(proxy, /supabase\.auth\.getUser\(\)/);
   assert.match(proxy, /if\(user&&pathname==="\/login"\)/);
-  assert.match(proxy, /if\(user&&isProtected\(pathname\)\)/);
+  assert.match(proxy, /if\(user&&protectedRoute\)/);
+});
+
+test("public analytics routes return before Supabase Auth verification", () => {
+  assert.ok(
+    proxy.indexOf("if(publicAnalyticsRoutes.has(pathname)) return response") <
+      proxy.indexOf("supabase.auth.getUser()"),
+  );
 });

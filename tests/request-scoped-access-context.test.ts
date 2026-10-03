@@ -144,8 +144,9 @@ test("proxy and Customer Portal retain separate fresh authorization stages", () 
 
   assert.match(proxy, /supabase\.auth\.getUser\(\)/);
   assert.doesNotMatch(proxy, /getAccessContext|cache\(/);
-  assert.match(portal, /export async function getCustomerPortalContext/);
+  assert.match(portal, /async function resolveCustomerPortalContext/);
+  assert.match(portal, /getCustomerPortalContext = cache\(resolveCustomerPortalContext\)/);
   assert.match(portal, /supabase\.auth\.getUser\(\)/);
   assert.match(portal, /ACTIVE_PORTAL_ACCESS_COOKIE/);
-  assert.doesNotMatch(portal, /getAccessContext|cache\(/);
+  assert.doesNotMatch(portal, /getAccessContext|unstable_cache/);
 });

@@ -46,6 +46,8 @@ export interface PlatformUserRow {
   avatarUrl: string | null;
   profileExists: boolean;
   authAccountExists: boolean;
+  authEmail: string | null;
+  emailConfirmedAt: string | null;
   lastSignInAt: string | null;
   userSinceAt: string | null;
   status: PlatformUserStatus;
@@ -299,6 +301,8 @@ export async function getPlatformAdministration() {
       avatarUrl: profile?.avatarUrl ?? null,
       profileExists: Boolean(profile),
       authAccountExists: Boolean(authUser),
+      authEmail: authUser?.email ?? null,
+      emailConfirmedAt: authUser?.email_confirmed_at ?? null,
       lastSignInAt: authUser?.last_sign_in_at ?? null,
       userSinceAt: authUser?.created_at ?? profile?.created_at ?? null,
       status,

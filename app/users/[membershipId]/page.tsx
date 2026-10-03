@@ -10,10 +10,11 @@ import {
   transitionOrganizationMembershipAction,
   reassignOrganizationUserWorkAction,
 } from "@/lib/data/organization-user-actions";
-import { getInvitationEligibility } from "@/lib/data/user-invitation-actions";
+import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 import { ORGANIZATION_USER_ROLES, isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import { formatDate } from "@/lib/format";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getPlatformAdminUserIds } from "@/lib/data/platform-privacy";
 import { attachAuthorizedAvatarUrls } from "@/lib/data/avatar-urls";
 import { OrganizationUserProfileEditor } from "@/components/organization-user-profile-editor";
@@ -49,7 +50,11 @@ export default async function Page({
     .eq("organization_id", access.activeOrganization.id)
     .maybeSingle();
   if (!membership) notFound();
-  if((await getPlatformAdminUserIds()).has(membership.user_id))notFound();
+  const platformAdminIds = await getPlatformAdminUserIds();
+  const targetHasActiveSuperAdminRole = platformAdminIds.has(
+    membership.user_id,
+  );
+  if (targetHasActiveSuperAdminRole) notFound();
 
   const membershipProfile = Array.isArray(membership.profiles)
     ? membership.profiles[0]
@@ -70,11 +75,20 @@ export default async function Page({
   const canViewUserAccess=
     hasPermission(access,"VIEW_SETTINGS") &&
     hasPermission(access,"MANAGE_ROLE_PERMISSIONS");
+  const authIdentity = canManage
+    ? await createAdminClient().auth.admin.getUserById(membership.user_id)
+    : null;
   const invitationEligible = canManage
-    ? await getInvitationEligibility(
-        membership.user_id,
-        access.activeOrganization.id,
-      )
+    ? evaluateInvitationEligibility({
+        organizationId: access.activeOrganization.id,
+        membershipStatus: membership.status,
+        targetHasActiveSuperAdminRole,
+        authEmail: authIdentity?.data.user?.email,
+        authEmailConfirmedAt: authIdentity?.data.user?.email_confirmed_at,
+        authLastSignInAt: authIdentity?.data.user?.last_sign_in_at,
+        actorIsSuperAdmin: access.isSuperAdmin,
+        actorCanManageOrganization: canManage,
+      })
     : false;
 
   const revokedWorkload =
