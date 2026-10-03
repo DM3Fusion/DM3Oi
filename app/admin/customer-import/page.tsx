@@ -17,7 +17,7 @@ export default async function Page() {
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Customer Import"
         description="Review organization source files, prepare canonical CSV data, then validate and import Customers."
       />

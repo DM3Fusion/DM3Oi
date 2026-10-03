@@ -7,5 +7,5 @@ export const metadata = { title: "Duplicate Customers" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ organizationId?: string }> }) {
   const params = await searchParams;
   const data = await getDuplicateWorkspace(params.organizationId);
-  return <><PageHeader eyebrow="Platform Administration" title="Duplicate Customers" /><CustomerDuplicateWorkspace organizations={data.organizations} organizationId={data.selected?.id ?? ""} customers={data.customers} pairs={data.pairs} history={data.history} /></>;
+  return <><PageHeader eyebrow="Platform Operationsistration" title="Duplicate Customers" /><CustomerDuplicateWorkspace organizations={data.organizations} organizationId={data.selected?.id ?? ""} customers={data.customers} pairs={data.pairs} history={data.history} /></>;
 }

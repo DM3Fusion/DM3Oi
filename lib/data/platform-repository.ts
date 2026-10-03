@@ -71,7 +71,7 @@ export interface PlatformUserRow {
     effective: boolean;
   }[];
   accessState:
-    | "Platform Admin"
+    | "Platform Operations"
     | "Organization User"
     | "Customer Portal User"
     | "Pending Access";

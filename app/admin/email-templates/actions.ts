@@ -63,7 +63,7 @@ export async function sendEmailTemplateTestAction(form: FormData) {
   if (!isEmailTemplateKey(templateKey) || !context.user.email)
     redirect(destination(templateKey, "error=test"));
   const definition = emailTemplateDefinitions.find((item) => item.key === templateKey)!;
-  const recipientName = context.displayName || "Platform Administrator";
+  const recipientName = context.displayName || "Platform Operationsistrator";
   const result = await sendTrackedTemplateEmail({
     templateKey,
     recipientEmail: context.user.email,

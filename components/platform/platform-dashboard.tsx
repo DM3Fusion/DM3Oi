@@ -49,7 +49,7 @@ export function PlatformDashboard({
       tone: "slate",
     },
     {
-      label: "Platform Administrators",
+      label: "Platform Operationsistrators",
       value: summary.platformAdministrators,
       icon: "platform",
       tone: "violet",

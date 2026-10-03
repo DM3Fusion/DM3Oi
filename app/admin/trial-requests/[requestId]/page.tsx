@@ -336,7 +336,7 @@ export default async function TrialRequestDetailPage({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title={`Trial Request #${request.request_number}`}
         description={request.business_name}
       />

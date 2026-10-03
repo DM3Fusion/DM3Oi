@@ -44,7 +44,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Organizations"
       />
       {params.message ? (

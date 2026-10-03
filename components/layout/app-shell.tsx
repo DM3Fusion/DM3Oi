@@ -416,7 +416,7 @@ export function AppShell({
           </button> : null}
           <div className="workspace product-tagline" aria-label="People. Work. Progress. Intelligence.">
             <strong><span>People.</span> Work. Progress. Intelligence.</strong>
-            <small>{platformContext ? "Platform Administration" : <span className="organization-context"><span className="organization-context-prefix">for</span><b className="organization-context-name">{org?.name ?? "No active organization"}</b></span>}</small>
+            <small>{platformContext ? "Platform Operationsistration" : <span className="organization-context"><span className="organization-context-prefix">for</span><b className="organization-context-name">{org?.name ?? "No active organization"}</b></span>}</small>
           </div>
           {access ? <AccountMenu displayName={access.displayName} title={access.title} email={access.user.email} avatarUrl={access.avatarUrl} /> : null}
         </header>

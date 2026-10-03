@@ -25,7 +25,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Create user"
         description="Invite a DM3Oi user and optionally provision initial organization access."
       />

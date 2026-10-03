@@ -40,7 +40,7 @@ export function classifyAccess(input: {
   activeOrganizationMembership: boolean;
   activePortalAccess: boolean;
 }) {
-  if (input.platformAdmin) return "Platform Admin" as const;
+  if (input.platformAdmin) return "Platform Operations" as const;
   if (input.activeOrganizationMembership) return "Organization User" as const;
   if (input.activePortalAccess) return "Customer Portal User" as const;
   return "Pending Access" as const;

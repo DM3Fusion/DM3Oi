@@ -32,7 +32,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Platform Users"
         action={
           <Link className="primary-button" href="/admin/users/new">

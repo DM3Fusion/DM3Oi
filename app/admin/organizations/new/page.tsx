@@ -155,7 +155,7 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Setup New Organization"
         description={
           trialRequest

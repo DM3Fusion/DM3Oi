@@ -464,7 +464,7 @@ export default async function TrialRequestsPage({
   return (
     <>
       <PageHeader
-        eyebrow="Platform Administration"
+        eyebrow="Platform Operationsistration"
         title="Trial Requests"
         description="Review organizations requesting access to a DM3Oi trial workspace."
       />
