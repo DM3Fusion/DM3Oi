@@ -12254,3 +12254,10 @@ dialog.task-modal.intake-document-availability-modal {
   margin-top: 0.75rem;
   margin-bottom: 1rem;
 }
+
+/* Public landing — Download button proportion refinement only */
+.public-home-overview-button {
+  min-width: 14.4rem;   /* about 20% wider */
+  padding-top: 0.51rem; /* about 15% shorter */
+  padding-bottom: 0.51rem;
+}
