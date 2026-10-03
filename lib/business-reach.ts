@@ -61,6 +61,17 @@ export type BusinessReachGeocodeResult = {
   longitude: number;
 };
 
+export type BusinessReachUnmappedCustomer = {
+  customerId: string;
+  customerNumber: string;
+  customerName: string;
+  streetAddress: string | null;
+  city: string | null;
+  state: string | null;
+  postalCode: string | null;
+  mappingStatus: "PENDING" | "UNMAPPABLE";
+};
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -149,6 +160,31 @@ export function parseBusinessReachCandidates(payload: unknown): BusinessReachCan
       addressFingerprint: item.addressFingerprint,
     };
     return fingerprintBusinessReachAddress(candidate) === candidate.addressFingerprint ? [candidate] : [];
+  });
+}
+
+export function normalizeBusinessReachUnmappedCustomers(
+  payload: unknown,
+): BusinessReachUnmappedCustomer[] {
+  if (!Array.isArray(payload)) return [];
+  return payload.flatMap((item): BusinessReachUnmappedCustomer[] => {
+    if (
+      !isRecord(item) ||
+      typeof item.customerId !== "string" ||
+      typeof item.customerNumber !== "string" ||
+      typeof item.customerName !== "string" ||
+      (item.mappingStatus !== "PENDING" && item.mappingStatus !== "UNMAPPABLE")
+    ) return [];
+    return [{
+      customerId: item.customerId,
+      customerNumber: item.customerNumber,
+      customerName: item.customerName,
+      streetAddress: typeof item.streetAddress === "string" ? item.streetAddress : null,
+      city: typeof item.city === "string" ? item.city : null,
+      state: typeof item.state === "string" ? item.state : null,
+      postalCode: typeof item.postalCode === "string" ? item.postalCode : null,
+      mappingStatus: item.mappingStatus,
+    }];
   });
 }
 

@@ -5,6 +5,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { BusinessReachMap } from "@/components/reports/business-reach-map";
 import { mapBusinessReachCustomersAction } from "@/lib/data/business-reach-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
+import { buildReportRouteHref } from "@/lib/report-route-state";
 
 const formatDays = (value: number | null) => value === null ? "—" : `${value.toFixed(value < 10 ? 1 : 0)} days`;
 const formatKpi = (label: string, value: number | null) => {
@@ -39,6 +40,13 @@ function BusinessReach({
   period: OperationalReport["period"];
   status?: string;
 }) {
+  const unmappedHref = buildReportRouteHref("/reports/unmapped-customers", {
+    period: period.key,
+    compare: period.comparison,
+    from: period.key === "custom" ? period.range.from : undefined,
+    to: period.key === "custom" ? period.range.to : undefined,
+    reach: status,
+  });
   const mapAction = report.available && !report.loadError && report.canRefresh && report.pendingCustomers > 0 ? (
     <form action={mapBusinessReachCustomersAction}>
       <input type="hidden" name="period" value={period.key} />
@@ -54,11 +62,19 @@ function BusinessReach({
       {mapAction}
     </div>
     {!report.available ? <div className="no-results">Business Reach requires Customer access.</div> : report.loadError ? <div className="no-results">Business Reach is temporarily unavailable. Operational reports are unaffected.</div> : <>
-      <dl className="business-reach-metrics" aria-label="Current customer geographic footprint">
-        <div className="report-kpi business-reach-kpi"><dt><small>Customers mapped</small></dt><dd><strong>{report.mappedCustomers.toLocaleString("en-US")}</strong></dd></div>
-        <div className="report-kpi business-reach-kpi"><dt><small>Without mapped location</small></dt><dd><strong>{report.unmappedCustomers.toLocaleString("en-US")}</strong></dd></div>
-        <div className="report-kpi business-reach-kpi"><dt><small>Unique locations</small></dt><dd><strong>{report.uniqueLocations.toLocaleString("en-US")}</strong><span>mapped {report.uniqueLocations === 1 ? "location" : "locations"}</span></dd></div>
-      </dl>
+      <div className="business-reach-metrics" role="group" aria-label="Current customer geographic footprint">
+        <div className="report-kpi business-reach-kpi"><small>Customers mapped</small><strong>{report.mappedCustomers.toLocaleString("en-US")}</strong></div>
+        {report.unmappedCustomers > 0 ? (
+          <Link className="report-kpi business-reach-kpi business-reach-kpi-link" href={unmappedHref} scroll={false} prefetch={false}>
+            <small>Without mapped location</small>
+            <strong>{report.unmappedCustomers.toLocaleString("en-US")}</strong>
+            <span>View addresses</span>
+          </Link>
+        ) : (
+          <div className="report-kpi business-reach-kpi"><small>Without mapped location</small><strong>0</strong></div>
+        )}
+        <div className="report-kpi business-reach-kpi"><small>Unique locations</small><strong>{report.uniqueLocations.toLocaleString("en-US")}</strong><span>mapped {report.uniqueLocations === 1 ? "location" : "locations"}</span></div>
+      </div>
       {status === "mapped" ? <p className="business-reach-notice success-alert">Customer locations were mapped from the next available batch.</p> : null}
       {status === "empty" ? <p className="business-reach-notice">All current customer locations have already been evaluated.</p> : null}
       {status === "error" ? <p className="business-reach-notice form-alert">Customer locations could not be mapped. Existing report data is unchanged.</p> : null}

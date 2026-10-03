@@ -8,6 +8,7 @@ import { buildOperationalReport, isCanonicalReportParams, resolveReportingPeriod
 import {
   failedBusinessReach,
   normalizeBusinessReachPayload,
+  normalizeBusinessReachUnmappedCustomers,
   unavailableBusinessReach,
 } from "@/lib/business-reach";
 
@@ -37,6 +38,29 @@ export async function getBusinessReach() {
   }
 
   return normalizeBusinessReachPayload(data, canRefresh);
+}
+
+export async function getBusinessReachUnmappedCustomers() {
+  const access = await getAccessContext();
+  if (!access?.activeOrganization || !hasPermission(access, "VIEW_REPORTS")) redirect("/");
+  if (!hasPermission(access, "VIEW_CUSTOMERS")) redirect("/reports");
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_business_reach_unmapped_customers" as never, {
+    target_organization_id: access.activeOrganization.id,
+  } as never);
+  if (error) {
+    console.error("Business Reach unmapped customer query failed", {
+      code: error.code,
+      message: error.message,
+    });
+    return { customers: [], loadError: true };
+  }
+
+  return {
+    customers: normalizeBusinessReachUnmappedCustomers(data),
+    loadError: false,
+  };
 }
 
 export async function getOperationalReport(params: ReportSearchParams, now = new Date()) {

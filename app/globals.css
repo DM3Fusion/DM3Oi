@@ -11727,13 +11727,17 @@ dialog.task-modal.intake-document-availability-modal {
   text-align: center;
 }
 
-.business-reach-kpi dt,
-.business-reach-kpi dd {
-  margin: 0;
+.business-reach-kpi span {
+  margin-top: 2px;
 }
 
-.business-reach-kpi dd span {
-  margin-top: 2px;
+.business-reach-kpi-link {
+  cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+
+.business-reach-kpi-link:hover {
+  transform: translateY(-1px);
 }
 
 .business-reach-map {
@@ -11825,6 +11829,106 @@ dialog.task-modal.intake-document-availability-modal {
   background: #fff;
   color: var(--ink);
   box-shadow: 0 24px 64px rgba(16, 24, 40, .24);
+}
+
+.business-reach-unmapped-modal {
+  width: min(1000px, calc(100vw - 48px));
+}
+
+.business-reach-unmapped-page {
+  overflow: hidden;
+}
+
+.business-reach-unmapped-list {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.business-reach-unmapped-head,
+.business-reach-unmapped-row {
+  display: grid;
+  grid-template-columns: minmax(180px, .85fr) minmax(280px, 1.35fr) minmax(150px, .65fr);
+  gap: 18px;
+  align-items: center;
+}
+
+.business-reach-unmapped-head {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  background: #f8fafc;
+}
+
+.business-reach-unmapped-head span {
+  color: #52677d;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+
+.business-reach-unmapped-row {
+  min-width: 0;
+  padding: 15px 16px;
+  border-bottom: 1px solid #e8edf2;
+}
+
+.business-reach-unmapped-row:last-child {
+  border-bottom: 0;
+}
+
+.business-reach-unmapped-row > div,
+.business-reach-unmapped-row a {
+  min-width: 0;
+}
+
+.business-reach-unmapped-row a,
+.business-reach-unmapped-row strong,
+.business-reach-unmapped-row div > span:not(.badge) {
+  display: block;
+}
+
+.business-reach-unmapped-row a {
+  color: #1768e5;
+}
+
+.business-reach-unmapped-row a:hover strong {
+  text-decoration: underline;
+}
+
+.business-reach-unmapped-row a:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #1688c7;
+  outline-offset: 3px;
+}
+
+.business-reach-unmapped-row strong {
+  overflow-wrap: anywhere;
+  color: #263548;
+  font-size: 15px;
+}
+
+.business-reach-unmapped-row a strong {
+  color: #1768e5;
+}
+
+.business-reach-unmapped-row a span,
+.business-reach-unmapped-row div > span:not(.badge) {
+  margin-top: 3px;
+  overflow-wrap: anywhere;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.business-reach-mapping-pending {
+  background: #fff1d5;
+  color: #9a650b;
+}
+
+.business-reach-mapping-unmappable {
+  background: #eef1f3;
+  color: #536277;
 }
 
 .customer-route-modal::backdrop {
@@ -11933,6 +12037,31 @@ dialog.task-modal.intake-document-availability-modal {
   .customer-route-modal-body {
     padding: 14px;
   }
+
+  .business-reach-unmapped-modal {
+    width: calc(100vw - 24px);
+  }
+
+  .business-reach-unmapped-head {
+    display: none;
+  }
+
+  .business-reach-unmapped-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding: 16px;
+  }
+
+  .business-reach-unmapped-row > div::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 5px;
+    color: #718096;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .45px;
+    text-transform: uppercase;
+  }
 }
 
 @media(max-width: 430px) {
@@ -11961,5 +12090,9 @@ dialog.task-modal.intake-document-availability-modal {
 
   .customer-route-modal-body .detail-section {
     padding: 16px 14px;
+  }
+
+  .business-reach-unmapped-modal {
+    width: calc(100vw - 12px);
   }
 }
