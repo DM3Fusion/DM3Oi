@@ -1,39 +1,16 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
-import {
-  validateTrialRequest,
-  type TrialRequestUseCase,
-} from "@/lib/trial-requests";
+import { notifyPlatformAdministratorsOfTrialRequest } from "@/lib/data/trial-request-notification-service";
+import { validateTrialRequest } from "@/lib/trial-requests";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
 
 function field(form: FormData, name: string) {
   const value = form.get(name);
   return typeof value === "string" ? value.trim() : "";
 }
-
-type TrialRequestDatabase = Database & {
-  public: Database["public"] & {
-    Functions: Database["public"]["Functions"] & {
-      submit_trial_request: {
-        Args: {
-          p_business_email: string;
-          p_business_name: string;
-          p_contact_name: string;
-          p_estimated_users: number;
-          p_other_use_case: string;
-          p_phone: string;
-          p_primary_use_case: TrialRequestUseCase;
-          p_privacy_acknowledged: boolean;
-          p_workflow_notes: string;
-        };
-        Returns: string;
-      };
-    };
-  };
-};
 
 export async function submitTrialRequest(form: FormData) {
   if (field(form, "websiteConfirmation")) {
@@ -57,11 +34,9 @@ export async function submitTrialRequest(form: FormData) {
     redirect("/request-trial?error=invalid");
   }
 
-  const supabase = (await createClient()) as ReturnType<
-    typeof import("@supabase/ssr").createServerClient<TrialRequestDatabase>
-  >;
+  const supabase = await createClient();
 
-  const { error } = await supabase.rpc(
+  const { data: trialRequestId, error } = await supabase.rpc(
     "submit_trial_request",
     {
       p_business_name: parsed.data.businessName,
@@ -93,6 +68,24 @@ export async function submitTrialRequest(form: FormData) {
     }
 
     redirect("/request-trial?error=submit");
+  }
+
+  if (typeof trialRequestId === "string") {
+    after(async () => {
+      try {
+        await notifyPlatformAdministratorsOfTrialRequest(trialRequestId);
+      } catch (notificationError) {
+        console.error("Trial request administrative email follow-up failed", {
+          trialRequestId,
+          code:
+            (notificationError as { code?: string }).code ?? "UNKNOWN",
+        });
+      }
+    });
+  } else {
+    console.error("Trial request notification could not be scheduled", {
+      code: "TRIAL_REQUEST_ID_UNAVAILABLE",
+    });
   }
 
   redirect("/request-trial?submitted=1");

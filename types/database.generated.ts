@@ -919,6 +919,128 @@ export type Database = {
           },
         ]
       }
+      email_deliveries: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          customer_id: string | null
+          delivery_status: string
+          error_code: string | null
+          error_summary: string | null
+          failed_at: string | null
+          id: string
+          membership_id: string | null
+          opened_at: string | null
+          organization_id: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          recipient_user_id: string | null
+          sent_at: string | null
+          service_request_id: string | null
+          subject: string
+          template_key: string
+          tracking_token: string
+          trial_request_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivery_status?: string
+          error_code?: string | null
+          error_summary?: string | null
+          failed_at?: string | null
+          id?: string
+          membership_id?: string | null
+          opened_at?: string | null
+          organization_id?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          service_request_id?: string | null
+          subject: string
+          template_key: string
+          tracking_token?: string
+          trial_request_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          delivery_status?: string
+          error_code?: string | null
+          error_summary?: string | null
+          failed_at?: string | null
+          id?: string
+          membership_id?: string | null
+          opened_at?: string | null
+          organization_id?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          recipient_user_id?: string | null
+          sent_at?: string | null
+          service_request_id?: string | null
+          subject?: string
+          template_key?: string
+          tracking_token?: string
+          trial_request_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_deliveries_organization_id_case_id_fkey"
+            columns: ["organization_id", "case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_organization_id_customer_id_fkey"
+            columns: ["organization_id", "customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_organization_id_membership_id_fkey"
+            columns: ["organization_id", "membership_id"]
+            isOneToOne: false
+            referencedRelation: "organization_members"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_organization_id_service_request_id_fkey"
+            columns: ["organization_id", "service_request_id"]
+            isOneToOne: false
+            referencedRelation: "service_requests"
+            referencedColumns: ["organization_id", "id"]
+          },
+          {
+            foreignKeyName: "email_deliveries_template_key_fkey"
+            columns: ["template_key"]
+            isOneToOne: false
+            referencedRelation: "platform_email_templates"
+            referencedColumns: ["template_key"]
+          },
+          {
+            foreignKeyName: "email_deliveries_trial_request_id_fkey"
+            columns: ["trial_request_id"]
+            isOneToOne: false
+            referencedRelation: "trial_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guided_case_intake_drafts: {
         Row: {
           answers: Json
@@ -1804,6 +1926,33 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_email_templates: {
+        Row: {
+          closing_message: string
+          opening_message: string
+          subject_template: string
+          template_key: string
+          updated_at: string
+          updated_by_user_id: string | null
+        }
+        Insert: {
+          closing_message: string
+          opening_message: string
+          subject_template: string
+          template_key: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Update: {
+          closing_message?: string
+          opening_message?: string
+          subject_template?: string
+          template_key?: string
+          updated_at?: string
+          updated_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       platform_user_roles: {
         Row: {
           created_at: string
@@ -2561,6 +2710,80 @@ created_at?: string
           version?: number
         }
         Relationships: []
+      }
+      trial_requests: {
+        Row: {
+          business_email: string
+          business_name: string
+          contact_name: string
+          contacted_at: string | null
+          converted_at: string | null
+          converted_organization_id: string | null
+          created_at: string
+          declined_at: string | null
+          estimated_users: number
+          id: string
+          other_use_case: string | null
+          phone: string | null
+          primary_use_case: Database["public"]["Enums"]["trial_request_use_case"]
+          privacy_acknowledged_at: string
+          qualified_at: string | null
+          request_number: number
+          status: Database["public"]["Enums"]["trial_request_status"]
+          updated_at: string
+          workflow_notes: string | null
+        }
+        Insert: {
+          business_email: string
+          business_name: string
+          contact_name: string
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_organization_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          estimated_users: number
+          id?: string
+          other_use_case?: string | null
+          phone?: string | null
+          primary_use_case: Database["public"]["Enums"]["trial_request_use_case"]
+          privacy_acknowledged_at: string
+          qualified_at?: string | null
+          request_number?: number
+          status?: Database["public"]["Enums"]["trial_request_status"]
+          updated_at?: string
+          workflow_notes?: string | null
+        }
+        Update: {
+          business_email?: string
+          business_name?: string
+          contact_name?: string
+          contacted_at?: string | null
+          converted_at?: string | null
+          converted_organization_id?: string | null
+          created_at?: string
+          declined_at?: string | null
+          estimated_users?: number
+          id?: string
+          other_use_case?: string | null
+          phone?: string | null
+          primary_use_case?: Database["public"]["Enums"]["trial_request_use_case"]
+          privacy_acknowledged_at?: string
+          qualified_at?: string | null
+          request_number?: number
+          status?: Database["public"]["Enums"]["trial_request_status"]
+          updated_at?: string
+          workflow_notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_requests_converted_organization_id_fkey"
+            columns: ["converted_organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -3451,6 +3674,20 @@ created_at: string
           isSetofReturn: false
         }
       }
+      submit_trial_request: {
+        Args: {
+          p_business_email: string
+          p_business_name: string
+          p_contact_name: string
+          p_estimated_users: number
+          p_other_use_case: string
+          p_phone: string
+          p_primary_use_case: Database["public"]["Enums"]["trial_request_use_case"]
+          p_privacy_acknowledged: boolean
+          p_workflow_notes: string
+        }
+        Returns: string
+      }
       delete_case_task: { Args: { target_task_id: string }; Returns: undefined }
       get_customer_portal_case_requirements: {
         Args: { target_portal_access_id: string }
@@ -4160,6 +4397,20 @@ created_at: string
         | "RESOLVED"
         | "CLOSED"
         | "ON_HOLD"
+      trial_request_status:
+        | "NEW"
+        | "CONTACTED"
+        | "QUALIFIED"
+        | "DECLINED"
+        | "CONVERTED"
+      trial_request_use_case:
+        | "SERVICE_DESK"
+        | "CASE_MANAGEMENT"
+        | "TASK_WORK_MANAGEMENT"
+        | "COMMUNICATIONS"
+        | "WORKFLOW_AUTOMATION"
+        | "OPERATIONAL_REPORTING"
+        | "OTHER_OPERATIONAL_WORKFLOW"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -4368,6 +4619,22 @@ export const Constants = {
         "RESOLVED",
         "CLOSED",
         "ON_HOLD",
+      ],
+      trial_request_status: [
+        "NEW",
+        "CONTACTED",
+        "QUALIFIED",
+        "DECLINED",
+        "CONVERTED",
+      ],
+      trial_request_use_case: [
+        "SERVICE_DESK",
+        "CASE_MANAGEMENT",
+        "TASK_WORK_MANAGEMENT",
+        "COMMUNICATIONS",
+        "WORKFLOW_AUTOMATION",
+        "OPERATIONAL_REPORTING",
+        "OTHER_OPERATIONAL_WORKFLOW",
       ],
     },
   },

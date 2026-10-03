@@ -62,6 +62,8 @@ test("platform template catalog is bounded to DM3Oi transactional messages", () 
     "MISSING_DOCUMENTS_NOTICE",
     "SIGN_IN_CODE",
     "NEW_SERVICE_REQUEST_NOTIFICATION",
+    "CUSTOMER_DATA_SUBMISSION_NOTIFICATION",
+    "NEW_TRIAL_REQUEST_NOTIFICATION",
   ]);
   assert.doesNotMatch(source("lib/email/templates.ts"), /SURVEY_REPORT|SURVEY_FOLLOW_UP/);
   assert.match(source("lib/application-navigation.ts"), /\/admin\/email-templates/);

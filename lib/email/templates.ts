@@ -6,6 +6,7 @@ export const emailTemplateKeys = [
   "SIGN_IN_CODE",
   "NEW_SERVICE_REQUEST_NOTIFICATION",
   "CUSTOMER_DATA_SUBMISSION_NOTIFICATION",
+  "NEW_TRIAL_REQUEST_NOTIFICATION",
 ] as const;
 
 export type EmailTemplateKey = (typeof emailTemplateKeys)[number];
@@ -111,6 +112,37 @@ export const emailTemplateDefinitions: Array<{
       action_url: "https://dm3oi.com/admin/customer-import",
     },
   },
+  {
+    key: "NEW_TRIAL_REQUEST_NOTIFICATION",
+    title: "New Trial Request Notification",
+    description: "Sent to platform administrators when a new public Trial Request is submitted.",
+    allowedVariables: [
+      "recipient_first_name",
+      "recipient_name",
+      "recipient_email",
+      "trial_request_number",
+      "business_name",
+      "contact_name",
+      "business_email",
+      "phone",
+      "primary_use_case",
+      "estimated_users",
+      "action_url",
+    ],
+    sampleVariables: {
+      recipient_first_name: "Alex",
+      recipient_name: "Alex Administrator",
+      recipient_email: "admin@example.com",
+      trial_request_number: "1042",
+      business_name: "Example Organization",
+      contact_name: "Jordan Prospect",
+      business_email: "jordan@example.com",
+      phone: "(555) 555-0123",
+      primary_use_case: "Case Management",
+      estimated_users: "25",
+      action_url: "https://dm3oi.com/admin/trial-requests/example",
+    },
+  },
 ];
 
 export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
@@ -158,6 +190,13 @@ export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
     opening_message:
       "{{uploader_name}} ({{uploader_email}}) submitted {{filename}} for {{organization_name}} on {{submitted_at}}.",
     closing_message: "Open Customer Import in DM3Oi: {{action_url}}",
+  },
+  NEW_TRIAL_REQUEST_NOTIFICATION: {
+    template_key: "NEW_TRIAL_REQUEST_NOTIFICATION",
+    subject_template: "New Trial Request #{{trial_request_number}} — {{business_name}}",
+    opening_message:
+      "A new DM3Oi Trial Request was submitted by {{contact_name}} for {{business_name}}.",
+    closing_message: "Review the Trial Request in DM3Oi: {{action_url}}",
   },
 };
 

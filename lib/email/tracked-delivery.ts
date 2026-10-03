@@ -30,6 +30,7 @@ export type TrackedDeliveryReferences = {
   customerId?: string | null;
   caseId?: string | null;
   serviceRequestId?: string | null;
+  trialRequestId?: string | null;
 };
 
 type DeliveryRow = { id: string; tracking_token: string };
@@ -90,6 +91,7 @@ export async function sendTrackedTemplateEmail(input: {
       customer_id: references.customerId ?? null,
       case_id: references.caseId ?? null,
       service_request_id: references.serviceRequestId ?? null,
+      trial_request_id: references.trialRequestId ?? null,
       subject: message.subject,
       delivery_status: "PENDING",
     } as never)
