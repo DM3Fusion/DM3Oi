@@ -177,3 +177,48 @@ export async function getCustomerImportSubmissionQueue() {
       : null,
   }));
 }
+
+export async function requireReadyCustomerImportSubmission(
+  submissionId: string,
+  organizationId: string,
+) {
+  await requireSuperAdmin();
+
+  const admin = createAdminClient();
+
+  const { data, error } = await admin
+    .from("customer_import_submissions")
+    .select(
+      "id,organization_id,original_filename,status,source_file_deleted_at",
+    )
+    .eq("id", submissionId)
+    .eq("organization_id", organizationId)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Customer import submission validation failed", {
+      submissionId,
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new Error(
+      "The selected Customer data submission could not be validated.",
+    );
+  }
+
+  if (!data) {
+    throw new Error(
+      "Select a valid Customer data submission for this organization.",
+    );
+  }
+
+  if (data.status !== "READY_TO_IMPORT") {
+    throw new Error(
+      "The selected Customer data submission is not Ready To Import.",
+    );
+  }
+
+  return data;
+}

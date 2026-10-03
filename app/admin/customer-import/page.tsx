@@ -22,7 +22,10 @@ export default async function Page() {
         description="Review organization source files, prepare canonical CSV data, then validate and import Customers."
       />
       <CustomerImportSubmissionQueue submissions={submissions} />
-      <CustomerImportWorkspace organizations={organizations} />
+      <CustomerImportWorkspace
+        organizations={organizations}
+        submissions={submissions}
+      />
     </>
   );
 }

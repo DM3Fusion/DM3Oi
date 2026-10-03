@@ -3267,7 +3267,11 @@ created_at: string
         Returns: Json
       }
       super_admin_import_customers: {
-        Args: { target_organization_id: string; target_rows: Json }
+        Args: {
+          target_organization_id: string
+          target_rows: Json
+          target_submission_id: string
+        }
         Returns: Json
       }
       super_admin_merge_customers: {
