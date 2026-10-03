@@ -37,8 +37,7 @@ export async function updateOrganizationMembershipAction(form: FormData) {
   if (!membership) return go(membershipId, "error", "Organization user not found.");
   if (
     !isOrganizationUserRole(membership.role) ||
-    !isOrganizationUserRole(role) ||
-    !isOrganizationUserRole(actorRole)
+    !isOrganizationUserRole(role)
   )
     return go(
       membershipId,
@@ -56,29 +55,39 @@ export async function updateOrganizationMembershipAction(form: FormData) {
     | "BUSINESS_ADMIN"
     | "STAFF_MANAGER"
     | "STAFF_USER";
-  const organizationActorRole = actorRole as
-    | "BUSINESS_OWNER"
-    | "BUSINESS_ADMIN"
-    | "STAFF_MANAGER"
-    | "STAFF_USER";
 
-  if (
-    !canConfigureOrganizationRole(
-      organizationActorRole,
-      targetRole,
-      access.isSuperAdmin,
-    ) ||
-    !canConfigureOrganizationRole(
-      organizationActorRole,
-      nextRole,
-      access.isSuperAdmin,
+  if (!access.isSuperAdmin) {
+    if (!isOrganizationUserRole(actorRole))
+      return go(
+        membershipId,
+        "error",
+        "You are not authorized to assign or modify this organization role.",
+      );
+
+    const organizationActorRole = actorRole as
+      | "BUSINESS_OWNER"
+      | "BUSINESS_ADMIN"
+      | "STAFF_MANAGER"
+      | "STAFF_USER";
+
+    if (
+      !canConfigureOrganizationRole(
+        organizationActorRole,
+        targetRole,
+        false,
+      ) ||
+      !canConfigureOrganizationRole(
+        organizationActorRole,
+        nextRole,
+        false,
+      )
     )
-  )
-    return go(
-      membershipId,
-      "error",
-      "You are not authorized to assign or modify this organization role.",
-    );
+      return go(
+        membershipId,
+        "error",
+        "You are not authorized to assign or modify this organization role.",
+      );
+  }
 
   const { data: updated, error } = await supabase
     .from("organization_members")
@@ -130,10 +139,7 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
   if (!membership)
     return go(membershipId, "error", "Organization user not found.", returnTo);
 
-  if (
-    !isOrganizationUserRole(membership.role) ||
-    !isOrganizationUserRole(access.activeOrganization.role)
-  )
+  if (!isOrganizationUserRole(membership.role))
     return go(
       membershipId,
       "error",
@@ -146,25 +152,36 @@ export async function transitionOrganizationMembershipAction(form: FormData) {
     | "BUSINESS_ADMIN"
     | "STAFF_MANAGER"
     | "STAFF_USER";
-  const lifecycleActorRole = access.activeOrganization.role as
-    | "BUSINESS_OWNER"
-    | "BUSINESS_ADMIN"
-    | "STAFF_MANAGER"
-    | "STAFF_USER";
 
-  if (
-    !canConfigureOrganizationRole(
-      lifecycleActorRole,
-      lifecycleTargetRole,
-      access.isSuperAdmin,
+  if (!access.isSuperAdmin) {
+    if (!isOrganizationUserRole(access.activeOrganization.role))
+      return go(
+        membershipId,
+        "error",
+        "You are not authorized to change this user's lifecycle state.",
+        returnTo,
+      );
+
+    const lifecycleActorRole = access.activeOrganization.role as
+      | "BUSINESS_OWNER"
+      | "BUSINESS_ADMIN"
+      | "STAFF_MANAGER"
+      | "STAFF_USER";
+
+    if (
+      !canConfigureOrganizationRole(
+        lifecycleActorRole,
+        lifecycleTargetRole,
+        false,
+      )
     )
-  )
-    return go(
-      membershipId,
-      "error",
-      "You are not authorized to change this user's lifecycle state.",
-      returnTo,
-    );
+      return go(
+        membershipId,
+        "error",
+        "You are not authorized to change this user's lifecycle state.",
+        returnTo,
+      );
+  }
 
   const { error } = await supabase.rpc("transition_organization_membership", {
     target_membership_id: membershipId,
