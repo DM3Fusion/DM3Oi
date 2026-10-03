@@ -12,7 +12,6 @@
     "db:test": "scripts/test-database.sh"
   },
   "dependencies": {
-    "@linkurious/leaflet-heat": "^0.2.6",
     "@supabase/ssr": "^0.12.4",
     "@supabase/supabase-js": "^2.112.3",
     "@types/nodemailer": "^8.0.1",

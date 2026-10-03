@@ -144,6 +144,27 @@ test("Business Reach map defers complete bounds fitting until its container is m
   assert.doesNotMatch(map, /zipcodes|centroid|postalCode/i);
 });
 
+test("Business Reach map renders one modestly weighted location marker per point", () => {
+  const map = readFileSync("components/reports/business-reach-map.tsx", "utf8");
+  const packageJson = readFileSync("package.json", "utf8");
+  const packageLock = readFileSync("package-lock.json", "utf8");
+
+  assert.match(
+    map,
+    /points\.forEach\(\(point\) => \{[\s\S]*leaflet\.circleMarker\(\[point\.latitude, point\.longitude\]/,
+  );
+  assert.match(
+    map,
+    /Math\.min\([\s\S]*11,[\s\S]*5 \+ Math\.sqrt\(Math\.max\(0, point\.weight - 1\)\) \* 2/,
+  );
+  assert.match(map, /fillColor: "#4f8fa3"[\s\S]*fillOpacity: 0\.82/);
+  assert.doesNotMatch(map, /heatLayer|leaflet-heat|gradient:/);
+  assert.doesNotMatch(packageJson, /leaflet-heat/);
+  assert.doesNotMatch(packageLock, /leaflet-heat/);
+  assert.doesNotMatch(map, /customerId|customerName|customerNumber|streetAddress|address|popup/i);
+  assert.match(map, /Customer location map with \$\{points\.length\} mapped geographic/);
+});
+
 test("Business Reach is tenant-scoped, current-state, privacy-limited, and placed before period metrics", () => {
   const repository = readFileSync("lib/data/reports-repository.ts", "utf8");
   const action = readFileSync("lib/data/business-reach-actions.ts", "utf8");

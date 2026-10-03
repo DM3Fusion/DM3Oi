@@ -15,36 +15,33 @@ export function BusinessReachMap({ points }: { points: BusinessReachPoint[] }) {
     let invalidateFrame: number | null = null;
     let fitFrame: number | null = null;
 
-    void Promise.all([import("leaflet"), import("@linkurious/leaflet-heat")]).then(([leaflet, heat]) => {
+    void import("leaflet").then((leaflet) => {
       if (cancelled || !containerRef.current) return;
-      map = leaflet.map(container, {
+      const leafletMap = leaflet.map(container, {
         attributionControl: true,
         zoomControl: true,
         scrollWheelZoom: false,
       });
+      map = leafletMap;
       leaflet.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 18,
-      }).addTo(map);
+      }).addTo(leafletMap);
 
-      const heatPoints: [number, number, number][] = points.map((point) => [
-        point.latitude,
-        point.longitude,
-        point.weight,
-      ]);
-      heat.heatLayer(heatPoints, {
-        radius: 30,
-        blur: 24,
-        minOpacity: 0.28,
-        maxZoom: 11,
-        max: Math.max(1, ...points.map((point) => point.weight)),
-        gradient: {
-          0.2: "#afc9d5",
-          0.45: "#5f95a8",
-          0.7: "#c49a54",
-          1: "#a95449",
-        },
-      }).addTo(map);
+      points.forEach((point) => {
+        const radius = Math.min(
+          11,
+          5 + Math.sqrt(Math.max(0, point.weight - 1)) * 2,
+        );
+        leaflet.circleMarker([point.latitude, point.longitude], {
+          radius,
+          color: "#294d63",
+          weight: 1.5,
+          opacity: 0.9,
+          fillColor: "#4f8fa3",
+          fillOpacity: 0.82,
+        }).addTo(leafletMap);
+      });
 
       const bounds = leaflet.latLngBounds(
         points.map((point) => [point.latitude, point.longitude]),
@@ -118,7 +115,7 @@ export function BusinessReachMap({ points }: { points: BusinessReachPoint[] }) {
       ref={containerRef}
       className="business-reach-map"
       role="img"
-      aria-label={`Customer density heat map with ${points.length} aggregated geographic ${points.length === 1 ? "point" : "points"}.`}
+      aria-label={`Customer location map with ${points.length} mapped geographic ${points.length === 1 ? "location" : "locations"}.`}
     />
   );
 }
