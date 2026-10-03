@@ -2116,6 +2116,29 @@ export async function permanentlyDeleteOrganizationCasesAction(form:FormData){
  ));
 }
 
+type ConfigurationTemplatePublishDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   publish_configuration_template:{
+    Args:{
+     target_template_id:string;
+    };
+    Returns:{
+     id:string;
+     name:string;
+     description:string|null;
+     status:string;
+     version:number;
+     source_organization_id:string|null;
+     created_at:string;
+     created_by:string;
+     updated_at:string;
+    };
+   };
+  };
+ };
+};
+
 export async function createConfigurationTemplateAction(form:FormData){
  await requireSuperAdmin();
 
@@ -2173,3 +2196,50 @@ export async function createConfigurationTemplateAction(form:FormData){
   `${name} was captured as a ${status==="PUBLISHED"?"published":"draft"} configuration template.`,
  ));
 }
+
+export async function publishConfigurationTemplateAction(form:FormData){
+ await requireSuperAdmin();
+
+ const templateId=value(form,"templateId");
+ const path=`/admin/configuration-templates/${templateId}`;
+
+ if(!templateId)
+  redirect(destination("/admin/configuration-templates","error","Configuration template is required."));
+
+ const supabase=(await createClient()) as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<ConfigurationTemplatePublishDatabase>
+ >;
+
+ const result=await supabase.rpc("publish_configuration_template",{
+  target_template_id:templateId,
+ });
+
+ if(result.error){
+  console.error("Configuration template publish failed",{
+   code:result.error.code,
+   message:result.error.message,
+   templateId,
+  });
+
+  redirect(destination(
+   path,
+   "error",
+   result.error.message.includes("not found")
+    ?"The configuration template was not found."
+    :result.error.message.includes("only draft")
+      ?"Only Draft configuration templates can be published."
+      :"The configuration template could not be published.",
+  ));
+ }
+
+ revalidatePath("/admin/configuration-templates");
+ revalidatePath(path);
+ revalidatePath("/admin/organizations/new");
+
+ redirect(destination(
+  path,
+  "success",
+  "Configuration template published.",
+ ));
+}
+

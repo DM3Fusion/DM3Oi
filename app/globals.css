@@ -11566,3 +11566,20 @@ dialog.task-modal.intake-document-availability-modal {
   grid-column:1/-1;
   margin:0;
 }
+
+/* SUPER_ADMIN configuration-template management. */
+.configuration-template-row td{padding:0}
+.configuration-template-row-link{display:block;min-height:52px;padding:12px 14px;color:inherit}
+.configuration-template-row:hover{background:#f8fafc}
+.configuration-template-row:focus-within{background:#f1f5f9}
+.configuration-template-row-link:focus-visible{outline:2px solid var(--dm3oi-cyan);outline-offset:-2px}
+.configuration-template-row-link strong,.configuration-template-row-link small{display:block}
+.configuration-template-row-link small{margin-top:3px}
+.configuration-template-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0;padding:0}
+.configuration-template-details>div{padding:14px 0;border-top:1px solid var(--line)}
+.configuration-template-details>div.full{grid-column:1/-1}
+.configuration-template-details dt{color:#52677d;font-size:9px;font-weight:800;letter-spacing:.55px;text-transform:uppercase}
+.configuration-template-details dd{margin:5px 0 0;color:var(--ink);font-size:13px;line-height:1.5}
+.configuration-template-publish-note{margin:14px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
+@media(max-width:600px){.configuration-template-details{grid-template-columns:1fr}.configuration-template-details>div.full{grid-column:auto}}
+

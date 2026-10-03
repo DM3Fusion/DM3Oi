@@ -197,25 +197,61 @@ export default async function Page({
                 </tr>
               </thead>
               <tbody>
-                {templates.map((template) => (
-                  <tr key={template.id}>
-                    <td>
-                      <strong>{template.name}</strong>
-                      {template.description ? (
-                        <small className="table-secondary">
-                          {template.description}
-                        </small>
-                      ) : null}
-                    </td>
-                    <td>v{template.version}</td>
-                    <td>{template.status}</td>
-                    <td>
-                      {template.source_organization_name ??
-                        "Source organization unavailable"}
-                    </td>
-                    <td>{formatDate(template.created_at)}</td>
-                  </tr>
-                ))}
+                {templates.map((template) => {
+                  const detailHref =
+                    `/admin/configuration-templates/${template.id}`;
+
+                  return (
+                    <tr key={template.id} className="configuration-template-row">
+                      <td>
+                        <Link
+                          href={detailHref}
+                          className="configuration-template-row-link"
+                        >
+                          <strong>{template.name}</strong>
+                          {template.description ? (
+                            <small className="table-secondary">
+                              {template.description}
+                            </small>
+                          ) : null}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link
+                          href={detailHref}
+                          className="configuration-template-row-link"
+                        >
+                          v{template.version}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link
+                          href={detailHref}
+                          className="configuration-template-row-link"
+                        >
+                          {template.status}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link
+                          href={detailHref}
+                          className="configuration-template-row-link"
+                        >
+                          {template.source_organization_name ??
+                            "Source organization unavailable"}
+                        </Link>
+                      </td>
+                      <td>
+                        <Link
+                          href={detailHref}
+                          className="configuration-template-row-link"
+                        >
+                          {formatDate(template.created_at)}
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
