@@ -123,6 +123,27 @@ test("Business Reach filters invalid or null coordinates before map rendering", 
   assert.equal(report.unmappedCustomers, 3);
 });
 
+test("Business Reach map defers complete bounds fitting until its container is measured", () => {
+  const map = readFileSync("components/reports/business-reach-map.tsx", "utf8");
+
+  assert.match(
+    map,
+    /const bounds = leaflet\.latLngBounds\([\s\S]*points\.map\(\(point\) => \[point\.latitude, point\.longitude\]\)/,
+  );
+  assert.match(
+    map,
+    /requestAnimationFrame\(\(\) => \{[\s\S]*map\.invalidateSize\(\{ animate: false \}\)[\s\S]*requestAnimationFrame\(\(\) => \{[\s\S]*map\.fitBounds\(bounds, \{[\s\S]*padding: \[34, 34\][\s\S]*maxZoom: 10[\s\S]*animate: false/,
+  );
+  assert.match(
+    map,
+    /if \(points\.length === 1\)[\s\S]*map\.setView\([\s\S]*10,[\s\S]*\{ animate: false \}/,
+  );
+  assert.match(map, /new ResizeObserver[\s\S]*materiallyChanged[\s\S]*scheduleViewportFit\(\)/);
+  assert.match(map, /resizeObserver\?\.disconnect\(\)/);
+  assert.match(map, /cancelAnimationFrame\(invalidateFrame\)[\s\S]*cancelAnimationFrame\(fitFrame\)/);
+  assert.doesNotMatch(map, /zipcodes|centroid|postalCode/i);
+});
+
 test("Business Reach is tenant-scoped, current-state, privacy-limited, and placed before period metrics", () => {
   const repository = readFileSync("lib/data/reports-repository.ts", "utf8");
   const action = readFileSync("lib/data/business-reach-actions.ts", "utf8");
