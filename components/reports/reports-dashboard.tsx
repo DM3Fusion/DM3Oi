@@ -58,7 +58,11 @@ function BusinessReach({
 
   return <section className="panel report-panel business-reach">
     <div className="section-head">
-      <div><h2>Business Reach</h2><p>Customer concentration based on service addresses.</p></div>
+      <div>
+        <h2>Business Reach</h2>
+        <p>Customer concentration based on service addresses.</p>
+        <p className="report-note">Current customer footprint — not affected by the reporting period below.</p>
+      </div>
       {mapAction}
     </div>
     {!report.available ? <div className="no-results">Business Reach requires Customer access.</div> : report.loadError ? <div className="no-results">Business Reach is temporarily unavailable. Operational reports are unaffected.</div> : <>
@@ -90,6 +94,7 @@ export function ReportsDashboard({ report, businessReach, reachStatus }: { repor
   const availableKpis = report.kpis.filter((kpi) => kpi.value !== null);
   const maximumVolume = Math.max(1, ...report.caseVolume.flatMap((item) => [item.opened, item.completed]));
   return <div className="reports-dashboard">
+    <BusinessReach report={businessReach} period={period} status={reachStatus} />
     <form className="report-controls panel" method="get">
       <label><span>Reporting period</span><select name="period" defaultValue={period.key}>{reportPeriodKeys.map((key) => <option key={key} value={key}>{reportPeriodLabels[key]}</option>)}</select></label>
       <label><span>Comparison</span><select name="compare" defaultValue={period.comparison}><option value="none">No comparison</option><option value="previous">Previous equivalent period</option></select></label>
@@ -97,7 +102,6 @@ export function ReportsDashboard({ report, businessReach, reachStatus }: { repor
       <label className="report-custom-date"><span>To</span><input type="date" name="to" defaultValue={period.key === "custom" ? period.range.to : ""} /></label>
       <button className="primary-button" type="submit"><ApplicationIcon name="filter" />Apply</button>
     </form>
-    <BusinessReach report={businessReach} period={period} status={reachStatus} />
     <div className="report-period-summary"><strong>{period.label}</strong><span>{formatDate(period.range.from)}–{formatDate(period.range.to)} · {period.timezone} · {period.bucket === "day" ? "Daily" : period.bucket === "week" ? "Weekly" : "Monthly"} buckets</span></div>
 
     {availableKpis.length ? <section className="report-kpis" aria-label="Historical performance summary">{availableKpis.map((kpi) => {
