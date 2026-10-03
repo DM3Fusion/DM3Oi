@@ -38,6 +38,7 @@ export const organizationSettingsNavigation = [
 export const platformNavigation = [
   { href: "/", label: "Back Office", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
+  { href: "/admin/organizations/new", label: "New Organization", icon: "add" },
   { href: "/admin/users", label: "Users / Access", icon: "users" },
   { href: "/admin/case-cleanup", label: "Case Cleanup", icon: "cases" },
   { href: "/admin/email-templates", label: "Email Templates", icon: "communications" },

@@ -10,8 +10,6 @@ const value=(form:FormData,key:string)=>String(form.get(key)??"").trim();const s
 async function findAuthUserByEmail(admin:ReturnType<typeof createAdminClient>,email:string){for(let page=1;page<=20;page+=1){const {data,error}=await admin.auth.admin.listUsers({page,perPage:100});if(error)throw error;const found=data.users.find(user=>user.email?.toLowerCase()===email.toLowerCase());if(found)return found;if(data.users.length<100)break;}return null}
 const friendly=(message:string)=>{if(message.includes("user identity already belongs to another organization"))return "This email address is already associated with another organization and cannot be added to this organization.";if(message.includes("slug already"))return "That organization slug is already in use.";if(message.includes("maximum active BUSINESS_OWNER"))return "This organization already has the maximum of 2 active Business Owners.";if(message.includes("maximum active BUSINESS_ADMIN"))return "This organization already has the maximum of 2 active Business Administrators.";if(message.includes("profile not found"))return "No registered DM3Oi user was found with that email. Ask the user to register first, then provision access here.";if(message.includes("invalid organization role"))return "Select a valid organization role.";if(message.includes("not authorized"))return "You are not authorized to perform this platform action.";return "The platform change could not be completed."};
 async function rpcError<T>(operation:PromiseLike<{data:T;error:{message:string;code:string}|null}>,path:string){const result=await operation;if(result.error){console.error("Platform mutation failed",{code:result.error.code,message:result.error.message});redirect(destination(path,"error",friendly(result.error.message)))}return result.data}
-type TrialOrganizationConversionDatabase=Database&{public:Database["public"]&{Functions:Database["public"]["Functions"]&{convert_trial_request_to_organization:{Args:{target_trial_request_id:string;target_organization_name:string;target_organization_slug:string;target_conversion_note:string;target_owner_user_id:string;target_owner_email:string;target_owner_identity_verified:boolean};Returns:{id:string;name:string;slug:string;status:string}}}}};
-
 export type OrganizationResetPreview = {
  organizationId:string;
  organizationName:string;
@@ -129,6 +127,7 @@ export async function createOrganizationAction(form:FormData){
  const conversionNote=value(form,"conversionNote");
  const ownerDisplayName=value(form,"ownerDisplayName");
  const ownerEmail=value(form,"ownerEmail").toLowerCase();
+ const configurationTemplateId=value(form,"configurationTemplateId")||null;
  const newPath=trialRequestId?`/admin/organizations/new?trialRequestId=${encodeURIComponent(trialRequestId)}`:"/admin/organizations/new";
 
  if(!name||!slug)redirect(destination(newPath,"error","Organization name and slug are required."));
@@ -138,7 +137,7 @@ export async function createOrganizationAction(form:FormData){
   if(!ownerDisplayName||ownerDisplayName.length>100)redirect(destination(newPath,"error","Enter the initial Business Owner name."));
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(ownerEmail)||ownerEmail.length>254)redirect(destination(newPath,"error","Enter a valid initial Business Owner email address."));
 
-  const session=(await createClient()) as ReturnType<typeof import("@supabase/ssr").createServerClient<TrialOrganizationConversionDatabase>>;
+  const session=await createClient();
   const admin=createAdminClient();
 
   let ownerAuthUser;
@@ -220,15 +219,26 @@ export async function createOrganizationAction(form:FormData){
 
   const identityVerified=Boolean(ownerAuthUser?.email_confirmed_at||ownerAuthUser?.last_sign_in_at);
 
-  const result=await session.rpc("convert_trial_request_to_organization",{
-   target_trial_request_id:trialRequestId,
-   target_organization_name:name,
-   target_organization_slug:slug,
-   target_conversion_note:conversionNote,
-   target_owner_user_id:ownerUserId,
-   target_owner_email:ownerEmail,
-   target_owner_identity_verified:identityVerified,
-  });
+  const result=configurationTemplateId
+   ?await session.rpc("convert_trial_request_to_organization_with_configuration_template",{
+     target_trial_request_id:trialRequestId,
+     target_organization_name:name,
+     target_organization_slug:slug,
+     target_conversion_note:conversionNote,
+     target_owner_user_id:ownerUserId,
+     target_owner_email:ownerEmail,
+     target_owner_identity_verified:identityVerified,
+     target_template_id:configurationTemplateId,
+    })
+   :await session.rpc("convert_trial_request_to_organization",{
+     target_trial_request_id:trialRequestId,
+     target_organization_name:name,
+     target_organization_slug:slug,
+     target_conversion_note:conversionNote,
+     target_owner_user_id:ownerUserId,
+     target_owner_email:ownerEmail,
+     target_owner_identity_verified:identityVerified,
+    });
 
   if(result.error){
    if(createdOwnerIdentity){
@@ -272,7 +282,17 @@ export async function createOrganizationAction(form:FormData){
  }
 
  const supabase=await createClient();
- const created=await rpcError(supabase.rpc("create_organization",{target_name:name,target_slug:slug}),newPath);
+ const organizationCreateRequest=configurationTemplateId
+  ?supabase.rpc("create_organization_with_configuration_template",{
+    target_name:name,
+    target_slug:slug,
+    target_template_id:configurationTemplateId,
+   })
+  :supabase.rpc("create_organization",{
+    target_name:name,
+    target_slug:slug,
+   });
+ const created=await rpcError(organizationCreateRequest,newPath);
  revalidatePath("/");
  revalidatePath("/admin/organizations");
  redirect(`/admin/organizations/${created!.id}?message=${encodeURIComponent("Organization created.")}`);

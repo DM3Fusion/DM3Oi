@@ -46,11 +46,6 @@ export default async function Page({
       <PageHeader
         eyebrow="Platform Administration"
         title="Organizations"
-        action={
-          <Link href="/admin/organizations/new" className="primary-button">
-            <ApplicationIcon name="add" />Create Organization
-          </Link>
-        }
       />
       {params.message ? (
         <div className="success-alert page-notice">{params.message}</div>

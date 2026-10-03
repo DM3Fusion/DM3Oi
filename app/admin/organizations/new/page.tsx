@@ -117,6 +117,20 @@ export default async function Page({
     }
   }
 
+  const templateClient = await createClient();
+  const templateResult = await templateClient.rpc(
+    "get_published_configuration_templates",
+  );
+
+  if (templateResult.error) {
+    console.error("Published configuration template lookup failed", {
+      code: templateResult.error.code,
+      message: templateResult.error.message,
+    });
+  }
+
+  const configurationTemplates = templateResult.data ?? [];
+
   const error = params.error || trialRequestError;
   const cancelHref = trialRequestId
     ? `/admin/trial-requests/${trialRequestId}`
@@ -126,11 +140,7 @@ export default async function Page({
     <>
       <PageHeader
         eyebrow="Platform Administration"
-        title={
-          trialRequest
-            ? "Configure organization"
-            : "Create organization"
-        }
+        title="Setup New Organization"
         description={
           trialRequest
             ? `Trial Request #${trialRequest.request_number}`
@@ -192,6 +202,26 @@ export default async function Page({
                 />
                 <small>
                   Lowercase letters, numbers, and hyphens.
+                </small>
+              </label>
+
+              <label className="full">
+                <span>Question / Rule Template</span>
+                <select
+                  name="configurationTemplateId"
+                  defaultValue=""
+                >
+                  <option value="">
+                    Blank configuration — do not apply a template
+                  </option>
+                  {configurationTemplates.map((template) => (
+                    <option key={template.id} value={template.id}>
+                      {template.name} — v{template.version}
+                    </option>
+                  ))}
+                </select>
+                <small>
+                  Initializes this organization with a published Question and Rule configuration. The copied configuration becomes independent after setup.
                 </small>
               </label>
 
