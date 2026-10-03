@@ -155,6 +155,37 @@ test("preview and import failures use distinct wording and UI error channels", (
   assert.doesNotMatch(importWorkspace, /const \[error, setError\]/);
 });
 
+test("Customer Import selects a sole ready submission and intentionally gates CSV selection", () => {
+  assert.match(
+    importWorkspace,
+    /submission\.organization_id === nextOrganizationId[\s\S]*submission\.status === "READY_TO_IMPORT"/,
+  );
+  assert.match(
+    importWorkspace,
+    /nextReadySubmissions\.length === 1[\s\S]*nextReadySubmissions\[0\]\.id[\s\S]*resetImportState\(\)/,
+  );
+  assert.match(
+    importWorkspace,
+    /const stepTwoAvailable = Boolean\(organizationId && selectedSubmission\)/,
+  );
+  assert.match(
+    importWorkspace,
+    /disabled=\{!stepTwoAvailable \|\| pending\}/,
+  );
+  assert.match(
+    importWorkspace,
+    /disabled=\{!stepTwoAvailable \|\| !csv \|\| pending\}/,
+  );
+  assert.match(
+    importWorkspace,
+    /No Ready-To-Import submissions are available for this organization\. Review a Customer Data submission and mark it Ready To Import first\./,
+  );
+  assert.match(
+    importWorkspace,
+    /Select a Ready-To-Import submission in Step 1 before choosing the CSV\./,
+  );
+});
+
 test("duplicate detection never matches name alone", () => {
   const base = {
     first_name: null,

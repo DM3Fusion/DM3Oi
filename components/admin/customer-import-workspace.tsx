@@ -63,6 +63,16 @@ export function CustomerImportWorkspace({
   const selectedSubmission = readySubmissions.find(
     (submission) => submission.id === submissionId,
   );
+  const stepTwoAvailable = Boolean(organizationId && selectedSubmission);
+
+  const resetImportState = () => {
+    setCsv("");
+    setFileName("");
+    setPreview(null);
+    setResult(null);
+    setPreviewError(null);
+    setImportError(null);
+  };
 
   const expected =
     selected && preview
@@ -144,14 +154,19 @@ export function CustomerImportWorkspace({
           <select
             value={organizationId}
             onChange={(event) => {
-              setOrganizationId(event.target.value);
-              setSubmissionId("");
-              setCsv("");
-              setFileName("");
-              setPreview(null);
-              setResult(null);
-              setPreviewError(null);
-              setImportError(null);
+              const nextOrganizationId = event.target.value;
+              const nextReadySubmissions = submissions.filter(
+                (submission) =>
+                  submission.organization_id === nextOrganizationId &&
+                  submission.status === "READY_TO_IMPORT",
+              );
+              setOrganizationId(nextOrganizationId);
+              setSubmissionId(
+                nextReadySubmissions.length === 1
+                  ? nextReadySubmissions[0].id
+                  : "",
+              );
+              resetImportState();
             }}
           >
             <option value="">Select an organization</option>
@@ -182,12 +197,7 @@ export function CustomerImportWorkspace({
                 value={submissionId}
                 onChange={(event) => {
                   setSubmissionId(event.target.value);
-                  setCsv("");
-                  setFileName("");
-                  setPreview(null);
-                  setResult(null);
-                  setPreviewError(null);
-                  setImportError(null);
+                  resetImportState();
                 }}
               >
                 <option value="">
@@ -213,10 +223,18 @@ export function CustomerImportWorkspace({
           </>
         ) : null}
       </section>
-      <section className="panel customer-data-step customer-import-step"><div className="section-head"><div><span className="step-kicker">Step 2</span><h2>Select CSV</h2><p>Required headers are validated exactly; all rows are normalized and classified before writes.</p></div></div>
-        <input className="customer-import-file" type="file" accept=".csv,text/csv" disabled={!organizationId || !submissionId || pending} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; setFileName(file.name); setCsv(await file.text()); setPreview(null); setResult(null); setPreviewError(null); setImportError(null); }} />
+      <section className={`panel customer-data-step customer-import-step${stepTwoAvailable ? "" : " customer-import-step-unavailable"}`}>
+        <div className="section-head"><div><span className="step-kicker">Step 2</span><h2>Select CSV</h2><p>Required headers are validated exactly; all rows are normalized and classified before writes.</p></div></div>
+        {!organizationId ? (
+          <p className="customer-import-step-guidance">Select an organization in Step 1 to continue.</p>
+        ) : readySubmissions.length === 0 ? (
+          <p className="customer-import-step-guidance">No Ready-To-Import submissions are available for this organization. Review a Customer Data submission and mark it Ready To Import first.</p>
+        ) : !selectedSubmission ? (
+          <p className="customer-import-step-guidance">Select a Ready-To-Import submission in Step 1 before choosing the CSV.</p>
+        ) : null}
+        <input className="customer-import-file" type="file" accept=".csv,text/csv" disabled={!stepTwoAvailable || pending} onChange={async (event) => { const file = event.target.files?.[0]; if (!file) return; setFileName(file.name); setCsv(await file.text()); setPreview(null); setResult(null); setPreviewError(null); setImportError(null); }} />
         {fileName ? <p className="muted customer-import-file-name">Selected: <strong>{fileName}</strong></p> : null}
-        <button className="secondary-button" type="button" disabled={!organizationId || !submissionId || !csv || pending} onClick={runPreview}>{pending ? "Checking…" : "Validate and preview"}</button>
+        <button className="secondary-button" type="button" disabled={!stepTwoAvailable || !csv || pending} onClick={runPreview}>{pending ? "Checking…" : "Validate and preview"}</button>
       </section>
       {previewError ? <div className="form-alert" role="alert">{previewError}</div> : null}
       {preview ? <>
