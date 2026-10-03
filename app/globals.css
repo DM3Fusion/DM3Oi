@@ -11583,3 +11583,17 @@ dialog.task-modal.intake-document-availability-modal {
 .configuration-template-publish-note{margin:14px 0 0;color:var(--muted);font-size:10px;line-height:1.5}
 @media(max-width:600px){.configuration-template-details{grid-template-columns:1fr}.configuration-template-details>div.full{grid-column:auto}}
 
+
+/* Configuration Template feedback semantics. */
+.form-alert.success{
+  border-color:#a7d7bd;
+  background:#edf8f1;
+  color:#17623a;
+}
+
+/* Stronger visual affordance for clickable template rows. */
+@media (hover:hover) and (pointer:fine){
+  .configuration-template-row:hover{
+    background:#e8edf2;
+  }
+}
