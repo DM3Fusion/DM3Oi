@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const source = (path: string) => readFileSync(path, "utf8");
-const page = source("app/customers/[customerId]/page.tsx");
+const page = source("components/customers/customer-detail.tsx");
 const component = source("components/customer-permanent-delete.tsx");
 const actions = source("lib/data/customer-permanent-deletion-actions.ts");
 const migration = source(

@@ -40,8 +40,8 @@ test("organization reads use privacy projections while service-role work remains
   for (const path of [
     "lib/data/case-repository.ts",
     "lib/data/question-repository.ts",
-    "app/customers/[customerId]/page.tsx",
-    "app/customers/[customerId]/edit/page.tsx",
+    "components/customers/customer-detail.tsx",
+    "components/customers/customer-edit.tsx",
     "app/service-desk/[serviceRequestId]/page.tsx",
     "app/portal/page.tsx",
     "app/portal/service-requests/page.tsx",

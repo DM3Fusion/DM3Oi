@@ -19,14 +19,16 @@ export function NavigableRow({
   label,
   children,
   className,
+  scroll = true,
 }: {
   href: string;
   label: string;
   children: ReactNode;
   className?: string;
+  scroll?: boolean;
 }) {
   const router = useRouter();
-  const navigate = () => router.push(href);
+  const navigate = () => router.push(href, { scroll });
   const onClick = (event: MouseEvent<HTMLTableRowElement>) => {
     if (!originatedFromInteractiveControl(event.target)) navigate();
   };

@@ -30,7 +30,7 @@ test("organization operational surfaces consume the shared timezone", () => {
   const staff = source("app/service-desk/[serviceRequestId]/page.tsx");
   const portal = source("app/portal/service-requests/[serviceRequestId]/page.tsx");
   const cases = source("app/cases/[caseId]/page.tsx");
-  const customers = source("app/customers/[customerId]/page.tsx");
+  const customers = source("components/customers/customer-detail.tsx");
   const platformOrganization = source("app/admin/organizations/[organizationId]/page.tsx");
   const platformRepository = source("lib/data/platform-repository.ts");
   assert.match(communications, /formatOrganizationDateTime\(item\.created_at, timezone, "medium"\)/);

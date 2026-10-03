@@ -47,7 +47,7 @@ test("customer creation exposes valid types and requires the complete profile", 
 
 test("customer register uses full-row navigation and detail preserves historical identity", () => {
   const register = readFileSync("app/customers/page.tsx", "utf8");
-  const detail = readFileSync("app/customers/[customerId]/page.tsx", "utf8");
+  const detail = readFileSync("components/customers/customer-detail.tsx", "utf8");
   assert.match(register, /NavigableRow/);
   assert.match(register, /`\/customers\/\$\{customer\.id\}`/);
   assert.match(detail, /customer\.customer_number/);
@@ -58,8 +58,8 @@ test("customer register uses full-row navigation and detail preserves historical
   assert.match(detail, /customer\.updated_at/);
 });
 test("customer editing exposes only mutable fields and tenant-scopes updates", () => {
-  const detail = readFileSync("app/customers/[customerId]/page.tsx", "utf8");
-  const edit = readFileSync("app/customers/[customerId]/edit/page.tsx", "utf8");
+  const detail = readFileSync("components/customers/customer-detail.tsx", "utf8");
+  const edit = readFileSync("components/customers/customer-edit.tsx", "utf8");
   const action = readFileSync("lib/data/customer-actions.ts", "utf8");
   assert.match(detail, /Edit Customer/);
   assert.match(detail, /customers\/\$\{customer\.id\}\/edit/);

@@ -62,12 +62,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
               </thead>
               <tbody>
                 {customers.map((customer) => (
-                  <NavigableRow key={customer.id} href={`/customers/${customer.id}`} label={`Open customer ${customer.customer_number}`}>
+                  <NavigableRow key={customer.id} href={`/customers/${customer.id}`} label={`Open customer ${customer.customer_number}`} scroll={false}>
                     <td>
-                      <b className="case-link">{customer.customer_number}</b>
+                      <Link className="entity-row-link case-link" href={`/customers/${customer.id}`} scroll={false} prefetch={false}>{customer.customer_number}</Link>
                     </td>
                     <td>
-                      <b>{customer.name}</b>
+                      <Link className="entity-row-link" href={`/customers/${customer.id}`} scroll={false} prefetch={false}>{customer.name}</Link>
                     </td>
                     <td>{customer.type}</td>
                     <td>{customer.email ?? "—"}</td>

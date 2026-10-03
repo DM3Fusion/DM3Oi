@@ -16,10 +16,12 @@ export function CustomerPermanentDelete({
   customerId,
   customerName,
   customerNumber,
+  returnBehavior = "customers",
 }: {
   customerId: string;
   customerName: string;
   customerNumber: string;
+  returnBehavior?: "back" | "customers";
 }) {
   const router = useRouter();
   const [preview, setPreview] = useState<CustomerDeletionPreview | null>(null);
@@ -80,7 +82,8 @@ export function CustomerPermanentDelete({
         return;
       }
 
-      router.push("/customers");
+      if (returnBehavior === "back") router.back();
+      else router.push("/customers");
       router.refresh();
     } catch {
       setError(

@@ -89,7 +89,7 @@ test("UI mutation controls consume capabilities without changing record visibili
  assert.match(source("app/service-desk/page.tsx"),/hasPermission\(access, "CREATE_SERVICE_REQUEST"\)/);
  assert.match(source("components/service-request-form.tsx"),/canAssign/);
  assert.match(source("app/customers/page.tsx"),/hasPermission\(access, "CREATE_CUSTOMER"\)/);
- assert.match(source("app/customers/[customerId]/page.tsx"),/hasPermission\(access, "EDIT_CUSTOMER"\)/);
+ assert.match(source("components/customers/customer-detail.tsx"),/hasPermission\(access, "EDIT_CUSTOMER"\)/);
 });
 
 test("database RPCs retain record-scope authorization backstops",()=>{

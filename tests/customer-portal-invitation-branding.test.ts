@@ -22,7 +22,7 @@ const portalService = source("lib/data/customer-portal-provisioning-service.ts")
 const internalAction = source("lib/data/user-invitation-actions.ts");
 const emailService = source("lib/data/customer-portal-invitation-email-service.ts");
 const mailer = source("lib/email/mailer.ts");
-const customerPage = source("app/customers/[customerId]/page.tsx");
+const customerPage = source("components/customers/customer-detail.tsx");
 
 test("new Customer Portal invitations use a generated Auth link without a Supabase email", () => {
   assert.deepEqual(customerPortalInvitationMetadata(undefined, "Fobbs Quality Signs"), {

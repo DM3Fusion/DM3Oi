@@ -9,7 +9,7 @@ import { normalizeCustomerPhone } from "@/lib/customer-validation";
 type Values = { name: string; firstName: string; lastName: string; streetAddress: string; city: string; state: string; postalCode: string; email: string; phone: string; notes: string; type: string; status: string };
 const canonical = (values: Values) => ({ ...values, email: values.email.trim().toLowerCase(), phone: normalizeCustomerPhone(values.phone) ?? values.phone.trim() });
 
-export function CustomerEditForm({ customerId, initial }: { customerId: string; initial: Values }) {
+export function CustomerEditForm({ customerId, initial, cancelBehavior = "link" }: { customerId: string; initial: Values; cancelBehavior?: "back" | "link" }) {
   const router = useRouter();
   const [values, setValues] = useState(initial);
   const [saved, setSaved] = useState(initial);
@@ -38,7 +38,7 @@ export function CustomerEditForm({ customerId, initial }: { customerId: string; 
       </div>
       <p className="form-help">Structured first/last name fields take precedence when deriving the display name.</p>
       {summary ? <div className="form-alert" role="alert">{summary}</div> : null}
-      <div className="form-actions"><Link href={`/customers/${customerId}`}>Cancel</Link><button className={dirty ? "license-save-button" : "primary-button"} type="submit" disabled={pending}>{pending?"Saving…":justSaved?"Changes Saved":"Save changes"}</button></div>
+      <div className="form-actions">{cancelBehavior === "back" ? <button type="button" className="customer-edit-cancel" onClick={() => router.back()}>Cancel</button> : <Link href={`/customers/${customerId}`}>Cancel</Link>}<button className={dirty ? "license-save-button" : "primary-button"} type="submit" disabled={pending}>{pending?"Saving…":justSaved?"Changes Saved":"Save changes"}</button></div>
     </form>
   );
 }
