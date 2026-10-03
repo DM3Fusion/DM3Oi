@@ -6,7 +6,10 @@ import { useEffect, useId, useState } from "react";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { signOutAction } from "@/lib/auth/actions";
-import type { ApplicationNavigationItem } from "@/lib/application-navigation";
+import {
+  platformOrganizationSetupNavigation,
+  type ApplicationNavigationItem,
+} from "@/lib/application-navigation";
 import type { ApplicationIconName } from "@/lib/application-icons";
 
 export type MobileNavigationItem = {
@@ -82,10 +85,51 @@ export function MobileBottomNavigation({
             </div>
             <nav aria-label="Secondary mobile navigation">
               {moreItems.map((item) => {
-                const settingsParent = item.href === "/settings/case-configuration";
+                const settingsParent =
+                  item.href === "/settings/case-configuration";
+                const newOrganizationParent =
+                  item.href === "/admin/organizations/new";
                 const active = settingsParent
                   ? pathname.startsWith("/settings")
-                  : matchesPath(pathname, item.href);
+                  : newOrganizationParent
+                    ? pathname.startsWith("/admin/organizations/new") ||
+                      pathname.startsWith("/admin/configuration-templates")
+                    : matchesPath(pathname, item.href);
+
+                if (newOrganizationParent) {
+                  return (
+                    <div className="mobile-settings-nav-group" key={item.href}>
+                      <Link
+                        href={item.href}
+                        className={`mobile-settings-nav-parent${active ? " active" : ""}`}
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        <ApplicationIcon name={item.icon} />
+                        <span>{item.label}</span>
+                      </Link>
+                      <div className="mobile-settings-subnav">
+                        {platformOrganizationSetupNavigation.map((child) => {
+                          const childActive =
+                            pathname === child.href ||
+                            pathname.startsWith(`${child.href}/`);
+
+                          return (
+                            <Link
+                              href={child.href}
+                              className={childActive ? "active" : ""}
+                              aria-current={childActive ? "page" : undefined}
+                              onClick={() => setMoreOpen(false)}
+                              key={child.href}
+                            >
+                              <ApplicationIcon name={child.icon} />
+                              <span>{child.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
 
                 if (settingsParent) {
                   return (

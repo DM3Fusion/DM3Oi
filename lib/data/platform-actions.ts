@@ -66,6 +66,32 @@ type PlatformOrganizationCreationDatabase=Database&{
  };
 };
 
+type ConfigurationTemplateCaptureDatabase=Database&{
+ public:Database["public"]&{
+  Functions:Database["public"]["Functions"]&{
+   capture_configuration_template:{
+    Args:{
+     target_source_organization_id:string;
+     target_name:string;
+     target_description?:string|null;
+     target_status?:string;
+    };
+    Returns:{
+     id:string;
+     name:string;
+     description:string|null;
+     status:string;
+     version:number;
+     source_organization_id:string|null;
+     created_at:string;
+     created_by:string;
+     updated_at:string;
+    };
+   };
+  };
+ };
+};
+
 export type OrganizationResetPreview = {
  organizationId:string;
  organizationName:string;
@@ -2087,5 +2113,63 @@ export async function permanentlyDeleteOrganizationCasesAction(form:FormData){
   path,
   "message",
   `${caseIds.length} test ${caseIds.length===1?"Case was":"Cases were"} permanently deleted. Case numbers were not reset or reused.`,
+ ));
+}
+
+export async function createConfigurationTemplateAction(form:FormData){
+ await requireSuperAdmin();
+
+ const sourceOrganizationId=value(form,"sourceOrganizationId");
+ const name=value(form,"name");
+ const description=value(form,"description");
+ const status=value(form,"status").toUpperCase();
+
+ const path="/admin/configuration-templates";
+
+ if(!sourceOrganizationId)
+  redirect(destination(path,"error","Select a source organization."));
+
+ if(!name)
+  redirect(destination(path,"error","Template name is required."));
+
+ if(status!=="DRAFT"&&status!=="PUBLISHED")
+  redirect(destination(path,"error","Select Draft or Published status."));
+
+ const supabase=(await createClient()) as ReturnType<
+  typeof import("@supabase/ssr").createServerClient<ConfigurationTemplateCaptureDatabase>
+ >;
+
+ const result=await supabase.rpc("capture_configuration_template",{
+  target_source_organization_id:sourceOrganizationId,
+  target_name:name,
+  target_description:description||null,
+  target_status:status,
+ });
+
+ if(result.error){
+  console.error("Configuration template capture failed",{
+   code:result.error.code,
+   message:result.error.message,
+   sourceOrganizationId,
+  });
+
+  redirect(destination(
+   path,
+   "error",
+   result.error.message.includes("source organization not found")
+    ?"The selected source organization was not found."
+    :result.error.message.includes("template name is required")
+      ?"Template name is required."
+      :"The configuration template could not be created.",
+  ));
+ }
+
+ revalidatePath(path);
+ revalidatePath("/admin/organizations/new");
+
+ redirect(destination(
+  path,
+  "success",
+  `${name} was captured as a ${status==="PUBLISHED"?"published":"draft"} configuration template.`,
  ));
 }

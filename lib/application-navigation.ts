@@ -35,6 +35,10 @@ export const organizationSettingsNavigation = [
   { href: "/settings/user-access", label: "User Access", icon: "users", permission: "MANAGE_ROLE_PERMISSIONS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
+export const platformOrganizationSetupNavigation = [
+  { href: "/admin/configuration-templates", label: "Templates", icon: "questions" },
+] as const satisfies readonly ApplicationNavigationItem[];
+
 export const platformNavigation = [
   { href: "/", label: "Back Office", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },

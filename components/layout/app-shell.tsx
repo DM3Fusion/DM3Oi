@@ -20,6 +20,7 @@ import {
   mobilePrimaryDestinations,
   mobileSecondaryNavigation,
   platformNavigation,
+  platformOrganizationSetupNavigation,
 } from "@/lib/application-navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 
@@ -63,6 +64,10 @@ export function AppShell({
   const [settingsOpen, setSettingsOpen] = useState(
     pathname.startsWith("/settings") ||
       pathname.startsWith("/administration"),
+  );
+  const [newOrganizationOpen, setNewOrganizationOpen] = useState(
+    pathname.startsWith("/admin/organizations/new") ||
+      pathname.startsWith("/admin/configuration-templates"),
   );
   const closeDrawer = useCallback(() => setOpen(false), []);
   const phoneLayout = usePhoneLayout(closeDrawer);
@@ -174,8 +179,75 @@ export function AppShell({
         ) : null}
         <nav aria-label="Primary navigation">
           {nav.map(({ href, label, icon }) => {
+            if (href === "/admin/organizations/new") {
+              const parentActive =
+                pathname.startsWith("/admin/organizations/new") ||
+                pathname.startsWith("/admin/configuration-templates");
+
+              return (
+                <div className="settings-nav-group" key={href}>
+                  <div
+                    className={`settings-nav-parent ${parentActive ? "active" : ""}`.trim()}
+                  >
+                    <Link
+                      href={href}
+                      onClick={() => {
+                        setOpen(false);
+                        setNewOrganizationOpen(true);
+                      }}
+                      className="settings-nav-parent-link"
+                    >
+                      <ApplicationIcon name={icon} />
+                      <span>{label}</span>
+                    </Link>
+                    <button
+                      type="button"
+                      className="settings-nav-toggle"
+                      aria-label={
+                        newOrganizationOpen
+                          ? "Collapse New Organization"
+                          : "Expand New Organization"
+                      }
+                      aria-expanded={newOrganizationOpen}
+                      onClick={() =>
+                        setNewOrganizationOpen((value) => !value)
+                      }
+                    >
+                      <ApplicationIcon
+                        name="forward"
+                        className={`settings-nav-chevron ${newOrganizationOpen ? "open" : ""}`.trim()}
+                      />
+                    </button>
+                  </div>
+
+                  {newOrganizationOpen ? (
+                    <div className="settings-subnav">
+                      {platformOrganizationSetupNavigation.map((item) => {
+                        const childActive =
+                          pathname === item.href ||
+                          pathname.startsWith(`${item.href}/`);
+
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setOpen(false)}
+                            className={childActive ? "active" : ""}
+                          >
+                            <ApplicationIcon name={item.icon} />
+                            <span>{item.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              );
+            }
+
             const active =
               href === "/" ? pathname === href : pathname.startsWith(href);
+
             return (
               <Link
                 key={href}
