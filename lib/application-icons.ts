@@ -30,6 +30,7 @@ import {
   Ban,
   BriefcaseBusiness,
   ClipboardCheck,
+  Target,
 } from "lucide-react";
 
 export const applicationIcons = {
@@ -39,6 +40,7 @@ export const applicationIcons = {
   communications: Bell,
   customers: ContactRound,
   tasks: ClipboardCheck,
+  goals: Target,
   questions: FileQuestion,
   reports: ChartNoAxesColumnIncreasing,
   users: UsersRound,

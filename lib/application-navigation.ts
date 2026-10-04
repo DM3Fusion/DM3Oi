@@ -20,6 +20,7 @@ export const organizationNavigation = [
   { href: "/service-desk", label: "Service Desk", icon: "service-desk", permission: "VIEW_SERVICE_DESK" },
   { href: "/customers", label: "Customers", icon: "customers", permission: "VIEW_CUSTOMERS" },
   { href: "/tasks", label: "Tasks", icon: "tasks", permission: "VIEW_TASKS" },
+  { href: "/goals", label: "Goals", icon: "goals", permission: "VIEW_GOALS" },
   { href: "/questions", label: "Questions & Rules", icon: "questions", permission: "VIEW_QUESTIONS" },
   { href: "/reports", label: "Reports", icon: "reports", permission: "VIEW_REPORTS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
@@ -105,6 +106,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     "/service-desk",
     "/customers",
     "/tasks",
+    "/goals",
     "/reports",
     "/questions",
   ];

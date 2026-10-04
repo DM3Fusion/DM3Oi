@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ORGANIZATION_SUPPORT_IDENTITY } from "@/lib/auth/platform-privacy";
 
 export type UserRoleHistoryEventType =
   | "BASELINE"
@@ -205,7 +206,7 @@ export function roleHistoryEventDescription(
         : "Removed";
 
   if (row.actorIsPlatform && !platformViewer) {
-    return `${verb} by DM3Oi Platform`;
+    return `${verb} by ${ORGANIZATION_SUPPORT_IDENTITY}`;
   }
 
   const actor =

@@ -29,6 +29,19 @@ type TrialIdentityReferenceDatabase = Database & {
   };
 };
 
+type GoalIdentityDatabase = Database & {
+  public: Database["public"] & {
+    Tables: Database["public"]["Tables"] & {
+      goals: {
+        Row: { id: string; owner_user_id: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+    };
+  };
+};
+
 type TrialIdentityClient = SupabaseClient<TrialIdentityReferenceDatabase>;
 
 export type GlobalUserDeletionEligibility = {
@@ -51,6 +64,7 @@ export async function getGlobalUserDeletionEligibility(
 ): Promise<GlobalUserDeletionEligibility> {
   const admin = createAdminClient();
   const trialAdmin = admin as unknown as TrialIdentityClient;
+  const goalAdmin = admin as unknown as SupabaseClient<GoalIdentityDatabase>;
   const blockers: string[] = [];
 
   /*
@@ -64,6 +78,14 @@ export async function getGlobalUserDeletionEligibility(
    * Any lookup failure is fail-closed.
    */
   const checks: DependencyCheck[] = [
+    {
+      label: "Individual Goal responsibility exists.",
+      run: () =>
+        goalAdmin
+          .from("goals")
+          .select("id", { count: "exact", head: true })
+          .eq("owner_user_id", userId),
+    },
     {
       label: "Another organization membership exists.",
       run: () =>

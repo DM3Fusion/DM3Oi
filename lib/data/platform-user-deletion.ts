@@ -5,6 +5,21 @@ import {
   queryOrganizationLifecycleStatusIdentityReferences,
   type OrganizationLifecycleStatusIdentityClient,
 } from "@/lib/data/platform-user-deletion-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.generated";
+
+type GoalIdentityDatabase = Database & {
+  public: Database["public"] & {
+    Tables: Database["public"]["Tables"] & {
+      goals: {
+        Row: { id: string; organization_id: string; owner_user_id: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+    };
+  };
+};
 
 export type PlatformUserDeletionEligibility = {
   eligible: boolean;
@@ -24,6 +39,7 @@ export async function getPlatformUserDeletionEligibility(
   membershipId: string,
 ): Promise<PlatformUserDeletionEligibility> {
   const admin = createAdminClient();
+  const goalAdmin = admin as unknown as SupabaseClient<GoalIdentityDatabase>;
   const blockers: string[] = [];
 
   const membership = await admin
@@ -59,6 +75,15 @@ export async function getPlatformUserDeletionEligibility(
   const organizationId = membership.data.organization_id;
 
   const checks: DependencyCheck[] = [
+    {
+      label: "Individual Goal responsibility exists.",
+      run: () =>
+        goalAdmin
+          .from("goals")
+          .select("id", { count: "exact", head: true })
+          .eq("organization_id", organizationId)
+          .eq("owner_user_id", userId),
+    },
     {
       label: "Another organization membership exists.",
       run: () =>

@@ -452,6 +452,11 @@ test("role-history copy distinguishes baseline change assignment and removal", (
 
   assert.match(
     roleHistoryRepository,
-    /return `\$\{verb\} by DM3Oi Platform`/,
+    /row\.actorIsPlatform && !platformViewer[\s\S]*`\$\{verb\} by \$\{ORGANIZATION_SUPPORT_IDENTITY\}`/,
+  );
+  assert.match(roleHistoryRepository, /row\.actorIsPlatform \? "DM3Oi Platform" : "System"/);
+  assert.match(
+    fs.readFileSync("lib/auth/platform-privacy.ts", "utf8"),
+    /ORGANIZATION_SUPPORT_IDENTITY = "DM3Oi Sys Support"/,
   );
 });
