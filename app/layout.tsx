@@ -10,7 +10,7 @@ import { getApplicationVersionLabel } from "@/lib/app-version";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getNewTrialRequestCount } from "@/lib/data/trial-request-repository";
 export const dynamic="force-dynamic";
-export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Operational Intelligence for service businesses."};
+export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Business Operations Intelligence for organizations managing customers, cases, tasks, service requests, communications, workflows, and operational performance."};
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const [access, requestHeaders]=await Promise.all([getAccessContext(), headers()]);
   const requestPathname=requestHeaders.get("x-dm3oi-route-pathname");
