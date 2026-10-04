@@ -64,8 +64,7 @@ export function PublicInfographicModal() {
 
               <div className="public-infographic-header-actions">
                 <a
-                  href="/images/DM3Oi_Overview_2026.PNG"
-                  download="DM3Oi_Overview_2026.PNG"
+                  href="/api/public/overview-download"
                   className="public-infographic-save"
                 >
                   Save
