@@ -122,7 +122,14 @@ test("desktop and mobile expose exactly one role-appropriate guide item", () => 
     }
   }
 
-  assert.equal(platformNavigation.some((item) => item.href.includes("how-to-guide")), false);
+  assert.equal(
+    platformNavigation.some(
+      (item) =>
+        item.href === "/admin/how-to-guides" &&
+        item.label === "How-to Guides",
+    ),
+    true,
+  );
   assert.equal(
     mobileSecondaryNavigation({
       isSuperAdmin: true,
@@ -141,8 +148,20 @@ test("guide routes are protected server pages and absent from every public allow
 
   assert.doesNotMatch(publicRoutes, /how-to-guide/);
   assert.match(proxy, /if\(!user&&protectedRoute\)[\s\S]*new URL\("\/login"/);
-  assert.match(ownerGuide, /!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\) notFound\(\)/);
-  assert.match(staffGuide, /!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\) notFound\(\)/);
-  assert.doesNotMatch(ownerGuide, /@\/lib\/data\/|createClient\(|getLiveOrganizationData|getOperationalIntelligence/);
-  assert.doesNotMatch(staffGuide, /@\/lib\/data\/|createClient\(|getLiveOrganizationData|getOperationalIntelligence/);
+  assert.match(
+    ownerGuide,
+    /if \(!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\)\s*\{\s*notFound\(\);\s*\}/,
+  );
+  assert.match(
+    staffGuide,
+    /if \(!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\)\s*\{\s*notFound\(\);\s*\}/,
+  );
+  assert.doesNotMatch(
+    ownerGuide,
+    /createClient\(|getLiveOrganizationData|getOperationalIntelligence/,
+  );
+  assert.doesNotMatch(
+    staffGuide,
+    /createClient\(|getLiveOrganizationData|getOperationalIntelligence/,
+  );
 });

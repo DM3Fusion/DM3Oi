@@ -2,13 +2,23 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
 
+import {
+  defaultHowToGuideContent,
+  parseHowToGuideContent,
+} from "../lib/how-to-guide-content.ts";
+
 const source = (path: string) => readFileSync(path, "utf8");
+
 const guidePath = "app/how-to-guide/page.tsx";
 const guide = source(guidePath);
+const renderer = source("components/how-to-guides/guide-renderer.tsx");
+const figures = source("components/how-to-guides/guide-figures.tsx");
 const navigation = source("lib/application-navigation.ts");
 const styles = source("app/globals.css");
 const layout = source("app/layout.tsx");
 const proxy = source("proxy.ts");
+
+const ownerContent = defaultHowToGuideContent.OWNER_ADMIN;
 
 const sections = [
   ["getting-started", "Getting Started"],
@@ -26,32 +36,82 @@ const sections = [
   ["troubleshooting", "Tips & Troubleshooting"],
 ] as const;
 
-test("organization How to Guide route and semantic sections exist", () => {
+test("organization How to Guide route uses the locked shared renderer", () => {
   assert.equal(existsSync(guidePath), true);
-  assert.match(guide, /title="DM3Oi How to Guide"/);
-  assert.match(guide, /eyebrow="Help"/);
-  assert.match(guide, /id="guide-top"/);
-  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\) notFound\(\)/);
-  assert.doesNotMatch(guide, /requirePermission|getLiveOrganizationData|getOperationalIntelligence|getUnreadNotificationCount/);
 
-  for (const [id, title] of sections) {
-    assert.match(guide, new RegExp(`id="${id}"`));
-    assert.match(guide, new RegExp(`title="${title.replace(/[&/]/g, "\\$&")}"`));
-  }
+  assert.match(
+    guide,
+    /canAccessOrganizationGuide\(access, "\/how-to-guide"\)/,
+  );
+  assert.match(
+    guide,
+    /getPublishedHowToGuideForServer\("OWNER_ADMIN"\)/,
+  );
+  assert.match(
+    guide,
+    /<HowToGuideRenderer[\s\S]*content=\{content\}/,
+  );
 
-  assert.match(guide, /guideSections\.map\(\(\[id, label\], index\) =>/);
-  assert.match(guide, /<a href=\{`#\$\{id\}`\}>/);
-  assert.match(guide, /href="#guide-top"/);
+  const accessIndex = guide.indexOf("getAccessContext()");
+  const guardIndex = guide.indexOf(
+    'canAccessOrganizationGuide(access, "/how-to-guide")',
+  );
+  const loadIndex = guide.indexOf(
+    'getPublishedHowToGuideForServer("OWNER_ADMIN")',
+  );
+
+  assert.ok(accessIndex >= 0);
+  assert.ok(guardIndex > accessIndex);
+  assert.ok(loadIndex > guardIndex);
+
+  assert.doesNotMatch(
+    guide,
+    /createClient\(|getLiveOrganizationData|getOperationalIntelligence|getUnreadNotificationCount/,
+  );
+});
+
+test("Owner Admin default guide preserves all intended semantic sections", () => {
+  assert.equal(
+    parseHowToGuideContent("OWNER_ADMIN", ownerContent),
+    ownerContent,
+  );
+  assert.equal(ownerContent.title, "DM3Oi How to Guide");
+  assert.equal(ownerContent.sections.length, sections.length);
+
+  assert.deepEqual(
+    ownerContent.sections.map((section) => [section.key, section.title]),
+    sections,
+  );
+});
+
+test("shared renderer provides guide header navigation sections and back-to-top behavior", () => {
+  assert.match(renderer, /<PageHeader eyebrow="Help"/);
+  assert.match(renderer, /id="guide-top"/);
+  assert.match(renderer, /className="panel guide-toc"/);
+  assert.match(renderer, /sections\.map/);
+  assert.match(renderer, /href=\{`#\$\{section\.key\}`\}/);
+  assert.match(renderer, /className="panel guide-section"/);
+  assert.match(renderer, /href="#guide-top"/);
 });
 
 test("guide routes remain independent of organization operational-data loading", () => {
-  assert.match(layout, /requestPathname==="\/how-to-guide"\|\|requestPathname==="\/staff-how-to-guide"/);
-  assert.match(layout, /!staticGuideRequest && access\?\.internalAccess && access\.activeOrganization/);
-  assert.match(proxy, /forwardedHeaders\.set\("x-dm3oi-route-pathname",pathname\)/);
-  assert.doesNotMatch(guide, /@\/lib\/data\/|createClient\(/);
+  assert.match(
+    layout,
+    /requestPathname==="\/how-to-guide"\|\|requestPathname==="\/staff-how-to-guide"/,
+  );
+  assert.match(
+    layout,
+    /!staticGuideRequest && access\?\.internalAccess && access\.activeOrganization/,
+  );
+  assert.match(
+    proxy,
+    /forwardedHeaders\.set\("x-dm3oi-route-pathname",pathname\)/,
+  );
 });
 
-test("guide content excludes restricted operational contexts and production-looking PII", () => {
+test("Owner Admin guide content excludes platform-only contexts and production-looking PII", () => {
+  const serialized = JSON.stringify(ownerContent);
+
   for (const forbidden of [
     "SUPER_ADMIN",
     "Super Admin",
@@ -65,15 +125,18 @@ test("guide content excludes restricted operational contexts and production-look
     "global user",
     "tenant administration",
   ]) {
-    assert.doesNotMatch(guide, new RegExp(forbidden, "i"), forbidden);
+    assert.doesNotMatch(serialized, new RegExp(forbidden, "i"), forbidden);
   }
 
-  assert.doesNotMatch(guide, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  assert.doesNotMatch(guide, /\b\d{3}-\d{2}-\d{4}\b/);
-  assert.doesNotMatch(guide, /\bCASE[- ]?\d{4,}\b/i);
+  assert.doesNotMatch(
+    serialized,
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+  );
+  assert.doesNotMatch(serialized, /\b\d{3}-\d{2}-\d{4}\b/);
+  assert.doesNotMatch(serialized, /\bCASE[- ]?\d{4,}\b/i);
 });
 
-test("How to Guide navigation is organization-facing and adjacent to Settings", () => {
+test("organization How to Guide navigation remains adjacent to Settings while platform gets separate template management", () => {
   const organizationGroup = navigation.slice(
     navigation.indexOf("export const organizationAdministrationNavigation"),
     navigation.indexOf("export const organizationSettingsNavigation"),
@@ -91,47 +154,70 @@ test("How to Guide navigation is organization-facing and adjacent to Settings", 
     organizationGroup.indexOf('href: "/how-to-guide"') <
       organizationGroup.indexOf('href: "/settings"'),
   );
-  assert.doesNotMatch(platformGroup, /how-to-guide|How to Guide/);
-  assert.match(navigation, /const guide = administration\.filter\(\(item\) => item\.label === "How to Guide"\)/);
-});
 
-test("guide documents current-state reporting and safe task and customer boundaries", () => {
-  const customerSection = guide.slice(
-    guide.indexOf('id="customers"'),
-    guide.indexOf('id="cases"'),
-  );
-  const taskSection = guide.slice(
-    guide.indexOf('id="tasks"'),
-    guide.indexOf('id="service-desk"'),
+  assert.match(
+    platformGroup,
+    /href: "\/admin\/how-to-guides", label: "How-to Guides", icon: "questions"/,
   );
 
   assert.match(
-    guide,
-    /Business Reach reflects the current customer footprint and is[\s\S]*independent of the reporting-period filter below it/,
+    navigation,
+    /const guide = administration\.filter\(\(item\) => item\.label === "How to Guide"\)/,
   );
-  assert.doesNotMatch(customerSection, /export/i);
-  assert.match(taskSection, /Workflow-required Tasks cannot be deleted or manually reordered/);
-  assert.doesNotMatch(taskSection, /remove workflow|required Tasks can be (?:removed|deleted)/i);
 });
 
-test("guide figures are compact accessible and use generic instructional content", () => {
-  for (const title of [
-    "Customer workspace example",
-    "Guided Case Intake steps",
-    "Task register example",
-    "Service Request conversation flow",
-    "Portal Access controls",
-    "Business Reach map key",
-    "Organization invitation flow",
-    "Organization settings cards",
+test("Owner Admin guide documents current-state reporting and safe task and customer boundaries", () => {
+  const customer = ownerContent.sections.find(
+    (section) => section.key === "customers",
+  );
+  const tasks = ownerContent.sections.find(
+    (section) => section.key === "tasks",
+  );
+  const reports = ownerContent.sections.find(
+    (section) => section.key === "reports",
+  );
+
+  assert.ok(customer);
+  assert.ok(tasks);
+  assert.ok(reports);
+
+  assert.doesNotMatch(JSON.stringify(customer), /\bexport\b/i);
+
+  assert.match(
+    JSON.stringify(tasks),
+    /Workflow-required Tasks cannot be deleted or manually reordered/,
+  );
+
+  assert.match(
+    JSON.stringify(reports),
+    /Business Reach reflects the current customer footprint and is independent of the reporting-period filter below it/,
+  );
+});
+
+test("Owner Admin figures remain code-controlled compact and accessible", () => {
+  for (const key of [
+    "customer-workspace",
+    "guided-intake-owner",
+    "task-register-owner",
+    "service-request-flow-owner",
+    "portal-access",
+    "business-reach-owner",
+    "invitation-flow",
+    "settings-cards",
   ]) {
-    assert.match(guide, new RegExp(`title="${title}"`));
+    assert.match(figures, new RegExp(`"${key}"`));
   }
 
-  assert.match(guide, /<figure className="guide-figure">/);
-  assert.match(guide, /role="img" aria-label=\{title\}/);
-  assert.match(guide, /<figcaption>[\s\S]*<strong>\{title\}<\/strong>[\s\S]*\{caption\}/);
+  assert.match(figures, /<figure className="guide-figure">/);
+  assert.match(figures, /role="img" aria-label=\{title\}/);
   assert.match(styles, /\.guide-figure\{/);
-  assert.match(styles, /@media\(max-width:600px\)[\s\S]*\.guide-with-figure/);
-  assert.doesNotMatch(styles.match(/\.guide-figure\{[^}]*\}/)?.[0] ?? "", /border-radius:(?:99|999)px/);
+  assert.match(
+    styles,
+    /@media\(max-width:600px\)[\s\S]*\.guide-with-figure/,
+  );
+
+  assert.doesNotMatch(
+    styles.match(/\.guide-figure\{[^}]*\}/)?.[0] ?? "",
+    /border-radius:(?:99|999)px/,
+  );
 });

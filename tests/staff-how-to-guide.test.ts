@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 
 import {
@@ -12,11 +12,17 @@ import {
   type ApplicationRole,
   type PermissionContext,
 } from "../lib/auth/permissions.ts";
+import {
+  defaultHowToGuideContent,
+  parseHowToGuideContent,
+} from "../lib/how-to-guide-content.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
-const guidePath = "app/staff-how-to-guide/page.tsx";
-const guide = source(guidePath);
+const guide = source("app/staff-how-to-guide/page.tsx");
 const ownerGuide = source("app/how-to-guide/page.tsx");
+const figures = source("components/how-to-guides/guide-figures.tsx");
+
+const staffContent = defaultHowToGuideContent.STAFF;
 
 const access = (role: ApplicationRole): PermissionContext => ({
   isSuperAdmin: false,
@@ -39,70 +45,205 @@ const sections = [
   ["troubleshooting", "Tips & Troubleshooting"],
 ] as const;
 
-test("Staff How to Guide route has the intended static operational sections", () => {
-  assert.equal(existsSync(guidePath), true);
-  assert.match(guide, /title="DM3Oi Staff How to Guide"/);
-  assert.match(guide, /eyebrow="Help"/);
-  assert.match(guide, /id="guide-top"/);
-  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\) notFound\(\)/);
-  assert.doesNotMatch(guide, /@\/lib\/data\/|createClient\(|requirePermission/);
-  for (const [id, title] of sections) {
-    assert.match(guide, new RegExp(`id="${id}"`));
-    assert.match(guide, new RegExp(`title="${title.replace(/[&/]/g, "\\$&")}"`));
-  }
+test("Staff How to Guide route uses the locked shared renderer", () => {
+  assert.match(
+    guide,
+    /canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)/,
+  );
+  assert.match(
+    guide,
+    /getPublishedHowToGuideForServer\("STAFF"\)/,
+  );
+  assert.match(
+    guide,
+    /<HowToGuideRenderer[\s\S]*content=\{content\}/,
+  );
+
+  const accessIndex = guide.indexOf("getAccessContext()");
+  const guardIndex = guide.indexOf(
+    'canAccessOrganizationGuide(access, "/staff-how-to-guide")',
+  );
+  const loadIndex = guide.indexOf(
+    'getPublishedHowToGuideForServer("STAFF")',
+  );
+
+  assert.ok(accessIndex >= 0);
+  assert.ok(guardIndex > accessIndex);
+  assert.ok(loadIndex > guardIndex);
+
+  assert.doesNotMatch(
+    guide,
+    /createClient\(|requirePermission|getLiveOrganizationData|getOperationalIntelligence/,
+  );
+});
+
+test("Staff default guide preserves intended operational sections", () => {
+  assert.equal(
+    parseHowToGuideContent("STAFF", staffContent),
+    staffContent,
+  );
+
+  assert.equal(staffContent.title, "DM3Oi Staff How to Guide");
+
+  assert.deepEqual(
+    staffContent.sections.map((section) => [section.key, section.title]),
+    sections,
+  );
 });
 
 test("staff content omits administration and platform-only instructions", () => {
-  for (const forbidden of [
-    "SUPER_ADMIN", "Super Admin", "Platform Console", "Platform Administration",
-    "Supabase", "Vercel", "migration", "deployment", "database administration",
-    "tenant management", "Submit Customer Data",
-  ]) assert.doesNotMatch(guide, new RegExp(forbidden, "i"), forbidden);
+  const serialized = JSON.stringify(staffContent);
 
-  assert.doesNotMatch(guide, /invite (?:a |organization )?(?:user|staff)|manage roles|branding|logo administration/i);
-  assert.doesNotMatch(guide, /choose Enable Portal Access|resend invitation|Customer Import/i);
-  assert.match(guide, /Portal access activation, invitation management, and portal-wide settings are not staff actions/);
+  for (const forbidden of [
+    "SUPER_ADMIN",
+    "Super Admin",
+    "Platform Console",
+    "Platform Administration",
+    "Supabase",
+    "Vercel",
+    "migration",
+    "deployment",
+    "database administration",
+    "tenant management",
+    "Submit Customer Data",
+  ]) {
+    assert.doesNotMatch(serialized, new RegExp(forbidden, "i"), forbidden);
+  }
+
+  assert.doesNotMatch(
+    serialized,
+    /invite (?:a |organization )?(?:user|staff)|manage roles|branding|logo administration/i,
+  );
+  assert.doesNotMatch(
+    serialized,
+    /choose Enable Portal Access|resend invitation|Customer Import/i,
+  );
+  assert.match(
+    serialized,
+    /Portal access activation, invitation management, and portal-wide settings are not staff actions/,
+  );
 });
 
 test("each organization role receives exactly one role-appropriate guide link", () => {
   for (const role of ["BUSINESS_OWNER", "BUSINESS_ADMIN"] as const) {
     assert.equal(organizationGuideHref(access(role)), "/how-to-guide");
-    const items = authorizedOrganizationAdministrationNavigation(access(role));
-    assert.deepEqual(items.filter((item) => item.label === "How to Guide").map((item) => item.href), ["/how-to-guide"]);
-    assert.deepEqual(mobileSecondaryNavigation(access(role), false).filter((item) => item.label === "How to Guide").map((item) => item.href), ["/how-to-guide"]);
+
+    const items = authorizedOrganizationAdministrationNavigation(
+      access(role),
+    );
+
+    assert.deepEqual(
+      items
+        .filter((item) => item.label === "How to Guide")
+        .map((item) => item.href),
+      ["/how-to-guide"],
+    );
+
+    assert.deepEqual(
+      mobileSecondaryNavigation(access(role), false)
+        .filter((item) => item.label === "How to Guide")
+        .map((item) => item.href),
+      ["/how-to-guide"],
+    );
   }
+
   for (const role of ["STAFF_MANAGER", "STAFF_USER"] as const) {
-    assert.equal(organizationGuideHref(access(role)), "/staff-how-to-guide");
-    const items = authorizedOrganizationAdministrationNavigation(access(role));
-    assert.deepEqual(items.filter((item) => item.label === "How to Guide").map((item) => item.href), ["/staff-how-to-guide"]);
-    assert.deepEqual(mobileSecondaryNavigation(access(role), false).filter((item) => item.label === "How to Guide").map((item) => item.href), ["/staff-how-to-guide"]);
+    assert.equal(
+      organizationGuideHref(access(role)),
+      "/staff-how-to-guide",
+    );
+
+    const items = authorizedOrganizationAdministrationNavigation(
+      access(role),
+    );
+
+    assert.deepEqual(
+      items
+        .filter((item) => item.label === "How to Guide")
+        .map((item) => item.href),
+      ["/staff-how-to-guide"],
+    );
+
+    assert.deepEqual(
+      mobileSecondaryNavigation(access(role), false)
+        .filter((item) => item.label === "How to Guide")
+        .map((item) => item.href),
+      ["/staff-how-to-guide"],
+    );
   }
-  assert.equal(organizationGuideHref({ ...access("SUPER_ADMIN"), isSuperAdmin: true }), null);
-  assert.equal(platformNavigation.some((item) => item.href.includes("how-to-guide")), false);
+
+  assert.equal(
+    organizationGuideHref({
+      ...access("SUPER_ADMIN"),
+      isSuperAdmin: true,
+    }),
+    null,
+  );
+
+  assert.equal(
+    platformNavigation.some(
+      (item) => item.href === "/admin/how-to-guides",
+    ),
+    true,
+  );
 });
 
 test("route guards preserve Owner Admin and staff separation", () => {
-  assert.match(ownerGuide, /!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\) notFound\(\)/);
-  assert.doesNotMatch(ownerGuide, /staff-how-to-guide/);
-  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\) notFound\(\)/);
-  assert.doesNotMatch(guide, /canAccessOrganizationGuide\(access, "\/how-to-guide"/);
+  assert.match(
+    ownerGuide,
+    /canAccessOrganizationGuide\(access, "\/how-to-guide"\)/,
+  );
+  assert.doesNotMatch(
+    ownerGuide,
+    /canAccessOrganizationGuide\(access, "\/staff-how-to-guide"/,
+  );
+
+  assert.match(
+    guide,
+    /canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)/,
+  );
+  assert.doesNotMatch(
+    guide,
+    /canAccessOrganizationGuide\(access, "\/how-to-guide"/,
+  );
 });
 
 test("staff task guidance preserves required workflow work", () => {
-  const taskSection = guide.slice(guide.indexOf('id="tasks"'), guide.indexOf('id="service-desk"'));
-  assert.match(taskSection, /Workflow-required Tasks cannot be deleted or manually reordered/);
-  assert.doesNotMatch(taskSection, /remove workflow|required Tasks can be (?:removed|deleted)/i);
+  const tasks = staffContent.sections.find(
+    (section) => section.key === "tasks",
+  );
+
+  assert.ok(tasks);
+
+  assert.match(
+    JSON.stringify(tasks),
+    /Workflow-required Tasks cannot be deleted or manually reordered/,
+  );
+
+  assert.doesNotMatch(
+    JSON.stringify(tasks),
+    /remove workflow|required Tasks can be (?:removed|deleted)/i,
+  );
 });
 
-test("staff figures are accessible compact and free of production-looking PII", () => {
-  for (const title of [
-    "Customer register example", "Guided Case Intake sequence", "Task register example",
-    "Service Request work flow", "Customer Portal interaction", "Inbox review pattern",
-    "Business Reach map key",
-  ]) assert.match(guide, new RegExp(`title="${title}"`));
-  assert.match(guide, /<figure className="guide-figure">/);
-  assert.match(guide, /role="img" aria-label=\{title\}/);
-  assert.match(guide, /<figcaption><strong>\{title\}<\/strong><span>\{caption\}<\/span><\/figcaption>/);
-  assert.doesNotMatch(guide, /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  assert.doesNotMatch(guide, /\bCASE[- ]?\d{4,}\b/i);
+test("staff figures remain code-controlled and free of production-looking PII", () => {
+  for (const key of [
+    "customer-register",
+    "guided-intake-staff",
+    "task-register-staff",
+    "service-request-flow-staff",
+    "portal-interaction",
+    "inbox-pattern",
+    "business-reach-staff",
+  ]) {
+    assert.match(figures, new RegExp(`"${key}"`));
+  }
+
+  const serialized = JSON.stringify(staffContent);
+
+  assert.doesNotMatch(
+    serialized,
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i,
+  );
+  assert.doesNotMatch(serialized, /\bCASE[- ]?\d{4,}\b/i);
 });
