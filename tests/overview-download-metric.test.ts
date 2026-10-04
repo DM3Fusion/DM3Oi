@@ -15,6 +15,7 @@ const modal = source("components/public-infographic-modal.tsx");
 const repository = source("lib/data/platform-analytics-repository.ts");
 const page = source("app/page.tsx");
 const dashboard = source("components/platform/platform-dashboard.tsx");
+const styles = source("app/globals.css");
 const proxy = source("proxy.ts");
 
 test("successful Overview GET preserves the PNG and records exactly once", async () => {
@@ -163,7 +164,7 @@ test("Platform Console reads the all-time metric through its authenticated SUPER
 
 test("Overview Downloads renders in the intended independent dashboard position", () => {
   const metricPosition = dashboard.indexOf(
-    'className="platform-overview-download-metric"',
+    'className="metric platform-overview-download-metric"',
   );
   const platformKpisPosition = dashboard.indexOf(
     'className="metric-grid platform-metrics"',
@@ -173,7 +174,7 @@ test("Overview Downloads renders in the intended independent dashboard position"
   );
   const metricMarkup =
     dashboard.match(
-      /<section[\s\S]*?className="platform-overview-download-metric"[\s\S]*?<\/section>/,
+      /<section[\s\S]*?className="metric platform-overview-download-metric"[\s\S]*?<\/section>/,
     )?.[0] ?? "";
 
   assert.ok(platformKpisPosition < metricPosition);
@@ -181,6 +182,18 @@ test("Overview Downloads renders in the intended independent dashboard position"
   assert.match(metricMarkup, /Overview Downloads/);
   assert.match(metricMarkup, /DM3Oi Overview served/);
   assert.match(metricMarkup, /overviewDownloadCount/);
+  assert.match(
+    metricMarkup,
+    /<span>Overview Downloads<\/span>[\s\S]*<strong>[\s\S]*overviewDownloadCount[\s\S]*<\/strong>[\s\S]*<small>DM3Oi Overview served<\/small>/,
+  );
+  assert.match(
+    styles,
+    /\.platform-overview-download-metric\{[^}]*width:min\(100%,292px\)[^}]*margin:0 auto[^}]*flex-direction:column[^}]*text-align:center/,
+  );
+  assert.doesNotMatch(
+    styles.match(/\.platform-overview-download-metric\{[^}]*\}/)?.[0] ?? "",
+    /max-width:900px|border-left|border-radius:99|border-radius:999/,
+  );
   assert.doesNotMatch(metricMarkup, /analytics\.range|analyticsRanges|analyticsFrom/);
   assert.doesNotMatch(
     page.match(/getOverviewDownloadCount\([^)]*\)/)?.[0] ?? "",

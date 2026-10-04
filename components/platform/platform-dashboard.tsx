@@ -99,13 +99,11 @@ export function PlatformDashboard({
 
       <section
         aria-label="Overview download metric"
-        className="platform-overview-download-metric"
+        className="metric platform-overview-download-metric"
       >
-        <div>
-          <span>Overview Downloads</span>
-          <small>DM3Oi Overview served</small>
-        </div>
+        <span>Overview Downloads</span>
         <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
+        <small>DM3Oi Overview served</small>
       </section>
 
       <section className="admin-analytics">
