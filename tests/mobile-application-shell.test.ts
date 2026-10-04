@@ -122,7 +122,7 @@ test("mobile Account omits permission-filtered destinations while retaining the 
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/organizations/new", "/admin/users", "/admin/case-cleanup", "/admin/email-templates", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/organizations/new", "/admin/case-cleanup", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/email-templates", "/admin/users", "/account/profile"]);
 });
 
 test("mobile More orders authorized organization destinations without bypassing permissions", () => {
@@ -208,7 +208,7 @@ test("SUPER_ADMIN template destinations are grouped under one Templates parent",
 
   assert.match(
     navigationSource,
-    /export const platformTemplatesNavigation[\s\S]*"Email Templates"[\s\S]*"New Orgn Templates"[\s\S]*"How-to-Guides Templates"/,
+    /export const platformTemplatesNavigation[\s\S]*"Email Templates"[\s\S]*"New Orgn Templates"[\s\S]*"How-to-Guides Templates"[\s\S]*"Landing Page Template"/,
   );
 
   assert.match(

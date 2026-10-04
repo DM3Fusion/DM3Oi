@@ -76,7 +76,7 @@ test("SUPER_ADMIN landing-page management is available in platform navigation", 
 
   assert.match(
     navigation,
-    /href: "\/admin\/landing-page", label: "Landing Page"/,
+    /href: "\/admin\/landing-page", label: "Landing Page Template"/,
   );
   assert.match(page, /requireSuperAdmin\(\)/);
   assert.match(actions, /requireSuperAdmin\(\)/);

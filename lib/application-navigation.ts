@@ -41,19 +41,19 @@ export const platformTemplatesNavigation = [
   { href: "/admin/email-templates", label: "Email Templates", icon: "communications" },
   { href: "/admin/configuration-templates", label: "New Orgn Templates", icon: "organization" },
   { href: "/admin/how-to-guides", label: "How-to-Guides Templates", icon: "questions" },
+  { href: "/admin/landing-page", label: "Landing Page Template", icon: "platform" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
 export const platformNavigation = [
   { href: "/", label: "Platform Console", icon: "platform" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
-  { href: "/admin/organizations/new", label: "New Organization", icon: "add" },
-  { href: "/admin/users", label: "Users / Access", icon: "users" },
+  { href: "/admin/organizations/new", label: "New Organizations", icon: "add" },
   { href: "/admin/case-cleanup", label: "Case Cleanup", icon: "cases" },
-  { href: "/admin/email-templates", label: "Templates", icon: "questions" },
   { href: "/admin/customer-import", label: "Customer Import", icon: "customers" },
   { href: "/admin/customer-duplicates", label: "Duplicate Customers", icon: "customers" },
   { href: "/admin/trial-requests", label: "Trial Requests", icon: "reports" },
-  { href: "/admin/landing-page", label: "Landing Page", icon: "platform" },
+  { href: "/admin/email-templates", label: "Templates", icon: "questions" },
+  { href: "/admin/users", label: "Users / Access", icon: "users" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
 export const mobilePrimaryDestinations = new Set(["/", "/cases", "/communications"]);
