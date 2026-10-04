@@ -20,7 +20,7 @@ import {
   mobilePrimaryDestinations,
   mobileSecondaryNavigation,
   platformNavigation,
-  platformOrganizationSetupNavigation,
+  platformTemplatesNavigation,
 } from "@/lib/application-navigation";
 import { hasPermission } from "@/lib/auth/permissions";
 
@@ -65,9 +65,12 @@ export function AppShell({
     pathname.startsWith("/settings") ||
       pathname.startsWith("/administration"),
   );
-  const [newOrganizationOpen, setNewOrganizationOpen] = useState(
-    pathname.startsWith("/admin/organizations/new") ||
-      pathname.startsWith("/admin/configuration-templates"),
+  const [templatesOpen, setTemplatesOpen] = useState(
+    platformTemplatesNavigation.some(
+      (item) =>
+        pathname === item.href ||
+        pathname.startsWith(`${item.href}/`),
+    ),
   );
   const closeDrawer = useCallback(() => setOpen(false), []);
   const phoneLayout = usePhoneLayout(closeDrawer);
@@ -179,10 +182,12 @@ export function AppShell({
         ) : null}
         <nav aria-label="Primary navigation">
           {nav.map(({ href, label, icon }) => {
-            if (href === "/admin/organizations/new") {
-              const parentActive =
-                pathname.startsWith("/admin/organizations/new") ||
-                pathname.startsWith("/admin/configuration-templates");
+            if (href === "/admin/email-templates") {
+              const parentActive = platformTemplatesNavigation.some(
+                (item) =>
+                  pathname === item.href ||
+                  pathname.startsWith(`${item.href}/`),
+              );
 
               return (
                 <div className="settings-nav-group" key={href}>
@@ -193,36 +198,37 @@ export function AppShell({
                       href={href}
                       onClick={() => {
                         setOpen(false);
-                        setNewOrganizationOpen(true);
+                        setTemplatesOpen(true);
                       }}
                       className="settings-nav-parent-link"
                     >
                       <ApplicationIcon name={icon} />
                       <span>{label}</span>
                     </Link>
+
                     <button
                       type="button"
                       className="settings-nav-toggle"
                       aria-label={
-                        newOrganizationOpen
-                          ? "Collapse New Organization"
-                          : "Expand New Organization"
+                        templatesOpen
+                          ? "Collapse Templates"
+                          : "Expand Templates"
                       }
-                      aria-expanded={newOrganizationOpen}
+                      aria-expanded={templatesOpen}
                       onClick={() =>
-                        setNewOrganizationOpen((value) => !value)
+                        setTemplatesOpen((value) => !value)
                       }
                     >
                       <ApplicationIcon
                         name="forward"
-                        className={`settings-nav-chevron ${newOrganizationOpen ? "open" : ""}`.trim()}
+                        className={`settings-nav-chevron ${templatesOpen ? "open" : ""}`.trim()}
                       />
                     </button>
                   </div>
 
-                  {newOrganizationOpen ? (
+                  {templatesOpen ? (
                     <div className="settings-subnav">
-                      {platformOrganizationSetupNavigation.map((item) => {
+                      {platformTemplatesNavigation.map((item) => {
                         const childActive =
                           pathname === item.href ||
                           pathname.startsWith(`${item.href}/`);
@@ -233,6 +239,7 @@ export function AppShell({
                             href={item.href}
                             onClick={() => setOpen(false)}
                             className={childActive ? "active" : ""}
+                            aria-current={childActive ? "page" : undefined}
                           >
                             <ApplicationIcon name={item.icon} />
                             <span>{item.label}</span>

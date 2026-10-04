@@ -5,7 +5,7 @@ import test from "node:test";
 import {
   authorizedOrganizationAdministrationNavigation,
   mobileSecondaryNavigation,
-  platformNavigation,
+  platformTemplatesNavigation,
 } from "../lib/application-navigation.ts";
 import {
   organizationGuideHref,
@@ -181,7 +181,7 @@ test("each organization role receives exactly one role-appropriate guide link", 
   );
 
   assert.equal(
-    platformNavigation.some(
+    platformTemplatesNavigation.some(
       (item) => item.href === "/admin/how-to-guides",
     ),
     true,

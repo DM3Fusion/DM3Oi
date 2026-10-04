@@ -6,6 +6,7 @@ import {
   authorizedOrganizationAdministrationNavigation,
   mobileSecondaryNavigation,
   platformNavigation,
+  platformTemplatesNavigation,
 } from "../lib/application-navigation.ts";
 import {
   canAccessOrganizationGuide,
@@ -125,8 +126,16 @@ test("desktop and mobile expose exactly one role-appropriate guide item", () => 
   assert.equal(
     platformNavigation.some(
       (item) =>
+        item.href === "/admin/email-templates" &&
+        item.label === "Templates",
+    ),
+    true,
+  );
+  assert.equal(
+    platformTemplatesNavigation.some(
+      (item) =>
         item.href === "/admin/how-to-guides" &&
-        item.label === "How-to Guides",
+        item.label === "How-to-Guides Templates",
     ),
     true,
   );

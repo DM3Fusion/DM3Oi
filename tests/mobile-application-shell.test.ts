@@ -122,7 +122,7 @@ test("mobile Account omits permission-filtered destinations while retaining the 
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/organizations/new", "/admin/users", "/admin/case-cleanup", "/admin/email-templates", "/admin/how-to-guides", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/organizations/new", "/admin/users", "/admin/case-cleanup", "/admin/email-templates", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/landing-page", "/account/profile"]);
 });
 
 test("mobile More orders authorized organization destinations without bypassing permissions", () => {
@@ -194,4 +194,35 @@ test("desktop and explicit full-site Communications behavior remain available", 
   assert.match(source("components/communications-view-toggle.tsx"), /View Full Site/);
   assert.match(source("components/communications-view-toggle.tsx"), /Return to Mobile View/);
   assert.match(source("components/communications-view-toggle.tsx"), /dm3oi_communications_view|communicationsViewCookie/);
+});
+
+test("SUPER_ADMIN template destinations are grouped under one Templates parent", () => {
+  const navigationSource = source("lib/application-navigation.ts");
+  const shellSource = source("components/layout/app-shell.tsx");
+  const mobileSource = source("components/layout/mobile-bottom-navigation.tsx");
+
+  assert.match(
+    navigationSource,
+    /href: "\/admin\/email-templates", label: "Templates", icon: "questions"/,
+  );
+
+  assert.match(
+    navigationSource,
+    /export const platformTemplatesNavigation[\s\S]*"Email Templates"[\s\S]*"New Orgn Templates"[\s\S]*"How-to-Guides Templates"/,
+  );
+
+  assert.match(
+    shellSource,
+    /platformTemplatesNavigation\.map/,
+  );
+
+  assert.match(
+    mobileSource,
+    /platformTemplatesNavigation\.map/,
+  );
+
+  assert.doesNotMatch(
+    navigationSource,
+    /platformOrganizationSetupNavigation/,
+  );
 });

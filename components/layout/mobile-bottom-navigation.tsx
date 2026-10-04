@@ -7,7 +7,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { signOutAction } from "@/lib/auth/actions";
 import {
-  platformOrganizationSetupNavigation,
+  platformTemplatesNavigation,
   type ApplicationNavigationItem,
 } from "@/lib/application-navigation";
 import type { ApplicationIconName } from "@/lib/application-icons";
@@ -87,16 +87,19 @@ export function MobileBottomNavigation({
               {moreItems.map((item) => {
                 const settingsParent =
                   item.href === "/settings/case-configuration";
-                const newOrganizationParent =
-                  item.href === "/admin/organizations/new";
+                const templatesParent =
+                  item.href === "/admin/email-templates";
                 const active = settingsParent
                   ? pathname.startsWith("/settings")
-                  : newOrganizationParent
-                    ? pathname.startsWith("/admin/organizations/new") ||
-                      pathname.startsWith("/admin/configuration-templates")
+                  : templatesParent
+                    ? platformTemplatesNavigation.some(
+                        (child) =>
+                          pathname === child.href ||
+                          pathname.startsWith(`${child.href}/`),
+                      )
                     : matchesPath(pathname, item.href);
 
-                if (newOrganizationParent) {
+                if (templatesParent) {
                   return (
                     <div className="mobile-settings-nav-group" key={item.href}>
                       <Link
@@ -107,8 +110,9 @@ export function MobileBottomNavigation({
                         <ApplicationIcon name={item.icon} />
                         <span>{item.label}</span>
                       </Link>
+
                       <div className="mobile-settings-subnav">
-                        {platformOrganizationSetupNavigation.map((child) => {
+                        {platformTemplatesNavigation.map((child) => {
                           const childActive =
                             pathname === child.href ||
                             pathname.startsWith(`${child.href}/`);

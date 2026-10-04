@@ -156,8 +156,12 @@ test("organization How to Guide navigation remains adjacent to Settings while pl
   );
 
   assert.match(
+    navigation,
+    /export const platformTemplatesNavigation[\s\S]*href: "\/admin\/how-to-guides", label: "How-to-Guides Templates", icon: "questions"/,
+  );
+  assert.match(
     platformGroup,
-    /href: "\/admin\/how-to-guides", label: "How-to Guides", icon: "questions"/,
+    /href: "\/admin\/email-templates", label: "Templates", icon: "questions"/,
   );
 
   assert.match(
