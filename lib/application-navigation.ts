@@ -43,6 +43,7 @@ export const platformTemplatesNavigation = [
   { href: "/admin/configuration-templates", label: "New Orgn Templates", icon: "organization" },
   { href: "/admin/how-to-guides", label: "How-to Guide Templates", icon: "questions" },
   { href: "/admin/landing-page", label: "Landing Page Template", icon: "platform" },
+  { href: "/admin/legal-documents", label: "Legal Documents", icon: "reports" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
 export const platformNavigation = [

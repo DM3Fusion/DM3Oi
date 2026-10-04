@@ -12,8 +12,14 @@ test("Terms and Privacy are public legal documents with DM3Oi identity", () => {
   const component = source("components/legal-document-page.tsx");
 
   assert.match(proxy, /"\/terms","\/privacy"/);
-  assert.match(terms, /termsOfService/);
-  assert.match(privacy, /privacyPolicy/);
+  assert.match(
+    terms,
+    /getPublishedLegalDocumentForServer\("TERMS_OF_SERVICE"\)/,
+  );
+  assert.match(
+    privacy,
+    /getPublishedLegalDocumentForServer\("PRIVACY_POLICY"\)/,
+  );
   assert.match(terms, /index: false/);
   assert.match(privacy, /index: false/);
   assert.match(documents, /DM3Oi Business Operations Intelligence/);

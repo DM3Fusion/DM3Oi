@@ -3,13 +3,23 @@ export type LegalDocumentSection = {
   paragraphs: readonly string[];
 };
 
-export type LegalDocumentDefinition = {
-  type: "TERMS_OF_SERVICE" | "PRIVACY_POLICY";
+export const legalDocumentKeys = [
+  "TERMS_OF_SERVICE",
+  "PRIVACY_POLICY",
+] as const;
+
+export type LegalDocumentKey = (typeof legalDocumentKeys)[number];
+
+export type LegalDocumentContent = {
+  type: LegalDocumentKey;
   title: string;
-  version: string;
-  effectiveDate: string;
   introduction: readonly string[];
   sections: readonly LegalDocumentSection[];
+};
+
+export type LegalDocumentDefinition = LegalDocumentContent & {
+  version: string;
+  effectiveDate: string;
 };
 
 export const termsOfService = {
@@ -21,6 +31,8 @@ export const termsOfService = {
     "These Terms of Service govern access to and use of DM3Oi Business Operations Intelligence by a customer organization and its authorized users.",
     "By accepting these Terms on behalf of an organization, the Business Owner represents that the Business Owner has authority to bind the organization to these Terms. The organization is responsible for use of DM3Oi by its authorized users.",
   ],
+  // Dedicated or standalone deployments require separate written terms and
+  // are intentionally outside these public hosted-service Terms.
   sections: [
     {
       heading: "1. Fees",
@@ -31,104 +43,145 @@ export const termsOfService = {
     {
       heading: "2. Service",
       paragraphs: [
-        "DM3Oi provides hosted business operations, case management, task, service request, communication, reporting, and related workflow capabilities. Features may be changed, improved, suspended, or discontinued as the service evolves.",
-        "DM3Oi is provided as a business workflow and information system. It does not replace professional, legal, financial, regulatory, accounting, safety, or other specialized advice or independent business judgment.",
+        "DM3Oi is a hosted business-operations software service that may include customer, case, task, service-request, communications, workflow, reporting, and operational-intelligence functionality. The available features may depend on the organization's configuration and applicable service arrangement.",
+        "The service may be changed, improved, maintained, suspended, or discontinued as it evolves. These Terms do not promise uninterrupted or error-free availability.",
       ],
     },
     {
       heading: "3. Organization Accounts and Authorized Users",
       paragraphs: [
         "The customer organization is responsible for determining who may access its account, assigning appropriate roles, maintaining accurate account information, and promptly removing access that is no longer authorized.",
-        "Authorized users must use DM3Oi in accordance with these Terms, the organization's policies, and applicable law. The organization is responsible for activity performed through accounts and access credentials it authorizes.",
+        "Authorized users must use DM3Oi in accordance with these Terms, the organization's policies, and applicable law, and must take reasonable measures to protect credentials, authentication methods, devices, and account access.",
+        "The organization is responsible for actions taken through accounts and access credentials it authorizes, except to the extent an unauthorized action is caused by DM3Oi's own security failure. Suspected unauthorized access should be reported promptly through the organization's established DM3Oi support or administrative contact channel.",
       ],
     },
     {
       heading: "4. Customer Data",
       paragraphs: [
         "Customer Data includes information, records, customer and contact information, cases, tasks, service requests, communications, responses, reports, files, and other content submitted to or created through DM3Oi for the organization.",
+        "As between the organization and DM3Oi, the organization retains ownership and control of Customer Data it submits. These Terms do not transfer ownership of Customer Data to DM3Oi.",
         "The organization is responsible for the accuracy, legality, appropriateness, and authorization of Customer Data. The organization represents that it has the rights, permissions, notices, and consents reasonably necessary to submit and use Customer Data through DM3Oi.",
-        "The organization authorizes DM3Oi to host, process, transmit, reproduce, and otherwise use Customer Data as reasonably necessary to provide, maintain, secure, support, and improve the service, subject to the Privacy Policy and applicable law.",
+        "The organization grants DM3Oi a limited right to host, process, transmit, reproduce, back up, secure, and otherwise use Customer Data only as reasonably necessary to provide, support, secure, improve, and operate the service and to satisfy applicable legal obligations, subject to the Privacy Policy and applicable law.",
       ],
     },
     {
       heading: "5. Acceptable Use and Security",
       paragraphs: [
-        "Users may not use DM3Oi unlawfully; interfere with or disrupt the service; attempt unauthorized access; introduce malicious code; misuse another person's credentials; or use the service in a manner that compromises the security, availability, or integrity of DM3Oi or another customer's data.",
-        "The organization is responsible for reasonable security of its devices, accounts, credentials, and authorized-user access. Suspected unauthorized access should be reported promptly.",
+        "Users may not use DM3Oi for unlawful activity; attempt unauthorized access; circumvent security or access controls; share credentials outside authorized organizational use; introduce malicious code; engage in abusive or unauthorized automated access; interfere with platform availability or integrity; misuse another person's credentials; or access, disclose, alter, or misuse another organization's information without authorization.",
+        "Authorized integrations and automation are not prohibited merely because they are automated, but they must operate within documented or approved access methods and must not compromise the security, availability, or integrity of the service or another customer's data.",
       ],
     },
     {
       heading: "6. License and Access",
       paragraphs: [
-        "Access to organization features is subject to an applicable DM3Oi license and continued authorization to use the service.",
-        "Access may be limited, suspended, or terminated when the applicable license or organization access is no longer active or when otherwise permitted under these Terms.",
+        "Subject to these Terms and any applicable written service arrangement, DM3Oi grants the organization a limited, non-exclusive, non-transferable right, except as expressly allowed by written agreement, for its authorized users to access and use the hosted service for the organization's internal business operations.",
+        "These access rights do not transfer ownership of the software, source code, platform, or underlying technology. Access may be limited, suspended, or terminated when the applicable organization access is no longer active or when otherwise permitted under these Terms.",
       ],
     },
     {
-      heading: "7. Service Availability and Changes",
+      heading: "7. Intellectual Property",
       paragraphs: [
-        "DM3Oi may experience maintenance, outages, network failures, provider interruptions, software defects, or other events that affect availability. Continuous or uninterrupted operation is not guaranteed.",
-        "The organization is responsible for maintaining business procedures appropriate to its needs, including any independent records, backups, verification, or continuity measures it determines are necessary.",
+        "The DM3Oi software, platform architecture, workflows, designs, documentation, trademarks, and reusable technology remain owned by DM3Oi, the service provider, or their licensors, as applicable. Except for the limited hosted-service access rights stated in these Terms or a separate written agreement, no ownership interest in those materials is transferred to the organization or an authorized user.",
+        "Customer Data remains the organization's as described in Section 4. If the organization or an authorized user provides feedback, suggestions, or ideas about the service, DM3Oi may use them to improve or develop the service without creating ownership rights in Customer Data or the organization's confidential information.",
       ],
     },
     {
-      heading: "8. Reports, Outputs, and Business Reliance",
+      heading: "8. Third-Party Services",
       paragraphs: [
-        "Reports, workflow states, calculations, notifications, operational intelligence, and other system outputs depend on Customer Data, configuration, user actions, and available system information. The organization is responsible for reviewing outputs before relying on them for business, contractual, regulatory, safety, financial, or other material decisions.",
+        "DM3Oi may rely on third-party providers for hosting, database, authentication, storage, email, mapping or geocoding, communications, monitoring, and other infrastructure or services used to operate and support DM3Oi.",
+        "Third-party availability, changes, outages, or failures may affect DM3Oi. Use of third-party infrastructure to provide the service does not transfer ownership of Customer Data to DM3Oi or those providers, although Customer Data may be processed by them as reasonably necessary to perform their services, subject to applicable agreements and law.",
+      ],
+    },
+    {
+      heading: "9. Service Availability and Changes",
+      paragraphs: [
+        "DM3Oi may experience maintenance, upgrades, outages, network failures, provider interruptions, software defects, security changes, or other events that affect availability. Continuous, uninterrupted, or error-free operation is not guaranteed.",
+        "Features may be added, modified, deprecated, suspended, or discontinued as the service evolves. When practicable, DM3Oi may provide reasonable notice of a material change that substantially affects organization use, but emergency, legal, security, integrity, or provider-driven changes may occur without advance notice.",
+      ],
+    },
+    {
+      heading: "10. Reports, Outputs, and Business Reliance",
+      paragraphs: [
+        "Reports, workflow states, calculations, notifications, operational intelligence, and other system outputs depend on Customer Data, configuration, user actions, and available system information. They provide informational and operational support and do not make decisions for the organization.",
+        "The organization is responsible for reviewing outputs before relying on them for business, contractual, regulatory, safety, tax, accounting, financial, or other material decisions. DM3Oi does not replace legal, accounting, tax, regulatory, financial, or other professional advice or independent business judgment.",
         "DM3Oi does not guarantee that Customer Data or system-generated outputs are complete, error-free, suitable for a particular purpose, or sufficient to satisfy any independent legal, contractual, regulatory, or professional requirement.",
       ],
     },
     {
-      heading: "9. Data Preservation and Loss",
+      heading: "11. Data Preservation, Export, and Loss",
       paragraphs: [
-        "DM3Oi uses reasonable measures intended to operate and protect the service, but no hosted system can guarantee against every loss, corruption, deletion, interruption, or unauthorized event.",
-        "To the extent appropriate for its business, the organization is responsible for retaining independent copies of information or reports it considers critical and for reviewing exported or delivered materials for completeness.",
+        "DM3Oi uses reasonable measures intended to operate and protect the service and may maintain backup or recovery controls, but no hosted system can guarantee against every loss, corruption, deletion, interruption, or unauthorized event, and recovery of every deleted or corrupted item is not guaranteed.",
+        "The organization is responsible for independently maintaining records it is legally or operationally required to retain where appropriate and for reviewing any exported or delivered materials for completeness. The availability and method of data export, retention, or deletion may depend on the applicable service arrangement and does not necessarily include self-service export functionality.",
+        "Following suspension, termination, or loss of access, data handling, availability, retention, export, or deletion may be governed by applicable service practices, legal obligations, and any separate written agreement with the organization. No specific retention period is promised by these Terms.",
       ],
     },
     {
-      heading: "10. Confidentiality and Privacy",
+      heading: "12. Confidentiality and Privacy",
       paragraphs: [
         "DM3Oi will handle personal information and Customer Data as described in the Privacy Policy and will use reasonable measures designed to protect information under its control.",
         "The organization is responsible for determining whether its use of DM3Oi and the information it collects through the service requires additional notices, permissions, agreements, or safeguards.",
       ],
     },
     {
-      heading: "11. Disclaimer of Warranties",
+      heading: "13. Product Measurement and Aggregated Results",
       paragraphs: [
-        "To the maximum extent permitted by applicable law, DM3Oi is provided on an \"as is\" and \"as available\" basis. Except for obligations expressly stated in these Terms, no express, implied, statutory, or other warranty is made, including warranties of merchantability, fitness for a particular purpose, noninfringement, accuracy, availability, or uninterrupted operation.",
+        "DM3Oi may analyze service usage, workflow activity, operational performance, and related platform metrics to evaluate and improve the service and to understand its effectiveness in real-world use.",
+        "DM3Oi may use aggregated or de-identified information for product analysis, benchmarking, research, service improvement, and public descriptions of platform performance, trends, or results, provided that the information does not reasonably identify the customer organization, its customers, or individual users.",
+        "Identifiable Customer Data, customer organization names, testimonials, or organization-specific results will not be used for public marketing or public descriptions without separate authorization.",
       ],
     },
     {
-      heading: "12. Limitation of Liability",
+      heading: "14. Electronic Communications",
+      paragraphs: [
+        "Operational, administrative, security, account, service, and legal notices relating to DM3Oi may be delivered electronically through the service or an established electronic contact channel. The organization is responsible for maintaining accurate contact information for these communications.",
+        "Consent to receive marketing communications is not required for DM3Oi to deliver service, security, account, administrative, or legal notices that are necessary to operate the service or manage the organization's relationship with DM3Oi.",
+      ],
+    },
+    {
+      heading: "15. Disclaimer of Warranties",
+      paragraphs: [
+        "To the maximum extent permitted by applicable law, DM3Oi is provided on an \"as is\" and \"as available\" basis. Except for obligations expressly stated in these Terms or a separate written agreement, no express, implied, statutory, or other warranty is made, including warranties of merchantability, fitness for a particular purpose, noninfringement, accuracy, availability, or uninterrupted operation.",
+      ],
+    },
+    {
+      heading: "16. Limitation of Liability",
       paragraphs: [
         "To the maximum extent permitted by applicable law, DM3Oi and its operators will not be liable for indirect, incidental, special, exemplary, punitive, or consequential damages, or for lost profits, lost revenue, lost business opportunity, loss of goodwill, business interruption, or loss or corruption of data arising from or related to use of or inability to use the service.",
         "Any limitation of liability is subject to applicable law and does not exclude liability that cannot lawfully be limited or excluded.",
       ],
     },
     {
-      heading: "13. Suspension and Termination",
+      heading: "17. Indemnification",
       paragraphs: [
-        "Access may be suspended or terminated when a license expires, is suspended or canceled; for material misuse or security risk; or when required by law.",
-        "Following termination or loss of access, data handling, retention, deletion, or availability will be governed by applicable service practices, legal obligations, and any separate written agreement with the organization.",
+        "To the extent permitted by applicable law, the organization will defend and indemnify DM3Oi and the service provider against a third-party claim to the extent arising from Customer Data or other content supplied by the organization that is unlawful or infringes that third party's rights, or from the organization's material violation of the acceptable-use obligations in Section 5.",
+        "This obligation is limited to claims caused by the organization-provided content or material misuse and does not apply to the extent a claim results from DM3Oi's unauthorized modification or use of that content or from DM3Oi's own acts. DM3Oi must provide reasonable notice of the claim and reasonable cooperation, and the organization may not agree to a settlement that admits liability or imposes nonmonetary obligations on DM3Oi without consent.",
       ],
     },
     {
-      heading: "14. Changes to These Terms",
+      heading: "18. Suspension and Termination",
       paragraphs: [
-        "DM3Oi may publish updated Terms from time to time. An updated version may be made available before acceptance becomes mandatory.",
-        "When DM3Oi implements versioned organization acceptance, acceptance records may be maintained as historical evidence rather than replaced merely because a later version is published.",
+        "Access may be suspended or terminated for a material violation of these Terms, unlawful use, a security risk, a threat to service integrity, inactive or ended organization access, or a legal requirement. When practical, DM3Oi may provide reasonable notice and an opportunity to remedy a remediable violation, except when urgent security, integrity, legal, or harm-prevention needs require prompt action.",
+        "Following termination or loss of access, data handling, retention, deletion, export, or availability will be governed by applicable service practices, legal obligations, and any separate written agreement with the organization.",
+        "Suspension or termination does not transfer ownership of the DM3Oi platform, software, source code, documentation, or other intellectual property to the organization or an authorized user.",
       ],
     },
     {
-      heading: "15. Product Measurement and Aggregated Results",
+      heading: "19. Changes to These Terms",
       paragraphs: [
-        "DM3Oi may analyze service usage, workflow activity, operational performance, and related platform metrics to evaluate and improve the service and to understand its effectiveness in real-world use.",
-        "DM3Oi may use aggregated or de-identified information to describe platform performance, trends, benchmarks, or results, provided that the information does not reasonably identify the customer organization, its customers, or individual users.",
-        "Customer-specific names, Customer Data, testimonials, or identifiable organization results will not be used for public marketing without separate authorization.",
+        "DM3Oi may publish updated Terms from time to time. Material updates may be communicated through the service or another established electronic channel, and an updated version may be made available before acceptance becomes mandatory.",
+        "A future version may require explicit acceptance by an authorized representative of the organization. Publication and historical acceptance records may be retained as evidence rather than replaced merely because a later version is published. These Terms do not themselves implement any acceptance workflow.",
       ],
     },
     {
-      heading: "16. Contact",
+      heading: "20. General Contract Terms",
+      paragraphs: [
+        "These Terms, the Privacy Policy, and any applicable separately executed written agreement or order form constitute the agreement concerning the organization's use of the service and supersede prior or contemporaneous understandings about the same subject. If DM3Oi and the organization execute a separate written agreement governing the same service, that agreement controls to the extent of an express conflict.",
+        "If a provision is held unenforceable, the remaining provisions remain effective and the unenforceable provision will be limited to the minimum extent necessary. A failure to enforce a provision is not a waiver of the right to enforce it later.",
+        "Neither party may assign these Terms except with the other party's written consent or in connection with a merger, reorganization, sale of substantially all relevant assets, or similar business-successor transaction in which the successor assumes the assigning party's obligations. Neither party is responsible for delay or failure caused by events outside its reasonable control, and section headings are for convenience and do not control interpretation.",
+      ],
+    },
+    {
+      heading: "21. Contact",
       paragraphs: [
         "Questions concerning these Terms may be submitted through the organization's established DM3Oi support or administrative contact channel.",
       ],
@@ -229,3 +282,128 @@ export const privacyPolicy = {
     },
   ],
 } as const satisfies LegalDocumentDefinition;
+
+export const fallbackLegalDocuments = {
+  TERMS_OF_SERVICE: termsOfService,
+  PRIVACY_POLICY: privacyPolicy,
+} as const satisfies Record<LegalDocumentKey, LegalDocumentDefinition>;
+
+const legalTextIsValid = (value: unknown, maxLength: number) =>
+  typeof value === "string" &&
+  value.trim().length > 0 &&
+  value.length <= maxLength &&
+  !/<[^>]*>/.test(value);
+
+const hasOnlyKeys = (
+  value: Record<string, unknown>,
+  keys: readonly string[],
+) => Object.keys(value).every((key) => keys.includes(key));
+
+export function isLegalDocumentKey(value: unknown): value is LegalDocumentKey {
+  return legalDocumentKeys.includes(value as LegalDocumentKey);
+}
+
+export function isLegalDocumentVersion(value: string) {
+  return /^[A-Za-z0-9][A-Za-z0-9._-]{0,31}$/.test(value);
+}
+
+export function isLegalDocumentEffectiveDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const [year, month, day] = value.split("-").map(Number);
+  const date = new Date(Date.UTC(year!, month! - 1, day));
+
+  return (
+    date.getUTCFullYear() === year &&
+    date.getUTCMonth() === month! - 1 &&
+    date.getUTCDate() === day
+  );
+}
+
+export function legalDocumentContent(
+  document: LegalDocumentDefinition,
+): LegalDocumentContent {
+  return {
+    type: document.type,
+    title: document.title,
+    introduction: [...document.introduction],
+    sections: document.sections.map((section) => ({
+      heading: section.heading,
+      paragraphs: [...section.paragraphs],
+    })),
+  };
+}
+
+export function parseLegalDocumentContent(
+  expectedKey: LegalDocumentKey,
+  value: unknown,
+): LegalDocumentContent | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+
+  const content = value as Record<string, unknown>;
+  if (
+    !hasOnlyKeys(content, ["type", "title", "introduction", "sections"]) ||
+    content.type !== expectedKey ||
+    !legalTextIsValid(content.title, 160) ||
+    !Array.isArray(content.introduction) ||
+    content.introduction.length < 1 ||
+    content.introduction.length > 12 ||
+    !content.introduction.every((item) => legalTextIsValid(item, 4000)) ||
+    !Array.isArray(content.sections) ||
+    content.sections.length < 1 ||
+    content.sections.length > 30
+  ) {
+    return null;
+  }
+
+  const sections: LegalDocumentSection[] = [];
+  for (const valueSection of content.sections) {
+    if (
+      !valueSection ||
+      typeof valueSection !== "object" ||
+      Array.isArray(valueSection)
+    ) {
+      return null;
+    }
+
+    const section = valueSection as Record<string, unknown>;
+    if (
+      !hasOnlyKeys(section, ["heading", "paragraphs"]) ||
+      !legalTextIsValid(section.heading, 200) ||
+      !Array.isArray(section.paragraphs) ||
+      section.paragraphs.length < 1 ||
+      section.paragraphs.length > 20 ||
+      !section.paragraphs.every((item) => legalTextIsValid(item, 4000))
+    ) {
+      return null;
+    }
+
+    sections.push({
+      heading: section.heading as string,
+      paragraphs: [...(section.paragraphs as string[])],
+    });
+  }
+
+  return {
+    type: expectedKey,
+    title: content.title as string,
+    introduction: [...(content.introduction as string[])],
+    sections,
+  };
+}
+
+export function withLegalPublicationMetadata(
+  content: LegalDocumentContent,
+  version: string,
+  effectiveDate: string,
+): LegalDocumentDefinition {
+  return {
+    ...content,
+    version,
+    effectiveDate,
+  };
+}
+
+export function getFallbackLegalDocument(documentKey: LegalDocumentKey) {
+  return fallbackLegalDocuments[documentKey];
+}

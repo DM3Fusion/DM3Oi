@@ -4,12 +4,13 @@ import type { LegalDocumentDefinition } from "@/lib/legal-documents";
 
 export function LegalDocumentPage({
   document,
+  preview = false,
 }: {
   document: LegalDocumentDefinition;
+  preview?: boolean;
 }) {
-  return (
-    <main className="legal-page">
-      <article className="legal-document">
+  const renderedDocument = (
+    <article className="legal-document">
         <header className="legal-document-header">
           <Link href="/" className="legal-document-brand">
             <strong>DM3Oi™</strong>
@@ -47,7 +48,10 @@ export function LegalDocumentPage({
           <Link href="/privacy">Privacy Policy</Link>
           <Link href="/login">DM3Oi Sign In</Link>
         </footer>
-      </article>
-    </main>
+    </article>
+  );
+
+  return preview ? renderedDocument : (
+    <main className="legal-page">{renderedDocument}</main>
   );
 }

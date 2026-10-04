@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalDocumentPage } from "@/components/legal-document-page";
-import { termsOfService } from "@/lib/legal-documents";
+import { getPublishedLegalDocumentForServer } from "@/lib/data/legal-document-repository";
 
 export const metadata: Metadata = {
   robots: {
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function TermsPage() {
-  return <LegalDocumentPage document={termsOfService} />;
+export default async function TermsPage() {
+  const document = await getPublishedLegalDocumentForServer("TERMS_OF_SERVICE");
+  return <LegalDocumentPage document={document} />;
 }

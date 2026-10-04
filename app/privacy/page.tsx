@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { LegalDocumentPage } from "@/components/legal-document-page";
-import { privacyPolicy } from "@/lib/legal-documents";
+import { getPublishedLegalDocumentForServer } from "@/lib/data/legal-document-repository";
 
 export const metadata: Metadata = {
   robots: {
@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PrivacyPage() {
-  return <LegalDocumentPage document={privacyPolicy} />;
+export default async function PrivacyPage() {
+  const document = await getPublishedLegalDocumentForServer("PRIVACY_POLICY");
+  return <LegalDocumentPage document={document} />;
 }
