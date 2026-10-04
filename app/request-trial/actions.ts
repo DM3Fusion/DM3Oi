@@ -58,15 +58,6 @@ export async function submitTrialRequest(form: FormData) {
       error,
     );
 
-    if (
-      error.message.includes("trial request email already exists") ||
-      error.message.includes(
-        "trial request email already belongs to platform identity",
-      )
-    ) {
-      redirect("/request-trial?error=email-exists");
-    }
-
     redirect("/request-trial?error=submit");
   }
 

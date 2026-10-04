@@ -9,21 +9,13 @@ import {
   isExcludedAnalyticsGeo,
 } from "@/lib/analytics";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAnalyticsSessionId } from "@/lib/analytics-session";
 
-function validSessionId(
-  value: unknown,
-): value is string {
-  return (
-    typeof value === "string" &&
-    /^[0-9a-f-]{36}$/i.test(value)
-  );
-}
 
 export async function POST(
   request: NextRequest,
 ) {
   let body: {
-    sessionId?: unknown;
     webdriver?: unknown;
   };
 
@@ -36,10 +28,11 @@ export async function POST(
     );
   }
 
-  if (!validSessionId(body.sessionId)) {
+  const sessionId = await getAnalyticsSessionId();
+
+  if (!sessionId) {
     return NextResponse.json(
-      { ok: false },
-      { status: 400 },
+      { ok: true, ignored: true },
     );
   }
 
@@ -97,7 +90,7 @@ export async function POST(
       traffic_signal:
         "browser_interaction",
     })
-    .eq("session_id", body.sessionId)
+    .eq("session_id", sessionId)
     .eq("traffic_type", "UNKNOWN");
 
   if (error) {

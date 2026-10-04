@@ -4,7 +4,7 @@ import { getPublicEnvironment } from "@/lib/config/env";
 import { safeInternalPath } from "@/lib/auth/redirects";
 import type { Database } from "@/types/database.generated";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out","/api/public/overview-download"];
-const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction","/api/analytics/presence"]);
+const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction"]);
 export async function proxy(request:NextRequest){
  const pathname=request.nextUrl.pathname; const forwardedHeaders=new Headers(request.headers); forwardedHeaders.set("x-dm3oi-route-pathname",pathname); const forwardedRequest={headers:forwardedHeaders}; let response=NextResponse.next({request:forwardedRequest});
  if(pathname==="/auth/callback") return response;

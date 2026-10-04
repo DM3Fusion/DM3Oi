@@ -219,9 +219,7 @@ export async function inviteUserAction(form: FormData) {
       go(
         "/admin/users/new",
         "error",
-        invited.error?.message.toLowerCase().includes("already")
-          ? "A user with this email already exists."
-          : "The invitation could not be sent.",
+        "The invitation could not be sent.",
       );
     }
     invitedUser = invited.data.user;

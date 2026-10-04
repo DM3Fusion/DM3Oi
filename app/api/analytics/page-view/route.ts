@@ -12,6 +12,7 @@ import {
 } from "@/lib/analytics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getOrCreateAnalyticsSessionId } from "@/lib/analytics-session";
 
 function requestIp(request: NextRequest) {
   return (
@@ -48,7 +49,6 @@ export async function POST(request: NextRequest) {
 
   let body: {
     path?: unknown;
-    sessionId?: unknown;
     referrer?: unknown;
     platform?: unknown;
     maxTouchPoints?: unknown;
@@ -69,18 +69,14 @@ export async function POST(request: NextRequest) {
       ? body.path.slice(0, 1000)
       : null;
 
-  const sessionId =
-    typeof body.sessionId === "string" &&
-    /^[0-9a-f-]{36}$/i.test(body.sessionId)
-      ? body.sessionId
-      : null;
-
-  if (!path || !path.startsWith("/") || !sessionId) {
+  if (!path || !path.startsWith("/")) {
     return NextResponse.json(
       { ok: false },
       { status: 400 },
     );
   }
+
+  const { sessionId } = await getOrCreateAnalyticsSessionId();
 
   const supabase = await createClient();
   const { data: claimsData } =
@@ -210,44 +206,56 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  const { error } = await admin
-    .from("analytics_page_views")
-    .insert({
-      session_id: sessionId,
-      user_id: userId,
-      organization_id: organizationId,
-      analytics_user_key: userId,
-      analytics_organization_key: organizationId,
-      path,
-      normalized_path: normalizeAnalyticsPath(path),
-      referrer_host: analyticsReferrerHost(referrer),
-      device_type: analyticsDeviceType(
-        userAgent,
-        platform,
-        maxTouchPoints,
-      ),
-      device_model: analyticsDeviceModel(
-        userAgent,
-        platform,
-        maxTouchPoints,
-      ),
-      browser: analyticsBrowser(userAgent),
-      operating_system:
-        analyticsOperatingSystem(
-          userAgent,
-          platform,
-          maxTouchPoints,
-        ),
-      country_code: countryCode,
-      region_code: regionCode,
-      city,
-      traffic_type: trafficType,
-      traffic_signal: trafficSignal,
-    });
+  const normalizedPath =
+    normalizeAnalyticsPath(path);
+  const referrerHost =
+    analyticsReferrerHost(referrer);
+  const deviceType =
+    analyticsDeviceType(
+      userAgent,
+      platform,
+      maxTouchPoints,
+    );
+  const deviceModel =
+    analyticsDeviceModel(
+      userAgent,
+      platform,
+      maxTouchPoints,
+    );
+  const browser =
+    analyticsBrowser(userAgent);
+  const operatingSystem =
+    analyticsOperatingSystem(
+      userAgent,
+      platform,
+      maxTouchPoints,
+    );
+
+  const { data: accepted, error } =
+    await admin.rpc(
+      "record_analytics_page_view_guarded" as never,
+      {
+        target_session_id: sessionId,
+        target_user_id: userId,
+        target_organization_id: organizationId,
+        target_path: path,
+        target_normalized_path: normalizedPath,
+        target_referrer_host: referrerHost,
+        target_device_type: deviceType,
+        target_device_model: deviceModel,
+        target_browser: browser,
+        target_operating_system: operatingSystem,
+        target_country_code: countryCode,
+        target_region_code: regionCode,
+        target_city: city,
+        target_traffic_type: trafficType,
+        target_traffic_signal: trafficSignal,
+      } as never,
+    );
 
   if (error) {
     console.error(
-      "Analytics page-view insert failed",
+      "Analytics page-view ingestion failed",
       error.message,
     );
 
@@ -255,6 +263,13 @@ export async function POST(request: NextRequest) {
       { ok: false },
       { status: 500 },
     );
+  }
+
+  if (accepted !== true) {
+    return NextResponse.json({
+      ok: true,
+      ignored: true,
+    });
   }
 
   return NextResponse.json({ ok: true });

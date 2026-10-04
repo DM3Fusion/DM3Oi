@@ -3,8 +3,6 @@
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-import { analyticsSessionId } from "@/lib/analytics-session";
-
 export function AnalyticsTracker() {
   const pathname = usePathname();
 
@@ -18,7 +16,6 @@ export function AnalyticsTracker() {
       },
       body: JSON.stringify({
         path: pathname,
-        sessionId: analyticsSessionId(),
         referrer: document.referrer || null,
         platform: navigator.platform || "",
         maxTouchPoints:
@@ -45,7 +42,6 @@ export function AnalyticsTracker() {
           "content-type": "application/json",
         },
         body: JSON.stringify({
-          sessionId: analyticsSessionId(),
           webdriver:
             navigator.webdriver === true,
         }),

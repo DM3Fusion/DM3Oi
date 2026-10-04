@@ -45,10 +45,21 @@ test("page-view attribution snapshots are nullable, non-FK, backfilled, and immu
 });
 
 test("page-view ingestion snapshots the same resolved live identities", () => {
-  assert.match(ingestion, /user_id: userId/);
-  assert.match(ingestion, /organization_id: organizationId/);
-  assert.match(ingestion, /analytics_user_key: userId/);
-  assert.match(ingestion, /analytics_organization_key: organizationId/);
+  assert.match(ingestion, /target_user_id: userId/);
+  assert.match(ingestion, /target_organization_id: organizationId/);
+
+  const guardedMigration = source(
+    "supabase/migrations/20261004150000_dm3oi_analytics_ingestion_guard.sql",
+  );
+
+  assert.match(
+    guardedMigration,
+    /analytics_user_key,[\s\S]*analytics_organization_key/,
+  );
+  assert.match(
+    guardedMigration,
+    /target_user_id,[\s\S]*target_organization_id,[\s\S]*target_user_id,[\s\S]*target_organization_id/,
+  );
 });
 
 test("reset and permanent deletion preserve durable page views", () => {

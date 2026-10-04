@@ -6,62 +6,60 @@ function source(path: string) {
   return readFileSync(path, "utf8");
 }
 
-test("analytics routes use the DM3Oi organization status model", () => {
-  for (const path of [
-    "app/api/analytics/page-view/route.ts",
-    "app/api/analytics/presence/route.ts",
-  ]) {
-    const route = source(path);
-
-    assert.match(
-      route,
-      /organization:organizations\(id,status\)/,
-    );
-    assert.match(
-      route,
-      /organization\?\.status === "ACTIVE"/,
-    );
-    assert.doesNotMatch(
-      route,
-      /organization:organizations\(id,is_active\)/,
-    );
-    assert.doesNotMatch(
-      route,
-      /organization\?\.is_active/,
-    );
-  }
-});
-
-test("analytics routes retain SUPER_ADMIN exclusion", () => {
-  for (const path of [
-    "app/api/analytics/page-view/route.ts",
-    "app/api/analytics/presence/route.ts",
-  ]) {
-    const route = source(path);
-
-    assert.match(route, /rpc\("is_super_admin"\)/);
-    assert.match(route, /isSuperAdmin === true/);
-    assert.match(route, /ignored: true/);
-  }
-});
-
-test("analytics membership lookup failures are observable", () => {
-  const pageView = source(
+test("page-view attribution uses the DM3Oi organization status model", () => {
+  const route = source(
     "app/api/analytics/page-view/route.ts",
   );
-  const presence = source(
-    "app/api/analytics/presence/route.ts",
-  );
 
-  assert.match(pageView, /membershipError/);
   assert.match(
-    pageView,
+    route,
+    /organization:organizations\(id,status\)/,
+  );
+  assert.match(
+    route,
+    /organization\?\.status === "ACTIVE"/,
+  );
+  assert.doesNotMatch(
+    route,
+    /organization:organizations\(id,is_active\)/,
+  );
+  assert.doesNotMatch(
+    route,
+    /organization\?\.is_active/,
+  );
+});
+
+test("page-view attribution retains SUPER_ADMIN exclusion", () => {
+  const route = source(
+    "app/api/analytics/page-view/route.ts",
+  );
+
+  assert.match(route, /rpc\("is_super_admin"\)/);
+  assert.match(route, /isSuperAdmin === true/);
+  assert.match(route, /ignored: true/);
+});
+
+test("page-view membership lookup failures remain observable", () => {
+  const route = source(
+    "app/api/analytics/page-view/route.ts",
+  );
+
+  assert.match(route, /membershipError/);
+  assert.match(
+    route,
     /Analytics organization membership lookup failed/,
   );
+});
 
-  assert.match(presence, /membershipError/);
-  assert.match(
-    presence,
-    /Analytics presence organization membership lookup failed/,
+test("retired analytics presence ingestion surface stays removed", () => {
+  const proxy = source("proxy.ts");
+
+  assert.doesNotMatch(
+    proxy,
+    /\/api\/analytics\/presence/,
+  );
+
+  assert.throws(
+    () => source("app/api/analytics/presence/route.ts"),
   );
 });

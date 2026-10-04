@@ -13,7 +13,7 @@ function declaration(name: string) {
   return match[1];
 }
 
-test("the three analytics ingestion endpoints bypass proxy protection exactly", () => {
+test("only active analytics ingestion endpoints bypass proxy protection", () => {
   const publicAnalyticsRoutes = declaration(
     "publicAnalyticsRoutes",
   );
@@ -21,10 +21,14 @@ test("the three analytics ingestion endpoints bypass proxy protection exactly", 
   for (const route of [
     "/api/analytics/page-view",
     "/api/analytics/interaction",
-    "/api/analytics/presence",
   ]) {
     assert.match(publicAnalyticsRoutes, new RegExp(`"${route}"`));
   }
+
+  assert.doesNotMatch(
+    publicAnalyticsRoutes,
+    /"\/api\/analytics\/presence"/,
+  );
 
   assert.match(
     proxy,

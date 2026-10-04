@@ -87,15 +87,25 @@ test("Trial Request identity is unique by normalized email", () => {
   );
 });
 
-test("duplicate Trial Request email receives a specific public error", () => {
+test("duplicate Trial Request identity cannot be disclosed through the public response", () => {
   const action = readFileSync("app/request-trial/actions.ts", "utf8");
   const page = readFileSync("app/request-trial/page.tsx", "utf8");
 
-  assert.match(action, /error=email-exists/);
-  assert.match(page, /query\.error === "email-exists"/);
-  assert.match(
+  assert.doesNotMatch(
+    action,
+    /error=email-exists/,
+  );
+  assert.doesNotMatch(
     page,
-    /A trial request or account already exists for this email address/,
+    /query\.error === "email-exists"/,
+  );
+  assert.match(
+    action,
+    /redirect\("\/request-trial\?error=submit"\)/,
+  );
+  assert.doesNotMatch(
+    page,
+    /email-exists|trial request or account already exists|user with this email already exists/i,
   );
 });
 
