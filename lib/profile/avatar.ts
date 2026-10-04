@@ -79,6 +79,22 @@ export function isOwnedOrganizationAvatarPath(path: string, organizationId: stri
   return new RegExp(`^${organizationId}/avatar-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.webp$`).test(path);
 }
 
+export async function resolveOwnedOrganizationAvatarUrl(
+  path: string | null,
+  organizationId: string,
+  sign: (ownedPath: string) => Promise<string | null>,
+) {
+  if (!path || !isOwnedOrganizationAvatarPath(path, organizationId)) {
+    return null;
+  }
+
+  try {
+    return await sign(path);
+  } catch {
+    return null;
+  }
+}
+
 export function isOwnedOrganizationAvatarSourcePath(path: string, organizationId: string) {
   return new RegExp(`^${organizationId}/source-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\.(jpg|jpeg|png|webp)$`).test(path);
 }

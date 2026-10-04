@@ -32,8 +32,10 @@ test("unresolved selection uses neutral branding without choosing an arbitrary t
 });
 
 test("valid selected access retains the existing organization-branded portal shell", () => {
-  assert.match(layout, /context\?\.organization\?\.avatar_path/);
-  assert.match(layout, /createSignedUrl\(context\.organization\.avatar_path, 3600\)/);
+  assert.match(layout, /resolveOwnedOrganizationAvatarUrl/);
+  assert.match(layout, /context\.organization\.avatar_path/);
+  assert.match(layout, /context\.organization\.id/);
+  assert.match(layout, /createSignedUrl\(ownedPath, 3600\)/);
   assert.match(layout, /className="portal-org-name">\{context\.organization\.name\}/);
   assert.match(
     layout,

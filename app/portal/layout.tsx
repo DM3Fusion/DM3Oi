@@ -3,14 +3,22 @@ import { redirect } from "next/navigation";
 import PortalNav from "@/components/portal-nav";
 import type { Viewport } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
+import {
+  ORGANIZATION_AVATAR_BUCKET,
+  resolveOwnedOrganizationAvatarUrl,
+} from "@/lib/profile/avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
 
 export const viewport: Viewport = { viewportFit: "cover" };
 
 async function PortalHeader({ context, hasMultipleAccounts, enabled = true }: { context: Awaited<ReturnType<typeof getCustomerPortalContext>>; hasMultipleAccounts: boolean; enabled?: boolean }) {
-  let organizationAvatarUrl: string | null = null;
-  if (context?.organization?.avatar_path) organizationAvatarUrl = (await createAdminClient().storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(context.organization.avatar_path, 3600)).data?.signedUrl ?? null;
+  const organizationAvatarUrl = context?.organization
+    ? await resolveOwnedOrganizationAvatarUrl(
+        context.organization.avatar_path,
+        context.organization.id,
+        async (ownedPath) => (await createAdminClient().storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(ownedPath, 3600)).data?.signedUrl ?? null,
+      )
+    : null;
   return <header className="portal-header"><div className="portal-brand">{context?.organization ? <OrganizationAvatar name={context?.organization?.name ?? "Organization"} src={organizationAvatarUrl} size="md" /> : null}<span className="portal-brand-copy"><strong>DM3Oi™</strong><small>Customer Portal</small>{context?.organization?.name && <b className="portal-brand-organization portal-org-context"><span className="portal-org-prefix">for </span><span className="portal-org-name">{context.organization.name}</span></b>}</span></div><PortalNav hasMultipleAccounts={hasMultipleAccounts} enabled={enabled} /></header>;
 }
 

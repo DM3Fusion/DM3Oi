@@ -8,7 +8,10 @@ import {
   attachAvatarUrls,
   type ProfileWithAvatar,
 } from "@/lib/data/avatar-urls";
-import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
+import {
+  ORGANIZATION_AVATAR_BUCKET,
+  resolveOwnedOrganizationAvatarUrl,
+} from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
 import {
@@ -161,9 +164,15 @@ async function loadPlatformData() {
     profiles.data ?? [],
   );
   const organizationsWithAvatars = await Promise.all((organizations.data ?? []).map(async (org) => {
-    if (!org.avatar_path) return { ...org, avatarUrl: null };
-    const signed = await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(org.avatar_path, 3600);
-    return { ...org, avatarUrl: signed.data?.signedUrl ?? null };
+    const avatarUrl = await resolveOwnedOrganizationAvatarUrl(
+      org.avatar_path,
+      org.id,
+      async (ownedPath) => {
+        const signed = await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(ownedPath, 3600);
+        return signed.data?.signedUrl ?? null;
+      },
+    );
+    return { ...org, avatarUrl };
   }));
   return {
     organizations: organizationsWithAvatars.map((org) => ({ ...org, license: (licenses ?? []).find((l: any) => l.organization_id === org.id) ?? null })),
@@ -459,13 +468,16 @@ export async function getOrganizationAdministration(id: string) {
 
   const baseOrganization = organizationResult.data;
 
-  const organizationAvatarUrl = baseOrganization.avatar_path
-    ? (
+  const organizationAvatarUrl = await resolveOwnedOrganizationAvatarUrl(
+    baseOrganization.avatar_path,
+    baseOrganization.id,
+    async (ownedPath) =>
+      (
         await supabase.storage
           .from(ORGANIZATION_AVATAR_BUCKET)
-          .createSignedUrl(baseOrganization.avatar_path, 3600)
-      ).data?.signedUrl ?? null
-    : null;
+          .createSignedUrl(ownedPath, 3600)
+      ).data?.signedUrl ?? null,
+  );
 
   const activeMemberships = membershipRows.filter(
     (membership) => membership.is_active,

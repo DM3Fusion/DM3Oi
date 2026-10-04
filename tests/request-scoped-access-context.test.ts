@@ -109,7 +109,11 @@ test("access avatar URLs reuse exact immutable object paths inside the signed UR
   );
   assert.match(
     context,
-    /getCachedAccessAvatarUrl\(\s*ORGANIZATION_AVATAR_BUCKET,\s*activeOrganization\.avatarPath/,
+    /resolveOwnedOrganizationAvatarUrl\(\s*activeOrganization\.avatarPath,\s*activeOrganization\.id/,
+  );
+  assert.match(
+    context,
+    /getCachedAccessAvatarUrl\(\s*ORGANIZATION_AVATAR_BUCKET,\s*ownedPath/,
   );
   assert.match(
     context,
@@ -117,7 +121,7 @@ test("access avatar URLs reuse exact immutable object paths inside the signed UR
   );
   assert.match(
     context,
-    /createSignedUrl\(\s*activeOrganization!\.avatarPath!,\s*3600,?\s*\)/,
+    /createSignedUrl\(ownedPath, 3600\)/,
   );
 });
 

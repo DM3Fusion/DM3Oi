@@ -3,7 +3,10 @@ import { cache } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
 import type { Database } from "@/types/database.generated";
 import { hasTenantInternalAccess } from "./access-routing";
-import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
+import {
+  ORGANIZATION_AVATAR_BUCKET,
+  resolveOwnedOrganizationAvatarUrl,
+} from "@/lib/profile/avatar";
 import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
 import { getEffectiveOrganizationPermissions, hasPermission, permissions, type ConfigurableOrganizationRole, type Permission } from "@/lib/auth/permissions";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
@@ -306,21 +309,23 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
                   ),
             )
           : Promise.resolve<string | null>(null),
-        activeOrganization?.avatarPath
-          ? getCachedAccessAvatarUrl(
-              ORGANIZATION_AVATAR_BUCKET,
+        activeOrganization
+          ? resolveOwnedOrganizationAvatarUrl(
               activeOrganization.avatarPath,
-              () =>
-                supabase.storage
-                  .from(ORGANIZATION_AVATAR_BUCKET)
-                  .createSignedUrl(
-                    activeOrganization!.avatarPath!,
-                    3600,
-                  )
-                  .then(
-                    (result) =>
-                      result.data?.signedUrl ?? null,
-                  ),
+              activeOrganization.id,
+              (ownedPath) =>
+                getCachedAccessAvatarUrl(
+                  ORGANIZATION_AVATAR_BUCKET,
+                  ownedPath,
+                  () =>
+                    supabase.storage
+                      .from(ORGANIZATION_AVATAR_BUCKET)
+                      .createSignedUrl(ownedPath, 3600)
+                      .then(
+                        (result) =>
+                          result.data?.signedUrl ?? null,
+                      ),
+                ),
             )
           : Promise.resolve<string | null>(null),
       ]);

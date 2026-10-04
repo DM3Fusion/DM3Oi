@@ -46,6 +46,7 @@ export async function normalizeOrganizationAvatarAction(form: FormData) {
     }
     if (normalized.byteLength > MAX_AVATAR_BYTES) return { ok: false, error: "The optimized organization avatar is too large." };
     const finalPath = `${organizationId}/avatar-${randomUUID()}.webp`;
+    if (!isOwnedOrganizationAvatarPath(finalPath, organizationId)) return { ok: false, error: "The organization avatar could not be saved." };
     const uploaded = await supabase.storage.from(ORGANIZATION_AVATAR_BUCKET).upload(finalPath, normalized, { contentType: "image/webp", cacheControl: "3600", upsert: false });
     if (uploaded.error) return { ok: false, error: "The organization avatar could not be saved." };
     const current = await supabase.from("organizations").select("avatar_path").eq("id", organizationId).single();
