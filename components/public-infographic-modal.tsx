@@ -62,14 +62,24 @@ export function PublicInfographicModal() {
             <header className="public-infographic-header">
               <h2 id="public-infographic-title">DM3Oi Overview</h2>
 
-              <button
-                ref={closeButtonRef}
-                type="button"
-                className="public-infographic-close"
-                onClick={() => setOpen(false)}
-              >
-                Close
-              </button>
+              <div className="public-infographic-header-actions">
+                <a
+                  href="/images/DM3Oi_InfoGraphic.webp"
+                  download="DM3Oi_Overview.webp"
+                  className="public-infographic-save"
+                >
+                  Save
+                </a>
+
+                <button
+                  ref={closeButtonRef}
+                  type="button"
+                  className="public-infographic-close"
+                  onClick={() => setOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
             </header>
 
             <div className="public-infographic-content">
