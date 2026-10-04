@@ -12,28 +12,34 @@ const configurationCards = [
     permission: "VIEW_ADMINISTRATION",
   },
   {
-    title: "Case Configuration",
-    description: "Configure the kinds of cases this organization manages.",
-    href: "/settings/case-configuration",
-    permission: "VIEW_ADMINISTRATION",
-  },
-  {
-    title: "Case Lifecycle",
-    description: "Configure case status presentation and workflow behavior.",
-    href: "/settings/case-lifecycle",
-    permission: "VIEW_ADMINISTRATION",
-  },
-  {
     title: "Customer Portal",
     description: "Configure customer-facing portal behavior.",
     href: "/settings/customer-portal",
     permission: "VIEW_ADMINISTRATION",
   },
   {
+    title: "Case Configuration",
+    description: "Configure the kinds of cases this organization manages.",
+    href: "/settings/case-configuration",
+    permission: "VIEW_ADMINISTRATION",
+  },
+  {
+    title: "Questions & Rules",
+    description: "Configure organization Questions and Rules.",
+    href: "/questions",
+    permission: "VIEW_QUESTIONS",
+  },
+  {
     title: "User Access",
     description: "Control what organization roles can access and manage.",
     href: "/settings/user-access",
     permission: "MANAGE_ROLE_PERMISSIONS",
+  },
+  {
+    title: "Case Lifecycle",
+    description: "Configure case status presentation and workflow behavior.",
+    href: "/settings/case-lifecycle",
+    permission: "VIEW_ADMINISTRATION",
   },
 ] as const;
 export default async function Page() {

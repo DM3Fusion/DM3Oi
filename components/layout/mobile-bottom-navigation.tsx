@@ -90,7 +90,8 @@ export function MobileBottomNavigation({
                 const templatesParent =
                   item.href === "/admin/email-templates";
                 const active = settingsParent
-                  ? pathname.startsWith("/settings")
+                  ? pathname.startsWith("/settings") ||
+                    settingsItems.some((child) => matchesPath(pathname, child.href))
                   : templatesParent
                     ? platformTemplatesNavigation.some(
                         (child) =>

@@ -63,6 +63,7 @@ export function AppShell({
   const [open, setOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(
     pathname.startsWith("/settings") ||
+      pathname.startsWith("/questions") ||
       pathname.startsWith("/administration"),
   );
   const [templatesOpen, setTemplatesOpen] = useState(
@@ -104,7 +105,8 @@ export function AppShell({
       ]
     : [];
 
-  const settingsRouteActive = pathname.startsWith("/settings");
+  const settingsRouteActive =
+    pathname.startsWith("/settings") || pathname.startsWith("/questions");
   const secondaryNavigation = access
     ? mobileSecondaryNavigation(access, platformContext)
     : [];
@@ -133,7 +135,9 @@ export function AppShell({
             : [
                 "/account",
                 ...secondaryNavigation.map((item) => item.href),
-                ...(hasPermission(access, "VIEW_SETTINGS") ? ["/settings"] : []),
+                ...(hasPermission(access, "VIEW_SETTINGS")
+                  ? ["/settings", ...settingsNavigation.map((item) => item.href)]
+                  : []),
               ],
         }]
       : []),

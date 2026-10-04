@@ -13,6 +13,7 @@ const childPages = [
   "app/settings/case-lifecycle/page.tsx",
   "app/settings/customer-portal/page.tsx",
   "app/settings/user-access/page.tsx",
+  "app/questions/page.tsx",
 ];
 
 test("Settings child pages contain no page-level Settings navigation", () => {
@@ -66,14 +67,16 @@ test("phone navigation renders the shared permission-filtered Settings hierarchy
     activeOrganization: { role: "BUSINESS_OWNER" },
     effectivePermissions: new Set([
       "VIEW_ADMINISTRATION",
+      "VIEW_QUESTIONS",
       "MANAGE_ROLE_PERMISSIONS",
     ]),
   });
   assert.deepEqual(
     all.map(({ href, label }) => ({ href, label })),
     [
-      { href: "/settings/case-configuration", label: "Case Configuration" },
       { href: "/settings/customer-portal", label: "Customer Portal" },
+      { href: "/settings/case-configuration", label: "Case Configuration" },
+      { href: "/questions", label: "Questions & Rules" },
       { href: "/settings/user-access", label: "User Access" },
     ],
   );
@@ -84,6 +87,7 @@ test("phone navigation renders the shared permission-filtered Settings hierarchy
     activeOrganization: { role: "BUSINESS_OWNER" },
     effectivePermissions: new Set([
       "VIEW_ADMINISTRATION",
+      "VIEW_QUESTIONS",
       "MANAGE_ROLE_PERMISSIONS",
     ]),
   });
@@ -91,23 +95,25 @@ test("phone navigation renders the shared permission-filtered Settings hierarchy
   assert.deepEqual(
     superAdmin.map(({ href, label }) => ({ href, label })),
     [
-      { href: "/settings/case-configuration", label: "Case Configuration" },
-      { href: "/settings/case-lifecycle", label: "Case Lifecycle" },
       { href: "/settings/customer-portal", label: "Customer Portal" },
+      { href: "/settings/case-configuration", label: "Case Configuration" },
+      { href: "/questions", label: "Questions & Rules" },
       { href: "/settings/user-access", label: "User Access" },
+      { href: "/settings/case-lifecycle", label: "Case Lifecycle" },
     ],
   );
 });
 
-test("Settings parent targets Case Configuration and remains active throughout Settings", () => {
+test("Settings parent targets Case Configuration and remains active throughout Settings and Questions", () => {
   assert.match(
     applicationNavigation,
     /\.filter\(\(item\) => item\.href === "\/settings"\)[\s\S]*href: "\/settings\/case-configuration"/,
   );
   assert.match(
     mobileNavigation,
-    /settingsParent\s*\? pathname\.startsWith\("\/settings"\)/,
+    /settingsParent[\s\S]*pathname\.startsWith\("\/settings"\)[\s\S]*settingsItems\.some\(\(child\) => matchesPath\(pathname, child\.href\)\)/,
   );
+  assert.match(shell, /pathname\.startsWith\("\/settings"\) \|\| pathname\.startsWith\("\/questions"\)/);
   assert.match(
     mobileNavigation,
     /href=\{item\.href\}[\s\S]*className=\{`mobile-settings-nav-parent\$\{active \? " active" : ""\}`\}/,
@@ -122,6 +128,13 @@ test("Settings child permissions continue to hide unauthorized destinations", ()
     effectivePermissions: new Set(["MANAGE_ROLE_PERMISSIONS"]),
   });
   assert.deepEqual(limited.map((item) => item.href), ["/settings/user-access"]);
+  const questionsOnly = authorizedOrganizationSettingsNavigation({
+    isSuperAdmin: false,
+    internalAccess: true,
+    activeOrganization: { role: "STAFF_USER" },
+    effectivePermissions: new Set(["VIEW_QUESTIONS"]),
+  });
+  assert.deepEqual(questionsOnly.map((item) => item.href), ["/questions"]);
   assert.match(
     applicationNavigation,
     /item\.href !== "\/settings\/case-lifecycle" \|\| context\.isSuperAdmin/,

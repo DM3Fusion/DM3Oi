@@ -39,10 +39,11 @@ test("phone Settings navigation is semantic compact and accessible", () => {
 
 test("phone navigation keeps organization Settings destinations while Case Lifecycle remains SUPER_ADMIN-only", () => {
   for (const [label, href] of [
-    ["Case Configuration", "/settings/case-configuration"],
-    ["Case Lifecycle", "/settings/case-lifecycle"],
     ["Customer Portal", "/settings/customer-portal"],
+    ["Case Configuration", "/settings/case-configuration"],
+    ["Questions & Rules", "/questions"],
     ["User Access", "/settings/user-access"],
+    ["Case Lifecycle", "/settings/case-lifecycle"],
   ]) {
     assert.match(page, new RegExp(`title: "${label}"`));
     assert.match(page, new RegExp(`href: "${href}"`));
@@ -57,6 +58,13 @@ test("phone navigation keeps organization Settings destinations while Case Lifec
     /const mobileCards = cards\.filter\([\s\S]*card\.href !== "\/settings\/general"/,
   );
   assert.match(page, /mobileCards\.map\(\(\{ title, href \}\) =>/);
+  const orderedLabels = ["Customer Portal", "Case Configuration", "Questions & Rules", "User Access"];
+  for (let index = 1; index < orderedLabels.length; index += 1) {
+    assert.ok(
+      page.indexOf(`title: "${orderedLabels[index - 1]}"`) <
+        page.indexOf(`title: "${orderedLabels[index]}"`),
+    );
+  }
 });
 
 test("phone CSS swaps cards for a contained touch-friendly navigation", () => {

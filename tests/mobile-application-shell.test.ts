@@ -32,7 +32,7 @@ test("More remains active for secondary destinations while opening the shell pan
   assert.match(navigation, /isActive\(pathname, href, activePrefixes\)/);
   assert.match(
     shell,
-    /hasPermission\(access, "VIEW_SETTINGS"\) \? \["\/settings"\] : \[\]/,
+    /hasPermission\(access, "VIEW_SETTINGS"\)[\s\S]*\["\/settings", \.\.\.settingsNavigation\.map\(\(item\) => item\.href\)\]/,
   );
 });
 
@@ -143,10 +143,9 @@ test("mobile More orders authorized organization destinations without bypassing 
 
   assert.deepEqual(navigation.map((item) => item.href), [
     "/service-desk",
-    "/customers",
     "/tasks",
     "/reports",
-    "/questions",
+    "/customers",
     "/users",
     "/account/profile",
     "/how-to-guide",
