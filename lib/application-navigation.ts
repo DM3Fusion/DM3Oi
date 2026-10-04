@@ -25,6 +25,7 @@ export const organizationNavigation = [
 
 export const organizationAdministrationNavigation = [
   { href: "/users", label: "Users", icon: "users", permission: "VIEW_USERS" },
+  { href: "/how-to-guide", label: "How to Guide", icon: "questions", permission: "VIEW_SETTINGS" },
   { href: "/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
@@ -97,6 +98,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     organizationSecondary.filter((item) => item.href === href),
   );
   const users = administration.filter((item) => item.href === "/users");
+  const guide = administration.filter((item) => item.href === "/how-to-guide");
   const settings = administration
     .filter((item) => item.href === "/settings")
     .map((item) => ({
@@ -108,6 +110,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     ...orderedSecondary,
     ...users,
     profileNavigation,
+    ...guide,
     ...settings,
   ];
 }

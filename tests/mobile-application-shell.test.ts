@@ -149,6 +149,7 @@ test("mobile More orders authorized organization destinations without bypassing 
     "/questions",
     "/users",
     "/account/profile",
+    "/how-to-guide",
     "/settings/case-configuration",
   ]);
   assert.deepEqual(navigation.at(-1), {
