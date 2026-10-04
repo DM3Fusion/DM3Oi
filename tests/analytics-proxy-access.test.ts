@@ -59,7 +59,7 @@ test("the analytics exemption does not make unrelated or nested API routes publi
 test("existing public routes and authenticated proxy behavior remain unchanged", () => {
   assert.match(
     proxy,
-    /publicRoutes=\["\/","\/login","\/terms","\/privacy","\/request-trial","\/robots\.txt","\/sitemap\.xml","\/auth\/callback","\/auth\/invite","\/auth\/sign-out"\]/,
+    /publicRoutes=\["\/","\/login","\/terms","\/privacy","\/request-trial","\/robots\.txt","\/sitemap\.xml","\/auth\/callback","\/auth\/invite","\/auth\/sign-out","\/api\/public\/overview-download"\]/,
   );
   assert.match(proxy, /supabase\.auth\.getUser\(\)/);
   assert.match(proxy, /if\(user&&pathname==="\/login"\)/);

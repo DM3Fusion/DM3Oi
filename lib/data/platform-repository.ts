@@ -11,7 +11,10 @@ import {
 import { ORGANIZATION_AVATAR_BUCKET } from "@/lib/profile/avatar";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { derivePlatformUserStatus, type PlatformUserStatus } from "@/lib/platform-user-filters";
-import { isEffectiveCustomerPortalAccess } from "@/lib/auth/customer-portal-effectiveness";
+import {
+  isCustomerPortalIdentityConsistent,
+  isEffectiveCustomerPortalAccess,
+} from "@/lib/auth/customer-portal-effectiveness";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import type { Database } from "@/types/database.generated";
 import type { User } from "@supabase/supabase-js";
@@ -248,6 +251,11 @@ export async function getPlatformAdministration() {
             authAccountExists: Boolean(authUser),
             profileActive: profile?.is_active === true,
             linkActive: portal.is_active,
+            identityConsistent: isCustomerPortalIdentityConsistent({
+              customerEmail: customer?.email,
+              profileEmail: profile?.email,
+              authEmail: authUser?.email,
+            }),
             organizationFound: Boolean(organization),
             organizationStatus: organization?.status ?? null,
             customerFound: Boolean(customer),

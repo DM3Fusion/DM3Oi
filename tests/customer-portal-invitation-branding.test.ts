@@ -62,7 +62,10 @@ test("Customer Portal reissues preserve metadata and refresh authoritative brand
   );
   assert.match(portalService, /authUser\.email_confirmed_at[\s\S]*authUser\.last_sign_in_at/);
   assert.match(portalService, /authUser = generated\.data\.user/);
-  assert.match(portalService, /linked\?\.user_id === authUser\.id/);
+  assert.match(
+    portalService,
+    /existingLink = links\?\.find\(\(link\) => link\.user_id === authUser\.id\)/,
+  );
   assert.match(
     portalService,
     /from\("customer_portal_users"\)\.upsert\([\s\S]*onConflict: "organization_id,customer_id,user_id"/,

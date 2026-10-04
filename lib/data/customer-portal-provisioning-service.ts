@@ -1,10 +1,12 @@
 import "server-only";
 import type { User } from "@supabase/supabase-js";
+import { isCustomerPortalIdentityConsistent } from "@/lib/auth/customer-portal-effectiveness";
 import { getIdentityCategory } from "@/lib/auth/identity-category";
 import type { CustomerPortalOnboardingStatus } from "@/lib/customer-portal-onboarding";
 import {
   canReuseCustomerPortalStatus,
   customerPortalRelationFailureMessage,
+  getSupersededCustomerPortalUserIds,
   isUsableCustomerPortalEmail,
   type CustomerPortalProvisioningIntent,
 } from "@/lib/customer-portal-provisioning";
@@ -44,6 +46,93 @@ async function authUserByEmail(
     if (found || data.users.length < 1000) return found ?? null;
   }
   return null;
+}
+
+async function authUserForCurrentCustomerEmail(
+  admin: ReturnType<typeof createAdminClient>,
+  links: readonly { user_id: string; is_active: boolean }[],
+  email: string,
+) {
+  const checkedUserIds = new Set<string>();
+  for (const link of links) {
+    if (!link.is_active || checkedUserIds.has(link.user_id)) continue;
+    checkedUserIds.add(link.user_id);
+    const result = await admin.auth.admin.getUserById(link.user_id);
+    if (
+      !result.error &&
+      result.data.user?.email?.trim().toLowerCase() === email
+    )
+      return result.data.user;
+  }
+  return authUserByEmail(admin, email);
+}
+
+async function retireSupersededCustomerPortalIdentities(
+  admin: ReturnType<typeof createAdminClient>,
+  input: {
+    organizationId: string;
+    customerId: string;
+    replacementUserId: string;
+    actorUserId: string;
+    links: readonly {
+      organization_id: string;
+      customer_id: string;
+      user_id: string;
+    }[];
+  },
+) {
+  const knownSupersededUserIds = getSupersededCustomerPortalUserIds(
+    input.links,
+    input,
+  );
+  const deactivated = await admin
+    .from("customer_portal_users")
+    .update({ is_active: false })
+    .eq("organization_id", input.organizationId)
+    .eq("customer_id", input.customerId)
+    .eq("is_active", true)
+    .neq("user_id", input.replacementUserId)
+    .select("user_id");
+  if (deactivated.error) {
+    console.error("Superseded Customer Portal identity deactivation failed", {
+      operation: "deactivateSupersededPortalIdentities",
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+      code: deactivated.error.code,
+      message: deactivated.error.message,
+    });
+    throw new CustomerPortalProvisioningError(
+      "Previous Portal access could not be retired safely.",
+    );
+  }
+
+  const supersededUserIds = [
+    ...new Set([
+      ...knownSupersededUserIds,
+      ...(deactivated.data ?? []).map((link) => link.user_id),
+    ]),
+  ];
+  if (!supersededUserIds.length) return;
+
+  const cancelled = await admin
+    .from("customer_portal_invitations")
+    .update({ status: "CANCELLED", updated_by_user_id: input.actorUserId })
+    .eq("organization_id", input.organizationId)
+    .eq("customer_id", input.customerId)
+    .in("user_id", supersededUserIds)
+    .in("status", ["PENDING", "SENT"]);
+  if (cancelled.error) {
+    console.error("Superseded Customer Portal invitation cancellation failed", {
+      operation: "cancelSupersededPortalInvitations",
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+      code: cancelled.error.code,
+      message: cancelled.error.message,
+    });
+    throw new CustomerPortalProvisioningError(
+      "Previous Portal invitations could not be retired safely.",
+    );
+  }
 }
 
 const unavailable = (
@@ -160,7 +249,11 @@ export async function getCustomerPortalOnboardingStatus(input: {
     );
 
   const [profileResult, authResult, invitationResult] = await Promise.all([
-    admin.from("profiles").select("is_active").eq("id", link.user_id).maybeSingle(),
+    admin
+      .from("profiles")
+      .select("email,is_active")
+      .eq("id", link.user_id)
+      .maybeSingle(),
     admin.auth.admin.getUserById(link.user_id),
     admin
       .from("customer_portal_invitations")
@@ -196,7 +289,14 @@ export async function getCustomerPortalOnboardingStatus(input: {
       "Portal identity is inactive and requires platform administration.",
     );
   const authUser = authResult.data.user;
-  if (!authUser || authUser.email?.trim().toLowerCase() !== email)
+  if (
+    !authUser ||
+    !isCustomerPortalIdentityConsistent({
+      customerEmail: email,
+      profileEmail: profileResult.data?.email,
+      authEmail: authUser.email,
+    })
+  )
     return unavailable(
       input.customerId,
       email,
@@ -300,33 +400,21 @@ export async function provisionCustomerPortalAccess(input: {
     customerId: input.customerId,
     actorUserId: input.actorUserId,
   });
-  if (canReuseCustomerPortalStatus(input.intent, currentStatus))
-    return currentStatus;
-
   const { data: links, error: linkError } = await admin
     .from("customer_portal_users")
-    .select("id,user_id,is_active")
+    .select("id,organization_id,customer_id,user_id,is_active")
     .eq("organization_id", input.organizationId)
     .eq("customer_id", input.customerId)
     .order("is_active", { ascending: false })
-    .limit(1);
+    .order("updated_at", { ascending: false });
   if (linkError)
     throw new CustomerPortalProvisioningError(
       "Portal access could not be checked.",
     );
-  const linked = links?.[0];
-  let authUser = linked
-    ? (await admin.auth.admin.getUserById(linked.user_id)).data.user
-    : null;
-  if (
-    authUser &&
-    authUser.email?.trim().toLowerCase() !== email
-  ) {
-    // A Customer email change invalidates the old identity for onboarding. An
-    // explicit send may provision the new address, but never silently relinks it.
-    authUser = await authUserByEmail(admin, email);
-  }
-  if (!authUser) authUser = await authUserByEmail(admin, email);
+  let authUser = await authUserForCurrentCustomerEmail(admin, links ?? [], email);
+  let existingLink = authUser
+    ? links?.find((link) => link.user_id === authUser?.id)
+    : undefined;
 
   if (authUser) {
     const { data: profile, error: profileError } = await admin
@@ -342,7 +430,7 @@ export async function provisionCustomerPortalAccess(input: {
       throw new CustomerPortalProvisioningError(
         "This identity is globally inactive. A platform administrator must reactivate it before Portal Access can be enabled.",
       );
-    if (authUser.id !== linked?.user_id) {
+    if (existingLink?.is_active !== true) {
       if ((await getIdentityCategory(authUser.id)) === "INTERNAL")
         throw new CustomerPortalProvisioningError(
           "This email belongs to an internal DM3Oi user and cannot be used for Customer Portal access.",
@@ -359,6 +447,21 @@ export async function provisionCustomerPortalAccess(input: {
           "This email belongs to an internal organization user and cannot be provisioned as Customer Portal access.",
         );
     }
+  }
+
+  if (
+    authUser &&
+    existingLink?.is_active === true &&
+    canReuseCustomerPortalStatus(input.intent, currentStatus)
+  ) {
+    await retireSupersededCustomerPortalIdentities(admin, {
+      organizationId: input.organizationId,
+      customerId: input.customerId,
+      replacementUserId: authUser.id,
+      actorUserId: input.actorUserId,
+      links: links ?? [],
+    });
+    return currentStatus;
   }
 
   let invitationUrl: string | null = null;
@@ -403,6 +506,8 @@ export async function provisionCustomerPortalAccess(input: {
       "The customer identity could not be prepared.",
     );
 
+  existingLink = links?.find((link) => link.user_id === authUser.id);
+
   const profile = await admin.from("profiles").upsert({
     id: authUser.id,
     email,
@@ -418,18 +523,13 @@ export async function provisionCustomerPortalAccess(input: {
       "The customer identity could not be prepared.",
     );
   }
-  const existingLink =
-    linked?.user_id === authUser.id
-      ? linked
-      : (
-          await admin
-            .from("customer_portal_users")
-            .select("id,user_id,is_active")
-            .eq("organization_id", input.organizationId)
-            .eq("customer_id", input.customerId)
-            .eq("user_id", authUser.id)
-            .maybeSingle()
-        ).data;
+  await retireSupersededCustomerPortalIdentities(admin, {
+    organizationId: input.organizationId,
+    customerId: input.customerId,
+    replacementUserId: authUser.id,
+    actorUserId: input.actorUserId,
+    links: links ?? [],
+  });
   const relation = await admin.from("customer_portal_users").upsert(
     {
       organization_id: input.organizationId,

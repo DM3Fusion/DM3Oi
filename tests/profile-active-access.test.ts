@@ -57,6 +57,7 @@ const effectivePortalInput = (
   authAccountExists: true,
   profileActive: true,
   linkActive: true,
+  identityConsistent: true,
   organizationFound: true,
   organizationStatus: "ACTIVE",
   customerFound: true,
@@ -70,6 +71,7 @@ test("customer portal effectiveness applies every access gate coherently", () =>
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ authAccountExists: false })), false);
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ profileActive: false })), false);
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ linkActive: false })), false);
+  assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ identityConsistent: false })), false);
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ organizationStatus: "INACTIVE" })), false);
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ customerStatus: "INACTIVE" })), false);
   assert.equal(isEffectiveCustomerPortalAccess(effectivePortalInput({ portalEnabled: false })), false);

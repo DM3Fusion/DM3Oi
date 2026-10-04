@@ -2,6 +2,34 @@ import type { CustomerPortalOnboardingStatus } from "./customer-portal-onboardin
 
 export type CustomerPortalProvisioningIntent = "ENABLE" | "SEND" | "RESEND";
 
+export interface CustomerPortalIdentityLink {
+  organization_id: string;
+  customer_id: string;
+  user_id: string;
+}
+
+export function getSupersededCustomerPortalUserIds(
+  links: readonly CustomerPortalIdentityLink[],
+  input: {
+    organizationId: string;
+    customerId: string;
+    replacementUserId: string;
+  },
+) {
+  return [
+    ...new Set(
+      links
+        .filter(
+          (link) =>
+            link.organization_id === input.organizationId &&
+            link.customer_id === input.customerId &&
+            link.user_id !== input.replacementUserId,
+        )
+        .map((link) => link.user_id),
+    ),
+  ];
+}
+
 export const isUsableCustomerPortalEmail = (email: string) =>
   /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
 
