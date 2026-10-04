@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
+import type { GoalDashboardSummary } from "@/lib/data/goals-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 
 const levelLabel = (value: string) =>
@@ -93,8 +94,10 @@ export function CasesNeedingAttention({
 
 export function OperationalIntelligenceSection({
   intelligence,
+  goalSummary,
 }: {
   intelligence: AuthorizedOperationalIntelligence;
+  goalSummary: GoalDashboardSummary | null;
 }) {
   const { readinessDistribution: readiness, capabilities } = intelligence;
   const maxBucket = Math.max(1, ...readiness.buckets.map((bucket) => bucket.count));
@@ -213,6 +216,53 @@ export function OperationalIntelligenceSection({
           ) : null}
         </section>
       </div>
+
+      {goalSummary ? (
+        <>
+          <div className="operational-intelligence-title goal-performance-title">
+            <div>
+              <span className="eyebrow">
+                Performance Goals
+              </span>
+              <h2>Goal performance</h2>
+            </div>
+          </div>
+
+          <div
+            className="intelligence-kpis goal-performance-kpis"
+            aria-label="Goal performance summary"
+          >
+            <IntelligenceKpi
+              href="/goals?lifecycle=ACTIVE"
+              tone="tone-blue"
+              label="Active Goals"
+              value={goalSummary.activeGoals}
+              detail={`${goalSummary.activeGoals} currently active`}
+            />
+            <IntelligenceKpi
+              href="/goals?performance=ACHIEVED"
+              tone="tone-green"
+              label="Achieved"
+              value={goalSummary.achieved}
+              detail={`${goalSummary.achieved} achieved`}
+            />
+            <IntelligenceKpi
+              href="/goals?performance=AT_RISK"
+              tone="tone-amber"
+              label="At Risk"
+              value={goalSummary.atRisk}
+              detail={`${goalSummary.atRisk} need attention`}
+            />
+            <IntelligenceKpi
+              href="/goals?performance=MISSED"
+              tone="tone-red"
+              label="Missed"
+              value={goalSummary.missed}
+              detail={`${goalSummary.missed} missed`}
+            />
+          </div>
+        </>
+      ) : null}
 
       {intelligence.ruleActivity ? (
         <div className="intelligence-grid intelligence-lower single">

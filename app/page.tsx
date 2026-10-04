@@ -13,6 +13,7 @@ import {
 } from "@/lib/data/platform-analytics-repository";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
+import { getGoalDashboardSummary } from "@/lib/data/goals-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PublicLandingPage } from "@/components/public-landing-page";
 import { getPublishedLandingPageContent } from "@/lib/public-landing-page-server";
@@ -86,15 +87,19 @@ export default async function Page({
     redirect("/account/license-expired");
   }
 
-  const [data, unreadCommunications] =
-    await Promise.all([
-      getLiveOrganizationData(),
-      getUnreadNotificationCount({
-        organizationId:
-          access.activeOrganization!.id,
-        userId: access.user.id,
-      }),
-    ]);
+  const [
+    data,
+    unreadCommunications,
+    goalSummary,
+  ] = await Promise.all([
+    getLiveOrganizationData(),
+    getUnreadNotificationCount({
+      organizationId:
+        access.activeOrganization!.id,
+      userId: access.user.id,
+    }),
+    getGoalDashboardSummary(),
+  ]);
 
   const intelligence =
     await getOperationalIntelligence(data);
@@ -117,6 +122,7 @@ export default async function Page({
       <Dashboard
         data={data}
         intelligence={intelligence}
+        goalSummary={goalSummary}
         unreadCommunications={
           unreadCommunications
         }

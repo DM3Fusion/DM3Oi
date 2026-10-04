@@ -56,7 +56,7 @@ test("dashboard includes deterministic attention, progress, task status, and lin
   for (const signal of ["Overdue tasks", "Tasks due today", "Unassigned service requests", "Requests awaiting staff response", "Unread communications"]) assert.match(metrics, new RegExp(signal));
   assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);
   assert.match(dashboard, /formatOrganizationDateTime\(activity\.created_at,data\.timezone\)/);
-  assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
+  assert.match(dashboard, /<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/);
 });
 
 test("Dashboard DOM places attention directly after workload KPIs and before Customer Metrics", () => {
@@ -67,7 +67,7 @@ test("Dashboard DOM places attention directly after workload KPIs and before Cus
   const casesNeedingAttention = dashboard.indexOf("<CasesNeedingAttention intelligence={intelligence}");
   const customerMetrics = dashboard.indexOf(">Customer Metrics<");
   const caseProgress = dashboard.indexOf(">Case Progress<");
-  const intelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
+  const intelligence = dashboard.indexOf("<OperationalIntelligenceSection");
   const recentActivity = dashboard.indexOf(">Recent Activity<");
 
   assert.ok(workload > -1 && workload < attention);
@@ -77,7 +77,7 @@ test("Dashboard DOM places attention directly after workload KPIs and before Cus
   assert.ok(caseProgress < intelligence && intelligence < recentActivity);
 
   assert.equal(dashboard.match(/>Recent Activity</g)?.length, 1);
-  assert.equal(dashboard.match(/<OperationalIntelligenceSection intelligence=\{intelligence\}/g)?.length, 1);
+  assert.equal(dashboard.match(/<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/g)?.length, 1);
   assert.equal(dashboard.match(/<CasesNeedingAttention intelligence=\{intelligence\}/g)?.length, 1);
 });
 

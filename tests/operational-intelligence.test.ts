@@ -420,7 +420,7 @@ test("Dashboard renders compact actionable intelligence without exposing it to C
   const page = source("app/page.tsx");
   const portal = source("lib/data/customer-portal-case-repository.ts");
   assert.match(page, /getOperationalIntelligence\(data\)/);
-  assert.match(dashboard, /<OperationalIntelligenceSection intelligence=\{intelligence\}/);
+  assert.match(dashboard, /<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/);
   for (const text of ["Operational Intelligence", "Readiness Distribution", "Top Bottlenecks", "Cases Needing Attention", "Rule Activity"]) assert.match(component, new RegExp(text));
   for (const emptyState of ["All currently required work is complete.", "No Cases currently have required work waiting on the Customer.", "No current Cases need completion attention", "No active Rules are currently affecting Cases."]) assert.match(component, new RegExp(emptyState));
   assert.match(component, /label="Completed Cases"/);

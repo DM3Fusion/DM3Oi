@@ -6,6 +6,7 @@ import { getOperationalDashboardMetrics } from "@/lib/live-dashboard-metrics";
 import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 import { CasesNeedingAttention, OperationalIntelligenceSection } from "@/components/dashboard/operational-intelligence";
 import type { AuthorizedOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
+import type { GoalDashboardSummary } from "@/lib/data/goals-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 
 function AttentionSummaryRing({items}:{items:ReadonlyArray<{value:number;tone:string}>}){
@@ -24,7 +25,17 @@ function AttentionSummaryRing({items}:{items:ReadonlyArray<{value:number;tone:st
   </div>;
 }
 
-export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrganizationData;unreadCommunications:number;intelligence:AuthorizedOperationalIntelligence|null}){
+export function Dashboard({
+  data,
+  unreadCommunications,
+  intelligence,
+  goalSummary,
+}: {
+  data: LiveOrganizationData;
+  unreadCommunications: number;
+  intelligence: AuthorizedOperationalIntelligence | null;
+  goalSummary: GoalDashboardSummary | null;
+}) {
   const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers,unreadCommunications,data.timezone);
   const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
   const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
@@ -80,7 +91,12 @@ export function Dashboard({data,unreadCommunications,intelligence}:{data:LiveOrg
       </section>
     </div>
     <div className="operations-lower">
-      {intelligence ? <OperationalIntelligenceSection intelligence={intelligence} /> : null}
+      {intelligence ? (
+        <OperationalIntelligenceSection
+          intelligence={intelligence}
+          goalSummary={goalSummary}
+        />
+      ) : null}
       <section className="panel recent-activity">
         <div className="section-head"><h2>Recent Activity</h2><Link href="/cases">View all <ApplicationIcon name="forward" /></Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>

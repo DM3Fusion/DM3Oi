@@ -16,7 +16,7 @@ export const howToGuideAllowedCalloutTypes = {
 
 export const howToGuideSectionKeys = {
   OWNER_ADMIN: [
-    "getting-started", "dashboard", "customers", "cases", "tasks",
+    "getting-started", "dashboard", "customers", "cases", "tasks", "goals",
     "service-desk", "customer-portal", "communications", "reports",
     "users-access", "settings", "common-workflows", "troubleshooting",
   ],
@@ -98,7 +98,7 @@ const ownerAdminContent: HowToGuideContent = {
   sections: [
     { key: "getting-started", title: "Getting Started", enabled: true, paragraphs: [
       "Know your workspace: The organization name in the shell shows the workspace you are operating. If you belong to more than one organization, use the organization selector before starting work.",
-      "Use the main navigation: Dashboard, Cases, Inbox, Service Desk, Customers, Tasks, Questions & Rules, and Reports lead to daily operational work. Users, this guide, and Settings are grouped in the organization administration area.",
+      "Use the main navigation: Dashboard, Service Desk, Inbox, Cases, Tasks, Goals, Reports, and Customers lead to daily operational work. Users, this guide, and Settings are grouped in the organization administration area; Questions & Rules is available under Settings.",
       "Keep your profile current: Open your account menu and choose My Profile to review your display name, title, and profile image. Your organization role and permissions determine which actions appear.",
       "Start with active work: Use Dashboard for priorities, Cases for customer engagements, Tasks for due work, and Service Desk or Inbox for customer communications.",
     ], steps: [], callout: { type: "TIP", text: "Confirm the active organization before creating or updating records." }, figure_key: null, figure_caption: null },
@@ -133,6 +133,15 @@ const ownerAdminContent: HowToGuideContent = {
       { title: "Preserve required work", body: "Workflow-required Tasks cannot be deleted or manually reordered." },
       { title: "Track customer dependencies", body: "A required document Task remains Waiting on Customer while required items are outstanding." },
     ], callout: null, figure_key: "task-register-owner", figure_caption: "Use status and due-date signals to choose the next item." },
+    { key: "goals", title: "Goals", enabled: true, paragraphs: [
+      "Goals track measurable organization or individual outcomes over a defined period. Starter Goals are editable examples and begin as Draft so they do not become performance commitments until an Owner or Business Admin reviews and activates them.",
+      "Goal progress is entered manually in this release. Review the target, baseline, ownership, and period before activation, then record progress from the Goal detail page as work advances.",
+    ], steps: [
+      { title: "Start with an example or blank Goal", body: "Choose New Goal, then select a starter template or begin with a Blank Goal. Starter values can be changed before saving." },
+      { title: "Review the commitment", body: "Confirm the measure, direction, target, baseline, period, and ownership before activating the Goal." },
+      { title: "Assign individual Goals deliberately", body: "Individual starter Goals require an explicit active organization user. DM3Oi does not automatically assign an employee." },
+      { title: "Record progress", body: "After activation, record the current actual value and as-of date. DM3Oi uses the Goal definition and period to show its current performance state." },
+    ], callout: { type: "IMPORTANT", text: "Starter Goals remain Draft until explicitly activated. They are examples for review, not automatic commitments." }, figure_key: null, figure_caption: null },
     { key: "service-desk", title: "Service Desk", enabled: true, paragraphs: [
       "Service Desk tracks customer support work. The landing page shows request metrics and recent requests; View All Service Requests opens searchable status, priority, assignment, and updated-date details.",
     ], steps: [
@@ -173,7 +182,7 @@ const ownerAdminContent: HowToGuideContent = {
     ], callout: null, figure_key: "invitation-flow", figure_caption: "Invite, verify, and activate before the member begins work." },
     { key: "settings", title: "Organization Settings", enabled: true, paragraphs: [
       "Use Settings for the organization controls currently available to Owners and Business Admins.",
-      "Questions & Rules has its own main-navigation workspace for defining intake questions and workflow behavior when your role has management access.",
+      "Questions & Rules is available under Settings for defining intake questions and workflow behavior when your role has management access.",
     ], steps: [
       { title: "Case Configuration", body: "Manage Case Types and Task Purposes used by the organization." },
       { title: "Customer Portal", body: "Control portal availability, request submission, priority visibility, onboarding mode, secure document link, and document instructions." },

@@ -344,3 +344,265 @@ export function filterGoals(
       && (!filters.period || goal.period_kind === filters.period);
   });
 }
+
+export const goalStarterKeys = [
+  "TAX_SEASON_RETURNS",
+  "OVERDUE_TASKS",
+  "SERVICE_REQUEST_RESOLUTION",
+  "ACTIVE_CUSTOMER_GROWTH",
+  "MONTHLY_ASSIGNED_CASES",
+] as const;
+
+export type GoalStarterKey =
+  (typeof goalStarterKeys)[number];
+
+export type GoalStarterPreset = {
+  key: GoalStarterKey;
+  title: string;
+  description: string;
+  metricLabel: string;
+  ownershipScope: GoalScope;
+  measurementDirection: GoalDirection;
+  unit: GoalUnit;
+  currencyCode: string | null;
+  targetValue: string;
+  baselineValue: string | null;
+  periodKind: GoalPeriodKind;
+  periodStart: string;
+  periodEnd: string;
+};
+
+export const organizationGoalStarterKeys = [
+  "TAX_SEASON_RETURNS",
+  "OVERDUE_TASKS",
+  "SERVICE_REQUEST_RESOLUTION",
+  "ACTIVE_CUSTOMER_GROWTH",
+] as const satisfies readonly GoalStarterKey[];
+
+function goalDateParts(value: string) {
+  if (!datePattern.test(value)) {
+    throw new Error("Invalid Goal date.");
+  }
+
+  const [year, month, day] =
+    value.split("-").map(Number);
+
+  return { year, month, day };
+}
+
+function goalDateKey(
+  year: number,
+  month: number,
+  day: number,
+) {
+  return [
+    String(year).padStart(4, "0"),
+    String(month).padStart(2, "0"),
+    String(day).padStart(2, "0"),
+  ].join("-");
+}
+
+function daysInUtcMonth(
+  year: number,
+  month: number,
+) {
+  return new Date(
+    Date.UTC(year, month, 0),
+  ).getUTCDate();
+}
+
+export function goalTaxSeasonPeriod(
+  timezone: string,
+  now = new Date(),
+) {
+  const today =
+    organizationDateKey(now, timezone);
+
+  const { year } = goalDateParts(today);
+  const cutoff = goalDateKey(year, 4, 10);
+  const seasonYear =
+    today <= cutoff ? year : year + 1;
+
+  return {
+    periodStart: goalDateKey(
+      seasonYear,
+      1,
+      1,
+    ),
+    periodEnd: goalDateKey(
+      seasonYear,
+      4,
+      10,
+    ),
+  };
+}
+
+export function goalAnnualPeriod(
+  timezone: string,
+  now = new Date(),
+) {
+  const today =
+    organizationDateKey(now, timezone);
+
+  const { year } = goalDateParts(today);
+
+  return {
+    periodStart: goalDateKey(year, 1, 1),
+    periodEnd: goalDateKey(year, 12, 31),
+  };
+}
+
+export function goalMonthlyPeriod(
+  timezone: string,
+  now = new Date(),
+) {
+  const today =
+    organizationDateKey(now, timezone);
+
+  const { year, month } =
+    goalDateParts(today);
+
+  return {
+    periodStart: goalDateKey(
+      year,
+      month,
+      1,
+    ),
+    periodEnd: goalDateKey(
+      year,
+      month,
+      daysInUtcMonth(year, month),
+    ),
+  };
+}
+
+export function goalStarterPreset(
+  key: GoalStarterKey,
+  timezone: string,
+  now = new Date(),
+): GoalStarterPreset {
+  if (key === "TAX_SEASON_RETURNS") {
+    const period =
+      goalTaxSeasonPeriod(timezone, now);
+
+    return {
+      key,
+      title:
+        "Complete 150 returns by April 10",
+      description:
+        "Starter Goal: review the return target and tax-season period before activation.",
+      metricLabel: "Returns completed",
+      ownershipScope: "ORGANIZATION",
+      measurementDirection: "AT_LEAST",
+      unit: "COUNT",
+      currencyCode: null,
+      targetValue: "150",
+      baselineValue: "0",
+      periodKind: "CUSTOM",
+      ...period,
+    };
+  }
+
+  if (key === "OVERDUE_TASKS") {
+    const period =
+      goalAnnualPeriod(timezone, now);
+
+    return {
+      key,
+      title: "Keep overdue Tasks below 10",
+      description:
+        "Starter Goal: keep the number of overdue Tasks below 10. Review the target and period before activation.",
+      metricLabel: "Overdue Tasks",
+      ownershipScope: "ORGANIZATION",
+      measurementDirection: "AT_MOST",
+      unit: "COUNT",
+      currencyCode: null,
+      targetValue: "9",
+      baselineValue: null,
+      periodKind: "ANNUAL",
+      ...period,
+    };
+  }
+
+  if (
+    key === "SERVICE_REQUEST_RESOLUTION"
+  ) {
+    const period =
+      goalAnnualPeriod(timezone, now);
+
+    return {
+      key,
+      title:
+        "Resolve 95% of Service Requests within 2 business days",
+      description:
+        "Starter Goal: manually record the percentage of Service Requests resolved within 2 business days. Review the target and period before activation.",
+      metricLabel:
+        "Service Requests resolved within 2 business days",
+      ownershipScope: "ORGANIZATION",
+      measurementDirection: "AT_LEAST",
+      unit: "PERCENT",
+      currencyCode: null,
+      targetValue: "95",
+      baselineValue: null,
+      periodKind: "ANNUAL",
+      ...period,
+    };
+  }
+
+  if (
+    key === "ACTIVE_CUSTOMER_GROWTH"
+  ) {
+    const period =
+      goalAnnualPeriod(timezone, now);
+
+    return {
+      key,
+      title:
+        "Increase active customers from 400 to 450",
+      description:
+        "Starter Goal: review the customer baseline, target, and annual period before activation.",
+      metricLabel: "Active customers",
+      ownershipScope: "ORGANIZATION",
+      measurementDirection: "AT_LEAST",
+      unit: "COUNT",
+      currencyCode: null,
+      targetValue: "450",
+      baselineValue: "400",
+      periodKind: "ANNUAL",
+      ...period,
+    };
+  }
+
+  const period =
+    goalMonthlyPeriod(timezone, now);
+
+  return {
+    key: "MONTHLY_ASSIGNED_CASES",
+    title:
+      "Process 40 assigned cases this month",
+    description:
+      "Starter Goal for an individual employee. Select an eligible organization user and review the monthly target before activation.",
+    metricLabel: "Assigned cases processed",
+    ownershipScope: "INDIVIDUAL",
+    measurementDirection: "AT_LEAST",
+    unit: "COUNT",
+    currencyCode: null,
+    targetValue: "40",
+    baselineValue: "0",
+    periodKind: "MONTHLY",
+    ...period,
+  };
+}
+
+export function goalStarterPresets(
+  timezone: string,
+  now = new Date(),
+) {
+  return goalStarterKeys.map((key) =>
+    goalStarterPreset(
+      key,
+      timezone,
+      now,
+    ),
+  );
+}

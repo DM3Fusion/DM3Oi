@@ -26,6 +26,7 @@ const sections = [
   ["customers", "Customers"],
   ["cases", "Cases"],
   ["tasks", "Tasks"],
+  ["goals", "Goals"],
   ["service-desk", "Service Desk"],
   ["customer-portal", "Customer Portal"],
   ["communications", "Communications"],

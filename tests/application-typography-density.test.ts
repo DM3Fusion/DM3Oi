@@ -71,11 +71,11 @@ test("Dashboard metric-summary cards center labels values and supporting metrics
 
 test("phone Dashboard hides Rule and Recent Activity without changing their data behavior", () => {
   const needsAttention = dashboard.indexOf("panel needs-attention");
-  const operationalIntelligence = dashboard.indexOf("<OperationalIntelligenceSection intelligence={intelligence}");
+  const operationalIntelligence = dashboard.indexOf("<OperationalIntelligenceSection");
   const recentActivity = dashboard.indexOf('className="panel recent-activity"');
   assert.ok(needsAttention > -1 && needsAttention < operationalIntelligence);
   assert.ok(operationalIntelligence < recentActivity);
-  assert.equal(dashboard.match(/<OperationalIntelligenceSection intelligence=\{intelligence\}/g)?.length, 1);
+  assert.equal(dashboard.match(/<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/g)?.length, 1);
   assert.equal(dashboard.match(/className="panel recent-activity"/g)?.length, 1);
   assert.match(dashboard, /data\.activities\.slice\(0,8\)\.map/);
   assert.match(dashboard, /href=\{`\/cases\/\$\{activity\.case_id\}`\}/);

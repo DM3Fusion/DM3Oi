@@ -3,10 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
-import type {
-  GoalHistoryEntry,
-  GoalProgressEntry,
-  GoalRecord,
+import {
+  goalPerformance,
+  type GoalHistoryEntry,
+  type GoalProgressEntry,
+  type GoalRecord,
 } from "@/lib/goals";
 
 type GoalRpcClient = {
@@ -41,6 +42,96 @@ async function organizationTimezone(organizationId: string) {
     .maybeSingle();
   if (settings.error) throw new Error("Goals are temporarily unavailable.");
   return settings.data?.timezone ?? "UTC";
+}
+
+
+
+export type GoalDashboardSummary = {
+  activeGoals: number;
+  achieved: number;
+  atRisk: number;
+  missed: number;
+};
+
+export async function getGoalDashboardSummary():
+  Promise<GoalDashboardSummary | null> {
+  const access = await getAccessContext();
+
+  if (
+    !access?.activeOrganization ||
+    !hasPermission(access, "VIEW_GOALS")
+  ) {
+    return null;
+  }
+
+  const organizationId =
+    access.activeOrganization.id;
+  const supabase = await createClient();
+  const rpc =
+    supabase as unknown as GoalRpcClient;
+
+  const [goalsResult, timezone] =
+    await Promise.all([
+      rpc.rpc("get_goals", {
+        target_organization_id:
+          organizationId,
+        target_goal_id: null,
+      }),
+      organizationTimezone(organizationId),
+    ]);
+
+  if (goalsResult.error) {
+    console.error(
+      "Goal Dashboard summary query failed",
+      {
+        code:
+          goalsResult.error.code ?? null,
+        message:
+          goalsResult.error.message,
+      },
+    );
+
+    throw new Error(
+      "Goal performance is temporarily unavailable.",
+    );
+  }
+
+  const goals =
+    arrayPayload<GoalRecord>(
+      goalsResult.data,
+    );
+
+  const summary: GoalDashboardSummary = {
+    activeGoals: 0,
+    achieved: 0,
+    atRisk: 0,
+    missed: 0,
+  };
+
+  for (const goal of goals) {
+    if (
+      goal.lifecycle_status === "ACTIVE"
+    ) {
+      summary.activeGoals += 1;
+    }
+
+    const performance =
+      goalPerformance(goal, timezone);
+
+    if (performance === "ACHIEVED") {
+      summary.achieved += 1;
+    } else if (
+      performance === "AT_RISK"
+    ) {
+      summary.atRisk += 1;
+    } else if (
+      performance === "MISSED"
+    ) {
+      summary.missed += 1;
+    }
+  }
+
+  return summary;
 }
 
 export async function getGoalsRegisterData() {
@@ -144,7 +235,9 @@ export async function getGoalEditorData(goalId?: string) {
       displayName: profile.display_name || profile.email || "Organization User",
     }))
     .sort((left, right) => left.displayName.localeCompare(right.displayName));
-  if (!goalId) return { goal: null, owners };
+  const timezone = await organizationTimezone(organizationId);
+
+  if (!goalId) return { goal: null, owners, timezone };
   const rpc = supabase as unknown as GoalRpcClient;
   const result = await rpc.rpc("get_goals", {
     target_organization_id: organizationId,
@@ -153,5 +246,5 @@ export async function getGoalEditorData(goalId?: string) {
   if (result.error) notFound();
   const goal = arrayPayload<GoalRecord>(result.data)[0];
   if (!goal) notFound();
-  return { goal, owners };
+  return { goal, owners, timezone };
 }
