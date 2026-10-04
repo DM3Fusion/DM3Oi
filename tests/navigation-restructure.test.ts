@@ -20,19 +20,23 @@ test("organization primary navigation has the canonical permission-filtered orde
       "Inbox",
       "Cases",
       "Tasks",
-      "Goals",
       "Reports",
       "Customers",
     ],
   );
-  assert.equal(organizationNavigation.map((item) => String(item.href)).includes("/questions"), false);
-  assert.ok(
-    organizationNavigation.findIndex((item) => item.href === "/tasks") <
-      organizationNavigation.findIndex((item) => item.href === "/goals"),
+
+  assert.equal(
+    organizationNavigation
+      .map((item) => String(item.href))
+      .includes("/goals"),
+    false,
   );
-  assert.ok(
-    organizationNavigation.findIndex((item) => item.href === "/goals") <
-      organizationNavigation.findIndex((item) => item.href === "/reports"),
+
+  assert.equal(
+    organizationNavigation
+      .map((item) => String(item.href))
+      .includes("/questions"),
+    false,
   );
 });
 
@@ -43,6 +47,7 @@ test("non-platform Settings children use the exact shared order", () => {
     activeOrganization: { role: "BUSINESS_OWNER" },
     effectivePermissions: new Set([
       "VIEW_ADMINISTRATION",
+      "VIEW_GOALS",
       "VIEW_QUESTIONS",
       "MANAGE_ROLE_PERMISSIONS",
     ]),
@@ -52,6 +57,7 @@ test("non-platform Settings children use the exact shared order", () => {
     [
       { label: "Customer Portal", href: "/settings/customer-portal" },
       { label: "Case Configuration", href: "/settings/case-configuration" },
+      { label: "Goals", href: "/goals" },
       { label: "Questions & Rules", href: "/questions" },
       { label: "User Access", href: "/settings/user-access" },
     ],

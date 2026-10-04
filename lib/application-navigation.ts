@@ -19,7 +19,6 @@ export const organizationNavigation = [
   { href: "/communications", label: "Inbox", icon: "communications", permission: "VIEW_COMMUNICATIONS" },
   { href: "/cases", label: "Cases", icon: "cases", permission: "VIEW_CASES" },
   { href: "/tasks", label: "Tasks", icon: "tasks", permission: "VIEW_TASKS" },
-  { href: "/goals", label: "Goals", icon: "goals", permission: "VIEW_GOALS" },
   { href: "/reports", label: "Reports", icon: "reports", permission: "VIEW_REPORTS" },
   { href: "/customers", label: "Customers", icon: "customers", permission: "VIEW_CUSTOMERS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
@@ -33,6 +32,7 @@ export const organizationAdministrationNavigation = [
 export const organizationSettingsNavigation = [
   { href: "/settings/customer-portal", label: "Customer Portal", icon: "customers", permission: "VIEW_ADMINISTRATION" },
   { href: "/settings/case-configuration", label: "Case Configuration", icon: "cases", permission: "VIEW_ADMINISTRATION" },
+  { href: "/goals", label: "Goals", icon: "goals", permission: "VIEW_GOALS" },
   { href: "/questions", label: "Questions & Rules", icon: "questions", permission: "VIEW_QUESTIONS" },
   { href: "/settings/user-access", label: "User Access", icon: "users", permission: "MANAGE_ROLE_PERMISSIONS" },
   { href: "/settings/case-lifecycle", label: "Case Lifecycle", icon: "status", permission: "VIEW_ADMINISTRATION" },

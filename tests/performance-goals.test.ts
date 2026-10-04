@@ -365,12 +365,35 @@ test("Goals navigation, mobile visibility, responsive UI, and zero-background-ne
   const navigation = source("lib/application-navigation.ts");
   const shell = source("components/layout/app-shell.tsx");
   const css = source("app/globals.css");
-  assert.ok(navigation.indexOf('href: "/tasks"') < navigation.indexOf('href: "/goals"'));
-  assert.ok(navigation.indexOf('href: "/goals"') < navigation.indexOf('href: "/reports"'));
-  assert.match(navigation, /"\/goals"/);
-  assert.match(shell, /authorizedOrganizationNavigation/);
-  assert.match(css, /@media\(max-width:700px\)[^{]*\{[^}]*goal-detail-facts/);
-  for (const file of ["lib/data/goals-repository.ts", "app/goals/page.tsx", "app/goals/[goalId]/page.tsx"]) {
-    assert.doesNotMatch(source(file), /setInterval|setTimeout|realtime|channel\(|subscribe\(/i);
+
+  assert.match(
+    navigation,
+    /organizationSettingsNavigation[\s\S]*href: "\/goals"[\s\S]*permission: "VIEW_GOALS"/,
+  );
+
+  assert.match(
+    navigation,
+    /authorizedOrganizationSettingsNavigation/,
+  );
+
+  assert.match(
+    shell,
+    /authorizedOrganizationSettingsNavigation/,
+  );
+
+  assert.match(
+    css,
+    /@media\(max-width:700px\)[^{]*\{[^}]*goal-detail-facts/,
+  );
+
+  for (const file of [
+    "lib/data/goals-repository.ts",
+    "app/goals/page.tsx",
+    "app/goals/[goalId]/page.tsx",
+  ]) {
+    assert.doesNotMatch(
+      source(file),
+      /setInterval|setTimeout|realtime|channel\(|subscribe\(/i,
+    );
   }
 });

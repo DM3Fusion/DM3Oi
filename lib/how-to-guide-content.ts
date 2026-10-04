@@ -98,7 +98,7 @@ const ownerAdminContent: HowToGuideContent = {
   sections: [
     { key: "getting-started", title: "Getting Started", enabled: true, paragraphs: [
       "Know your workspace: The organization name in the shell shows the workspace you are operating. If you belong to more than one organization, use the organization selector before starting work.",
-      "Use the main navigation: Dashboard, Service Desk, Inbox, Cases, Tasks, Goals, Reports, and Customers lead to daily operational work. Users, this guide, and Settings are grouped in the organization administration area; Questions & Rules is available under Settings.",
+      "Use the main navigation: Dashboard, Service Desk, Inbox, Cases, Tasks, Reports, and Customers lead to daily operational work. Users, this guide, and Settings are grouped in the organization administration area; Goals and Questions & Rules are available under Settings.",
       "Keep your profile current: Open your account menu and choose My Profile to review your display name, title, and profile image. Your organization role and permissions determine which actions appear.",
       "Start with active work: Use Dashboard for priorities, Cases for customer engagements, Tasks for due work, and Service Desk or Inbox for customer communications.",
     ], steps: [], callout: { type: "TIP", text: "Confirm the active organization before creating or updating records." }, figure_key: null, figure_caption: null },
