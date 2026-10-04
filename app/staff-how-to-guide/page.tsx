@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
-import { organizationGuideHref } from "@/lib/auth/permissions";
+import { canAccessOrganizationGuide } from "@/lib/auth/permissions";
 
 export const metadata = { title: "Staff How to Guide" };
 
@@ -61,7 +61,7 @@ function GuideCallout({ label, children }: { label: string; children: ReactNode 
 
 export default async function StaffHowToGuidePage() {
   const access = await getAccessContext();
-  if (organizationGuideHref(access) !== "/staff-how-to-guide") notFound();
+  if (!canAccessOrganizationGuide(access, "/staff-how-to-guide")) notFound();
 
   return (
     <div className="how-to-guide" id="guide-top">

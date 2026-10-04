@@ -44,7 +44,7 @@ test("Staff How to Guide route has the intended static operational sections", ()
   assert.match(guide, /title="DM3Oi Staff How to Guide"/);
   assert.match(guide, /eyebrow="Help"/);
   assert.match(guide, /id="guide-top"/);
-  assert.match(guide, /organizationGuideHref\(access\) !== "\/staff-how-to-guide"\) notFound\(\)/);
+  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\) notFound\(\)/);
   assert.doesNotMatch(guide, /@\/lib\/data\/|createClient\(|requirePermission/);
   for (const [id, title] of sections) {
     assert.match(guide, new RegExp(`id="${id}"`));
@@ -82,10 +82,10 @@ test("each organization role receives exactly one role-appropriate guide link", 
 });
 
 test("route guards preserve Owner Admin and staff separation", () => {
-  assert.match(ownerGuide, /organizationGuideHref\(access\) !== "\/how-to-guide"\) notFound\(\)/);
+  assert.match(ownerGuide, /!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\) notFound\(\)/);
   assert.doesNotMatch(ownerGuide, /staff-how-to-guide/);
-  assert.match(guide, /organizationGuideHref\(access\) !== "\/staff-how-to-guide"\) notFound\(\)/);
-  assert.doesNotMatch(guide, /organizationGuideHref\(access\) !== "\/how-to-guide"/);
+  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/staff-how-to-guide"\)\) notFound\(\)/);
+  assert.doesNotMatch(guide, /canAccessOrganizationGuide\(access, "\/how-to-guide"/);
 });
 
 test("staff task guidance preserves required workflow work", () => {

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 
 import { PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
-import { organizationGuideHref } from "@/lib/auth/permissions";
+import { canAccessOrganizationGuide } from "@/lib/auth/permissions";
 
 export const metadata = { title: "How to Guide" };
 
@@ -88,7 +88,7 @@ function GuideCallout({
 
 export default async function HowToGuidePage() {
   const access = await getAccessContext();
-  if (organizationGuideHref(access) !== "/how-to-guide") notFound();
+  if (!canAccessOrganizationGuide(access, "/how-to-guide")) notFound();
 
   return (
     <div className="how-to-guide" id="guide-top">

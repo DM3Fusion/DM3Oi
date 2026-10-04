@@ -31,7 +31,7 @@ test("organization How to Guide route and semantic sections exist", () => {
   assert.match(guide, /title="DM3Oi How to Guide"/);
   assert.match(guide, /eyebrow="Help"/);
   assert.match(guide, /id="guide-top"/);
-  assert.match(guide, /organizationGuideHref\(access\) !== "\/how-to-guide"\) notFound\(\)/);
+  assert.match(guide, /!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\) notFound\(\)/);
   assert.doesNotMatch(guide, /requirePermission|getLiveOrganizationData|getOperationalIntelligence|getUnreadNotificationCount/);
 
   for (const [id, title] of sections) {

@@ -56,6 +56,13 @@ export function organizationGuideHref(
   return null;
 }
 
+export function canAccessOrganizationGuide(
+  context: PermissionContext | null,
+  requestedHref: OrganizationGuideHref,
+): boolean {
+  return organizationGuideHref(context) === requestedHref;
+}
+
 export type OrganizationPermissionOverride={role:ConfigurableOrganizationRole;permission:Permission;isAllowed:boolean};
 export const roleHasDefaultPermission=(role:ApplicationRole,permission:Permission)=>rolePermissionMatrix[role]?.has(permission)??false;
 export function getEffectiveOrganizationPermissions(role:ApplicationRole,overrides:readonly OrganizationPermissionOverride[]=[]):ReadonlySet<Permission>{
