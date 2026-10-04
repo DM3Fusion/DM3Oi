@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { AnalyticsTracker } from "@/components/analytics-tracker";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
@@ -11,9 +12,11 @@ import { getNewTrialRequestCount } from "@/lib/data/trial-request-repository";
 export const dynamic="force-dynamic";
 export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Operational Intelligence for service businesses."};
 export default async function RootLayout({children}:{children:React.ReactNode}){
-  const access=await getAccessContext();
+  const [access, requestHeaders]=await Promise.all([getAccessContext(), headers()]);
+  const requestPathname=requestHeaders.get("x-dm3oi-route-pathname");
+  const staticGuideRequest=requestPathname==="/how-to-guide"||requestPathname==="/staff-how-to-guide";
   const [unreadNotificationCount, newTrialRequestCount] = await Promise.all([
-    access?.internalAccess && access.activeOrganization
+    !staticGuideRequest && access?.internalAccess && access.activeOrganization
       ? getUnreadNotificationCount({
           organizationId: access.activeOrganization.id,
           userId: access.user.id,

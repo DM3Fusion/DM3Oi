@@ -42,6 +42,20 @@ export type PermissionContext = {
   effectivePermissions?: ReadonlySet<Permission>;
 };
 
+export type OrganizationGuideHref = "/how-to-guide" | "/staff-how-to-guide";
+
+export function organizationGuideHref(
+  context: PermissionContext | null,
+): OrganizationGuideHref | null {
+  if (!context?.internalAccess || context.isSuperAdmin) return null;
+  const role = context.activeOrganization?.role;
+  if (role === "BUSINESS_OWNER" || role === "BUSINESS_ADMIN")
+    return "/how-to-guide";
+  if (role === "STAFF_MANAGER" || role === "STAFF_USER")
+    return "/staff-how-to-guide";
+  return null;
+}
+
 export type OrganizationPermissionOverride={role:ConfigurableOrganizationRole;permission:Permission;isAllowed:boolean};
 export const roleHasDefaultPermission=(role:ApplicationRole,permission:Permission)=>rolePermissionMatrix[role]?.has(permission)??false;
 export function getEffectiveOrganizationPermissions(role:ApplicationRole,overrides:readonly OrganizationPermissionOverride[]=[]):ReadonlySet<Permission>{

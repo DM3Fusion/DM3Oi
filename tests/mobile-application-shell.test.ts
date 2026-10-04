@@ -108,14 +108,14 @@ test("mobile More exposes only permission-filtered secondary destinations", () =
   assert.match(css, /@media\(max-width:600px\)[\s\S]*\.mobile-account-navigation,\.mobile-account-actions\{display:block\}/);
 });
 
-test("mobile Account omits secondary destinations absent from effective permissions", () => {
+test("mobile Account omits permission-filtered destinations while retaining the role guide", () => {
   const navigation = mobileSecondaryNavigation({
     isSuperAdmin: false,
     internalAccess: true,
     activeOrganization: { role: "STAFF_USER" },
     effectivePermissions: new Set<"VIEW_SERVICE_DESK" | "VIEW_TASKS">(["VIEW_SERVICE_DESK", "VIEW_TASKS"]),
   }, false);
-  assert.deepEqual(navigation.map((item) => item.href), ["/service-desk", "/tasks", "/account/profile"]);
+  assert.deepEqual(navigation.map((item) => item.href), ["/service-desk", "/tasks", "/account/profile", "/staff-how-to-guide"]);
   assert.ok(!navigation.some((item) => ["/customers", "/questions", "/reports", "/users", "/settings"].includes(item.href)));
   const platformNavigation = mobileSecondaryNavigation({
     isSuperAdmin: true,

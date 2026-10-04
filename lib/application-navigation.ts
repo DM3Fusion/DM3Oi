@@ -1,5 +1,6 @@
 import {
   hasPermission,
+  organizationGuideHref,
   type Permission,
   type PermissionContext,
 } from "./auth/permissions.ts";
@@ -25,7 +26,7 @@ export const organizationNavigation = [
 
 export const organizationAdministrationNavigation = [
   { href: "/users", label: "Users", icon: "users", permission: "VIEW_USERS" },
-  { href: "/how-to-guide", label: "How to Guide", icon: "questions", permission: "VIEW_SETTINGS" },
+  { href: "/how-to-guide", label: "How to Guide", icon: "questions" },
   { href: "/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
@@ -58,8 +59,20 @@ export const mobilePrimaryDestinations = new Set(["/", "/cases", "/communication
 export const authorizedOrganizationNavigation = (context: PermissionContext) =>
   organizationNavigation.filter((item) => hasPermission(context, item.permission));
 
-export const authorizedOrganizationAdministrationNavigation = (context: PermissionContext) =>
-  organizationAdministrationNavigation.filter((item) => hasPermission(context, item.permission));
+export const authorizedOrganizationAdministrationNavigation = (context: PermissionContext) => {
+  const guideHref = organizationGuideHref(context);
+  return organizationAdministrationNavigation
+    .filter((item) =>
+      item.label === "How to Guide"
+        ? Boolean(guideHref)
+        : "permission" in item && hasPermission(context, item.permission),
+    )
+    .map((item) =>
+      item.label === "How to Guide" && guideHref
+        ? { ...item, href: guideHref }
+        : item,
+    );
+};
 
 export const authorizedOrganizationSettingsNavigation = (context: PermissionContext) =>
   organizationSettingsNavigation.filter(
@@ -98,7 +111,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     organizationSecondary.filter((item) => item.href === href),
   );
   const users = administration.filter((item) => item.href === "/users");
-  const guide = administration.filter((item) => item.href === "/how-to-guide");
+  const guide = administration.filter((item) => item.label === "How to Guide");
   const settings = administration
     .filter((item) => item.href === "/settings")
     .map((item) => ({

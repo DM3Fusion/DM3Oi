@@ -6,12 +6,12 @@ import type { Database } from "@/types/database.generated";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out","/api/public/overview-download"];
 const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction","/api/analytics/presence"]);
 export async function proxy(request:NextRequest){
- let response=NextResponse.next({request}); const pathname=request.nextUrl.pathname;
+ const pathname=request.nextUrl.pathname; const forwardedHeaders=new Headers(request.headers); forwardedHeaders.set("x-dm3oi-route-pathname",pathname); const forwardedRequest={headers:forwardedHeaders}; let response=NextResponse.next({request:forwardedRequest});
  if(pathname==="/auth/callback") return response;
  if(publicAnalyticsRoutes.has(pathname)) return response;
  const protectedRoute=isProtected(pathname); const env=getPublicEnvironment();
  if(!env.configured){if(protectedRoute)return NextResponse.redirect(new URL("/login?error=Supabase%20environment%20variables%20are%20not%20configured.",request.url));return response;}
- const supabase=createServerClient<Database>(env.supabaseUrl,env.supabaseAnonKey,{cookies:{getAll:()=>request.cookies.getAll(),setAll(items){items.forEach(({name,value})=>request.cookies.set(name,value));response=NextResponse.next({request});items.forEach(({name,value,options})=>response.cookies.set(name,value,options));}}});
+ const supabase=createServerClient<Database>(env.supabaseUrl,env.supabaseAnonKey,{cookies:{getAll:()=>request.cookies.getAll(),setAll(items){items.forEach(({name,value})=>request.cookies.set(name,value));response=NextResponse.next({request:forwardedRequest});items.forEach(({name,value,options})=>response.cookies.set(name,value,options));}}});
  const {data:{user}}=await supabase.auth.getUser();
  if(!user&&protectedRoute){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
  if(user&&pathname==="/login")return NextResponse.redirect(new URL("/",request.url));

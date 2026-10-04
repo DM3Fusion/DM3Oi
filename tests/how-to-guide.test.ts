@@ -7,6 +7,8 @@ const guidePath = "app/how-to-guide/page.tsx";
 const guide = source(guidePath);
 const navigation = source("lib/application-navigation.ts");
 const styles = source("app/globals.css");
+const layout = source("app/layout.tsx");
+const proxy = source("proxy.ts");
 
 const sections = [
   ["getting-started", "Getting Started"],
@@ -29,7 +31,8 @@ test("organization How to Guide route and semantic sections exist", () => {
   assert.match(guide, /title="DM3Oi How to Guide"/);
   assert.match(guide, /eyebrow="Help"/);
   assert.match(guide, /id="guide-top"/);
-  assert.match(guide, /requirePermission\("VIEW_SETTINGS"\)/);
+  assert.match(guide, /organizationGuideHref\(access\) !== "\/how-to-guide"\) notFound\(\)/);
+  assert.doesNotMatch(guide, /requirePermission|getLiveOrganizationData|getOperationalIntelligence|getUnreadNotificationCount/);
 
   for (const [id, title] of sections) {
     assert.match(guide, new RegExp(`id="${id}"`));
@@ -39,6 +42,13 @@ test("organization How to Guide route and semantic sections exist", () => {
   assert.match(guide, /guideSections\.map\(\(\[id, label\], index\) =>/);
   assert.match(guide, /<a href=\{`#\$\{id\}`\}>/);
   assert.match(guide, /href="#guide-top"/);
+});
+
+test("guide routes remain independent of organization operational-data loading", () => {
+  assert.match(layout, /requestPathname==="\/how-to-guide"\|\|requestPathname==="\/staff-how-to-guide"/);
+  assert.match(layout, /!staticGuideRequest && access\?\.internalAccess && access\.activeOrganization/);
+  assert.match(proxy, /forwardedHeaders\.set\("x-dm3oi-route-pathname",pathname\)/);
+  assert.doesNotMatch(guide, /@\/lib\/data\/|createClient\(/);
 });
 
 test("guide content excludes restricted operational contexts and production-looking PII", () => {
@@ -75,14 +85,14 @@ test("How to Guide navigation is organization-facing and adjacent to Settings", 
 
   assert.match(
     organizationGroup,
-    /href: "\/how-to-guide", label: "How to Guide", icon: "questions", permission: "VIEW_SETTINGS"/,
+    /href: "\/how-to-guide", label: "How to Guide", icon: "questions"/,
   );
   assert.ok(
     organizationGroup.indexOf('href: "/how-to-guide"') <
       organizationGroup.indexOf('href: "/settings"'),
   );
   assert.doesNotMatch(platformGroup, /how-to-guide|How to Guide/);
-  assert.match(navigation, /const guide = administration\.filter\(\(item\) => item\.href === "\/how-to-guide"\)/);
+  assert.match(navigation, /const guide = administration\.filter\(\(item\) => item\.label === "How to Guide"\)/);
 });
 
 test("guide documents current-state reporting and safe task and customer boundaries", () => {
