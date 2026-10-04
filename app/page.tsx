@@ -7,7 +7,10 @@ import { getAccessContext } from "@/lib/auth/context";
 import { resolveRootExperience } from "@/lib/auth/access-routing";
 import { getLiveOrganizationData } from "@/lib/data/case-repository";
 import { getPlatformSummary } from "@/lib/data/platform-repository";
-import { getPlatformAnalytics } from "@/lib/data/platform-analytics-repository";
+import {
+  getOverviewDownloadCount,
+  getPlatformAnalytics,
+} from "@/lib/data/platform-analytics-repository";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
 import { ApplicationIcon } from "@/components/application-icon";
@@ -46,10 +49,11 @@ export default async function Page({
   if (experience === "PLATFORM") {
     const query = await searchParams;
 
-    const [summary, analytics] =
+    const [summary, analytics, overviewDownloadCount] =
       await Promise.all([
         getPlatformSummary(),
         getPlatformAnalytics(query),
+        getOverviewDownloadCount(),
       ]);
 
     return (
@@ -60,6 +64,7 @@ export default async function Page({
         />
         <PlatformDashboard
           analytics={analytics}
+          overviewDownloadCount={overviewDownloadCount}
           summary={summary}
         />
       </>

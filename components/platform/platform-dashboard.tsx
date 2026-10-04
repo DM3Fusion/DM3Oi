@@ -20,9 +20,11 @@ const analyticsRanges = [
 export function PlatformDashboard({
   summary,
   analytics,
+  overviewDownloadCount,
 }: {
   summary: PlatformSummary;
   analytics: PlatformAnalytics;
+  overviewDownloadCount: number;
 }) {
   const metrics: {
     label: string;
@@ -94,6 +96,17 @@ export function PlatformDashboard({
           ),
         )}
       </div>
+
+      <section
+        aria-label="Overview download metric"
+        className="platform-overview-download-metric"
+      >
+        <div>
+          <span>Overview Downloads</span>
+          <small>DM3Oi Overview served</small>
+        </div>
+        <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
+      </section>
 
       <section className="admin-analytics">
         <div className="admin-analytics-heading">

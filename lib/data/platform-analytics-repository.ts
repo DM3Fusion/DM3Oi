@@ -65,6 +65,38 @@ type PlatformAnalyticsAggregate = {
   geography: { label: string; pageViews: number }[];
 };
 
+export async function getOverviewDownloadCount(): Promise<number> {
+  await requireSuperAdmin();
+
+  try {
+    const supabase = await createClient();
+
+    // The no-argument RPC was deployed after the current generated schema types.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = await (supabase as any).rpc(
+      "get_overview_download_count",
+    );
+
+    if (result.error) {
+      console.error("Overview download count query failed.", {
+        code: result.error.code ?? "OVERVIEW_DOWNLOAD_COUNT_FAILED",
+      });
+      return 0;
+    }
+
+    const count = Number(result.data ?? 0);
+
+    return Number.isFinite(count) && count >= 0
+      ? Math.trunc(count)
+      : 0;
+  } catch {
+    console.error("Overview download count query failed.", {
+      code: "OVERVIEW_DOWNLOAD_COUNT_FAILED",
+    });
+    return 0;
+  }
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function utcDateKey(date: Date) {

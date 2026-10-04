@@ -1,22 +1,61 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-export async function GET() {
-  const filePath = path.join(
-    process.cwd(),
-    "public",
-    "images",
-    "DM3Oi_Overview_2026.PNG",
+import {
+  createOverviewDownloadGetResponse,
+  createOverviewDownloadHeadResponse,
+} from "@/lib/overview-download-response";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+const filePath = path.join(
+  process.cwd(),
+  "public",
+  "images",
+  "DM3Oi_Overview_2026.PNG",
+);
+
+function readOverviewFile() {
+  return readFile(filePath);
+}
+
+async function recordOverviewDownloadServed() {
+  const admin = createAdminClient();
+
+  // The deployed RPC is intentionally fixed and accepts no arguments.
+  // Cast locally until generated schema types are refreshed.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (admin as any).rpc(
+    "record_overview_download_served",
   );
 
-  const file = await readFile(filePath);
+  if (error) {
+    throw new Error(
+      typeof error.code === "string"
+        ? error.code
+        : "OVERVIEW_DOWNLOAD_ANALYTICS_FAILED",
+    );
+  }
+}
 
-  return new Response(file, {
-    headers: {
-      "Content-Type": "image/png",
-      "Content-Disposition": 'attachment; filename="DM3Oi_Overview_2026.PNG"',
-      "Content-Length": String(file.byteLength),
-      "Cache-Control": "public, max-age=3600",
-    },
+function logRecordingFailure(error: unknown) {
+  console.error("Overview download analytics recording failed.", {
+    code:
+      error instanceof Error
+        ? error.message
+        : "OVERVIEW_DOWNLOAD_ANALYTICS_FAILED",
+  });
+}
+
+export async function GET() {
+  return createOverviewDownloadGetResponse({
+    readFile: readOverviewFile,
+    recordServed: recordOverviewDownloadServed,
+    onRecordFailure: logRecordingFailure,
+  });
+}
+
+export async function HEAD() {
+  return createOverviewDownloadHeadResponse({
+    readFile: readOverviewFile,
   });
 }
