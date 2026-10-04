@@ -208,7 +208,7 @@ test("SUPER_ADMIN template destinations are grouped under one Templates parent",
 
   assert.match(
     navigationSource,
-    /export const platformTemplatesNavigation[\s\S]*"Email Templates"[\s\S]*"New Orgn Templates"[\s\S]*"How-to-Guides Templates"[\s\S]*"Landing Page Template"/,
+    /export const platformTemplatesNavigation[\s\S]*"Email Templates"[\s\S]*"New Orgn Templates"[\s\S]*"How-to Guide Templates"[\s\S]*"Landing Page Template"/,
   );
 
   assert.match(

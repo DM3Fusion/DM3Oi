@@ -135,7 +135,7 @@ test("desktop and mobile expose exactly one role-appropriate guide item", () => 
     platformTemplatesNavigation.some(
       (item) =>
         item.href === "/admin/how-to-guides" &&
-        item.label === "How-to-Guides Templates",
+        item.label === "How-to Guide Templates",
     ),
     true,
   );

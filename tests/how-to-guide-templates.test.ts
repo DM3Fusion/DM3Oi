@@ -110,7 +110,7 @@ test("SUPER_ADMIN management page and actions independently require SUPER_ADMIN"
 
   assert.match(
     navigation,
-    /href: "\/admin\/how-to-guides", label: "How-to-Guides Templates"/,
+    /href: "\/admin\/how-to-guides", label: "How-to Guide Templates"/,
   );
 });
 

@@ -40,7 +40,7 @@ export const organizationSettingsNavigation = [
 export const platformTemplatesNavigation = [
   { href: "/admin/email-templates", label: "Email Templates", icon: "communications" },
   { href: "/admin/configuration-templates", label: "New Orgn Templates", icon: "organization" },
-  { href: "/admin/how-to-guides", label: "How-to-Guides Templates", icon: "questions" },
+  { href: "/admin/how-to-guides", label: "How-to Guide Templates", icon: "questions" },
   { href: "/admin/landing-page", label: "Landing Page Template", icon: "platform" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 
