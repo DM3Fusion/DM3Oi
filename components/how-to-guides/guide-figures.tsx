@@ -21,7 +21,7 @@ const figureTitles: Record<HowToGuideFigureKey, string> = {
 
 function FigureFrame({ figureKey, caption, children }: {
   figureKey: HowToGuideFigureKey;
-  caption: string;
+  caption: ReactNode;
   children: ReactNode;
 }) {
   const title = figureTitles[figureKey];
@@ -38,7 +38,7 @@ const IntakeSteps = () => <div className="guide-mini-steps">
 
 export function GuideFigure({ figureKey, caption }: {
   figureKey: HowToGuideFigureKey;
-  caption: string;
+  caption: ReactNode;
 }) {
   let content: ReactNode;
   switch (figureKey) {

@@ -43,20 +43,48 @@ export const howToGuideFigureKeys = {
 export type HowToGuideFigureKey =
   (typeof howToGuideFigureKeys)[HowToGuideKey][number];
 
-export type HowToGuideStep = { title: string; body: string };
+export const howToGuideTextAlignments = [
+  "left",
+  "center",
+  "right",
+] as const;
+
+export type HowToGuideTextAlignment =
+  (typeof howToGuideTextAlignments)[number];
+
+export type HowToGuideRichTextRun = {
+  text: string;
+  bold?: true;
+  italic?: true;
+  underline?: true;
+};
+
+export type HowToGuideRichText = {
+  align: HowToGuideTextAlignment;
+  runs: HowToGuideRichTextRun[];
+};
+
+export type HowToGuideText = string | HowToGuideRichText;
+
+export type HowToGuideStep = {
+  title: string;
+  body: HowToGuideText;
+};
+
 export type HowToGuideCallout = {
   type: HowToGuideCalloutType;
-  text: string;
+  text: HowToGuideText;
 };
+
 export type HowToGuideSection = {
   key: string;
   title: string;
   enabled: boolean;
-  paragraphs: string[];
+  paragraphs: HowToGuideText[];
   steps: HowToGuideStep[];
   callout: HowToGuideCallout | null;
   figure_key: HowToGuideFigureKey | null;
-  figure_caption: string | null;
+  figure_caption: HowToGuideText | null;
 };
 export type HowToGuideContent = {
   title: string;
@@ -267,6 +295,77 @@ export const defaultHowToGuideContent: Readonly<Record<HowToGuideKey, HowToGuide
 const plainText = (value: unknown, max: number) =>
   typeof value === "string" && value.trim().length > 0 &&
   value.length <= max && !/[<>]/.test(value);
+
+export function howToGuideTextPlainText(
+  value: HowToGuideText,
+): string {
+  return typeof value === "string"
+    ? value
+    : value.runs.map((run) => run.text).join("");
+}
+
+function richText(value: unknown, max: number): boolean {
+  if (plainText(value, max)) return true;
+
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const rich = value as Record<string, unknown>;
+
+  if (
+    !exactKeys(rich, ["align", "runs"]) ||
+    typeof rich.align !== "string" ||
+    !howToGuideTextAlignments.some(
+      (alignment) => alignment === rich.align,
+    ) ||
+    !Array.isArray(rich.runs) ||
+    rich.runs.length < 1 ||
+    rich.runs.length > 100
+  ) {
+    return false;
+  }
+
+  let combined = "";
+
+  for (const rawRun of rich.runs) {
+    if (!rawRun || typeof rawRun !== "object" || Array.isArray(rawRun)) {
+      return false;
+    }
+
+    const run = rawRun as Record<string, unknown>;
+    const keys = Object.keys(run);
+
+    if (
+      !keys.every((key) =>
+        ["text", "bold", "italic", "underline"].includes(key),
+      ) ||
+      !Object.hasOwn(run, "text") ||
+      typeof run.text !== "string" ||
+      run.text.length === 0 ||
+      /[<>]/.test(run.text)
+    ) {
+      return false;
+    }
+
+    for (const mark of ["bold", "italic", "underline"] as const) {
+      if (
+        Object.hasOwn(run, mark) &&
+        run[mark] !== true
+      ) {
+        return false;
+      }
+    }
+
+    combined += run.text;
+  }
+
+  return (
+    combined.trim().length > 0 &&
+    combined.length <= max &&
+    !/[<>]/.test(combined)
+  );
+}
 const exactKeys = (value: Record<string, unknown>, keys: readonly string[]) =>
   Object.keys(value).every((key) => keys.includes(key)) &&
   keys.every((key) => Object.hasOwn(value, key));
@@ -296,14 +395,14 @@ export function parseHowToGuideContent(
         typeof section.key !== "string" || !allowedSections.has(section.key) ||
         seen.has(section.key) || !plainText(section.title, 120) ||
         typeof section.enabled !== "boolean" || !Array.isArray(section.paragraphs) ||
-        section.paragraphs.length > 8 || !section.paragraphs.every((item) => plainText(item, 2000)) ||
+        section.paragraphs.length > 8 || !section.paragraphs.every((item) => richText(item, 2000)) ||
         !Array.isArray(section.steps) || section.steps.length > 12) return null;
     seen.add(section.key);
     for (const rawStep of section.steps) {
       if (!rawStep || typeof rawStep !== "object" || Array.isArray(rawStep)) return null;
       const step = rawStep as Record<string, unknown>;
       if (!exactKeys(step, ["title", "body"]) ||
-          !plainText(step.title, 160) || !plainText(step.body, 1500)) return null;
+          !plainText(step.title, 160) || !richText(step.body, 1500)) return null;
     }
     if (section.callout !== null) {
       if (!section.callout || typeof section.callout !== "object" || Array.isArray(section.callout)) return null;
@@ -314,13 +413,13 @@ export function parseHowToGuideContent(
           !howToGuideAllowedCalloutTypes[guideKey].some(
             (type) => type === callout.type,
           ) ||
-          !plainText(callout.text, 1500)) return null;
+          !richText(callout.text, 1500)) return null;
     }
     if (section.figure_key === null) {
       if (section.figure_caption !== null) return null;
     } else if (typeof section.figure_key !== "string" ||
                !allowedFigures.has(section.figure_key) ||
-               !plainText(section.figure_caption, 500)) return null;
+               !richText(section.figure_caption, 500)) return null;
   }
   return value as HowToGuideContent;
 }

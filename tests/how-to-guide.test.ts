@@ -85,7 +85,7 @@ test("Owner Admin default guide preserves all intended semantic sections", () =>
 });
 
 test("shared renderer provides guide header navigation sections and back-to-top behavior", () => {
-  assert.match(renderer, /<PageHeader eyebrow="Help"/);
+  assert.match(renderer, /<PageHeader\s+eyebrow="Help"/);
   assert.match(renderer, /id="guide-top"/);
   assert.match(renderer, /className="panel guide-toc"/);
   assert.match(renderer, /sections\.map/);

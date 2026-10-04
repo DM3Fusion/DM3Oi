@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { HowToGuideRenderer } from "@/components/how-to-guides/guide-renderer";
+import { HowToGuideRichTextEditor } from "@/components/admin/how-to-guide-rich-text-editor";
 import {
   type HowToGuideContent,
   type HowToGuideKey,
@@ -193,28 +194,27 @@ export function HowToGuideEditor({
               </label>
 
               {section.paragraphs.map((paragraph, paragraphIndex) => (
-                <label
-                  className="full"
+                <div
+                  className="full guide-rich-field"
                   key={`${section.key}-paragraph-${paragraphIndex}`}
                 >
-                  <span>Paragraph {paragraphIndex + 1}</span>
-                  <textarea
-                    maxLength={2000}
-                    required
-                    rows={4}
+                  <span className="guide-rich-field-label">
+                    Paragraph {paragraphIndex + 1}
+                  </span>
+                  <HowToGuideRichTextEditor
                     value={paragraph}
-                    onChange={(event) =>
+                    maxLength={2000}
+                    ariaLabel={`${section.title} paragraph ${paragraphIndex + 1}`}
+                    onChange={(value) =>
                       updateSection(sectionIndex, (current) => ({
                         ...current,
                         paragraphs: current.paragraphs.map((item, itemIndex) =>
-                          itemIndex === paragraphIndex
-                            ? event.target.value
-                            : item,
+                          itemIndex === paragraphIndex ? value : item,
                         ),
                       }))
                     }
                   />
-                </label>
+                </div>
               ))}
 
               {section.steps.map((step, stepIndex) => (
@@ -241,31 +241,32 @@ export function HowToGuideEditor({
                     />
                   </label>
 
-                  <label>
-                    <span>Step {stepIndex + 1} text</span>
-                    <textarea
-                      maxLength={1500}
-                      required
-                      rows={3}
+                  <div className="guide-rich-field">
+                    <span className="guide-rich-field-label">
+                      Step {stepIndex + 1} text
+                    </span>
+                    <HowToGuideRichTextEditor
                       value={step.body}
-                      onChange={(event) =>
+                      maxLength={1500}
+                      ariaLabel={`${section.title} step ${stepIndex + 1} text`}
+                      onChange={(value) =>
                         updateSection(sectionIndex, (current) => ({
                           ...current,
                           steps: current.steps.map((item, itemIndex) =>
                             itemIndex === stepIndex
-                              ? { ...item, body: event.target.value }
+                              ? { ...item, body: value }
                               : item,
                           ),
                         }))
                       }
                     />
-                  </label>
+                  </div>
                 </div>
               ))}
 
               {section.callout ? (
-                <label className="full">
-                  <span>
+                <div className="full guide-rich-field">
+                  <span className="guide-rich-field-label">
                     {section.callout.type === "TIP"
                       ? "Tip"
                       : section.callout.type === "IMPORTANT"
@@ -274,45 +275,45 @@ export function HowToGuideEditor({
                           ? "Owner/Admin"
                           : "Staff boundary"}
                   </span>
-                  <textarea
-                    maxLength={1500}
-                    required
-                    rows={3}
+                  <HowToGuideRichTextEditor
                     value={section.callout.text}
-                    onChange={(event) =>
+                    maxLength={1500}
+                    ariaLabel={`${section.title} callout`}
+                    onChange={(value) =>
                       updateSection(sectionIndex, (current) => ({
                         ...current,
                         callout: current.callout
                           ? {
                               ...current.callout,
-                              text: event.target.value,
+                              text: value,
                             }
                           : null,
                       }))
                     }
                   />
-                </label>
+                </div>
               ) : null}
 
               {section.figure_key && section.figure_caption ? (
-                <label className="full">
-                  <span>Instructional graphic caption</span>
-                  <textarea
-                    maxLength={500}
-                    required
-                    rows={2}
+                <div className="full guide-rich-field">
+                  <span className="guide-rich-field-label">
+                    Instructional graphic caption
+                  </span>
+                  <HowToGuideRichTextEditor
                     value={section.figure_caption}
-                    onChange={(event) =>
+                    maxLength={500}
+                    ariaLabel={`${section.title} instructional graphic caption`}
+                    onChange={(value) =>
                       updateSection(sectionIndex, (current) => ({
                         ...current,
-                        figure_caption: event.target.value,
+                        figure_caption: value,
                       }))
                     }
                   />
                   <small className="form-help">
                     Graphic: {section.figure_key}
                   </small>
-                </label>
+                </div>
               ) : null}
             </div>
           </section>
