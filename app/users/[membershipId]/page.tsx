@@ -25,6 +25,12 @@ import { organizationUserDisplayName } from "@/lib/data/pending-invite-identity"
 import { getOrganizationUserWorkload } from "@/lib/data/organization-user-workload";
 import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
 import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
+import {
+  getOrganizationUserRoleHistory,
+  roleHistoryChangeLabel,
+  roleHistoryEventDescription,
+} from "@/lib/data/user-role-history";
+import { formatOrganizationDateTime } from "@/lib/organization-timezone";
 
 export default async function Page({
   params,
@@ -106,6 +112,21 @@ export default async function Page({
           membership.id,
         )
       : null;
+
+  const [roleHistory, organizationSettings] = await Promise.all([
+    getOrganizationUserRoleHistory(
+      access.activeOrganization.id,
+      membership.user_id,
+    ),
+    createAdminClient()
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", access.activeOrganization.id)
+      .maybeSingle(),
+  ]);
+
+  const organizationTimezone =
+    organizationSettings.data?.timezone || "UTC";
 
   return (
     <>
@@ -205,6 +226,37 @@ export default async function Page({
           ) : null}
         </dl>
       </section>
+      <section className="panel detail-section">
+        <div className="section-head">
+          <div>
+            <h2>Role History</h2>
+            <p>Recorded organization role assignments and changes.</p>
+          </div>
+        </div>
+        {roleHistory.length ? (
+          <div className="role-history-list">
+            {roleHistory.map((event) => (
+              <article className="role-history-item" key={event.id}>
+                <time dateTime={event.createdAt}>
+                  {formatOrganizationDateTime(
+                    event.createdAt,
+                    organizationTimezone,
+                  )}
+                </time>
+                <b>{roleHistoryChangeLabel(event)}</b>
+                <span>
+                  {roleHistoryEventDescription(event, access.isSuperAdmin)}
+                </span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="no-results">
+            No role history is available for this membership.
+          </div>
+        )}
+      </section>
+
       {canManageTarget ? (
         <section className="panel detail-section">
           <div className="section-head">

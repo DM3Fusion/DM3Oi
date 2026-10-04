@@ -15,6 +15,12 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
 import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
 import { getGlobalUserDeletionEligibility } from "@/lib/data/platform-user-global-deletion";
+import {
+  getPlatformUserRoleHistory,
+  roleHistoryChangeLabel,
+  roleHistoryEventDescription,
+} from "@/lib/data/user-role-history";
+import { formatPlatformDateTime } from "@/lib/format";
 
 const roles = [
   "BUSINESS_OWNER",
@@ -54,6 +60,8 @@ export default async function Page({
     user.memberships.length === 0
       ? await getGlobalUserDeletionEligibility(user.id)
       : null;
+
+  const roleHistory = await getPlatformUserRoleHistory(user.id);
 
   const isOwnProfile = access?.user.id === user.id;
   const activeOrganizations = organizations.filter(
@@ -288,6 +296,41 @@ export default async function Page({
           </div>
         )}
       </section>
+      <section className="panel detail-section">
+        <div className="section-head">
+          <div>
+            <h2>Role History</h2>
+            <p>
+              Recorded platform and organization role assignments and changes.
+            </p>
+          </div>
+        </div>
+        {roleHistory.length ? (
+          <div className="role-history-list">
+            {roleHistory.map((event) => (
+              <article className="role-history-item" key={event.id}>
+                <time dateTime={event.createdAt}>
+                  {formatPlatformDateTime(event.createdAt)}
+                </time>
+                <span className="table-secondary">
+                  {event.scope === "PLATFORM"
+                    ? "DM3Oi Platform"
+                    : event.organizationName || "Organization"}
+                </span>
+                <b>{roleHistoryChangeLabel(event)}</b>
+                <span>
+                  {roleHistoryEventDescription(event, true)}
+                </span>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="no-results">
+            No role history is available for this user.
+          </div>
+        )}
+      </section>
+
       {revokedMembership ? (
         <section className="panel detail-section">
           <div className="section-head">

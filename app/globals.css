@@ -12364,3 +12364,48 @@ dialog.task-modal.intake-document-availability-modal {
   .guide-rich-editor-toolbar{flex-wrap:wrap}
   .guide-rich-editor-toolbar button{width:34px;height:32px}
 }
+
+.role-history-list {
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.role-history-item {
+  display: grid;
+  grid-template-columns: minmax(150px, 190px) minmax(0, 1fr);
+  gap: 0.25rem 1rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface);
+}
+
+.role-history-item + .role-history-item {
+  border-top: 1px solid var(--border);
+}
+
+.role-history-item time {
+  grid-row: 1 / span 3;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.role-history-item b {
+  font-size: 0.92rem;
+}
+
+.role-history-item > span:last-child {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 640px) {
+  .role-history-item {
+    grid-template-columns: 1fr;
+  }
+
+  .role-history-item time {
+    grid-row: auto;
+  }
+}
