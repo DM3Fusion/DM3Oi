@@ -1,4 +1,4 @@
-export const APPLICATION_VERSION = "1.1";
+export const APPLICATION_VERSION = "2.0";
 
 export function getApplicationVersionLabel() {
   const sha = process.env.VERCEL_GIT_COMMIT_SHA?.trim();
