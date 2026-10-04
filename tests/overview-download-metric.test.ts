@@ -10,6 +10,8 @@ import {
 const source = (path: string) => readFileSync(path, "utf8");
 
 const route = source("app/api/public/overview-download/route.ts");
+const responseHelper = source("lib/overview-download-response.ts");
+const modal = source("components/public-infographic-modal.tsx");
 const repository = source("lib/data/platform-analytics-repository.ts");
 const page = source("app/page.tsx");
 const dashboard = source("components/platform/platform-dashboard.tsx");
@@ -37,6 +39,12 @@ test("successful Overview GET preserves the PNG and records exactly once", async
     'attachment; filename="DM3Oi_Overview_2026.PNG"',
   );
   assert.equal(response.headers.get("content-length"), String(png.byteLength));
+  assert.equal(
+    response.headers.get("cache-control"),
+    "no-store, no-cache, must-revalidate, max-age=0",
+  );
+  assert.equal(response.headers.get("pragma"), "no-cache");
+  assert.equal(response.headers.get("expires"), "0");
 });
 
 test("analytics persistence failure never blocks a valid PNG response", async () => {
@@ -88,11 +96,37 @@ test("HEAD returns download headers without a body or recording dependency", asy
   assert.equal(await response.text(), "");
   assert.equal(response.headers.get("content-type"), "image/png");
   assert.equal(response.headers.get("content-length"), String(png.byteLength));
+  assert.equal(
+    response.headers.get("cache-control"),
+    "no-store, no-cache, must-revalidate, max-age=0",
+  );
+  assert.equal(response.headers.get("pragma"), "no-cache");
+  assert.equal(response.headers.get("expires"), "0");
   assert.match(route, /export async function HEAD\(\)/);
   assert.doesNotMatch(
     route.match(/export async function HEAD\(\)[\s\S]*$/)?.[0] ?? "",
     /recordOverviewDownloadServed|record_overview_download_served/,
   );
+});
+
+test("counted overview responses do not retain public max-age caching", () => {
+  assert.match(
+    responseHelper,
+    /"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"/,
+  );
+  assert.match(responseHelper, /Pragma: "no-cache"/);
+  assert.match(responseHelper, /Expires: "0"/);
+  assert.doesNotMatch(responseHelper, /public\s*,?\s*max-age|max-age=3600/);
+});
+
+test("modal Save bypasses the old cache without counting modal display", () => {
+  assert.match(modal, /href="\/api\/public\/overview-download\?v=2"/);
+  assert.match(modal, /src="\/images\/DM3Oi_Overview_2026\.PNG"/);
+  assert.equal(
+    (modal.match(/\/api\/public\/overview-download/g) ?? []).length,
+    1,
+  );
+  assert.doesNotMatch(modal, /fetch\(|record_overview_download_served/);
 });
 
 test("the anonymous route invokes only the fixed no-argument service-role RPC", () => {

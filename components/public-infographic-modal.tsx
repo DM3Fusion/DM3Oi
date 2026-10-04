@@ -64,7 +64,7 @@ export function PublicInfographicModal() {
 
               <div className="public-infographic-header-actions">
                 <a
-                  href="/api/public/overview-download"
+                  href="/api/public/overview-download?v=2"
                   className="public-infographic-save"
                 >
                   Save
