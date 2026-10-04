@@ -1,3 +1,4 @@
+import fs from "node:fs";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -176,4 +177,19 @@ test("organization-facing platform privacy remains unchanged", () => {
   assert.equal(masked.display_name, ORGANIZATION_SUPPORT_IDENTITY);
   assert.equal(masked.email, null);
   assert.equal(ORGANIZATION_SUPPORT_IDENTITY, "DM3Oi Sys Support");
+});
+
+test("platform user detail shows authoritative Auth last sign in", () => {
+  const detail = fs.readFileSync(
+    "app/admin/users/[userId]/page.tsx",
+    "utf8",
+  );
+
+  assert.match(detail, /<dt>Last Sign In<\/dt>/);
+  assert.match(detail, /user\.lastSignInAt/);
+  assert.match(
+    detail,
+    /formatPlatformDateTime\(user\.lastSignInAt\)/,
+  );
+  assert.match(detail, /: "Never"/);
 });

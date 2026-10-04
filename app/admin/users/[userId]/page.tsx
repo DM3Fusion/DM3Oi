@@ -147,6 +147,14 @@ export default async function Page({
               <dt>Memberships</dt>
               <dd>{user.memberships.length}</dd>
             </div>
+            <div>
+              <dt>Last Sign In</dt>
+              <dd>
+                {user.lastSignInAt
+                  ? formatPlatformDateTime(user.lastSignInAt)
+                  : "Never"}
+              </dd>
+            </div>
           </dl>
         </aside>
       </div>
