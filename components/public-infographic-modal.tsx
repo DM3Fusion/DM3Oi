@@ -64,8 +64,8 @@ export function PublicInfographicModal() {
 
               <div className="public-infographic-header-actions">
                 <a
-                  href="/images/DM3Oi_InfoGraphic.webp"
-                  download="DM3Oi_Overview.webp"
+                  href="/images/DM3Oi_Overview_2026.PNG"
+                  download="DM3Oi_Overview_2026.PNG"
                   className="public-infographic-save"
                 >
                   Save
@@ -84,7 +84,7 @@ export function PublicInfographicModal() {
 
             <div className="public-infographic-content">
               <Image
-                src="/images/DM3Oi_InfoGraphic.webp"
+                src="/images/DM3Oi_Overview_2026.PNG"
                 alt="DM3Oi Business Operations Intelligence overview"
                 width={1030}
                 height={1558}
