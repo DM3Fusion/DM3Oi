@@ -105,6 +105,41 @@ export function TaskFilters({
     updateSearchUrl("");
   };
 
+  const updateFilterUrl = (
+    key: "status" | "due" | "assignee",
+    value: string,
+  ) => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+
+    if (search.trim()) {
+      params.set("q", search.trim());
+    } else {
+      params.delete("q");
+    }
+
+    if (value === "all") {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+
+    const query = params.toString();
+    const destination = query ? `${pathname}?${query}` : pathname;
+
+    if (
+      destination !==
+      `${window.location.pathname}${window.location.search}`
+    ) {
+      pendingQuery.current = search.trim();
+      router.replace(destination, { scroll: false });
+    }
+  };
+
   const prepareClearFilters = () => {
     if (timer.current) clearTimeout(timer.current);
     pendingQuery.current = "";
@@ -141,7 +176,10 @@ export function TaskFilters({
       <select
         name="status"
         aria-label="Filter tasks by status"
-        defaultValue={status ?? "all"}
+        value={status ?? "all"}
+        onChange={(event) =>
+          updateFilterUrl("status", event.currentTarget.value)
+        }
       >
         <option value="all">All statuses</option>
         {taskStatuses.map((value) => (
@@ -151,9 +189,13 @@ export function TaskFilters({
         ))}
       </select>
 
-      <select name="due"
+      <select
+        name="due"
         aria-label="Filter tasks by due date"
-        defaultValue={due ?? "all"}
+        value={due ?? "all"}
+        onChange={(event) =>
+          updateFilterUrl("due", event.currentTarget.value)
+        }
       >
         <option value="all">Any due date</option>
         <option value="today">Due today</option>
@@ -163,7 +205,10 @@ export function TaskFilters({
       <select
         name="assignee"
         aria-label="Filter tasks by assigned user"
-        defaultValue={assignee ?? "all"}
+        value={assignee ?? "all"}
+        onChange={(event) =>
+          updateFilterUrl("assignee", event.currentTarget.value)
+        }
       >
         <option value="all">All assignments</option>
         {assignees.map((item) => (
@@ -172,11 +217,6 @@ export function TaskFilters({
           </option>
         ))}
       </select>
-
-      <button className="filter-button" type="submit">
-        <ApplicationIcon name="filter" />
-        Apply
-      </button>
 
       {hasFilters ? (
         <Link href="/tasks" onClick={prepareClearFilters}>

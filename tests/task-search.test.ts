@@ -42,7 +42,23 @@ test("Tasks search is debounced clearable URL state that preserves other paramet
   assert.match(operationalFilters, /"not-started": "Not Started"/);
   assert.match(operationalFilters, /"in-progress": "In Progress"/);
   assert.match(filters, /taskStatusLabels\[value\]/);
-  assert.match(filters, /<select name="due"[\s\S]*?<option value="overdue">Overdue<\/option>/);
+  assert.match(
+    filters,
+    /<select[\s\S]*?name="due"[\s\S]*?<option value="overdue">Overdue<\/option>/,
+  );
+  assert.match(
+    filters,
+    /onChange=\{\(event\) =>[\s\S]*?updateFilterUrl\("status", event\.currentTarget\.value\)/,
+  );
+  assert.match(
+    filters,
+    /onChange=\{\(event\) =>[\s\S]*?updateFilterUrl\("due", event\.currentTarget\.value\)/,
+  );
+  assert.match(
+    filters,
+    /onChange=\{\(event\) =>[\s\S]*?updateFilterUrl\("assignee", event\.currentTarget\.value\)/,
+  );
+  assert.doesNotMatch(filters, />\s*Apply\s*</);
 });
 
 test("empty Task queries are omitted while every non-search filter is preserved", () => {
