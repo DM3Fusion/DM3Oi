@@ -12784,3 +12784,9 @@ dialog.task-modal.intake-document-availability-modal {
 .case-assigned-workloads .assigned-workload-card dt {
   font-weight: 500;
 }
+
+/* Reduce visual weight of Case workload metric values. */
+.case-assigned-workloads .assigned-workload-card dd,
+.case-assigned-workloads .assigned-workload-card dd a {
+  font-weight: 500;
+}
