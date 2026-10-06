@@ -37,9 +37,7 @@ export default async function Page({
 }) {
   const access = await getAccessContext();
 
-  if (
-    !canSubmitCustomerData(access)
-  ) {
+  if (!canSubmitCustomerData(access) || !access?.activeOrganization) {
     notFound();
   }
 
@@ -53,10 +51,12 @@ export default async function Page({
       <PageHeader
         eyebrow="Customer Data"
         title="Submit Customer Data"
-        description="Upload an Excel or CSV source file for review and onboarding. Submitting a file does not directly add Customers to DM3Oi."
+        description={`Upload an Excel or CSV source file for review and onboarding. Submitting a file does not directly add Customers to ${access.activeOrganization.name}.`}
         action={
           <div className="page-header-actions">
-            <CustomerDataSubmitModal />
+            <CustomerDataSubmitModal
+              organizationName={access.activeOrganization.name}
+            />
             <Link className="secondary-button" href="/customers">
               Back to Customers
             </Link>

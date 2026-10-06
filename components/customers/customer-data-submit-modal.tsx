@@ -6,17 +6,21 @@ import { submitCustomerDataAction } from "@/app/customers/import/actions";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 
-export function CustomerDataSubmitModal() {
+export function CustomerDataSubmitModal({
+  organizationName,
+}: {
+  organizationName: string;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
 
   return (
     <>
       <button
         type="button"
-        className="primary-button"
+        className="primary-button customer-data-upload-button"
         onClick={() => dialog.current?.showModal()}
       >
-        Submit Customer Data
+        Upload Customer Data
       </button>
 
       <dialog
@@ -41,7 +45,7 @@ export function CustomerDataSubmitModal() {
               <p>
                 Upload an Excel or CSV source file for SUPER_ADMIN review and
                 onboarding. Submitting a file does not directly add Customers
-                to DM3Oi.
+                to {organizationName}.
               </p>
             </div>
 
