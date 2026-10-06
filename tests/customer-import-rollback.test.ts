@@ -135,7 +135,7 @@ test("execution reloads state and rechecks each Customer immediately before dele
 });
 
 test("rollback is bounded resumable and preserves the import audit", () => {
-  assert.match(rollbackActions, /const DELETE_BATCH_SIZE = 25/);
+  assert.match(rollbackActions, /const DELETE_BATCH_SIZE = 100/);
   assert.match(
     rollbackActions,
     /state\.eligibleCustomerIds\.slice\(0, DELETE_BATCH_SIZE\)/,

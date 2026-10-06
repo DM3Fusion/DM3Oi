@@ -18,6 +18,7 @@ type Submission = {
   original_filename: string;
   status: string;
   created_at: string;
+  submissionOrigin?: string;
 };
 
 type ImportResult = {
@@ -57,7 +58,8 @@ export function CustomerImportWorkspace({
   const readySubmissions = submissions.filter(
     (submission) =>
       submission.organization_id === organizationId &&
-      submission.status === "READY_TO_IMPORT",
+      submission.status === "READY_TO_IMPORT" &&
+      submission.submissionOrigin !== "ADMINISTRATIVE",
   );
 
   const selectedSubmission = readySubmissions.find(

@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PageHeader } from "@/components/ui";
 import { CustomerImportWorkspace } from "@/components/admin/customer-import-workspace";
+import { CustomerAdministrativeImport } from "@/components/admin/customer-administrative-import";
 import { CustomerImportSubmissionQueue } from "@/components/admin/customer-import-submission-queue";
 import {
   getCustomerDataOrganizations,
@@ -10,13 +11,22 @@ import {
 
 export const metadata = { title: "Customer Import" };
 
-type CustomerImportTab = "submissions" | "import" | "history";
+type CustomerImportTab =
+  | "submissions"
+  | "import"
+  | "administrative"
+  | "history";
 
 function normalizeTab(
   value: string | undefined,
   hasReadyToImport: boolean,
 ): CustomerImportTab {
-  if (value === "submissions" || value === "import" || value === "history") {
+  if (
+    value === "submissions" ||
+    value === "import" ||
+    value === "administrative" ||
+    value === "history"
+  ) {
     return value;
   }
 
@@ -34,12 +44,19 @@ export default async function Page({
     searchParams,
   ]);
 
-  const activeSubmissions = submissions.filter(
+  const organizationSubmissions = submissions.filter(
+    (submission) =>
+      submission.submissionOrigin !== "ADMINISTRATIVE",
+  );
+
+  const activeSubmissions = organizationSubmissions.filter(
     (submission) => submission.status !== "IMPORTED",
   );
+
   const importedSubmissions = submissions.filter(
     (submission) => submission.status === "IMPORTED",
   );
+
   const readyCount = activeSubmissions.filter(
     (submission) => submission.status === "READY_TO_IMPORT",
   ).length;
@@ -81,6 +98,18 @@ export default async function Page({
         </Link>
 
         <Link
+          href="/admin/customer-import?tab=administrative"
+          className={`customer-import-tab${
+            activeTab === "administrative" ? " active" : ""
+          }`}
+          aria-current={
+            activeTab === "administrative" ? "page" : undefined
+          }
+        >
+          <span>Administrative Import</span>
+        </Link>
+
+        <Link
           href="/admin/customer-import?tab=history"
           className={`customer-import-tab${
             activeTab === "history" ? " active" : ""
@@ -108,6 +137,10 @@ export default async function Page({
           organizations={organizations}
           submissions={submissions}
         />
+      ) : null}
+
+      {activeTab === "administrative" ? (
+        <CustomerAdministrativeImport organizations={organizations} />
       ) : null}
 
       {activeTab === "history" ? (

@@ -10,7 +10,7 @@ import {
 } from "@/lib/data/customer-permanent-deletion-actions";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const DELETE_BATCH_SIZE = 25;
+const DELETE_BATCH_SIZE = 100;
 const PREVIEW_CONCURRENCY = 8;
 const uuidPattern =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

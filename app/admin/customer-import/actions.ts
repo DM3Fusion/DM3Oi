@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { parseCustomerImportCsv, previewCustomerImport } from "@/lib/customer-data-management";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/database.generated";
 import {
   getCustomerImportReadContext,
@@ -93,5 +95,150 @@ export async function executeCustomerImportAction(input: {
     };
   } catch (error) {
     return { ok: false as const, error: error instanceof Error ? error.message : "The import could not be completed." };
+  }
+}
+
+
+export async function executeAdministrativeCustomerImportAction(input: {
+  organizationId: string;
+  csv: string;
+  fileName: string;
+  confirmation: string;
+}) {
+  try {
+    await requireSuperAdmin();
+
+    const { organization, customers } =
+      await getCustomerImportReadContext(
+        input.organizationId,
+        "customer_import_confirmation",
+      );
+
+    const rows = parseCustomerImportCsv(input.csv);
+    const preview = previewCustomerImport(rows, customers);
+
+    if (preview.summary.validNew === 0) {
+      throw new Error("There are no safe new rows to import.");
+    }
+
+    const expected =
+      `IMPORT ${preview.summary.validNew} CUSTOMERS INTO ${organization.name}`;
+
+    if (input.confirmation !== expected) {
+      throw new Error(`Type “${expected}” to confirm.`);
+    }
+
+    const fileBytes = new TextEncoder().encode(input.csv);
+
+    if (fileBytes.length === 0 || fileBytes.length > 1_000_000) {
+      throw new Error("The canonical CSV must be between 1 byte and 1 MB.");
+    }
+
+    const safeFileName =
+      input.fileName.trim().slice(0, 255) || "administrative-import.csv";
+
+    const storagePath =
+      `${organization.id}/administrative/${randomUUID()}.csv`;
+
+    const admin = createAdminClient();
+
+    const uploaded = await admin.storage
+      .from("customer-import-files")
+      .upload(storagePath, fileBytes, {
+        contentType: "text/csv",
+        upsert: false,
+      });
+
+    if (uploaded.error) {
+      console.error("Administrative Customer import source upload failed", {
+        operation: "customer_import_admin_upload",
+        organizationId: organization.id,
+        message: uploaded.error.message,
+      });
+
+      throw new Error(
+        "The administrative import source file could not be staged.",
+      );
+    }
+
+    const supabase = await createClient();
+
+    const created = (await supabase.rpc(
+      "super_admin_create_administrative_import" as never,
+      {
+        target_organization_id: organization.id,
+        target_original_filename: safeFileName,
+        target_storage_path: storagePath,
+        target_file_size_bytes: fileBytes.length,
+      } as never,
+    )) as unknown as {
+      data: string | null;
+      error: {
+        code?: string;
+        message?: string;
+      } | null;
+    };
+
+    if (created.error || typeof created.data !== "string") {
+      await admin.storage
+        .from("customer-import-files")
+        .remove([storagePath]);
+
+      console.error("Administrative Customer import submission failed", {
+        operation: "customer_import_admin_submission",
+        organizationId: organization.id,
+        code: created.error?.code ?? null,
+        message: created.error?.message ?? null,
+      });
+
+      throw new Error(
+        "The administrative import could not be prepared.",
+      );
+    }
+
+    const submissionId = created.data;
+
+    const imported = await supabase.rpc(
+      "super_admin_import_customers",
+      {
+        target_organization_id: organization.id,
+        target_submission_id: submissionId,
+        target_rows: rows as unknown as Json,
+      },
+    );
+
+    if (imported.error) {
+      console.error("Administrative Customer import failed", {
+        operation: "customer_import_admin_execute",
+        organizationId: organization.id,
+        submissionId,
+        code: imported.error.code,
+        message: imported.error.message,
+        details: imported.error.details || undefined,
+      });
+
+      throw new Error(
+        "No Customers were imported. The administrative import remains available for SUPER_ADMIN recovery.",
+      );
+    }
+
+    revalidatePath("/admin/customer-import");
+    revalidatePath("/admin/customer-duplicates");
+    revalidatePath("/customers");
+    revalidatePath("/customers/import");
+
+    return {
+      ok: true as const,
+      submissionId,
+      result: imported.data,
+    };
+  } catch (error) {
+    return {
+      ok: false as const,
+      error:
+        error instanceof Error
+          ? error.message
+          : "The administrative import could not be completed.",
+    };
   }
 }

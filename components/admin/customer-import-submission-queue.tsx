@@ -3,6 +3,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { CustomerImportReviewForm } from "@/components/admin/customer-import-review-form";
 import { CustomerImportDeleteSourceForm } from "@/components/admin/customer-import-delete-source-form";
 import { CustomerImportRollback } from "@/components/admin/customer-import-rollback";
+import { CustomerImportRemoveRecord } from "@/components/admin/customer-import-remove-record";
 import {
   downloadCustomerImportSourceAction,
 } from "@/app/admin/customer-import/submission-actions";
@@ -24,6 +25,7 @@ type Submission = {
   reviewedBy: string | null;
   imported_at: string | null;
   source_file_deleted_at: string | null;
+  submissionOrigin?: string;
 };
 
 function formatBytes(bytes: number) {
@@ -94,6 +96,11 @@ export function CustomerImportSubmissionQueue({
                 <div className="customer-import-summary-identity">
                   <strong>{submission.organizationName}</strong>
                   <span>{submission.original_filename}</span>
+                  {submission.submissionOrigin === "ADMINISTRATIVE" ? (
+                    <small className="table-secondary">
+                      Administrative Import
+                    </small>
+                  ) : null}
                 </div>
 
                 <div className="customer-import-summary-meta">
@@ -203,6 +210,13 @@ export function CustomerImportSubmissionQueue({
                     fileName={submission.original_filename}
                     fileDisposition={submission.file_disposition}
                     submissionStatus={submission.status}
+                  />
+                ) : null}
+
+                {submission.status === "IMPORTED" &&
+                submission.source_file_deleted_at ? (
+                  <CustomerImportRemoveRecord
+                    submissionId={submission.id}
                   />
                 ) : null}
 

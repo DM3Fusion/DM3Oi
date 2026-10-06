@@ -10,13 +10,15 @@ const queue = source(
 );
 const css = source("app/globals.css");
 
-test("Customer Import uses three URL-backed task tabs", () => {
+test("Customer Import uses four URL-backed task tabs", () => {
   assert.match(page, /tab=submissions/);
   assert.match(page, /tab=import/);
+  assert.match(page, /tab=administrative/);
   assert.match(page, /tab=history/);
 
   assert.match(page, />\s*<span>Submissions<\/span>/);
   assert.match(page, />\s*<span>Import Customers<\/span>/);
+  assert.match(page, />\s*<span>Administrative Import<\/span>/);
   assert.match(page, />\s*<span>Import History<\/span>/);
 
   assert.match(page, /aria-current=/);

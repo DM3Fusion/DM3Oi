@@ -166,16 +166,24 @@ export async function getCustomerImportSubmissionQueue() {
     ]),
   );
 
-  return rows.map((row) => ({
-    ...row,
-    organizationName:
+  return rows.map((row) => {
+    const rowWithOrigin = row as typeof row & {
+      submission_origin?: string;
+    };
+
+    return {
+      ...row,
+      submissionOrigin:
+        rowWithOrigin.submission_origin ?? "ORGANIZATION_SUBMISSION",
+      organizationName:
       organizations.get(row.organization_id) ?? "Unknown organization",
     uploadedBy:
       profiles.get(row.uploaded_by_user_id) ?? "Unknown user",
-    reviewedBy: row.reviewed_by_user_id
-      ? profiles.get(row.reviewed_by_user_id) ?? "Unknown user"
-      : null,
-  }));
+      reviewedBy: row.reviewed_by_user_id
+        ? profiles.get(row.reviewed_by_user_id) ?? "Unknown user"
+        : null,
+    };
+  });
 }
 
 export async function requireReadyCustomerImportSubmission(
