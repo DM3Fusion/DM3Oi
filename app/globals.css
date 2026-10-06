@@ -12765,3 +12765,19 @@ dialog.task-modal.intake-document-availability-modal {
 .task-kpis {
   margin-bottom: 52px;
 }
+
+/* Standardize primary dashboard KPI card heights to the compact Customer KPI size. */
+.task-kpis .case-kpi,
+.service-desk-metrics .metric {
+  min-height: 82px;
+}
+
+/* Keep Service Desk KPI content centered within the compact height. */
+.service-desk-metrics .metric {
+  padding: 11px 8px;
+}
+
+/* Keep Task KPI title/value spacing while using the compact card height. */
+.task-kpis .case-kpi {
+  padding: 11px 8px;
+}
