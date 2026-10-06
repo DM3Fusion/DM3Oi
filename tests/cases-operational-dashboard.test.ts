@@ -189,7 +189,19 @@ test("KPI cards are semantic links with selected state and responsive six-three-
   const css = source("app/globals.css");
   assert.match(component, /<nav className="case-kpis" aria-label="Case operational views">/);
   assert.match(component, /<Link[\s\S]*?aria-current=\{selected \? "page" : undefined\}/);
-  assert.match(component, /aria-label=\{`Show \$\{kpi\.accessibleLabel\} cases, \$\{kpi\.count\} cases`\}/);
+  assert.match(component, /aria-label=\{/);
+  assert.match(
+    component,
+    /`\Show \$\{kpi\.accessibleLabel\} cases, \$\{kpi\.count\} cases, \$\{percentageLabel\} of total cases`/,
+  );
+  assert.match(
+    component,
+    /`\Show \$\{kpi\.accessibleLabel\} cases, \$\{kpi\.count\} cases`/,
+  );
+  assert.match(component, /className="case-kpi-donut"/);
+  assert.match(component, /<strong>\{kpi\.count\}<\/strong>/);
+  assert.match(component, /<small>\{percentageLabel\}<\/small>/);
+  assert.match(component, /className="case-kpi-total-count"/);
   assert.match(component, /const selected = kpi\.view === selectedView/);
   assert.match(css, /\.case-kpis\{display:grid;grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
   assert.match(css, /@media\(max-width:1100px\)\{\.case-kpis\{grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/);
