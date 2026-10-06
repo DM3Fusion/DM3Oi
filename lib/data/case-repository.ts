@@ -32,6 +32,11 @@ import {
   getCaseAssigneeWorkloads,
   type CaseAssigneeWorkload,
 } from "@/lib/case-assignee-workload";
+import {
+  getTaskAssigneeWorkloads,
+  type TaskAssigneeWorkload,
+  type TaskWorkloadUser,
+} from "@/lib/task-assignee-workload";
 import { resolveCustomerPortalAccesses } from "@/lib/auth/customer-portal-effectiveness";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
@@ -914,6 +919,7 @@ export async function getTaskRegisterData(): Promise<{
   timezone: string;
   tasks: TaskRow[];
   cases: Array<{ id: string; case_number: string }>;
+  workloads: TaskAssigneeWorkload[];
 }> {
   const access = await getAccessContext();
 
@@ -925,7 +931,13 @@ export async function getTaskRegisterData(): Promise<{
   const supabase = await createClient();
   const admin = createAdminClient();
 
-  const [taskResult, caseResult, settingsResult] = await Promise.all([
+  const [
+    taskResult,
+    caseResult,
+    settingsResult,
+    memberResult,
+    platformAdminIds,
+  ] = await Promise.all([
     supabase
       .from("organization_case_tasks")
       .select("*")
@@ -940,12 +952,20 @@ export async function getTaskRegisterData(): Promise<{
       .select("timezone")
       .eq("organization_id", organizationId)
       .maybeSingle(),
+    supabase
+      .from("organization_members")
+      .select("user_id,role,status,is_active")
+      .eq("organization_id", organizationId)
+      .eq("status", "ACTIVE")
+      .eq("is_active", true),
+    getPlatformAdminUserIds(),
   ]);
 
   const error =
     taskResult.error ??
     caseResult.error ??
-    settingsResult.error;
+    settingsResult.error ??
+    memberResult.error;
 
   if (error) {
     console.error("Task register query failed", {
@@ -956,11 +976,92 @@ export async function getTaskRegisterData(): Promise<{
     throw new DataAccessError();
   }
 
+  const eligibleRoles = new Set([
+    "BUSINESS_OWNER",
+    "BUSINESS_ADMIN",
+    "STAFF_MANAGER",
+    "STAFF_USER",
+  ]);
+
+  const members = (memberResult.data ?? []).filter(
+    (member) =>
+      eligibleRoles.has(member.role) &&
+      !platformAdminIds.has(member.user_id),
+  );
+
+  const memberIds = [...new Set(members.map((member) => member.user_id))];
+
+  let profileRows: ProfileRow[] = [];
+
+  if (memberIds.length) {
+    const profileResult = await supabase
+      .from("profiles")
+      .select("*")
+      .in("id", memberIds);
+
+    if (profileResult.error) {
+      console.error("Task assignee profile query failed", {
+        organizationId,
+        code: profileResult.error.code,
+        message: profileResult.error.message,
+      });
+      throw new DataAccessError();
+    }
+
+    profileRows = profileResult.data ?? [];
+  }
+
+  const { byProfile } =
+    await buildCaseRepositoryProfileDirectory(
+      profileRows,
+      platformAdminIds,
+    );
+
+  const profilesById = new Map(
+    [...byProfile.entries()].filter(([, profile]) => profile.is_active),
+  );
+
+  const users: TaskWorkloadUser[] = members.flatMap((member) => {
+    const profile = profilesById.get(member.user_id);
+    if (!profile) return [];
+
+    const displayName =
+      profile.display_name?.trim() ||
+      [profile.first_name, profile.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      profile.email ||
+      "Organization user";
+
+    return [
+      {
+        role: member.role,
+        profile: {
+          id: profile.id,
+          display_name: displayName,
+          email: profile.email,
+          avatarUrl: profile.avatarUrl,
+        },
+      },
+    ];
+  });
+
+  users.sort((a, b) =>
+    (a.profile.display_name ?? a.profile.email ?? "").localeCompare(
+      b.profile.display_name ?? b.profile.email ?? "",
+    ),
+  );
+
+  const timezone = settingsResult.data?.timezone ?? "UTC";
+  const tasks = taskResult.data ?? [];
+
   return {
     organizationId,
-    timezone: settingsResult.data?.timezone ?? "UTC",
-    tasks: taskResult.data ?? [],
+    timezone,
+    tasks,
     cases: caseResult.data ?? [],
+    workloads: getTaskAssigneeWorkloads(users, tasks, timezone),
   };
 }
 

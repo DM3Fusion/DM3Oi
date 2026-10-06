@@ -3,11 +3,33 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { taskStatusLabels, taskStatuses, type TaskDueFilter, type TaskStatusFilter } from "@/lib/operational-filters";
+import {
+  taskStatusLabels,
+  taskStatuses,
+  type TaskDueFilter,
+  type TaskStatusFilter,
+} from "@/lib/operational-filters";
 import { taskSearchUrl } from "@/lib/task-search-url";
 import { ApplicationIcon } from "@/components/application-icon";
 
-export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatusFilter; due?: TaskDueFilter }) {
+type AssigneeOption = {
+  id: string;
+  name: string;
+};
+
+export function TaskFilters({
+  q,
+  status,
+  due,
+  assignee,
+  assignees,
+}: {
+  q: string;
+  status?: TaskStatusFilter;
+  due?: TaskDueFilter;
+  assignee?: string;
+  assignees: AssigneeOption[];
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [search, setSearch] = useState(q);
@@ -29,11 +51,17 @@ export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatus
     const resyncFromHistory = () => {
       if (timer.current) clearTimeout(timer.current);
       pendingQuery.current = null;
-      const nextQuery = new URLSearchParams(window.location.search).get("q")?.trim().slice(0, 200) ?? "";
+      const nextQuery =
+        new URLSearchParams(window.location.search)
+          .get("q")
+          ?.trim()
+          .slice(0, 200) ?? "";
       lastServerQuery.current = nextQuery;
       setSearch(nextQuery);
     };
+
     window.addEventListener("popstate", resyncFromHistory);
+
     return () => {
       if (timer.current) clearTimeout(timer.current);
       window.removeEventListener("popstate", resyncFromHistory);
@@ -43,16 +71,23 @@ export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatus
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const currentQuery = params.get("q");
+
     if (currentQuery !== null && !currentQuery.trim()) {
       pendingQuery.current = "";
-      router.replace(taskSearchUrl(pathname, window.location.search, ""), { scroll: false });
+      router.replace(taskSearchUrl(pathname, window.location.search, ""), {
+        scroll: false,
+      });
     }
   }, [pathname, router]);
 
   const updateSearchUrl = (value: string) => {
     const normalized = value.trim();
     const destination = taskSearchUrl(pathname, window.location.search, value);
-    if (destination !== `${window.location.pathname}${window.location.search}`) {
+
+    if (
+      destination !==
+      `${window.location.pathname}${window.location.search}`
+    ) {
       pendingQuery.current = normalized;
       router.replace(destination, { scroll: false });
     }
@@ -76,26 +111,78 @@ export function TaskFilters({ q, status, due }: { q: string; status?: TaskStatus
     setSearch("");
   };
 
-  const hasFilters = Boolean(q || status || due);
-  return <form className="filters task-filters" action="/tasks" method="get">
-    <label className="task-search">
-      <span className="sr-only">Search tasks</span>
-      <span className="customer-search-control">
-        <ApplicationIcon name="search" className="search-field-icon" />
-        <input type="search" name={search.trim() ? "q" : undefined} value={search} maxLength={200} onChange={(event) => changeSearch(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }} placeholder="Search tasks..." autoComplete="off" />
-        {search ? <button type="button" onClick={clearSearch} aria-label="Clear task search"><ApplicationIcon name="close" /></button> : null}
-      </span>
-    </label>
-    <select name="status" aria-label="Filter tasks by status" defaultValue={status ?? "all"}>
-      <option value="all">All statuses</option>
-      {taskStatuses.map((value) => <option key={value} value={value}>{taskStatusLabels[value]}</option>)}
-    </select>
-    <select name="due" aria-label="Filter tasks by due date" defaultValue={due ?? "all"}>
-      <option value="all">Any due date</option>
-      <option value="today">Due today</option>
-      <option value="overdue">Overdue</option>
-    </select>
-    <button className="filter-button" type="submit"><ApplicationIcon name="filter" />Apply</button>
-    {hasFilters ? <Link href="/tasks" onClick={prepareClearFilters}>Clear filters</Link> : null}
-  </form>;
+  const hasFilters = Boolean(q || status || due || assignee);
+
+  return (
+    <form className="filters task-filters" action="/tasks" method="get">
+      <label className="task-search">
+        <span className="sr-only">Search tasks</span>
+        <span className="customer-search-control">
+          <ApplicationIcon name="search" className="search-field-icon" />
+          <input type="search" name={search.trim() ? "q" : undefined} value={search}
+            maxLength={200}
+            onChange={(event) => changeSearch(event.currentTarget.value)}
+            onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
+            placeholder="Search tasks..."
+            autoComplete="off"
+          />
+          {search ? (
+            <button
+              type="button"
+              onClick={clearSearch}
+              aria-label="Clear task search"
+            >
+              <ApplicationIcon name="close" />
+            </button>
+          ) : null}
+        </span>
+      </label>
+
+      <select
+        name="status"
+        aria-label="Filter tasks by status"
+        defaultValue={status ?? "all"}
+      >
+        <option value="all">All statuses</option>
+        {taskStatuses.map((value) => (
+          <option key={value} value={value}>
+            {taskStatusLabels[value]}
+          </option>
+        ))}
+      </select>
+
+      <select name="due"
+        aria-label="Filter tasks by due date"
+        defaultValue={due ?? "all"}
+      >
+        <option value="all">Any due date</option>
+        <option value="today">Due today</option>
+        <option value="overdue">Overdue</option>
+      </select>
+
+      <select
+        name="assignee"
+        aria-label="Filter tasks by assigned user"
+        defaultValue={assignee ?? "all"}
+      >
+        <option value="all">All assignments</option>
+        {assignees.map((item) => (
+          <option key={item.id} value={item.id}>
+            {item.name}
+          </option>
+        ))}
+      </select>
+
+      <button className="filter-button" type="submit">
+        <ApplicationIcon name="filter" />
+        Apply
+      </button>
+
+      {hasFilters ? (
+        <Link href="/tasks" onClick={prepareClearFilters}>
+          Clear filters
+        </Link>
+      ) : null}
+    </form>
+  );
 }
