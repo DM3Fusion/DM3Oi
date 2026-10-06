@@ -84,7 +84,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           className={`case-lifecycle-tab case-lifecycle-tab-active${selectedLifecycle === "active" ? " active" : ""}`}
           aria-current={selectedLifecycle === "active" ? "page" : undefined}
         >
-          Active Cases
+          List Active Cases
         </Link>
         <Link
           href={{
@@ -99,7 +99,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           className={`case-lifecycle-tab case-lifecycle-tab-completed${selectedLifecycle === "completed" ? " active" : ""}`}
           aria-current={selectedLifecycle === "completed" ? "page" : undefined}
         >
-          Completed Cases
+          List Completed Cases
         </Link>
       </nav>
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
