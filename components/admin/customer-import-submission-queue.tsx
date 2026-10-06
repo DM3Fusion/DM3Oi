@@ -60,19 +60,26 @@ function formatDate(value: string | null) {
 
 export function CustomerImportSubmissionQueue({
   submissions,
+  eyebrow = "Organization submissions",
+  title = "Submitted Customer Files",
+  description = "Download source Excel or CSV files, prepare the data outside DM3Oi, then use the Customer Import workspace with the finished CSV.",
+  emptyTitle = "No submitted Customer files",
+  emptyDescription = "Owner/Admin Customer onboarding submissions will appear here.",
 }: {
   submissions: Submission[];
+  eyebrow?: string;
+  title?: string;
+  description?: string;
+  emptyTitle?: string;
+  emptyDescription?: string;
 }) {
   return (
     <section className="panel customer-import-submission-queue">
       <div className="section-head">
         <div>
-          <span className="step-kicker">Organization submissions</span>
-          <h2>Submitted Customer Files</h2>
-          <p>
-            Download source Excel or CSV files, prepare the data outside DM3Oi,
-            then use the Customer Import workspace below with the finished CSV.
-          </p>
+          <span className="step-kicker">{eyebrow}</span>
+          <h2>{title}</h2>
+          <p>{description}</p>
         </div>
       </div>
 
@@ -210,10 +217,8 @@ export function CustomerImportSubmissionQueue({
         </div>
       ) : (
         <div className="empty compact-empty">
-          <h2>No submitted Customer files</h2>
-          <p>
-            Owner/Admin Customer onboarding submissions will appear here.
-          </p>
+          <h2>{emptyTitle}</h2>
+          <p>{emptyDescription}</p>
         </div>
       )}
     </section>

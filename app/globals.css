@@ -11634,6 +11634,72 @@ dialog.task-modal.intake-document-availability-modal {
   margin:0;
 }
 
+/* Customer Import task tabs. */
+.customer-import-tabs{
+  display:flex;
+  align-items:stretch;
+  gap:8px;
+  margin:0 0 18px;
+  padding:6px;
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:#f8fafc;
+}
+
+.customer-import-tab{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:9px 14px;
+  border:1px solid transparent;
+  border-radius:6px;
+  color:var(--muted);
+  font-size:13px;
+  font-weight:800;
+  text-decoration:none;
+}
+
+.customer-import-tab:hover{
+  border-color:var(--line);
+  background:#fff;
+  color:var(--ink);
+}
+
+.customer-import-tab.active{
+  border-color:#9fd7e7;
+  background:#fff;
+  color:var(--ink);
+  box-shadow:0 1px 2px rgba(15,23,42,.06);
+}
+
+.customer-import-tab.active::before{
+  width:3px;
+  height:18px;
+  border-radius:2px;
+  background:var(--dm3oi-cyan);
+  content:"";
+}
+
+.customer-import-tab small{
+  color:var(--muted);
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+@media(max-width:640px){
+  .customer-import-tabs{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-tab{
+    justify-content:flex-start;
+  }
+}
+
 /* Imported Customer rollback — explicit, bounded SUPER_ADMIN maintenance. */
 .customer-import-rollback{
   display:grid;
