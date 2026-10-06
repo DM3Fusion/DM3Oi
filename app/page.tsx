@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/purity -- Temporary server-only latency diagnostics require wall-clock measurements. */
 import { Dashboard } from "@/components/dashboard/dashboard";
 import { PlatformDashboard } from "@/components/platform/platform-dashboard";
 import { PageHeader } from "@/components/ui";
@@ -28,14 +27,7 @@ export default async function Page({
     analyticsThrough?: string;
   }>;
 }) {
-  const pageStartedAt = performance.now();
-  const accessStartedAt = performance.now();
   const access = await getAccessContext();
-  console.info("DM3Oi PERF", {
-    route: "/",
-    stage: "accessContext",
-    durationMs: Math.round(performance.now() - accessStartedAt),
-  });
 
   if (!access) {
     const landingPageContent =
@@ -96,7 +88,6 @@ export default async function Page({
     redirect("/account/license-expired");
   }
 
-  const organizationDataStartedAt = performance.now();
   const [
     data,
     unreadCommunications,
@@ -110,25 +101,9 @@ export default async function Page({
     }),
     getGoalDashboardSummary(),
   ]);
-  console.info("DM3Oi PERF", {
-    route: "/",
-    stage: "organizationData",
-    durationMs: Math.round(performance.now() - organizationDataStartedAt),
-  });
 
-  const intelligenceStartedAt = performance.now();
   const intelligence =
     await getOperationalIntelligence(data);
-  console.info("DM3Oi PERF", {
-    route: "/",
-    stage: "operationalIntelligence",
-    durationMs: Math.round(performance.now() - intelligenceStartedAt),
-  });
-  console.info("DM3Oi PERF", {
-    route: "/",
-    stage: "total",
-    durationMs: Math.round(performance.now() - pageStartedAt),
-  });
 
   return (
     <>

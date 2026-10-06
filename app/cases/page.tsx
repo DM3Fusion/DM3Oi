@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/purity -- Temporary server-only latency diagnostics require wall-clock measurements. */
 import { CasesRegister } from "@/components/cases/cases-register";
 import { CaseKpis } from "@/components/cases/case-kpis";
 import { PageHeader } from "@/components/ui";
@@ -22,19 +21,11 @@ type Params = {
   assignee?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
-  const pageStartedAt = performance.now();
-  const initialLoadStartedAt = performance.now();
   const [data, filters, access] = await Promise.all([
     getCasesRegisterData(),
     searchParams,
     getAccessContext(),
   ]);
-  console.info("DM3Oi PERF", {
-    route: "/cases",
-    stage: "initialLoad",
-    durationMs: Math.round(performance.now() - initialLoadStartedAt),
-  });
-  const viewModelStartedAt = performance.now();
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
@@ -63,16 +54,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     matchesCaseRegisterFilters(item, filters, data.timezone),
   );
   const canCreate = hasPermission(access, "CREATE_CASE");
-  console.info("DM3Oi PERF", {
-    route: "/cases",
-    stage: "viewModel",
-    durationMs: Math.round(performance.now() - viewModelStartedAt),
-  });
-  console.info("DM3Oi PERF", {
-    route: "/cases",
-    stage: "total",
-    durationMs: Math.round(performance.now() - pageStartedAt),
-  });
 
   return (
     <>
