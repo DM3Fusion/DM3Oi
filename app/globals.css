@@ -12675,3 +12675,15 @@ dialog.task-modal.intake-document-availability-modal {
     grid-template-columns: 1fr;
   }
 }
+
+/* Cases workload needs wider cards for four readable metrics. */
+.case-assigned-workloads .assigned-workload-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .case-assigned-workloads .assigned-workload-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -10,7 +10,7 @@ export function AssignedUserWorkloads({
   workloads: Array<CaseAssigneeWorkload<AvatarProfileRow>>;
 }) {
   return (
-    <section className="assigned-workloads" aria-labelledby="assigned-workloads-heading">
+    <section className="assigned-workloads case-assigned-workloads" aria-labelledby="assigned-workloads-heading">
       <div className="assigned-workloads-heading">
         <h2 id="assigned-workloads-heading">Assigned User Workload</h2>
         <p>Current assignments and durable associations visible in DM3Oi.</p>
