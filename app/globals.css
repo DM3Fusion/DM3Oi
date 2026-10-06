@@ -12687,3 +12687,9 @@ dialog.task-modal.intake-document-availability-modal {
   }
 }
 
+
+/* Add breathing room between KPI summaries and Assigned User Workload. */
+.case-kpis,
+.task-kpis {
+  margin-bottom: 28px;
+}
