@@ -8,11 +8,17 @@ import {
   type IntelligenceCase,
 } from "@/lib/operational-intelligence";
 import type { LiveOrganizationData } from "@/lib/data/case-repository";
+import { logServerPerformance, measureServerPerformance } from "@/lib/server-performance";
 
 export async function getOperationalIntelligence(
   data: LiveOrganizationData,
 ) {
-  const access = await getAccessContext();
+  return measureServerPerformance("/", "repository.operationalIntelligence.total", async () => {
+  const access = await measureServerPerformance(
+    "/",
+    "repository.operationalIntelligence.accessContext",
+    () => getAccessContext(),
+  );
   if (
     !access?.activeOrganization ||
     access.activeOrganization.id !== data.organizationId ||
@@ -28,11 +34,15 @@ export async function getOperationalIntelligence(
   const caseIds = data.cases.map((item) => item.id);
   const admin = createAdminClient();
   const provenance = canViewTasks && caseIds.length
-    ? await admin
-        .from("case_tasks")
-        .select("id,organization_id,case_id,source_rule_id,source_rule_action_id")
-        .eq("organization_id", data.organizationId)
-        .in("case_id", caseIds)
+    ? await measureServerPerformance(
+        "/",
+        "repository.operationalIntelligence.taskProvenance",
+        () => admin
+          .from("case_tasks")
+          .select("id,organization_id,case_id,source_rule_id,source_rule_action_id")
+          .eq("organization_id", data.organizationId)
+          .in("case_id", caseIds),
+      )
     : { data: [], error: null };
   if (provenance.error) {
     throw new Error("Operational intelligence is temporarily unavailable.");
@@ -41,6 +51,7 @@ export async function getOperationalIntelligence(
     (provenance.data ?? []).map((task) => [task.id, task]),
   );
 
+  const derivationStartedAt = performance.now();
   const cases: IntelligenceCase[] = data.cases.map((item) => ({
     id: item.id,
     organizationId: item.organization_id,
@@ -94,6 +105,11 @@ export async function getOperationalIntelligence(
     includeRuleActivity: canViewRules,
     includeGeneratedTaskActivity: canViewTasks,
   });
+  logServerPerformance(
+    "/",
+    "repository.operationalIntelligence.derive",
+    derivationStartedAt,
+  );
   return {
     ...intelligence,
     attentionCases: canViewCases ? intelligence.attentionCases : [],
@@ -104,6 +120,7 @@ export async function getOperationalIntelligence(
       viewRules: canViewRules,
     },
   };
+  });
 }
 
 export type AuthorizedOperationalIntelligence = NonNullable<

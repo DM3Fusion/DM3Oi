@@ -8,6 +8,7 @@ import {
   resolveOwnedOrganizationAvatarUrl,
 } from "@/lib/profile/avatar";
 import { effectiveLicense, type LicenseSnapshot } from "@/lib/licensing";
+import { measureServerPerformance } from "@/lib/server-performance";
 import { getEffectiveOrganizationPermissions, hasPermission, permissions, type ConfigurableOrganizationRole, type Permission } from "@/lib/auth/permissions";
 export const ACTIVE_ORGANIZATION_COOKIE = "dm3iqcm-active-organization";
 export const PLATFORM_CONTEXT_COOKIE_VALUE = "platform";
@@ -106,15 +107,20 @@ export type SuperAdminContext = AccessContext & {
   internalAccess: true;
 };
 async function resolveAccessContext(): Promise<AccessContext | null> {
-  if (!isSupabaseConfigured()) return null;
+  return measureServerPerformance("shared", "resolveAccessContext.total", async () => {
+    if (!isSupabaseConfigured()) return null;
 
-  try {
-    const supabase = await createClient();
+    try {
+      const supabase = await createClient();
 
-    const {
-      data: claimsData,
-      error: claimsError,
-    } = await supabase.auth.getClaims();
+      const {
+        data: claimsData,
+        error: claimsError,
+      } = await measureServerPerformance(
+        "shared",
+        "resolveAccessContext.authClaims",
+        () => supabase.auth.getClaims(),
+      );
 
     if (claimsError) {
       throw claimsError;
@@ -152,12 +158,19 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     // 20261002012000. Cast locally until generated Supabase types
     // are refreshed as part of a deliberate schema-type update.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rawContext, error: accessError } = await (supabase as any).rpc(
-      "get_my_access_context",
-      {
-        target_organization_id: requestedOrganizationId,
-      },
-    );
+    const accessRpcClient = supabase as any;
+      const { data: rawContext, error: accessError } =
+        await measureServerPerformance(
+          "shared",
+          "resolveAccessContext.getMyAccessContextRpc",
+          () =>
+            accessRpcClient.rpc(
+              "get_my_access_context",
+              {
+                target_organization_id: requestedOrganizationId,
+              },
+            ),
+        );
 
 
     if (accessError) {
@@ -294,7 +307,10 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
 
 
     const [avatarUrl, activeOrganizationAvatarUrl] =
-      await Promise.all([
+      await measureServerPerformance(
+        "shared",
+        "resolveAccessContext.avatarResolution",
+        () => Promise.all([
         profile.avatar_path
           ? getCachedAccessAvatarUrl(
               "user-avatars",
@@ -328,7 +344,8 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
                 ),
             )
           : Promise.resolve<string | null>(null),
-      ]);
+        ]),
+      );
 
 
     if (activeOrganization) {
@@ -376,13 +393,14 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       license,
       effectivePermissions,
     };
-  } catch (error) {
-    console.error(
-      "Unable to resolve authenticated access context",
-      error,
-    );
-    return null;
-  }
+    } catch (error) {
+      console.error(
+        "Unable to resolve authenticated access context",
+        error,
+      );
+      return null;
+    }
+  });
 }
 // React clears cache() between Server Component requests. This shares one
 // authoritative resolution within a render without persisting access state.

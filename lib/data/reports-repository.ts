@@ -11,6 +11,7 @@ import {
   normalizeBusinessReachUnmappedCustomers,
   unavailableBusinessReach,
 } from "@/lib/business-reach";
+import { logServerPerformance, measureServerPerformance } from "@/lib/server-performance";
 
 export class ReportsDataError extends Error {
   constructor() {
@@ -22,22 +23,33 @@ export class ReportsDataError extends Error {
 export type ReportSearchParams = { period?: string; compare?: string; from?: string; to?: string };
 
 export async function getBusinessReach() {
-  const access = await getAccessContext();
+  return measureServerPerformance("/reports", "repository.businessReach.total", async () => {
+  const access = await measureServerPerformance(
+    "/reports",
+    "repository.businessReach.accessContext",
+    () => getAccessContext(),
+  );
   if (!access?.activeOrganization || !hasPermission(access, "VIEW_REPORTS")) redirect("/");
+  const organizationId = access.activeOrganization.id;
   const canViewCustomers = hasPermission(access, "VIEW_CUSTOMERS");
   const canRefresh = canViewCustomers && hasPermission(access, "EDIT_CUSTOMER");
   if (!canViewCustomers) return unavailableBusinessReach(false);
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_business_reach" as never, {
-    target_organization_id: access.activeOrganization.id,
-  } as never);
+  const { data, error } = await measureServerPerformance(
+    "/reports",
+    "repository.businessReach.getBusinessReachRpc",
+    () => supabase.rpc("get_business_reach" as never, {
+      target_organization_id: organizationId,
+    } as never),
+  );
   if (error) {
     console.error("Business Reach query failed", { code: error.code, message: error.message });
     return failedBusinessReach(canRefresh);
   }
 
   return normalizeBusinessReachPayload(data, canRefresh);
+  });
 }
 
 export async function getBusinessReachUnmappedCustomers() {
@@ -64,7 +76,12 @@ export async function getBusinessReachUnmappedCustomers() {
 }
 
 export async function getOperationalReport(params: ReportSearchParams, now = new Date()) {
-  const access = await getAccessContext();
+  return measureServerPerformance("/reports", "repository.operationalReport.total", async () => {
+  const access = await measureServerPerformance(
+    "/reports",
+    "repository.operationalReport.accessContext",
+    () => getAccessContext(),
+  );
   if (!access?.activeOrganization || !hasPermission(access, "VIEW_REPORTS")) redirect("/");
   const organizationId = access.activeOrganization.id;
   const capabilities = {
@@ -75,11 +92,15 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
     questions: hasPermission(access, "VIEW_QUESTIONS"),
     rules: hasPermission(access, "VIEW_RULES"),
   };
-  const settings = await createAdminClient()
-    .from("organization_settings")
-    .select("timezone")
-    .eq("organization_id", organizationId)
-    .maybeSingle();
+  const settings = await measureServerPerformance(
+    "/reports",
+    "repository.operationalReport.organizationSettings",
+    () => createAdminClient()
+      .from("organization_settings")
+      .select("timezone")
+      .eq("organization_id", organizationId)
+      .maybeSingle(),
+  );
   if (settings.error) throw new ReportsDataError();
   const period = resolveReportingPeriod(params, settings.data?.timezone ?? "UTC", now);
   if (!isCanonicalReportParams(params, period)) redirect(`/reports?${period.canonicalQuery}`);
@@ -125,10 +146,26 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
         .or(`opened_at.gte.${earliest},resolved_at.gte.${earliest},closed_at.gte.${earliest}`)
     : Promise.resolve({ data: [], error: null });
   const [caseResult, taskResult, currentTaskResult, requestResult] = await Promise.all([
-    casesPromise,
-    tasksPromise,
-    currentTasksPromise,
-    requestsPromise,
+    measureServerPerformance(
+      "/reports",
+      "repository.operationalReport.cases",
+      () => casesPromise,
+    ),
+    measureServerPerformance(
+      "/reports",
+      "repository.operationalReport.periodTasks",
+      () => tasksPromise,
+    ),
+    measureServerPerformance(
+      "/reports",
+      "repository.operationalReport.currentTasks",
+      () => currentTasksPromise,
+    ),
+    measureServerPerformance(
+      "/reports",
+      "repository.operationalReport.serviceRequests",
+      () => requestsPromise,
+    ),
   ]);
   const error = caseResult.error ?? taskResult.error ?? currentTaskResult.error ?? requestResult.error;
   if (error) {
@@ -139,13 +176,17 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
   const customerIds = capabilities.cases && capabilities.customers
     ? [...new Set(cases.map((item) => item.customer_id))]
     : [];
-  const customerResult = customerIds.length
-    ? await supabase
-        .from("organization_customers")
-        .select("id,organization_id,name")
-        .eq("organization_id", organizationId)
-        .in("id", customerIds)
-    : { data: [], error: null };
+  const customerResult = await measureServerPerformance(
+    "/reports",
+    "repository.operationalReport.customers",
+    () => customerIds.length
+      ? supabase
+          .from("organization_customers")
+          .select("id,organization_id,name")
+          .eq("organization_id", organizationId)
+          .in("id", customerIds)
+      : { data: [], error: null },
+  );
   if (customerResult.error) {
     console.error("Reports customer query failed", {
       code: customerResult.error.code,
@@ -153,7 +194,8 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
     });
     throw new ReportsDataError();
   }
-  return buildOperationalReport({
+  const buildStartedAt = performance.now();
+  const report = buildOperationalReport({
     organizationId,
     timezone: period.timezone,
     period,
@@ -176,6 +218,13 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
         : [],
     ),
     capabilities,
+  });
+  logServerPerformance(
+    "/reports",
+    "repository.operationalReport.buildReport",
+    buildStartedAt,
+  );
+  return report;
   });
 }
 

@@ -38,6 +38,7 @@ import {
   type TaskWorkloadUser,
 } from "@/lib/task-assignee-workload";
 import { resolveCustomerPortalAccesses } from "@/lib/auth/customer-portal-effectiveness";
+import { logServerPerformance, measureServerPerformance } from "@/lib/server-performance";
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];
 export type CaseRow = Views["organization_cases"]["Row"];
@@ -124,6 +125,7 @@ export class DataAccessError extends Error {
   }
 }
 export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
+  return measureServerPerformance("/", "repository.getLiveOrganizationData.total", async () => {
   const access = await getAccessContext();
   if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
   if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
@@ -143,54 +145,56 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     platformAdminIds,
     intakeResult,
   ] = await Promise.all([
-    supabase
+    measureServerPerformance("/", "repository.live.organizationCases", () => supabase
       .from("organization_cases")
       .select("*")
       .eq("organization_id", organizationId)
-      .order("updated_at", { ascending: false }),
-    supabase
+      .order("updated_at", { ascending: false })),
+    measureServerPerformance("/", "repository.live.organizationCustomers", () => supabase
       .from("organization_customers")
       .select("*")
       .eq("organization_id", organizationId)
-      .order("name"),
-    supabase
+      .order("name")),
+    measureServerPerformance("/", "repository.live.caseAssignments", () => supabase
       .from("case_assignments")
       .select("*")
       .eq("organization_id", organizationId)
-      .eq("is_active", true),
-    supabase
+      .eq("is_active", true)),
+    measureServerPerformance("/", "repository.live.organizationCaseTasks", () => supabase
       .from("organization_case_tasks")
       .select("*")
       .eq("organization_id", organizationId)
-      .order("sequence"),
-    supabase
+      .order("sequence")),
+    measureServerPerformance("/", "repository.live.organizationMembers", () => supabase
       .from("organization_members")
       .select("*")
       .eq("organization_id", organizationId)
-      .eq("is_active", true),
-    supabase
+      .eq("is_active", true)),
+    measureServerPerformance("/", "repository.live.organizationCaseActivity", () => supabase
       .from("organization_case_activity")
       .select("*")
       .eq("organization_id", organizationId)
       .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
+      .limit(50)),
+    measureServerPerformance("/", "repository.live.organizationServiceRequests", () => supabase
       .from("organization_service_requests")
       .select("*")
       .eq("organization_id", organizationId)
-      .order("updated_at", { ascending: false }),
-    admin
+      .order("updated_at", { ascending: false })),
+    measureServerPerformance("/", "repository.live.organizationSettings", () => admin
       .from("organization_settings")
       .select("timezone")
       .eq("organization_id", organizationId)
-      .maybeSingle(),
-    getPlatformAdminUserIds(),
-    admin
+      .maybeSingle()),
+    measureServerPerformance("/", "repository.live.platformAdminIds", () =>
+      getPlatformAdminUserIds(),
+    ),
+    measureServerPerformance("/", "repository.live.guidedCaseIntakeDrafts", () => admin
       .from("guided_case_intake_drafts")
       .select("case_id,current_step,answers")
       .eq("organization_id", organizationId)
       .not("case_id", "is", null)
-      .is("finalized_at", null),
+      .is("finalized_at", null)),
   ]);
   const error =
     caseResult.error ??
@@ -282,10 +286,14 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     : Promise.resolve({ data: [], error: null });
 
   const [profileResult, ruleEvaluationBundle] = await Promise.all([
-    profilePromise,
-    loadOrganizationCaseRuleEvaluationBundle(
-      organizationId,
-      rawCases.map((item) => item.id),
+    measureServerPerformance("/", "repository.live.profiles", () => profilePromise),
+    measureServerPerformance(
+      "/",
+      "repository.live.caseRuleEvaluationBundle",
+      () => loadOrganizationCaseRuleEvaluationBundle(
+        organizationId,
+        rawCases.map((item) => item.id),
+      ),
     ),
   ]);
 
@@ -300,10 +308,15 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
   const {
     byProfile,
     profileForOrganization,
-  } = await buildCaseRepositoryProfileDirectory(
-    profileResult.data ?? [],
-    platformAdminIds,
+  } = await measureServerPerformance(
+    "/",
+    "repository.live.profileAvatarResolution",
+    () => buildCaseRepositoryProfileDirectory(
+      profileResult.data ?? [],
+      platformAdminIds,
+    ),
   );
+  const assemblyStartedAt = performance.now();
   const cases: LiveCase[] = rawCases.map((item) => {
     const itemTasks = tasks.filter((task) => task.case_id === item.id);
     const ruleEvaluation = ruleEvaluationBundle.evaluations.get(item.id)!;
@@ -383,7 +396,7 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     assigned: request.assigned_user_id ? profileForOrganization(request.assigned_user_id) : null,
     creator: request.created_by_user_id ? profileForOrganization(request.created_by_user_id) : null,
   }));
-  return {
+  const result = {
     organizationId,
     timezone: settingsResult.data?.timezone ?? "UTC",
     cases,
@@ -393,6 +406,9 @@ export async function getLiveOrganizationData(): Promise<LiveOrganizationData> {
     serviceRequests,
     activeRules: ruleEvaluationBundle.activeRules,
   };
+  logServerPerformance("/", "repository.live.assembleData", assemblyStartedAt);
+  return result;
+  });
 }
 async function buildCaseRepositoryProfileDirectory(
   profileRows: ProfileRow[],
@@ -1071,6 +1087,7 @@ export async function getCasesRegisterData(): Promise<{
   cases: CaseRegisterRow[];
   workloads: Array<CaseAssigneeWorkload<AvatarProfileRow>>;
 }> {
+  return measureServerPerformance("/cases", "repository.getCasesRegisterData.total", async () => {
   const access = await getAccessContext();
 
   if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
@@ -1091,45 +1108,47 @@ export async function getCasesRegisterData(): Promise<{
     intakeResult,
     memberResult,
   ] = await Promise.all([
-    supabase
+    measureServerPerformance("/cases", "repository.cases.organizationCases", () => supabase
       .from("organization_cases")
       .select(
         "id,case_number,title,status,priority,due_at,manager_user_id,customer_id,tax_year",
       )
       .eq("organization_id", organizationId)
-      .order("updated_at", { ascending: false }),
-    supabase
+      .order("updated_at", { ascending: false })),
+    measureServerPerformance("/cases", "repository.cases.organizationCustomers", () => supabase
       .from("organization_customers")
       .select("id,name")
       .eq("organization_id", organizationId)
-      .order("name"),
-    supabase
+      .order("name")),
+    measureServerPerformance("/cases", "repository.cases.caseAssignments", () => supabase
       .from("case_assignments")
       .select("case_id,user_id,assignment_role,is_active")
-      .eq("organization_id", organizationId),
-    supabase
+      .eq("organization_id", organizationId)),
+    measureServerPerformance("/cases", "repository.cases.organizationCaseTasks", () => supabase
       .from("organization_case_tasks")
       .select("id,case_id,title,status,required,blocking,due_at")
       .eq("organization_id", organizationId)
-      .order("sequence"),
-    admin
+      .order("sequence")),
+    measureServerPerformance("/cases", "repository.cases.organizationSettings", () => admin
       .from("organization_settings")
       .select("timezone")
       .eq("organization_id", organizationId)
-      .maybeSingle(),
-    getPlatformAdminUserIds(),
-    admin
+      .maybeSingle()),
+    measureServerPerformance("/cases", "repository.cases.platformAdminIds", () =>
+      getPlatformAdminUserIds(),
+    ),
+    measureServerPerformance("/cases", "repository.cases.guidedCaseIntakeDrafts", () => admin
       .from("guided_case_intake_drafts")
       .select("case_id,current_step")
       .eq("organization_id", organizationId)
       .not("case_id", "is", null)
-      .is("finalized_at", null),
-    supabase
+      .is("finalized_at", null)),
+    measureServerPerformance("/cases", "repository.cases.organizationMembers", () => supabase
       .from("organization_members")
       .select("*")
       .eq("organization_id", organizationId)
       .eq("status", "ACTIVE")
-      .eq("is_active", true),
+      .eq("is_active", true)),
   ]);
 
   const error =
@@ -1199,7 +1218,7 @@ export async function getCasesRegisterData(): Promise<{
     .map((item) => item.id);
 
   const [profileResult, ruleEvaluationBundle] = await Promise.all([
-    profileIds.length
+    measureServerPerformance("/cases", "repository.cases.profiles", () => profileIds.length
       ? supabase
           .from("profiles")
           .select("*")
@@ -1207,10 +1226,14 @@ export async function getCasesRegisterData(): Promise<{
       : Promise.resolve({
           data: [] as ProfileRow[],
           error: null,
-        }),
-    loadOrganizationCaseRuleEvaluationBundle(
-      organizationId,
-      ruleCaseIds,
+        })),
+    measureServerPerformance(
+      "/cases",
+      "repository.cases.caseRuleEvaluationBundle",
+      () => loadOrganizationCaseRuleEvaluationBundle(
+        organizationId,
+        ruleCaseIds,
+      ),
     ),
   ]);
 
@@ -1224,11 +1247,16 @@ export async function getCasesRegisterData(): Promise<{
   }
 
   const { profileForOrganization } =
-    await buildCaseRepositoryProfileDirectory(
-      profileResult.data ?? [],
-      platformAdminIds,
+    await measureServerPerformance(
+      "/cases",
+      "repository.cases.profileAvatarResolution",
+      () => buildCaseRepositoryProfileDirectory(
+        profileResult.data ?? [],
+        platformAdminIds,
+      ),
     );
 
+  const assemblyStartedAt = performance.now();
   const cases: CaseRegisterRow[] = rawCases.map((item) => {
     const itemTasks = tasks.filter(
       (task) => task.case_id === item.id,
@@ -1321,7 +1349,7 @@ export async function getCasesRegisterData(): Promise<{
     };
   });
 
-  return {
+  const result = {
     organizationId,
     timezone: settingsResult.data?.timezone ?? "UTC",
     cases,
@@ -1339,8 +1367,11 @@ export async function getCasesRegisterData(): Promise<{
       (left.profile.display_name ?? left.profile.email ?? "").localeCompare(
         right.profile.display_name ?? right.profile.email ?? "",
       ),
-    ),
+      ),
   };
+  logServerPerformance("/cases", "repository.cases.assembleData", assemblyStartedAt);
+  return result;
+  });
 }
 
 export async function getLiveCase(caseId: string) {
