@@ -75,19 +75,63 @@ test("KPI views combine with search, status, priority, and assignment filters", 
   assert.equal(matchesCaseRegisterFilters(item, { ...compatible, assignment: "UNASSIGNED" }, "America/New_York", now), false);
 });
 
-test("KPI links preserve applicable filters and Total Cases clears only view", () => {
-  const filters = { query: "Acme & Co", status: "active", priority: "HIGH", assignment: "ASSIGNED", view: "waiting" };
-  assert.equal(caseViewHref(filters, "overdue"), "/cases?query=Acme+%26+Co&status=active&priority=HIGH&assignment=ASSIGNED&view=overdue");
-  assert.equal(caseViewHref(filters), "/cases?query=Acme+%26+Co&status=active&priority=HIGH&assignment=ASSIGNED");
+test("KPI links target the truthful lifecycle while Total Cases preserves the selected tab", () => {
+  const activeFilters = {
+    query: "Acme & Co",
+    status: "active",
+    priority: "HIGH",
+    assignment: "ASSIGNED",
+    view: "waiting",
+    lifecycle: "active",
+  };
+
+  assert.equal(
+    caseViewHref(activeFilters, "overdue"),
+    "/cases?query=Acme+%26+Co&priority=HIGH&assignment=ASSIGNED&lifecycle=active&view=overdue",
+  );
+
+  assert.equal(
+    caseViewHref(activeFilters, "completed"),
+    "/cases?query=Acme+%26+Co&priority=HIGH&assignment=ASSIGNED&lifecycle=completed&view=completed",
+  );
+
+  assert.equal(
+    caseViewHref(activeFilters),
+    "/cases?query=Acme+%26+Co&status=active&priority=HIGH&assignment=ASSIGNED",
+  );
+
+  assert.equal(
+    caseViewHref({ lifecycle: "completed" }),
+    "/cases?lifecycle=completed",
+  );
+
   assert.equal(caseViewHref({}, undefined), "/cases");
 });
 
-test("Cases page derives stable KPI counts from the selected lifecycle within the existing authorized organization dataset", () => {
+test("Cases dashboard summarizes active plus completed Cases while lifecycle tabs scope only the register", () => {
   const page = source("app/cases/page.tsx");
   const repository = source("lib/data/case-repository.ts");
-  const lifecycleIndex = page.indexOf("const lifecycleCases = data.cases.filter");
-  const countIndex = page.indexOf("getCaseDashboardCounts(lifecycleCases");
-  assert.ok(lifecycleIndex > -1 && countIndex > lifecycleIndex);
+
+  const dashboardIndex = page.indexOf("const dashboardCases = data.cases.filter");
+  const lifecycleIndex = page.indexOf("const lifecycleCases = dashboardCases.filter");
+  const countIndex = page.indexOf("getCaseDashboardCounts(dashboardCases");
+  const itemsIndex = page.indexOf("const items = lifecycleCases.filter");
+
+  assert.ok(dashboardIndex > -1);
+  assert.ok(lifecycleIndex > dashboardIndex);
+  assert.ok(countIndex > lifecycleIndex);
+  assert.ok(itemsIndex > countIndex);
+
+  assert.match(
+    page,
+    /item\.status === "COMPLETED"[\s\S]*?isIncompleteCompatibilityCaseStatus\(item\.status\)/,
+  );
+  assert.match(
+    page,
+    /selectedLifecycle === "completed"[\s\S]*?item\.status === "COMPLETED"[\s\S]*?isIncompleteCompatibilityCaseStatus\(item\.status\)/,
+  );
+  assert.doesNotMatch(page, /getCaseDashboardCounts\(lifecycleCases/);
+
   assert.match(page, /getCasesRegisterData\(\)/);
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)/);

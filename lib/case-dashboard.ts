@@ -15,6 +15,7 @@ export interface CaseRegisterFilters {
   priority?: string;
   assignment?: string;
   view?: string;
+  lifecycle?: string;
   assignee?: string;
 }
 
@@ -87,11 +88,24 @@ export function matchesCaseRegisterFilters(item: CaseRegisterRow, filters: CaseR
 
 export function caseViewHref(filters: CaseRegisterFilters, view?: CaseView) {
   const params = new URLSearchParams();
+
   for (const key of ["query", "status", "priority", "assignment", "assignee"] as const) {
     const value = filters[key];
     if (value) params.set(key, value);
   }
+
+  if (view === "completed") {
+    params.set("lifecycle", "completed");
+    params.delete("status");
+  } else if (view) {
+    params.set("lifecycle", "active");
+    params.delete("status");
+  } else if (filters.lifecycle === "completed") {
+    params.set("lifecycle", "completed");
+  }
+
   if (view) params.set("view", view);
+
   const query = params.toString();
   return query ? `/cases?${query}` : "/cases";
 }

@@ -31,12 +31,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const selectedView = normalizeCaseView(filters.view);
   const selectedLifecycle =
     filters.lifecycle === "completed" ? "completed" : "active";
-  const lifecycleCases = data.cases.filter((item) =>
+  const dashboardCases = data.cases.filter(
+    (item) =>
+      item.status === "COMPLETED" ||
+      isIncompleteCompatibilityCaseStatus(item.status),
+  );
+  const lifecycleCases = dashboardCases.filter((item) =>
     selectedLifecycle === "completed"
       ? item.status === "COMPLETED"
       : isIncompleteCompatibilityCaseStatus(item.status),
   );
-  const counts = getCaseDashboardCounts(lifecycleCases, data.timezone);
+  const counts = getCaseDashboardCounts(dashboardCases, data.timezone);
   const items = lifecycleCases.filter((item) =>
     matchesCaseRegisterFilters(item, filters, data.timezone),
   );
@@ -63,6 +68,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               ...filters,
               lifecycle: "active",
               status: undefined,
+              view: undefined,
             },
           }}
           className={`case-lifecycle-tab${selectedLifecycle === "active" ? " active" : ""}`}
@@ -77,6 +83,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               ...filters,
               lifecycle: "completed",
               status: undefined,
+              view: undefined,
             },
           }}
           className={`case-lifecycle-tab${selectedLifecycle === "completed" ? " active" : ""}`}
