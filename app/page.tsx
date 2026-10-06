@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { resolveRootExperience } from "@/lib/auth/access-routing";
 import { getLiveOrganizationData } from "@/lib/data/case-repository";
-import { getPlatformSummary } from "@/lib/data/platform-repository";
+import { getPlatformAdministration } from "@/lib/data/platform-repository";
 import {
   getOverviewDownloadCount,
   getPlatformAnalytics,
@@ -50,9 +50,9 @@ export default async function Page({
   if (experience === "PLATFORM") {
     const query = await searchParams;
 
-    const [summary, analytics, overviewDownloadCount] =
+    const [administration, analytics, overviewDownloadCount] =
       await Promise.all([
-        getPlatformSummary(),
+        getPlatformAdministration(),
         getPlatformAnalytics(query),
         getOverviewDownloadCount(),
       ]);
@@ -65,8 +65,9 @@ export default async function Page({
         />
         <PlatformDashboard
           analytics={analytics}
+          organizations={administration.organizations}
           overviewDownloadCount={overviewDownloadCount}
-          summary={summary}
+          summary={administration.summary}
         />
       </>
     );

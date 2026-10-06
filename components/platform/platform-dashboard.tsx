@@ -4,9 +4,13 @@ import { AdminGeography } from "@/components/admin-geography";
 import { AdminTopPages } from "@/components/admin-top-pages";
 import { AnalyticsDonut } from "@/components/analytics-donut";
 import { ApplicationIcon } from "@/components/application-icon";
+import { OrganizationTable } from "@/components/platform/organization-table";
 import type { ApplicationIconName } from "@/lib/application-icons";
 import type { PlatformAnalytics } from "@/lib/data/platform-analytics-repository";
-import type { PlatformSummary } from "@/lib/data/platform-repository";
+import type {
+  OrganizationAdminRow,
+  PlatformSummary,
+} from "@/lib/data/platform-repository";
 
 const analyticsRanges = [
   { key: "today", label: "Today" },
@@ -19,10 +23,12 @@ const analyticsRanges = [
 
 export function PlatformDashboard({
   summary,
+  organizations,
   analytics,
   overviewDownloadCount,
 }: {
   summary: PlatformSummary;
+  organizations: readonly OrganizationAdminRow[];
   analytics: PlatformAnalytics;
   overviewDownloadCount: number;
 }) {
@@ -337,6 +343,7 @@ export function PlatformDashboard({
               <ApplicationIcon name="forward" />
             </Link>
           </div>
+          <OrganizationTable organizations={organizations} />
         </section>
       )}
     </>

@@ -1,6 +1,5 @@
-import Link from "next/link";
-import { NavigableRow } from "@/components/navigable-row";
 import { PageHeader, Badge } from "@/components/ui";
+import { OrganizationTable } from "@/components/platform/organization-table";
 import { getPlatformAdministration } from "@/lib/data/platform-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 import {
@@ -216,50 +215,7 @@ export default async function Page({
           <button className="filter-button">Apply</button>
         </form>
         {items.length ? (
-          <div className="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Organization</th>
-                  <th>Status</th>
-                  <th>License</th>
-                  <th>Created</th>
-                  <th>Users</th>
-                  <th>Owners</th>
-                  <th>Admins</th>
-                  <th>Open cases</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((o) => (
-                  <NavigableRow
-                    key={o.id}
-                    href={`/admin/organizations/${o.id}`}
-                    label={`Open organization ${o.name}`}
-                  >
-                    <td>
-                      <Link
-                        className="entity-row-link"
-                        href={`/admin/organizations/${o.id}`}
-                      >
-                        {o.name}
-                      </Link>
-                      <small className="table-secondary">{o.slug}</small>
-                    </td>
-                    <td>
-                      <Badge value={o.status} />
-                    </td>
-                    <td><Badge value={o.license?.license_status ?? "EXPIRED"} /></td>
-                    <td>{new Date(o.created_at).toLocaleDateString()}</td>
-                    <td>{o.activeUsers}</td>
-                    <td>{o.businessOwners}</td>
-                    <td>{o.businessAdmins}</td>
-                    <td>{o.openCases}</td>
-                  </NavigableRow>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <OrganizationTable organizations={items} />
         ) : (
           <div className="no-results">
             No organizations match these filters.

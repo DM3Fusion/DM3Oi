@@ -57,9 +57,16 @@ test("organization user rows navigate by membership ID and isolate invitation co
 
 test("Organizations and cases use the shared navigable-row pattern", () => {
   const organizations = source("app/admin/organizations/page.tsx");
+  const organizationTable = source(
+    "components/platform/organization-table.tsx",
+  );
   const cases = source("components/cases/case-table.tsx");
-  assert.match(organizations, /<NavigableRow/);
-  assert.match(organizations, /admin\/organizations\/\$\{o\.id\}/);
+  assert.match(organizations, /<OrganizationTable organizations=\{items\}/);
+  assert.match(organizationTable, /<NavigableRow/);
+  assert.match(
+    organizationTable,
+    /admin\/organizations\/\$\{organization\.id\}/,
+  );
   assert.doesNotMatch(organizations, /Open →/);
   assert.match(cases, /<NavigableRow/);
   assert.match(cases, /cases\/\$\{item\.id\}/);
