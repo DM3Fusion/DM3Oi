@@ -60,6 +60,8 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
           ) : undefined
         }
       />
+      <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
+      <AssignedUserWorkloads workloads={data.workloads} />
       <nav className="case-lifecycle-tabs" aria-label="Case lifecycle">
         <Link
           href={{
@@ -71,7 +73,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               view: undefined,
             },
           }}
-          className={`case-lifecycle-tab${selectedLifecycle === "active" ? " active" : ""}`}
+          className={`case-lifecycle-tab case-lifecycle-tab-active${selectedLifecycle === "active" ? " active" : ""}`}
           aria-current={selectedLifecycle === "active" ? "page" : undefined}
         >
           Active Cases
@@ -86,14 +88,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
               view: undefined,
             },
           }}
-          className={`case-lifecycle-tab${selectedLifecycle === "completed" ? " active" : ""}`}
+          className={`case-lifecycle-tab case-lifecycle-tab-completed${selectedLifecycle === "completed" ? " active" : ""}`}
           aria-current={selectedLifecycle === "completed" ? "page" : undefined}
         >
           Completed Cases
         </Link>
       </nav>
-      <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
-      <AssignedUserWorkloads workloads={data.workloads} />
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>
   );

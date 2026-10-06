@@ -8819,22 +8819,49 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   align-items:center;
   justify-content:center;
   padding:8px 18px;
+  border:1px solid transparent;
   border-radius:5px;
   color:var(--muted);
   font-size:12px;
   font-weight:700;
   text-align:center;
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    color .15s ease,
+    box-shadow .15s ease;
 }
 
 .case-lifecycle-tab:hover{
-  background:#eef2f7;
-  color:var(--ink);
+  background:#e4eaf1;
+  border-color:#c5d0dc;
+  color:#24364c;
 }
 
-.case-lifecycle-tab.active{
-  background:#fff;
-  color:var(--ink);
-  box-shadow:0 1px 3px rgba(16,24,40,.12);
+.case-lifecycle-tab-active.active{
+  background:#e8f2ff;
+  border-color:#8fb9e8;
+  color:#145f9f;
+  box-shadow:0 1px 4px rgba(20,95,159,.18);
+}
+
+.case-lifecycle-tab-completed.active{
+  background:#e5f5ec;
+  border-color:#91cbaa;
+  color:#247048;
+  box-shadow:0 1px 4px rgba(36,112,72,.18);
+}
+
+.case-lifecycle-tab-active:not(.active):hover{
+  background:#dcecff;
+  border-color:#9fc2e8;
+  color:#145f9f;
+}
+
+.case-lifecycle-tab-completed:not(.active):hover{
+  background:#def1e6;
+  border-color:#9ac9ae;
+  color:#247048;
 }
 
 .case-lifecycle-tab:focus-visible{
