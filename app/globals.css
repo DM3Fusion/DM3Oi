@@ -12779,3 +12779,8 @@ dialog.task-modal.intake-document-availability-modal {
 .task-kpis .case-kpi {
   padding: 11px 8px;
 }
+
+/* Reduce visual weight of Case workload metric labels. */
+.case-assigned-workloads .assigned-workload-card dt {
+  font-weight: 500;
+}
