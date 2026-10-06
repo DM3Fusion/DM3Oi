@@ -14,18 +14,21 @@ export function CustomerImportDeleteSourceForm({
   submissionId,
   fileName,
   fileDisposition,
+  submissionStatus,
 }: {
   submissionId: string;
   fileName: string;
   fileDisposition: string;
+  submissionStatus: string;
 }) {
   const router = useRouter();
   const [confirmation, setConfirmation] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const importedSubmission = submissionStatus === "IMPORTED";
   const dispositionAllowsDelete =
-    DELETE_DISPOSITIONS.has(fileDisposition);
+    importedSubmission || DELETE_DISPOSITIONS.has(fileDisposition);
 
   const armed =
     dispositionAllowsDelete &&
@@ -98,9 +101,11 @@ export function CustomerImportDeleteSourceForm({
             : "customer-import-delete-help"
         }
       >
-        {dispositionAllowsDelete
-          ? "Removes only the private uploaded source file. The submission audit record and any imported Customers remain."
-          : "Set File Disposition to a deleted state and save the review before deleting the source file."}
+        {importedSubmission
+          ? "Removes only the private uploaded source file. DM3Oi will record the file as Deleted after Processing. The submission audit record and imported Customers remain."
+          : dispositionAllowsDelete
+            ? "Removes only the private uploaded source file. The submission audit record and any imported Customers remain."
+            : "Set File Disposition to a deleted state and save the review before deleting the source file."}
       </small>
 
       {error ? (

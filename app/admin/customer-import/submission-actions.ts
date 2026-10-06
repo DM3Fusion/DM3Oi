@@ -197,7 +197,10 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
     };
   }
 
+  const importedSubmission = submission.status === "IMPORTED";
+
   if (
+    !importedSubmission &&
     submission.file_disposition !== "DELETED_WITHOUT_PROCESSING" &&
     submission.file_disposition !== "DELETED_AFTER_PROCESSING"
   ) {
@@ -228,6 +231,9 @@ export async function deleteCustomerImportSourceAction(form: FormData) {
   const { error } = await admin
     .from("customer_import_submissions")
     .update({
+      ...(importedSubmission
+        ? { file_disposition: "DELETED_AFTER_PROCESSING" }
+        : {}),
       source_file_deleted_at: new Date().toISOString(),
       source_file_deleted_by_user_id: context.user.id,
     })

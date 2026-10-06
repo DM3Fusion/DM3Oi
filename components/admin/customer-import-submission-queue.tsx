@@ -202,6 +202,7 @@ export function CustomerImportSubmissionQueue({
                     submissionId={submission.id}
                     fileName={submission.original_filename}
                     fileDisposition={submission.file_disposition}
+                    submissionStatus={submission.status}
                   />
                 ) : null}
 
