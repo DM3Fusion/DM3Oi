@@ -1393,14 +1393,12 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 .service-desk-metrics .metric{
-  justify-content:flex-start;
+  justify-content:center;
 }
 
 .service-desk-metrics .metric span{
-  display:flex;
-  align-items:flex-end;
-  justify-content:center;
-  min-height:3.9em;
+  display:block;
+  min-height:0;
 }
 
 .service-desk-metrics .metric strong{
