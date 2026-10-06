@@ -12664,3 +12664,14 @@ dialog.task-modal.intake-document-availability-modal {
     min-width:0;
   }
 }
+
+/* Tasks workload needs additional width for five metrics. */
+.task-assigned-workloads .assigned-workload-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .task-assigned-workloads .assigned-workload-grid {
+    grid-template-columns: 1fr;
+  }
+}
