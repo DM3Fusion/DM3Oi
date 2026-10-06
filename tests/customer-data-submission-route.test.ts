@@ -68,7 +68,7 @@ test("the submission page distinguishes its upload action from the Customers ent
   );
   assert.match(
     styles,
-    /\.customer-data-upload-button\{[\s\S]*?border:1px solid #bbf7d0;[\s\S]*?border-radius:7px;[\s\S]*?background:#f0fdf4;[\s\S]*?color:#166534;/,
+    /\.customer-data-upload-button\{[\s\S]*?border:1px solid #000;[\s\S]*?border-radius:7px;[\s\S]*?background:#f0fdf4;[\s\S]*?color:#166534;/,
   );
 });
 
