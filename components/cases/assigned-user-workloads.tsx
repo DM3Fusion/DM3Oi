@@ -42,7 +42,7 @@ export function AssignedUserWorkloads({
                 </div>
                 <div>
                   <dt>Overdue</dt>
-                  <dd><Link href={`/cases?view=overdue&assignee=${assignee}`}>{item.overdue}</Link></dd>
+                  <dd><Link className={item.overdue > 0 ? "case-kpi-overdue" : undefined} href={`/cases?view=overdue&assignee=${assignee}`}>{item.overdue}</Link></dd>
                 </div>
                 <div>
                   <dt>Completed</dt>
