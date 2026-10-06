@@ -2,6 +2,7 @@ import { Badge } from "@/components/ui";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { CustomerImportReviewForm } from "@/components/admin/customer-import-review-form";
 import { CustomerImportDeleteSourceForm } from "@/components/admin/customer-import-delete-source-form";
+import { CustomerImportRollback } from "@/components/admin/customer-import-rollback";
 import {
   downloadCustomerImportSourceAction,
 } from "@/app/admin/customer-import/submission-actions";
@@ -180,6 +181,14 @@ export function CustomerImportSubmissionQueue({
                     Imported {formatDate(submission.imported_at)}
                   </p>
                 )}
+
+                {submission.status === "IMPORTED" ? (
+                  <CustomerImportRollback
+                    submissionId={submission.id}
+                    originalFilename={submission.original_filename}
+                    importedAt={submission.imported_at}
+                  />
+                ) : null}
 
                 {!submission.source_file_deleted_at ? (
                   <CustomerImportDeleteSourceForm

@@ -11634,6 +11634,124 @@ dialog.task-modal.intake-document-availability-modal {
   margin:0;
 }
 
+/* Imported Customer rollback — explicit, bounded SUPER_ADMIN maintenance. */
+.customer-import-rollback{
+  display:grid;
+  gap:14px;
+  margin-top:4px;
+  padding:16px;
+  border:1px solid #e2b8b8;
+  border-radius:10px;
+  background:#fffafa;
+  overflow:hidden;
+}
+
+.customer-import-rollback-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.customer-import-rollback-heading h3,
+.customer-import-rollback p{
+  margin:0;
+}
+
+.customer-import-rollback-source,
+.customer-import-rollback-summary{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  margin:0;
+}
+
+.customer-import-rollback-summary{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+}
+
+.customer-import-rollback-source>div,
+.customer-import-rollback-summary>div{
+  min-width:0;
+  padding:10px 12px;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#fff;
+}
+
+.customer-import-rollback dt{
+  color:var(--muted);
+  font-size:11px;
+  font-weight:700;
+}
+
+.customer-import-rollback dd{
+  margin:4px 0 0;
+  overflow-wrap:anywhere;
+  color:var(--ink);
+  font-weight:800;
+}
+
+.customer-import-rollback-summary dd{
+  font-size:20px;
+}
+
+.customer-import-rollback-confirmation{
+  display:grid;
+  gap:12px;
+  max-width:760px;
+}
+
+.customer-import-rollback-confirmation label{
+  display:grid;
+  gap:6px;
+}
+
+.customer-import-rollback-confirmation input{
+  width:100%;
+  border:1px solid var(--line);
+  border-radius:7px;
+  background:#fff;
+  padding:.65rem .75rem;
+  color:var(--ink);
+}
+
+.customer-import-rollback-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.customer-import-rollback-actions .danger-button{
+  border:1px solid #991b1b;
+  border-radius:7px;
+  background:#991b1b;
+  color:#fff;
+}
+
+@media(max-width:800px){
+  .customer-import-rollback-heading{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .customer-import-rollback-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:520px){
+  .customer-import-rollback-source,
+  .customer-import-rollback-summary{
+    grid-template-columns:1fr;
+  }
+
+  .customer-import-rollback-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+}
+
 /* SUPER_ADMIN configuration-template management. */
 .configuration-template-row td{padding:0}
 .configuration-template-row-link{display:block;min-height:52px;padding:12px 14px;color:inherit}

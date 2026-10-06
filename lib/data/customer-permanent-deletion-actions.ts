@@ -213,3 +213,145 @@ export async function permanentlyDeleteCustomerAction(
 
   return { ok: true };
 }
+
+async function requireExplicitSuperAdminCustomerContext(
+  organizationId: string,
+  customerId: string,
+) {
+  const access = await getAccessContext();
+
+  if (
+    !access?.user?.id ||
+    !access.isSuperAdmin ||
+    !uuidPattern.test(organizationId) ||
+    !uuidPattern.test(customerId)
+  ) {
+    return null;
+  }
+
+  return { access, organizationId };
+}
+
+export async function getCustomerDeletionPreviewForOrganizationAction(
+  organizationId: string,
+  customerId: string,
+): Promise<
+  | { ok: true; preview: CustomerDeletionPreview }
+  | { ok: false; error: string }
+> {
+  const context = await requireExplicitSuperAdminCustomerContext(
+    organizationId,
+    customerId,
+  );
+
+  if (!context) {
+    return {
+      ok: false,
+      error: "You are not authorized to preview this Customer deletion.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc(
+    "super_admin_customer_deletion_preview" as never,
+    {
+      target_organization_id: context.organizationId,
+      target_customer_id: customerId,
+    } as never,
+  );
+
+  if (error) {
+    console.error("Imported Customer rollback deletion preview failed", {
+      operation: "customer_import_rollback_preview",
+      customerId,
+      organizationId: context.organizationId,
+      code: error.code,
+      message: error.message,
+    });
+
+    return {
+      ok: false,
+      error: "Customer dependency checks could not be completed.",
+    };
+  }
+
+  return { ok: true, preview: parsePreview(data) };
+}
+
+export async function permanentlyDeleteCustomerForOrganizationAction(
+  organizationId: string,
+  customerId: string,
+  confirmation: string,
+): Promise<
+  | { ok: true }
+  | {
+      ok: false;
+      kind: "unauthorized" | "confirmation" | "blocked" | "missing" | "failed";
+      error: string;
+    }
+> {
+  const context = await requireExplicitSuperAdminCustomerContext(
+    organizationId,
+    customerId,
+  );
+
+  if (!context) {
+    return {
+      ok: false,
+      kind: "unauthorized",
+      error: "You are not authorized to permanently delete this Customer.",
+    };
+  }
+
+  if (confirmation !== "DELETE") {
+    return {
+      ok: false,
+      kind: "confirmation",
+      error: "Type DELETE exactly to confirm permanent Customer deletion.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc(
+    "super_admin_permanently_delete_customer" as never,
+    {
+      target_organization_id: context.organizationId,
+      target_customer_id: customerId,
+    } as never,
+  );
+
+  if (error) {
+    console.error("Imported Customer rollback deletion failed", {
+      operation: "customer_import_rollback_delete",
+      customerId,
+      organizationId: context.organizationId,
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
+
+    if (error.code === "23514") {
+      return {
+        ok: false,
+        kind: "blocked",
+        error: "Protected Customer dependencies now exist.",
+      };
+    }
+
+    if (error.code === "P0002") {
+      return {
+        ok: false,
+        kind: "missing",
+        error: "The Customer no longer exists.",
+      };
+    }
+
+    return {
+      ok: false,
+      kind: "failed",
+      error: "The Customer could not be permanently deleted.",
+    };
+  }
+
+  return { ok: true };
+}
