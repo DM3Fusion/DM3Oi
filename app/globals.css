@@ -12752,3 +12752,10 @@ dialog.task-modal.intake-document-availability-modal {
     background:#e8edf3;
   }
 }
+
+/* Center Task KPI contents vertically and horizontally. */
+.task-kpis .case-kpi {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
