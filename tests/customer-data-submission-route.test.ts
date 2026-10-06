@@ -1,0 +1,102 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+import { canSubmitCustomerData } from "../lib/customer-data-submission-access.ts";
+
+const source = (path: string) => readFileSync(path, "utf8");
+const page = source("app/customers/import/page.tsx");
+const customerPage = source("app/customers/page.tsx");
+const modal = source("components/customers/customer-data-submit-modal.tsx");
+const action = source("app/customers/import/actions.ts");
+const repository = source("lib/data/customer-import-submissions.ts");
+const interceptedCustomerRoute = source(
+  "app/customers/@modal/(.)[customerId]/page.tsx",
+);
+
+const access = (
+  role: "BUSINESS_OWNER" | "BUSINESS_ADMIN" | "STAFF_MANAGER" | "STAFF_USER" | "SUPER_ADMIN",
+  isSuperAdmin = false,
+) => ({
+  isSuperAdmin,
+  internalAccess: true,
+  activeOrganization: { role },
+});
+
+test("Customer Data submission access is limited to organization administrators", () => {
+  assert.equal(canSubmitCustomerData(access("BUSINESS_OWNER")), true);
+  assert.equal(canSubmitCustomerData(access("BUSINESS_ADMIN")), true);
+  assert.equal(canSubmitCustomerData(access("STAFF_MANAGER")), false);
+  assert.equal(canSubmitCustomerData(access("STAFF_USER")), false);
+  assert.equal(canSubmitCustomerData(access("SUPER_ADMIN", true)), true);
+  assert.equal(
+    canSubmitCustomerData({
+      isSuperAdmin: true,
+      internalAccess: true,
+      activeOrganization: null,
+    }),
+    false,
+  );
+});
+
+test("the organization Customer Data submission route uses the centralized access check", () => {
+  assert.match(page, /title="Submit Customer Data"/);
+  assert.match(page, /canSubmitCustomerData\(access\)/);
+  assert.match(page, /getCustomerImportSubmissions\(\)/);
+  assert.match(page, /<CustomerDataSubmitModal \/>/);
+  assert.match(customerPage, /canSubmitCustomerData\(access\)/);
+  assert.match(
+    customerPage,
+    /<a className="secondary-button" href="\/customers\/import">[\s\S]*Submit Customer Data[\s\S]*<\/a>/,
+  );
+  assert.doesNotMatch(page, /href="\/admin\/customer-import"/);
+  assert.doesNotMatch(modal, /href="\/admin\/customer-import"/);
+});
+
+test("the submission link bypasses the dynamic Customer modal interceptor", () => {
+  assert.match(interceptedCustomerRoute, /params: Promise<\{ customerId: string \}>/);
+  assert.match(interceptedCustomerRoute, /<CustomerDetail customerId=\{customerId\}/);
+  assert.doesNotMatch(
+    customerPage,
+    /<Link[^>]*href="\/customers\/import"/,
+  );
+});
+
+test("the submission surface explains staging and minimum source information", () => {
+  assert.match(
+    page,
+    /Submitting a file does not directly add Customers to DM3Oi\./,
+  );
+  assert.match(modal, /SUPER_ADMIN review and[\s\S]*onboarding/);
+  assert.match(modal, /does not have to use DM3Oi&apos;s canonical import column[\s\S]*names/);
+  assert.match(modal, /does not change existing Customer[\s\S]*records/);
+
+  for (const field of [
+    "Name",
+    "Street Address",
+    "City",
+    "State",
+    "ZIP/Postal Code",
+    "Email",
+    "Phone",
+  ]) {
+    assert.match(modal, new RegExp(`<li>${field}</li>`));
+  }
+});
+
+test("organization submission reuses staging actions without direct import controls", () => {
+  assert.match(action, /requireCustomerDataSubmitter\(\)/);
+  assert.match(action, /CUSTOMER_IMPORT_FILE_BUCKET/);
+  assert.match(action, /\.from\("customer_import_submissions"\)[\s\S]*\.insert\(/);
+  assert.match(action, /notifyPlatformAdministratorsOfCustomerDataSubmission/);
+  assert.match(repository, /\.from\("customer_import_submissions"\)/);
+  assert.doesNotMatch(page, /validate|preview|Ready To Import/i);
+  assert.doesNotMatch(modal, /validate|preview|Ready To Import/i);
+});
+
+test("Customer Data submission introduces no polling or realtime refresh", () => {
+  assert.doesNotMatch(
+    [page, customerPage, modal, action, repository].join("\n"),
+    /setInterval|setTimeout|\.channel\(|postgres_changes|router\.refresh/,
+  );
+});

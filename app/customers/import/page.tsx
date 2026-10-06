@@ -4,10 +4,8 @@ import { notFound } from "next/navigation";
 import { Badge, PageHeader } from "@/components/ui";
 import { CustomerDataSubmitModal } from "@/components/customers/customer-data-submit-modal";
 import { CustomerImportSuccessNotice } from "@/components/customers/customer-import-success-notice";
-import {
-  canSubmitCustomerData,
-  getCustomerImportSubmissions,
-} from "@/lib/data/customer-import-submissions";
+import { canSubmitCustomerData } from "@/lib/customer-data-submission-access";
+import { getCustomerImportSubmissions } from "@/lib/data/customer-import-submissions";
 import { getAccessContext } from "@/lib/auth/context";
 
 export const metadata = { title: "Submit Customer Data" };
@@ -40,11 +38,7 @@ export default async function Page({
   const access = await getAccessContext();
 
   if (
-    !access?.activeOrganization ||
-    !access.internalAccess ||
-    !canSubmitCustomerData(
-      access as Parameters<typeof canSubmitCustomerData>[0],
-    )
+    !canSubmitCustomerData(access)
   ) {
     notFound();
   }
@@ -57,9 +51,9 @@ export default async function Page({
   return (
     <>
       <PageHeader
-        eyebrow="Relationships"
+        eyebrow="Customer Data"
         title="Submit Customer Data"
-        description="Securely upload customer data using an Excel or CSV file for platform administrator to import. Imported data files are not retained."
+        description="Upload an Excel or CSV source file for review and onboarding. Submitting a file does not directly add Customers to DM3Oi."
         action={
           <div className="page-header-actions">
             <CustomerDataSubmitModal />

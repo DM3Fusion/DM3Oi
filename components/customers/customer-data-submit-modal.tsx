@@ -39,8 +39,9 @@ export function CustomerDataSubmitModal() {
                 Submit Customer Data
               </h2>
               <p>
-                Upload an Excel or CSV file for the platform administrator to
-                import. Imported data files are not retained.
+                Upload an Excel or CSV source file for SUPER_ADMIN review and
+                onboarding. Submitting a file does not directly add Customers
+                to DM3Oi.
               </p>
             </div>
 
@@ -64,10 +65,17 @@ export function CustomerDataSubmitModal() {
               <li>Street Address</li>
               <li>City</li>
               <li>State</li>
-              <li>ZIP Code</li>
+              <li>ZIP/Postal Code</li>
               <li>Email</li>
-              <li>Phone Number</li>
+              <li>Phone</li>
             </ul>
+
+            <p>
+              Your file does not have to use DM3Oi&apos;s canonical import column
+              names. A SUPER_ADMIN reviews and prepares the source data before
+              import. Uploading a file does not change existing Customer
+              records.
+            </p>
           </div>
 
           <label>

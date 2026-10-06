@@ -1,26 +1,11 @@
 import "server-only";
 
 import { requireInternalContext } from "@/lib/auth/context";
+import { canSubmitCustomerData } from "@/lib/customer-data-submission-access";
 import { createClient } from "@/lib/supabase/server";
 
 export const CUSTOMER_IMPORT_FILE_BUCKET = "customer-import-files";
 export const CUSTOMER_IMPORT_FILE_MAX_BYTES = 10 * 1024 * 1024;
-
-export const customerImportSubmissionRoles = [
-  "BUSINESS_OWNER",
-  "BUSINESS_ADMIN",
-] as const;
-
-export function canSubmitCustomerData(
-  context: Awaited<ReturnType<typeof requireInternalContext>>,
-) {
-  return (
-    !context.isSuperAdmin &&
-    customerImportSubmissionRoles.some(
-      (role) => role === context.activeOrganization.role,
-    )
-  );
-}
 
 export async function requireCustomerDataSubmitter() {
   const context = await requireInternalContext();

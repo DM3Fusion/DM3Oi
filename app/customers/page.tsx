@@ -9,6 +9,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
+import { canSubmitCustomerData } from "@/lib/customer-data-submission-access";
 export const metadata = { title: "Customers" };
 export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string }> }) {
   const [data, query, access] = await Promise.all([getCustomerRegisterData(), searchParams, getAccessContext()]);
@@ -22,14 +23,13 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         eyebrow="Relationships"
         title="Customers"
         action={
-          access?.activeOrganization &&
-          !access.isSuperAdmin &&
-          (access.activeOrganization.role === "BUSINESS_OWNER" ||
-            access.activeOrganization.role === "BUSINESS_ADMIN") ? (
+          canSubmitCustomerData(access) ? (
             <div className="page-header-actions">
-              <Link className="secondary-button" href="/customers/import">
+              {/* A document navigation avoids the (.)[customerId] modal treating "import" as a Customer ID. */}
+              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
+              <a className="secondary-button" href="/customers/import">
                 Submit Customer Data
-              </Link>
+              </a>
               {hasPermission(access, "CREATE_CUSTOMER") ? (
                 <Link className="primary-button" href="/customers/new">
                   <ApplicationIcon name="add" />New Customer
