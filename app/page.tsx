@@ -17,7 +17,6 @@ import { getGoalDashboardSummary } from "@/lib/data/goals-repository";
 import { ApplicationIcon } from "@/components/application-icon";
 import { PublicLandingPage } from "@/components/public-landing-page";
 import { getPublishedLandingPageContent } from "@/lib/public-landing-page-server";
-import { measureServerPerformance } from "@/lib/server-performance";
 
 export default async function Page({
   searchParams,
@@ -28,20 +27,11 @@ export default async function Page({
     analyticsThrough?: string;
   }>;
 }) {
-  return measureServerPerformance("/", "page.total", async () => {
-  const access = await measureServerPerformance(
-    "/",
-    "page.getAccessContext",
-    () => getAccessContext(),
-  );
+  const access = await getAccessContext();
 
   if (!access) {
     const landingPageContent =
-      await measureServerPerformance(
-        "/",
-        "page.getPublishedLandingPageContent",
-        () => getPublishedLandingPageContent(),
-      );
+      await getPublishedLandingPageContent();
 
     return (
       <PublicLandingPage
@@ -62,21 +52,9 @@ export default async function Page({
 
     const [administration, analytics, overviewDownloadCount] =
       await Promise.all([
-        measureServerPerformance(
-          "/",
-          "page.getPlatformAdministration",
-          () => getPlatformAdministration(),
-        ),
-        measureServerPerformance(
-          "/",
-          "page.getPlatformAnalytics",
-          () => getPlatformAnalytics(query),
-        ),
-        measureServerPerformance(
-          "/",
-          "page.getOverviewDownloadCount",
-          () => getOverviewDownloadCount(),
-        ),
+        getPlatformAdministration(),
+        getPlatformAnalytics(query),
+        getOverviewDownloadCount(),
       ]);
 
     return (
@@ -115,33 +93,17 @@ export default async function Page({
     unreadCommunications,
     goalSummary,
   ] = await Promise.all([
-    measureServerPerformance(
-      "/",
-      "page.getLiveOrganizationData",
-      () => getLiveOrganizationData(),
-    ),
-    measureServerPerformance(
-      "/",
-      "page.getUnreadNotificationCount",
-      () => getUnreadNotificationCount({
+    getLiveOrganizationData(),
+    getUnreadNotificationCount({
       organizationId:
         access.activeOrganization!.id,
       userId: access.user.id,
-      }),
-    ),
-    measureServerPerformance(
-      "/",
-      "page.getGoalDashboardSummary",
-      () => getGoalDashboardSummary(),
-    ),
+    }),
+    getGoalDashboardSummary(),
   ]);
 
   const intelligence =
-    await measureServerPerformance(
-      "/",
-      "page.getOperationalIntelligence",
-      () => getOperationalIntelligence(data),
-    );
+    await getOperationalIntelligence(data);
 
   return (
     <>
@@ -168,5 +130,4 @@ export default async function Page({
       />
     </>
   );
-  });
 }

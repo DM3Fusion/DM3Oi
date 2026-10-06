@@ -9,7 +9,6 @@ import {
   type GoalProgressEntry,
   type GoalRecord,
 } from "@/lib/goals";
-import { logServerPerformance, measureServerPerformance } from "@/lib/server-performance";
 
 type GoalRpcClient = {
   rpc(
@@ -56,12 +55,7 @@ export type GoalDashboardSummary = {
 
 export async function getGoalDashboardSummary():
   Promise<GoalDashboardSummary | null> {
-  return measureServerPerformance("/", "repository.goalDashboardSummary.total", async () => {
-  const access = await measureServerPerformance(
-    "/",
-    "repository.goalDashboardSummary.accessContext",
-    () => getAccessContext(),
-  );
+  const access = await getAccessContext();
 
   if (
     !access?.activeOrganization ||
@@ -78,20 +72,12 @@ export async function getGoalDashboardSummary():
 
   const [goalsResult, timezone] =
     await Promise.all([
-      measureServerPerformance(
-        "/",
-        "repository.goalDashboardSummary.getGoalsRpc",
-        () => rpc.rpc("get_goals", {
+      rpc.rpc("get_goals", {
         target_organization_id:
           organizationId,
         target_goal_id: null,
-        }),
-      ),
-      measureServerPerformance(
-        "/",
-        "repository.goalDashboardSummary.organizationTimezone",
-        () => organizationTimezone(organizationId),
-      ),
+      }),
+      organizationTimezone(organizationId),
     ]);
 
   if (goalsResult.error) {
@@ -122,7 +108,6 @@ export async function getGoalDashboardSummary():
     missed: 0,
   };
 
-  const aggregationStartedAt = performance.now();
   for (const goal of goals) {
     if (
       goal.lifecycle_status === "ACTIVE"
@@ -146,13 +131,7 @@ export async function getGoalDashboardSummary():
     }
   }
 
-  logServerPerformance(
-    "/",
-    "repository.goalDashboardSummary.aggregate",
-    aggregationStartedAt,
-  );
   return summary;
-  });
 }
 
 export async function getGoalsRegisterData() {

@@ -10,7 +10,6 @@ import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, 
 import { ApplicationIcon } from "@/components/application-icon";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import { AssignedUserWorkloads } from "@/components/cases/assigned-user-workloads";
-import { logServerPerformance, measureServerPerformance } from "@/lib/server-performance";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -22,21 +21,11 @@ type Params = {
   assignee?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
-  return measureServerPerformance("/cases", "page.total", async () => {
   const [data, filters, access] = await Promise.all([
-    measureServerPerformance(
-      "/cases",
-      "page.getCasesRegisterData",
-      () => getCasesRegisterData(),
-    ),
-    measureServerPerformance("/cases", "page.searchParams", () => searchParams),
-    measureServerPerformance(
-      "/cases",
-      "page.getAccessContext",
-      () => getAccessContext(),
-    ),
+    getCasesRegisterData(),
+    searchParams,
+    getAccessContext(),
   ]);
-  const prepareStartedAt = performance.now();
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
@@ -65,7 +54,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     matchesCaseRegisterFilters(item, filters, data.timezone),
   );
   const canCreate = hasPermission(access, "CREATE_CASE");
-  logServerPerformance("/cases", "page.prepareViewModel", prepareStartedAt);
 
   return (
     <>
@@ -117,5 +105,4 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>
   );
-  });
 }
