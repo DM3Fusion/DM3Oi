@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { updateCustomerImportSubmissionAction } from "@/app/admin/customer-import/submission-actions";
-
 type ReviewValues = {
   status: string;
   fileDisposition: string;
@@ -63,12 +61,21 @@ export function CustomerImportReviewForm({
         setError(null);
 
         try {
-          const result = await updateCustomerImportSubmissionAction(
-            new FormData(event.currentTarget),
-          );
+          const response = await fetch("/api/admin/customer-import/review", {
+            method: "POST",
+            body: new FormData(event.currentTarget),
+            credentials: "same-origin",
+          });
+          const result = (await response.json()) as {
+            ok: boolean;
+            error?: string;
+          };
 
-          if (!result.ok) {
-            setError(result.error);
+          if (!response.ok || !result.ok) {
+            setError(
+              result.error ??
+                "The Customer data submission could not be updated.",
+            );
             return;
           }
 
