@@ -338,10 +338,6 @@ export function PlatformDashboard({
         <section className="panel platform-ready">
           <div className="section-head">
             <h2>Organization workspaces</h2>
-            <Link href="/admin/organizations">
-              View organizations{" "}
-              <ApplicationIcon name="forward" />
-            </Link>
           </div>
           <OrganizationTable organizations={organizations} />
         </section>

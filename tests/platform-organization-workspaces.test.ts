@@ -11,6 +11,7 @@ const organizationTable = source(
 );
 const organizationsPage = source("app/admin/organizations/page.tsx");
 const repository = source("lib/data/platform-repository.ts");
+const styles = source("app/globals.css");
 
 test("Platform Console loads the complete authorized organization collection", () => {
   assert.match(rootPage, /getPlatformAdministration\(\)/);
@@ -27,8 +28,7 @@ test("Platform Console loads the complete authorized organization collection", (
 
 test("Platform Console renders the shared organization directory table", () => {
   assert.match(dashboard, /Organization workspaces/);
-  assert.match(dashboard, /href="\/admin\/organizations"/);
-  assert.match(dashboard, /View organizations/);
+  assert.doesNotMatch(dashboard, /View organizations/);
   assert.match(
     dashboard,
     /<OrganizationTable organizations=\{organizations\}/,
@@ -66,6 +66,14 @@ test("organization rows are fully navigable and retain a real accessible link", 
 
 test("organization table remains responsive and introduces no background refresh", () => {
   assert.match(organizationTable, /className="table-scroll"/);
+  assert.match(
+    styles,
+    /\.platform-ready\{[^}]*width:100%[^}]*max-width:100%[^}]*min-width:0[^}]*overflow:hidden/,
+  );
+  assert.match(
+    styles,
+    /\.platform-ready \.table-scroll\{[^}]*width:100%[^}]*max-width:100%[^}]*min-width:0[^}]*overflow-x:auto/,
+  );
   assert.doesNotMatch(
     [rootPage, dashboard, organizationTable].join("\n"),
     /setInterval|setTimeout|useEffect|\.channel\(|postgres_changes|router\.refresh/,
