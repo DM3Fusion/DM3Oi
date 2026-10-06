@@ -9,6 +9,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getCaseDashboardCounts, matchesCaseRegisterFilters, normalizeCaseView, normalizeRawCaseStatus } from "@/lib/case-dashboard";
 import { ApplicationIcon } from "@/components/application-icon";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
+import { AssignedUserWorkloads } from "@/components/cases/assigned-user-workloads";
 export const metadata = { title: "Cases" };
 type Params = {
   query?: string;
@@ -17,6 +18,7 @@ type Params = {
   assignment?: string;
   view?: string;
   lifecycle?: string;
+  assignee?: string;
 };
 export default async function Page({ searchParams }: { searchParams: Promise<Params> }) {
   const [data, filters, access] = await Promise.all([
@@ -84,6 +86,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
         </Link>
       </nav>
       <CaseKpis counts={counts} filters={filters} selectedView={selectedView} />
+      <AssignedUserWorkloads workloads={data.workloads} />
       <CasesRegister items={items} filters={{ ...filters, status: dashboardStatus ?? rawStatus ?? "ALL", view: selectedView }} />
     </>
   );

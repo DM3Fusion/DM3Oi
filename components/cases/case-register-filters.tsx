@@ -11,6 +11,7 @@ export interface CaseRegisterFilterValues {
   assignment?: string;
   view?: string;
   lifecycle?: string;
+  assignee?: string;
 }
 
 export function CaseRegisterFilters({
@@ -68,6 +69,10 @@ export function CaseRegisterFilters({
 
       {filters.lifecycle ? (
         <input type="hidden" name="lifecycle" value={filters.lifecycle} />
+      ) : null}
+
+      {filters.assignee ? (
+        <input type="hidden" name="assignee" value={filters.assignee} />
       ) : null}
 
       <label className="search">

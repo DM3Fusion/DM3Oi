@@ -15,6 +15,7 @@ export interface CaseRegisterFilters {
   priority?: string;
   assignment?: string;
   view?: string;
+  assignee?: string;
 }
 
 export interface CaseDashboardCounts {
@@ -37,7 +38,11 @@ export const normalizeRawCaseStatus = (value?: string): CaseRegisterRow["status"
 export const isCaseUnassigned = (item: CaseRegisterRow) =>
   !item.manager_user_id && item.assignedStaff.length === 0;
 
-export function isCaseOverdue(item: CaseRegisterRow, timezone: string, now = new Date()) {
+export function isCaseOverdue(
+  item: Pick<CaseRegisterRow, "due_at" | "status">,
+  timezone: string,
+  now = new Date(),
+) {
   if (!item.due_at || !isIncompleteCompatibilityCaseStatus(item.status)) return false;
   const dueAt = new Date(item.due_at);
   return !Number.isNaN(dueAt.getTime()) && dueAt < startOfOrganizationDay(now, timezone);
@@ -73,12 +78,16 @@ export function matchesCaseRegisterFilters(item: CaseRegisterRow, filters: CaseR
     && `${item.case_number} ${item.title} ${item.customer?.name ?? ""}`.toLowerCase().includes(query)
     && (dashboardStatus ? matchesCaseFilter(item, dashboardStatus) : rawStatus ? item.status === rawStatus : true)
     && (filters.priority && filters.priority !== "ALL" ? item.priority === filters.priority : true)
-    && (filters.assignment === "ASSIGNED" ? !isCaseUnassigned(item) : filters.assignment === "UNASSIGNED" ? isCaseUnassigned(item) : true);
+    && (filters.assignment === "ASSIGNED" ? !isCaseUnassigned(item) : filters.assignment === "UNASSIGNED" ? isCaseUnassigned(item) : true)
+    && (filters.assignee
+      ? item.manager_user_id === filters.assignee ||
+        item.assignedStaff.some((profile) => profile.id === filters.assignee)
+      : true);
 }
 
 export function caseViewHref(filters: CaseRegisterFilters, view?: CaseView) {
   const params = new URLSearchParams();
-  for (const key of ["query", "status", "priority", "assignment"] as const) {
+  for (const key of ["query", "status", "priority", "assignment", "assignee"] as const) {
     const value = filters[key];
     if (value) params.set(key, value);
   }

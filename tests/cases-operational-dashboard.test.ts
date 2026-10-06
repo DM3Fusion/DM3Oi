@@ -110,9 +110,11 @@ test("Cases register uses a purpose-built lightweight projection", () => {
 
   assert.match(
     loader,
-    /select\(\s*"id,case_number,title,status,priority,due_at,manager_user_id,customer_id",?\s*\)/,
+    /select\(\s*"id,case_number,title,status,priority,due_at,manager_user_id,customer_id,tax_year",?\s*\)/,
   );
   assert.match(loader, /select\("id,name"\)/);
+  assert.match(loader, /select\("case_id,user_id,assignment_role,is_active"\)/);
+  assert.match(loader, /assignment\.assignment_role === "STAFF" && assignment\.is_active/);
   assert.match(
     loader,
     /select\("id,case_id,title,status,required,blocking,due_at"\)/,
@@ -129,10 +131,9 @@ test("Cases register uses a purpose-built lightweight projection", () => {
     /loadOrganizationCaseRuleEvaluationBundle\(\s*organizationId,\s*ruleCaseIds,?\s*\)/,
   );
 
-  assert.doesNotMatch(
-    loader,
-    /item\.manager_user_id \? \[item\.manager_user_id\]/,
-  );
+  assert.match(loader, /item\.manager_user_id \? \[item\.manager_user_id\]/);
+  assert.match(loader, /from\("organization_members"\)[\s\S]*?\.eq\("status", "ACTIVE"\)[\s\S]*?\.eq\("is_active", true\)/);
+  assert.match(loader, /getCaseAssigneeWorkloads/);
 
   assert.match(loader, /nextTaskDueAt/);
   assert.match(table, /item\.nextTaskDueAt/);

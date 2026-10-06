@@ -10,13 +10,27 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
 import { canSubmitCustomerData } from "@/lib/customer-data-submission-access";
+import { CustomerKpis } from "@/components/customers/customer-kpis";
+import {
+  getCustomerRegisterDashboard,
+  normalizeCustomerView,
+} from "@/lib/customer-register-dashboard";
 export const metadata = { title: "Customers" };
-export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string }> }) {
+export default async function Page({ searchParams }: { searchParams: Promise<{ message?: string; q?: string; status?: string; view?: string }> }) {
   const [data, query, access] = await Promise.all([getCustomerRegisterData(), searchParams, getAccessContext()]);
   const q = normalizeCustomerQuery(query.q);
   const status = normalizeCustomerStatus(query.status);
-  const customers = data.customers.filter((customer) => customerMatchesFilters(customer, q, status));
-  const filtered = Boolean(q) || status !== "all";
+  const view = normalizeCustomerView(query.view);
+  const dashboard = getCustomerRegisterDashboard(
+    data.customers,
+    data.cases,
+    data.effectivePortalCustomerIds,
+  );
+  const customers = data.customers.filter((customer) =>
+      dashboard.matches(customer.id, view) &&
+      customerMatchesFilters(customer, q, status),
+  );
+  const filtered = Boolean(q) || status !== "all" || Boolean(view);
   return (
     <>
       <PageHeader
@@ -44,6 +58,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
         }
       />
       {query.message ? <div className="success-alert page-notice">{query.message}</div> : null}
+      <CustomerKpis
+        counts={dashboard.counts}
+        filters={{ q, status }}
+        selectedView={view}
+      />
       <CustomerFilters q={q} status={status} />
       <section className="panel">
         {customers.length ? (
