@@ -1,6 +1,7 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
-export async function getNewTrialRequestCount() {
+async function resolveNewTrialRequestCount() {
   const supabase = await createClient();
 
   const trialRequests = supabase.from.bind(supabase) as unknown as (
@@ -17,3 +18,5 @@ export async function getNewTrialRequestCount() {
 
   return count ?? 0;
 }
+
+export const getNewTrialRequestCount = cache(resolveNewTrialRequestCount);

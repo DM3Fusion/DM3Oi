@@ -144,14 +144,16 @@ test("notification creation remains tenant-safe, staff-only, and platform-privat
 test("Communications automatically supplies inbox, badge, filters, and existing reply events", () => {
   const repository = source("lib/data/communications-repository.ts");
   const inbox = source("components/communications-inbox.tsx");
-  const shell = source("components/layout/app-shell.tsx");
   assert.match(repository, /source_domain", "SERVICE_REQUEST"/);
   assert.match(repository, /title\.ilike/);
   assert.match(repository, /filters\.createdAfter/);
   assert.match(repository, /getUnreadNotificationCount/);
   assert.match(repository, /!notification\.read_at/);
   assert.match(inbox, /openNotificationAction/);
-  assert.match(shell, /nav-unread-count/);
+  assert.match(
+    source("components/layout/navigation-attention-badges.tsx"),
+    /nav-unread-count/,
+  );
   assert.match(
     communicationsMigration,
     /'CUSTOMER_RESPONSE_RECEIVED'[\s\S]*'Customer response received'/,

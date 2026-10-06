@@ -50,14 +50,18 @@ export function AppShell({
   children,
   access,
   applicationVersionLabel,
-  unreadNotificationCount,
-  newTrialRequestCount,
+  communicationsDesktopBadge,
+  communicationsMobileBadge,
+  trialRequestsDesktopBadge,
+  trialRequestsMobileBadge,
 }: {
   children: React.ReactNode;
   access: AccessContext | null;
   applicationVersionLabel: string;
-  unreadNotificationCount: number;
-  newTrialRequestCount: number;
+  communicationsDesktopBadge: React.ReactNode;
+  communicationsMobileBadge: React.ReactNode;
+  trialRequestsDesktopBadge: React.ReactNode;
+  trialRequestsMobileBadge: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -118,7 +122,7 @@ export function AppShell({
         href: item.href,
         label: item.href === "/" ? "Home" : item.label,
         icon: item.icon,
-        unreadCount: item.href === "/communications" ? unreadNotificationCount : undefined,
+        badge: item.href === "/communications" ? communicationsMobileBadge : undefined,
       })),
     ...(access
       ? [{
@@ -126,7 +130,7 @@ export function AppShell({
           label: "More",
           icon: "account" as const,
           opensPanel: true,
-          unreadCount: platformContext ? newTrialRequestCount : undefined,
+          badge: platformContext ? trialRequestsMobileBadge : undefined,
           activePrefixes: platformContext
             ? [
                 "/account",
@@ -268,16 +272,8 @@ export function AppShell({
               >
                 <ApplicationIcon name={icon} />
                 <span>{label}</span>
-                {href === "/communications" && unreadNotificationCount > 0 ? (
-                  <span className="nav-unread-count" aria-label={`${unreadNotificationCount} unread notifications`}>
-                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                  </span>
-                ) : null}
-                {href === "/admin/trial-requests" && newTrialRequestCount > 0 ? (
-                  <span className="nav-unread-count" aria-label={`${newTrialRequestCount} new Trial Requests`}>
-                    {newTrialRequestCount > 99 ? "99+" : newTrialRequestCount}
-                  </span>
-                ) : null}
+                {href === "/communications" ? communicationsDesktopBadge : null}
+                {href === "/admin/trial-requests" ? trialRequestsDesktopBadge : null}
               </Link>
             );
           })}

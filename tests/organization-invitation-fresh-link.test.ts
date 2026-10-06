@@ -199,8 +199,10 @@ test("pending organization identities reach awaiting activation without gaining 
 
 test("organization shell renders server-loaded Inbox attention without background reconciliation", () => {
   const shell = source("components/layout/app-shell.tsx");
+  const badges = source("components/layout/navigation-attention-badges.tsx");
 
-  assert.match(shell, /href === "\/communications" && unreadNotificationCount > 0/);
+  assert.match(shell, /href === "\/communications" \? communicationsDesktopBadge : null/);
+  assert.match(badges, /await getUnreadNotificationCount/);
   assert.doesNotMatch(shell, /liveUnreadNotificationCount/);
   assert.doesNotMatch(shell, /get_my_unread_notification_count/);
   assert.doesNotMatch(shell, /window\.setInterval|visibilitychange|router\.refresh\(\)/);

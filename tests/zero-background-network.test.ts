@@ -7,14 +7,23 @@ const source = (path: string) => readFileSync(path, "utf8");
 test("application-shell badges use server-rendered counts without client polling or Realtime", () => {
   const layout = source("app/layout.tsx");
   const shell = source("components/layout/app-shell.tsx");
+  const mobileNavigation = source("components/layout/mobile-bottom-navigation.tsx");
+  const badges = source("components/layout/navigation-attention-badges.tsx");
+  const communicationsRepository = source("lib/data/communications-repository.ts");
+  const trialRequestRepository = source("lib/data/trial-request-repository.ts");
 
-  assert.match(layout, /getUnreadNotificationCount/);
-  assert.match(layout, /getNewTrialRequestCount/);
-  assert.match(shell, /unreadNotificationCount > 99 \? "99\+" : unreadNotificationCount/);
-  assert.match(shell, /newTrialRequestCount > 99 \? "99\+" : newTrialRequestCount/);
+  assert.doesNotMatch(layout, /getUnreadNotificationCount|getNewTrialRequestCount/);
+  assert.match(layout, /<Suspense fallback=\{null\}>/);
+  assert.match(layout, /<UnreadCommunicationsNavigationBadge/);
+  assert.match(layout, /<NewTrialRequestsNavigationBadge/);
+  assert.match(badges, /await getUnreadNotificationCount/);
+  assert.match(badges, /await getNewTrialRequestCount/);
+  assert.match(badges, /count > 99 \? "99\+" : count/);
+  assert.match(communicationsRepository, /getUnreadNotificationCountForScope = cache/);
+  assert.match(trialRequestRepository, /getNewTrialRequestCount = cache/);
   assert.doesNotMatch(
-    shell,
-    /setInterval|get_my_unread_notification_count|postgres_changes|\.channel\(|visibilitychange|addEventListener\("focus"|createClient|router\.refresh/,
+    `${shell}\n${mobileNavigation}`,
+    /setInterval|setTimeout|get_my_unread_notification_count|postgres_changes|\.channel\(|visibilitychange|addEventListener\("focus"|createClient|router\.refresh/,
   );
 });
 

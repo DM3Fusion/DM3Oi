@@ -6,6 +6,7 @@ import { mobileSecondaryNavigation } from "../lib/application-navigation.ts";
 const source = (path: string) => readFileSync(path, "utf8");
 const shell = source("components/layout/app-shell.tsx");
 const navigation = source("components/layout/mobile-bottom-navigation.tsx");
+const attentionBadges = source("components/layout/navigation-attention-badges.tsx");
 const layout = source("app/layout.tsx");
 const communications = source("app/communications/page.tsx");
 const account = source("app/account/profile/page.tsx");
@@ -44,12 +45,14 @@ test("mobile destinations derive from the existing effective-permission navigati
 });
 
 test("mobile Communications badge uses the count loaded by the server", () => {
-  assert.match(layout, /getUnreadNotificationCount/);
-  assert.match(layout, /unreadNotificationCount=\{unreadNotificationCount\}/);
-  assert.match(shell, /unreadCount: item\.href === "\/communications" \? unreadNotificationCount : undefined/);
+  assert.doesNotMatch(layout, /getUnreadNotificationCount/);
+  assert.match(layout, /<Suspense fallback=\{null\}>[\s\S]*?<UnreadCommunicationsNavigationBadge \{\.\.\.unreadAttention\} mobile \/>/);
+  assert.match(attentionBadges, /await getUnreadNotificationCount/);
+  assert.match(shell, /badge: item\.href === "\/communications" \? communicationsMobileBadge : undefined/);
   assert.doesNotMatch(shell, /get_my_unread_notification_count|liveUnreadNotificationCount/);
-  assert.match(navigation, /unreadCount > 0 \? <span className="mobile-navigation-badge"/);
-  assert.match(navigation, /unreadCount > 99 \? "99\+" : unreadCount/);
+  assert.match(navigation, /<span className="mobile-navigation-icon">[\s\S]*?\{badge\}/);
+  assert.match(attentionBadges, /mobile \? "mobile-navigation-badge" : "nav-unread-count"/);
+  assert.match(attentionBadges, /count > 99 \? "99\+" : count/);
   assert.doesNotMatch(navigation, /getUnreadNotificationCount|notifications/);
 });
 

@@ -16,7 +16,7 @@ export type MobileNavigationItem = {
   href: string;
   label: string;
   icon: ApplicationIconName;
-  unreadCount?: number;
+  badge?: React.ReactNode;
   activePrefixes?: readonly string[];
   opensPanel?: boolean;
 };
@@ -200,13 +200,13 @@ export function MobileBottomNavigation({
         </>
       ) : null}
       <nav className="mobile-bottom-navigation" aria-label="Primary mobile navigation">
-      {items.map(({ href, label, icon, unreadCount = 0, activePrefixes = [], opensPanel = false }) => {
+      {items.map(({ href, label, icon, badge, activePrefixes = [], opensPanel = false }) => {
         const active = isActive(pathname, href, activePrefixes);
         const content = (
           <>
             <span className="mobile-navigation-icon">
               <ApplicationIcon name={icon} />
-              {unreadCount > 0 ? <span className="mobile-navigation-badge" aria-hidden>{unreadCount > 99 ? "99+" : unreadCount}</span> : null}
+              {badge}
             </span>
             <span>{label}</span>
           </>
@@ -228,7 +228,7 @@ export function MobileBottomNavigation({
         }
 
         return (
-          <Link key={href} href={href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined} aria-label={unreadCount > 0 ? `${label}, ${unreadCount} unread communications` : label}>
+          <Link key={href} href={href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
             {content}
           </Link>
         );
