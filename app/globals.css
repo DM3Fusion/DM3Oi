@@ -12759,3 +12759,8 @@ dialog.task-modal.intake-document-availability-modal {
   justify-content: center;
   text-align: center;
 }
+
+/* Match Task KPI section spacing to other dashboard card groups. */
+.task-kpis {
+  margin-bottom: 36px;
+}
