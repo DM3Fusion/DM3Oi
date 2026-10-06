@@ -36,6 +36,14 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       item.status === "COMPLETED" ||
       isIncompleteCompatibilityCaseStatus(item.status),
   );
+  const dashboardTaxYear = dashboardCases.reduce<number | null>(
+    (latest, item) => {
+      const taxYear = Number(item.tax_year);
+      if (!Number.isInteger(taxYear) || taxYear <= 0) return latest;
+      return latest === null ? taxYear : Math.max(latest, taxYear);
+    },
+    null,
+  );
   const lifecycleCases = dashboardCases.filter((item) =>
     selectedLifecycle === "completed"
       ? item.status === "COMPLETED"
@@ -51,7 +59,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
     <>
       <PageHeader
         eyebrow="Operations"
-        title="Cases"
+        title={dashboardTaxYear ? `${dashboardTaxYear} Cases` : "Cases"}
         action={
           canCreate ? (
             <Link className="primary-button" href="/cases/new">
