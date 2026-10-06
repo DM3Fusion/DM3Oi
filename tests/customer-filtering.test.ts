@@ -5,13 +5,32 @@ import { customerMatchesFilters, normalizeCustomerQuery, normalizeCustomerStatus
 const customer = {
   customer_number: "CUS-000001",
   name: "Jessica Jones",
+  first_name: "Jessica",
+  last_name: "Jones",
+  street_address: "3412 N College Ave",
+  city: "Indianapolis",
+  state: "IN",
+  postal_code: "46218",
   email: "jessica@aol.com",
   phone: "2405551212",
   type: "INDIVIDUAL",
   status: "ACTIVE",
 };
 test("customer search is trimmed partial case-insensitive and covers useful fields", () => {
-  for (const query of ["jessica", "JONES", "000001", "aol", "240", "individual"]) assert.equal(customerMatchesFilters(customer, query, "all"), true);
+  for (const query of [
+    "jessica",
+    "JONES",
+    "000001",
+    "3412",
+    "college",
+    "indianapolis",
+    "IN",
+    "46218",
+    "aol",
+    "240",
+    "individual",
+    "active",
+  ]) assert.equal(customerMatchesFilters(customer, query, "all"), true);
   assert.equal(customerMatchesFilters(customer, "missing", "all"), false);
   assert.equal(customerMatchesFilters(customer, "   ", "all"), true);
   assert.equal(normalizeCustomerQuery("  Jessica  "), "Jessica");
@@ -29,7 +48,7 @@ test("customer filter UI is URL driven debounced clearable and server authorized
   assert.match(controls, /setTimeout\(\(\)=>updateUrl\(value\),300\)/);
   assert.match(controls, /router\.replace\(destination\)/);
   assert.match(controls, /aria-label="Clear customer search"/);
-  assert.match(controls, /placeholder="Search customers\.\.\."/);
+  assert.match(controls, /placeholder="Search name, address, phone, email\.\.\."/);
   assert.match(controls, /<option value="active">Active<\/option><option value="inactive">Inactive<\/option>/);
   assert.match(page, /getCustomerRegisterData\(\)/);
   assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
