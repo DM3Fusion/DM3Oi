@@ -82,12 +82,12 @@ test("KPI links preserve applicable filters and Total Cases clears only view", (
   assert.equal(caseViewHref({}, undefined), "/cases");
 });
 
-test("Cases page derives stable KPI counts from the existing authorized organization dataset", () => {
+test("Cases page derives stable KPI counts from the selected lifecycle within the existing authorized organization dataset", () => {
   const page = source("app/cases/page.tsx");
   const repository = source("lib/data/case-repository.ts");
-  const countIndex = page.indexOf("getCaseDashboardCounts(data.cases");
-  const filterIndex = page.indexOf("data.cases.filter");
-  assert.ok(countIndex > -1 && countIndex < filterIndex);
+  const lifecycleIndex = page.indexOf("const lifecycleCases = data.cases.filter");
+  const countIndex = page.indexOf("getCaseDashboardCounts(lifecycleCases");
+  assert.ok(lifecycleIndex > -1 && countIndex > lifecycleIndex);
   assert.match(page, /getCasesRegisterData\(\)/);
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)/);

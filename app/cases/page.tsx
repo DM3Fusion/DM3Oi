@@ -27,7 +27,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
   const dashboardStatus = normalizeCaseStatus(filters.status);
   const rawStatus = normalizeRawCaseStatus(filters.status);
   const selectedView = normalizeCaseView(filters.view);
-  const counts = getCaseDashboardCounts(data.cases, data.timezone);
   const selectedLifecycle =
     filters.lifecycle === "completed" ? "completed" : "active";
   const lifecycleCases = data.cases.filter((item) =>
@@ -35,6 +34,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Par
       ? item.status === "COMPLETED"
       : isIncompleteCompatibilityCaseStatus(item.status),
   );
+  const counts = getCaseDashboardCounts(lifecycleCases, data.timezone);
   const items = lifecycleCases.filter((item) =>
     matchesCaseRegisterFilters(item, filters, data.timezone),
   );
