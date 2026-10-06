@@ -12693,3 +12693,9 @@ dialog.task-modal.intake-document-availability-modal {
 .task-kpis {
   margin-bottom: 28px;
 }
+
+/* Reports KPI cards center only the headline label and primary value. */
+.report-kpi > small,
+.report-kpi > strong {
+  text-align: center;
+}
