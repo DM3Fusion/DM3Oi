@@ -12726,3 +12726,29 @@ dialog.task-modal.intake-document-availability-modal {
 .report-kpi > strong {
   text-align: center;
 }
+
+/* KPI summary card hover emphasis */
+.metric,
+.operations-kpi,
+.customer-kpi,
+.case-kpi {
+  transition:
+    background-color .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease;
+}
+
+@media (hover:hover) and (pointer:fine) {
+  .metric:hover,
+  .operations-kpi:hover,
+  .customer-kpi:hover,
+  .case-kpi:hover {
+    background:#e8edf3;
+    border-color:#9eacbc;
+    box-shadow:0 4px 12px rgba(15,35,60,.12);
+  }
+
+  .case-kpi:hover .case-kpi-donut::after {
+    background:#e8edf3;
+  }
+}
