@@ -217,6 +217,14 @@ test("multiple Cases needing attention keep one progress ring associated with ev
   assert.match(css, /\.attention-case-list>a>\.case-attention-progress,\.attention-case-list>div>\.case-attention-progress\{justify-self:end\}/);
 });
 
+test("Question bottlenecks clearly describe incomplete affected Cases", () => {
+  const intelligence = source("components/dashboard/operational-intelligence.tsx");
+  assert.match(
+    intelligence,
+    /detail: `\$\{item\.affectedCases\} incomplete · \$\{item\.affectedPercent\}% of current Cases`/,
+  );
+});
+
 test("phone Top Bottlenecks contains the customer-waiting message in normal flow", () => {
   const intelligence = source("components/dashboard/operational-intelligence.tsx");
   const css = source("app/globals.css");

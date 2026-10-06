@@ -107,7 +107,7 @@ export function OperationalIntelligenceSection({
       kind: "Question",
       label: item.label,
       affectedCases: item.affectedCases,
-      detail: `${item.affectedPercent}% of current Cases`,
+      detail: `${item.affectedCases} incomplete · ${item.affectedPercent}% of current Cases`,
       href: capabilities.viewQuestions ? "/questions" : null,
     })),
     ...intelligence.taskBottlenecks.map((item) => ({
