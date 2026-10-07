@@ -54,9 +54,9 @@ test("Case assignments use canonical profile avatars through one trusted batch",
 });
 
 test("canonical signing stays tenant-authorized, owner-path validated, and platform-safe", () => {
-  assert.ok(
-    repository.indexOf("!platformAdminIds.has(member.user_id)") <
-      repository.indexOf("attachAuthorizedAvatarUrls("),
+  assert.match(
+    repository,
+    /attachAuthorizedAvatarUrls\(\s*profileRows\.map\(\(profile\) =>\s*maskPlatformProfile\(profile, platformAdminIds\),?\s*\),?\s*\)/,
   );
   assert.match(resolver, /isOwnedAvatarPath\(profile\.avatar_path, profile\.id\)/);
   assert.match(resolver, /attachAvatarUrls\(createAdminClient\(\), signableProfiles\)/);

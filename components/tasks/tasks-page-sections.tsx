@@ -4,7 +4,10 @@ import { TaskAssignedUserWorkloads } from "@/components/task-assigned-user-workl
 import { TaskFilters } from "@/components/task-filters";
 import { TaskKpis } from "@/components/task-kpis";
 import { Badge } from "@/components/ui";
-import type { getTaskRegisterData } from "@/lib/data/case-repository";
+import type {
+  getTaskRegisterData,
+  getTaskRouteSummary,
+} from "@/lib/data/case-repository";
 import {
   matchesTaskFilter,
   matchesTaskSearch,
@@ -14,7 +17,6 @@ import {
   taskStatusLabels,
 } from "@/lib/operational-filters";
 import { formatOrganizationDate } from "@/lib/organization-timezone";
-import { getTaskDashboardCounts } from "@/lib/task-assignee-workload";
 
 export type TaskPageParams = {
   q?: string;
@@ -24,17 +26,23 @@ export type TaskPageParams = {
 };
 
 type TaskDataPromise = ReturnType<typeof getTaskRegisterData>;
+type TaskSummaryPromise = ReturnType<typeof getTaskRouteSummary>;
 
-export async function resolveTasksPageModel(
+export async function resolveTasksRegisterModel(
   dataPromise: TaskDataPromise,
+  summaryPromise: TaskSummaryPromise,
   searchParams: Promise<TaskPageParams>,
 ) {
-  const [data, query] = await Promise.all([dataPromise, searchParams]);
+  const [data, summary, query] = await Promise.all([
+    dataPromise,
+    summaryPromise,
+    searchParams,
+  ]);
   const q = normalizeTaskQuery(query.q);
   const status = normalizeTaskStatus(query.status);
   const due = normalizeTaskDue(query.due);
   const eligibleAssigneeIds = new Set(
-    data.workloads.map((item) => item.profile.id),
+    summary.workloads.map((item) => item.profile.id),
   );
   const assignee =
     query.assignee && eligibleAssigneeIds.has(query.assignee)
@@ -51,8 +59,7 @@ export async function resolveTasksPageModel(
       matchesTaskSearch(task, item.case_number, q) &&
       (!assignee || task.assigned_user_id === assignee),
   );
-  const counts = getTaskDashboardCounts(data.tasks, data.timezone);
-  const assignees = data.workloads.map((item) => ({
+  const assignees = summary.workloads.map((item) => ({
     id: item.profile.id,
     name: item.profile.display_name ?? item.profile.email ?? "Organization user",
   }));
@@ -85,7 +92,6 @@ export async function resolveTasksPageModel(
   return {
     assignee,
     assignees,
-    counts,
     due,
     hasFilters,
     metaLabel,
@@ -93,34 +99,41 @@ export async function resolveTasksPageModel(
     rows,
     status,
     timezone: data.timezone,
-    workloads: data.workloads,
   };
 }
 
-export type TasksPageModelPromise = ReturnType<typeof resolveTasksPageModel>;
+export type TasksRegisterModelPromise = ReturnType<typeof resolveTasksRegisterModel>;
 
 export async function TaskKpisServerSection({
-  modelPromise,
+  summaryPromise,
+  searchParams,
 }: {
-  modelPromise: TasksPageModelPromise;
+  summaryPromise: TaskSummaryPromise;
+  searchParams: Promise<TaskPageParams>;
 }) {
-  const model = await modelPromise;
-  return <TaskKpis counts={model.counts} status={model.status} due={model.due} />;
+  const [summary, query] = await Promise.all([summaryPromise, searchParams]);
+  return (
+    <TaskKpis
+      counts={summary.counts}
+      status={normalizeTaskStatus(query.status)}
+      due={normalizeTaskDue(query.due)}
+    />
+  );
 }
 
 export async function TaskWorkloadServerSection({
-  modelPromise,
+  summaryPromise,
 }: {
-  modelPromise: TasksPageModelPromise;
+  summaryPromise: TaskSummaryPromise;
 }) {
-  const model = await modelPromise;
-  return <TaskAssignedUserWorkloads workloads={model.workloads} />;
+  const summary = await summaryPromise;
+  return <TaskAssignedUserWorkloads workloads={summary.workloads} />;
 }
 
 export async function TaskRegisterServerSection({
   modelPromise,
 }: {
-  modelPromise: TasksPageModelPromise;
+  modelPromise: TasksRegisterModelPromise;
 }) {
   const model = await modelPromise;
 

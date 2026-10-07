@@ -111,16 +111,15 @@ test("KPI links target the truthful lifecycle while Total Cases preserves the se
 test("Cases dashboard summarizes active plus completed Cases while lifecycle tabs scope only the register", () => {
   const page = `${source("app/cases/page.tsx")}\n${source("components/cases/cases-page-sections.tsx")}`;
   const repository = source("lib/data/case-repository.ts");
+  const migration = source("supabase/migrations/20261007120000_dm3oi_phase2_route_aggregates.sql");
 
   const dashboardIndex = page.indexOf("const dashboardCases = data.cases.filter");
   const lifecycleIndex = page.indexOf("const lifecycleCases = dashboardCases.filter");
-  const countIndex = page.indexOf("getCaseDashboardCounts(dashboardCases");
   const itemsIndex = page.indexOf("const items = lifecycleCases.filter");
 
   assert.ok(dashboardIndex > -1);
   assert.ok(lifecycleIndex > dashboardIndex);
-  assert.ok(countIndex > lifecycleIndex);
-  assert.ok(itemsIndex > countIndex);
+  assert.ok(itemsIndex > lifecycleIndex);
 
   assert.match(
     page,
@@ -130,9 +129,11 @@ test("Cases dashboard summarizes active plus completed Cases while lifecycle tab
     page,
     /selectedLifecycle === "completed"[\s\S]*?item\.status === "COMPLETED"[\s\S]*?isIncompleteCompatibilityCaseStatus\(item\.status\)/,
   );
-  assert.doesNotMatch(page, /getCaseDashboardCounts\(lifecycleCases/);
+  assert.match(page, /getCaseRouteSummary\(\)/);
+  assert.match(migration, /create function public\.get_case_route_summary/);
+  assert.match(migration, /'completed', count\(\*\) filter \(where status = 'COMPLETED'\)/);
 
-  assert.match(page, /getCasesRegisterData\(\)/);
+  assert.match(page, /getCasesRegisterData\(searchParams\)/);
   assert.match(repository, /hasTenantInternalAccess\(access\)/);
   assert.match(repository, /\.from\("organization_cases"\)[\s\S]*?\.eq\("organization_id", organizationId\)/);
   assert.match(page, /matchesCaseRegisterFilters\(item, filters, data\.timezone\)/);
@@ -143,9 +144,7 @@ test("Cases register uses a purpose-built lightweight projection", () => {
   const repository = source("lib/data/case-repository.ts");
   const table = source("components/cases/case-table.tsx");
 
-  const start = repository.indexOf(
-    "export async function getCasesRegisterData()",
-  );
+  const start = repository.indexOf("export async function getCasesRegisterData(");
   const end = repository.indexOf(
     "export async function getLiveCase(caseId: string)",
     start,
@@ -165,6 +164,8 @@ test("Cases register uses a purpose-built lightweight projection", () => {
   );
   assert.match(loader, /select\("case_id,current_step"\)/);
   assert.doesNotMatch(loader, /current_step,answers/);
+  assert.match(loader, /\.in\("status", registerStatuses\)/);
+  assert.doesNotMatch(loader, /\.from\("organization_members"\)/);
 
   assert.match(
     loader,
@@ -176,8 +177,9 @@ test("Cases register uses a purpose-built lightweight projection", () => {
   );
 
   assert.match(loader, /item\.manager_user_id \? \[item\.manager_user_id\]/);
-  assert.match(loader, /from\("organization_members"\)[\s\S]*?\.eq\("status", "ACTIVE"\)[\s\S]*?\.eq\("is_active", true\)/);
-  assert.match(loader, /getCaseAssigneeWorkloads/);
+  assert.doesNotMatch(loader, /from\("organization_members"\)/);
+  assert.doesNotMatch(loader, /getCaseAssigneeWorkloads/);
+  assert.match(repository, /rpc\("get_case_route_summary"/);
 
   assert.match(loader, /nextTaskDueAt/);
   assert.match(table, /item\.nextTaskDueAt/);

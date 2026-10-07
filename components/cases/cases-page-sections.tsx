@@ -7,13 +7,15 @@ import { PageHeader } from "@/components/ui";
 import type { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import {
-  getCaseDashboardCounts,
   matchesCaseRegisterFilters,
   normalizeCaseView,
   normalizeRawCaseStatus,
 } from "@/lib/case-dashboard";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
-import type { getCasesRegisterData } from "@/lib/data/case-repository";
+import type {
+  getCaseRouteSummary,
+  getCasesRegisterData,
+} from "@/lib/data/case-repository";
 import { normalizeCaseStatus } from "@/lib/operational-filters";
 
 export type CasePageParams = {
@@ -27,9 +29,10 @@ export type CasePageParams = {
 };
 
 type CaseDataPromise = ReturnType<typeof getCasesRegisterData>;
+type CaseSummaryPromise = ReturnType<typeof getCaseRouteSummary>;
 type AccessPromise = ReturnType<typeof getAccessContext>;
 
-export async function resolveCasesPageModel(
+export async function resolveCasesRegisterModel(
   dataPromise: CaseDataPromise,
   searchParams: Promise<CasePageParams>,
 ) {
@@ -44,53 +47,41 @@ export async function resolveCasesPageModel(
       item.status === "COMPLETED" ||
       isIncompleteCompatibilityCaseStatus(item.status),
   );
-  const dashboardTaxYear = dashboardCases.reduce<number | null>(
-    (latest, item) => {
-      const taxYear = Number(item.tax_year);
-      if (!Number.isInteger(taxYear) || taxYear <= 0) return latest;
-      return latest === null ? taxYear : Math.max(latest, taxYear);
-    },
-    null,
-  );
   const lifecycleCases = dashboardCases.filter((item) =>
     selectedLifecycle === "completed"
       ? item.status === "COMPLETED"
       : isIncompleteCompatibilityCaseStatus(item.status),
   );
-  const counts = getCaseDashboardCounts(dashboardCases, data.timezone);
   const items = lifecycleCases.filter((item) =>
     matchesCaseRegisterFilters(item, filters, data.timezone),
   );
 
   return {
-    counts,
     dashboardStatus,
-    dashboardTaxYear,
     filters,
     items,
     rawStatus,
     selectedLifecycle,
     selectedView,
-    workloads: data.workloads,
   };
 }
 
-export type CasesPageModelPromise = ReturnType<typeof resolveCasesPageModel>;
+export type CasesRegisterModelPromise = ReturnType<typeof resolveCasesRegisterModel>;
 
 export async function CasesHeaderServerSection({
-  modelPromise,
+  summaryPromise,
   accessPromise,
 }: {
-  modelPromise: CasesPageModelPromise;
+  summaryPromise: CaseSummaryPromise;
   accessPromise: AccessPromise;
 }) {
-  const [model, access] = await Promise.all([modelPromise, accessPromise]);
+  const [summary, access] = await Promise.all([summaryPromise, accessPromise]);
   const canCreate = hasPermission(access, "CREATE_CASE");
 
   return (
     <PageHeader
       eyebrow="Operations"
-      title={model.dashboardTaxYear ? `${model.dashboardTaxYear} Cases` : "Cases"}
+      title={summary.latestTaxYear ? `${summary.latestTaxYear} Cases` : "Cases"}
       action={
         canCreate ? (
           <Link className="primary-button" href="/cases/new">
@@ -103,33 +94,35 @@ export async function CasesHeaderServerSection({
 }
 
 export async function CaseKpisServerSection({
-  modelPromise,
+  summaryPromise,
+  searchParams,
 }: {
-  modelPromise: CasesPageModelPromise;
+  summaryPromise: CaseSummaryPromise;
+  searchParams: Promise<CasePageParams>;
 }) {
-  const model = await modelPromise;
+  const [summary, filters] = await Promise.all([summaryPromise, searchParams]);
   return (
     <CaseKpis
-      counts={model.counts}
-      filters={model.filters}
-      selectedView={model.selectedView}
+      counts={summary.counts}
+      filters={filters}
+      selectedView={normalizeCaseView(filters.view)}
     />
   );
 }
 
 export async function CaseWorkloadServerSection({
-  modelPromise,
+  summaryPromise,
 }: {
-  modelPromise: CasesPageModelPromise;
+  summaryPromise: CaseSummaryPromise;
 }) {
-  const model = await modelPromise;
-  return <AssignedUserWorkloads workloads={model.workloads} />;
+  const summary = await summaryPromise;
+  return <AssignedUserWorkloads workloads={summary.workloads} />;
 }
 
 export async function CaseRegisterServerSection({
   modelPromise,
 }: {
-  modelPromise: CasesPageModelPromise;
+  modelPromise: CasesRegisterModelPromise;
 }) {
   const model = await modelPromise;
 

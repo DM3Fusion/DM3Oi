@@ -250,6 +250,18 @@ const localBucketKey = (local: string, period: ReportingPeriod) => {
   }
   return local;
 };
+
+export function reportBucketKeys(period: ReportingPeriod) {
+  const keys = new Set<string>();
+  for (
+    let cursor = period.range.from;
+    cursor <= period.range.to;
+    cursor = addReportDays(cursor, 1)
+  ) {
+    keys.add(localBucketKey(cursor, period));
+  }
+  return [...keys];
+}
 const bucketKey = (timestamp: string, period: ReportingPeriod) => localBucketKey(dateKey(new Date(timestamp), period.timezone), period);
 
 export function buildOperationalReport({ organizationId, timezone, period, cases, tasks, currentTasks = tasks, requests, customers, capabilities, now = new Date() }: {

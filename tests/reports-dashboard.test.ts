@@ -175,15 +175,17 @@ test("Case permission is enforced in the model while independent dimensions rema
 
 test("reports repository enforces authorization scope and bounded safe-view queries", () => {
   const repository = readFileSync("lib/data/reports-repository.ts", "utf8");
+  const migration = readFileSync("supabase/migrations/20261007120000_dm3oi_phase2_route_aggregates.sql", "utf8");
   assert.match(repository, /hasPermission\(access, "VIEW_REPORTS"\)/);
   for (const permission of ["VIEW_CASES", "VIEW_TASKS", "VIEW_SERVICE_DESK", "VIEW_CUSTOMERS", "VIEW_QUESTIONS", "VIEW_RULES"]) assert.match(repository, new RegExp(`hasPermission\\(access, "${permission}"\\)`));
-  for (const view of ["organization_cases", "organization_case_tasks", "organization_service_requests", "organization_customers"]) assert.match(repository, new RegExp(`\\.from\\("${view}"\\)`));
-  assert.equal((repository.match(/\.eq\("organization_id", organizationId\)/g) ?? []).length, 7);
-  assert.match(repository, /Promise\.all/);
-  assert.match(repository, /capabilities\.rules[\s\S]*generated_by_rule[\s\S]*assigned_user_id/);
-  assert.match(repository, /select\("organization_id,title,status,created_at,completed_at,due_at,assigned_user_id"\)/);
-  assert.match(repository, /select\("organization_id,title,status,due_at"\)[\s\S]*\.in\("status", \["NOT_STARTED", "IN_PROGRESS", "WAITING_ON_CUSTOMER"\]\)[\s\S]*due_at\.lt/);
-  assert.doesNotMatch(repository, /currentTasksPromise[\s\S]*updated_at\.gte/);
+  assert.match(repository, /rpc\("get_operational_report_aggregate"/);
+  for (const table of ["cases", "case_tasks", "service_requests", "customers"]) assert.match(migration, new RegExp(`public\\.${table}`));
+  assert.match(migration, /auth\.uid\(\)/);
+  assert.match(migration, /security definer/);
+  assert.match(migration, /set search_path = ''/);
+  assert.match(migration, /can_access_case/);
+  assert.match(migration, /task\.status in \('NOT_STARTED', 'IN_PROGRESS', 'WAITING_ON_CUSTOMER'\)/);
+  assert.doesNotMatch(repository, /from\("organization_cases"\)|from\("organization_case_tasks"\)|from\("organization_service_requests"\)|from\("organization_customers"\)/);
   assert.doesNotMatch(repository, /for\s*\([^)]*\)\s*\{[^}]*await/);
   assert.doesNotMatch(repository, /\.select\("\*"\)/);
   assert.match(repository, /if \(!access\?\.activeOrganization \|\| !hasPermission/);

@@ -82,7 +82,7 @@ test("target routes use server Suspense boundaries around natural sections", () 
   assert.match(reports, /OperationalReportsServerSection/);
 });
 
-test("progressive sections preserve one expensive route load and existing URL semantics", () => {
+test("progressive sections use independent summary/register loads and preserve URL semantics", () => {
   const dashboard = source("app/page.tsx");
   const casesPage = source("app/cases/page.tsx");
   const casesSections = source("components/cases/cases-page-sections.tsx");
@@ -91,11 +91,15 @@ test("progressive sections preserve one expensive route load and existing URL se
   const reportsPage = source("app/reports/page.tsx");
 
   assert.equal(dashboard.match(/getLiveOrganizationData\(\)/g)?.length, 1);
-  assert.equal(casesPage.match(/getCasesRegisterData\(\)/g)?.length, 1);
+  assert.equal(casesPage.match(/getCasesRegisterData\(searchParams\)/g)?.length, 1);
+  assert.equal(casesPage.match(/getCaseRouteSummary\(\)/g)?.length, 1);
   assert.equal(tasksPage.match(/getTaskRegisterData\(\)/g)?.length, 1);
+  assert.equal(tasksPage.match(/getTaskRouteSummary\(\)/g)?.length, 1);
   assert.equal(reportsPage.match(/getOperationalReport\(params\)/g)?.length, 1);
   assert.equal(reportsPage.match(/getBusinessReach\(\)/g)?.length, 1);
+  assert.match(casesPage, /summaryPromise=\{summaryPromise\}/);
   assert.match(casesPage, /modelPromise=\{modelPromise\}/);
+  assert.match(tasksPage, /summaryPromise=\{summaryPromise\}/);
   assert.match(tasksPage, /modelPromise=\{modelPromise\}/);
   for (const parameter of ["status", "priority", "assignment", "view", "lifecycle", "assignee"]) {
     assert.match(casesSections, new RegExp(`${parameter}\\?`));

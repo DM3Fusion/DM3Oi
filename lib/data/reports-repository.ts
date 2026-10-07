@@ -3,8 +3,15 @@ import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { buildOperationalReport, isCanonicalReportParams, resolveReportingPeriod, startOfReportingDay } from "@/lib/reporting";
+import {
+  isCanonicalReportParams,
+  reportBucketKeys,
+  reportDelta,
+  resolveReportingPeriod,
+  startOfReportingDay,
+  type ReportCapabilities,
+  type ReportingPeriod,
+} from "@/lib/reporting";
 import {
   failedBusinessReach,
   normalizeBusinessReachPayload,
@@ -20,6 +27,96 @@ export class ReportsDataError extends Error {
 }
 
 export type ReportSearchParams = { period?: string; compare?: string; from?: string; to?: string };
+
+type AggregateSummary = {
+  opened: number;
+  completed: number;
+  cohort_completed: number;
+  customers: number;
+  average_duration: number | null;
+  median_duration: number | null;
+  tasks_completed: number;
+  requests_received: number;
+};
+
+type OperationalReportAggregate = {
+  capabilities: ReportCapabilities;
+  current: AggregateSummary;
+  previous: AggregateSummary | null;
+  caseVolume: Array<{ key: string; opened: number; completed: number }>;
+  durationTrend: Array<{ key: string; average: number; completed: number }>;
+  taskPerformance: {
+    waitingOnCustomer: number;
+    overdue: number;
+    manual: number | null;
+    generated: number | null;
+  };
+  requestPerformance: { resolved: number; linked: number };
+  requestVolume: Array<{ key: string; received: number; resolved: number }>;
+  topCustomers: Array<{ id: string; label: string; count: number }>;
+  bottlenecks: Array<{ key: string; label: string; count: number }>;
+  workDistribution: { assigned: number; unassigned: number };
+};
+
+function operationalReportFromAggregate(
+  period: ReportingPeriod,
+  aggregate: OperationalReportAggregate,
+) {
+  const { capabilities, current, previous } = aggregate;
+  const completionRate = current.opened
+    ? Math.round(current.cohort_completed / current.opened * 100)
+    : 0;
+  const previousCompletionRate = previous?.opened
+    ? Math.round(previous.cohort_completed / previous.opened * 100)
+    : 0;
+  const caseValue = <T,>(value: T) => capabilities.cases ? value : null;
+  const values = [
+    ["Cases Opened", "Cases with an opening timestamp in the period", caseValue(current.opened), caseValue(previous?.opened), null],
+    ["Cases Completed", "Cases with a completion timestamp in the period", caseValue(current.completed), caseValue(previous?.completed), null],
+    ["Completion Rate", "Cases opened in the period and completed by period end ÷ Cases opened", caseValue(completionRate), caseValue(previousCompletionRate), null],
+    ["Average Case Duration", "Mean elapsed time for Cases completed in the period", caseValue(current.average_duration), caseValue(previous?.average_duration), null],
+    ["Customers Served", "Distinct customers with Case openings or completions in the period", capabilities.cases && capabilities.customers ? current.customers : null, capabilities.cases && capabilities.customers ? previous?.customers : null, capabilities.cases && capabilities.customers ? "/customers" : null],
+    ["Tasks Completed", "Tasks with a completion timestamp in the period", capabilities.tasks ? current.tasks_completed : null, capabilities.tasks ? previous?.tasks_completed : undefined, null],
+    ["Service Requests Received", "Requests with an opening timestamp in the period", capabilities.serviceRequests ? current.requests_received : null, capabilities.serviceRequests ? previous?.requests_received : undefined, null],
+    ["Median Case Duration", "Median elapsed time for Cases completed in the period", caseValue(current.median_duration), caseValue(previous?.median_duration), null],
+  ] as const;
+  const kpis = values.map(([label, description, value, prior, href]) => ({
+    label,
+    description,
+    value,
+    href,
+    delta: previous && value !== null && prior !== undefined && prior !== null
+      ? reportDelta(value, prior)
+      : null,
+  }));
+  const caseVolumeByKey = new Map(aggregate.caseVolume.map((item) => [item.key, item]));
+  const requestVolumeByKey = new Map(aggregate.requestVolume.map((item) => [item.key, item]));
+  const bucketKeys = reportBucketKeys(period);
+  return {
+    period,
+    capabilities,
+    kpis,
+    caseVolume: bucketKeys.map((key) => caseVolumeByKey.get(key) ?? { key, opened: 0, completed: 0 }),
+    completion: {
+      average: current.average_duration,
+      median: current.median_duration,
+      count: current.completed,
+    },
+    durationTrend: aggregate.durationTrend,
+    taskPerformance: {
+      completed: current.tasks_completed,
+      ...aggregate.taskPerformance,
+    },
+    requestPerformance: {
+      received: current.requests_received,
+      ...aggregate.requestPerformance,
+    },
+    requestVolume: bucketKeys.map((key) => requestVolumeByKey.get(key) ?? { key, received: 0, resolved: 0 }),
+    topCustomers: aggregate.topCustomers,
+    bottlenecks: aggregate.bottlenecks,
+    workDistribution: aggregate.workDistribution,
+  };
+}
 
 export async function getBusinessReach() {
   const access = await getAccessContext();
@@ -75,7 +172,8 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
     questions: hasPermission(access, "VIEW_QUESTIONS"),
     rules: hasPermission(access, "VIEW_RULES"),
   };
-  const settings = await createAdminClient()
+  const supabase = await createClient();
+  const settings = await supabase
     .from("organization_settings")
     .select("timezone")
     .eq("organization_id", organizationId)
@@ -83,98 +181,27 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
   if (settings.error) throw new ReportsDataError();
   const period = resolveReportingPeriod(params, settings.data?.timezone ?? "UTC", now);
   if (!isCanonicalReportParams(params, period)) redirect(`/reports?${period.canonicalQuery}`);
-  const supabase = await createClient();
-  const earliest = (period.previous?.start ?? period.range.start).toISOString();
-  const end = period.range.endExclusive.toISOString();
   const currentDayStart = startOfReportingDay(now, period.timezone).toISOString();
-  const casesPromise = capabilities.cases
-    ? supabase
-        .from("organization_cases")
-        .select("organization_id,customer_id,opened_at,completed_at")
-        .eq("organization_id", organizationId)
-        .lt("created_at", end)
-        .or(`opened_at.gte.${earliest},completed_at.gte.${earliest}`)
-    : Promise.resolve({ data: [], error: null });
-  const tasksPromise = !capabilities.tasks
-    ? Promise.resolve({ data: [], error: null })
-    : capabilities.rules
-      ? supabase
-        .from("organization_case_tasks")
-        .select("organization_id,title,status,created_at,completed_at,due_at,generated_by_rule,assigned_user_id")
-        .eq("organization_id", organizationId)
-        .or(`and(created_at.gte.${earliest},created_at.lt.${end}),and(completed_at.gte.${earliest},completed_at.lt.${end})`)
-      : supabase
-        .from("organization_case_tasks")
-        .select("organization_id,title,status,created_at,completed_at,due_at,assigned_user_id")
-        .eq("organization_id", organizationId)
-        .or(`and(created_at.gte.${earliest},created_at.lt.${end}),and(completed_at.gte.${earliest},completed_at.lt.${end})`);
-  const currentTasksPromise = capabilities.tasks
-    ? supabase
-        .from("organization_case_tasks")
-        .select("organization_id,title,status,due_at")
-        .eq("organization_id", organizationId)
-        .in("status", ["NOT_STARTED", "IN_PROGRESS", "WAITING_ON_CUSTOMER"])
-        .or(`status.eq.WAITING_ON_CUSTOMER,due_at.lt.${currentDayStart}`)
-    : Promise.resolve({ data: [], error: null });
-  const requestsPromise = capabilities.serviceRequests
-    ? supabase
-        .from("organization_service_requests")
-        .select("organization_id,case_id,opened_at,resolved_at")
-        .eq("organization_id", organizationId)
-        .lt("created_at", end)
-        .or(`opened_at.gte.${earliest},resolved_at.gte.${earliest},closed_at.gte.${earliest}`)
-    : Promise.resolve({ data: [], error: null });
-  const [caseResult, taskResult, currentTaskResult, requestResult] = await Promise.all([
-    casesPromise,
-    tasksPromise,
-    currentTasksPromise,
-    requestsPromise,
-  ]);
-  const error = caseResult.error ?? taskResult.error ?? currentTaskResult.error ?? requestResult.error;
-  if (error) {
-    console.error("Reports query failed", { code: error.code, message: error.message });
-    throw new ReportsDataError();
-  }
-  const cases = caseResult.data ?? [];
-  const customerIds = capabilities.cases && capabilities.customers
-    ? [...new Set(cases.map((item) => item.customer_id))]
-    : [];
-  const customerResult = customerIds.length
-    ? await supabase
-        .from("organization_customers")
-        .select("id,organization_id,name")
-        .eq("organization_id", organizationId)
-        .in("id", customerIds)
-    : { data: [], error: null };
-  if (customerResult.error) {
-    console.error("Reports customer query failed", {
-      code: customerResult.error.code,
-      message: customerResult.error.message,
+  const result = await supabase.rpc("get_operational_report_aggregate" as never, {
+    target_organization_id: organizationId,
+    range_start: period.range.start.toISOString(),
+    range_end: period.range.endExclusive.toISOString(),
+    previous_start: period.previous?.start.toISOString() ?? null,
+    previous_end: period.previous?.endExclusive.toISOString() ?? null,
+    current_day_start: currentDayStart,
+    target_timezone: period.timezone,
+    target_bucket: period.bucket,
+  } as never);
+  if (result.error) {
+    console.error("Reports aggregate query failed", {
+      code: result.error.code,
+      message: result.error.message,
     });
     throw new ReportsDataError();
   }
-  return buildOperationalReport({
-    organizationId,
-    timezone: period.timezone,
-    period,
-    cases,
-    tasks: (taskResult.data ?? []).map((item) => ({
-      ...item,
-      generated_by_rule: "generated_by_rule" in item && typeof item.generated_by_rule === "boolean"
-        ? item.generated_by_rule
-        : false,
-    })),
-    currentTasks: currentTaskResult.data ?? [],
-    requests: requestResult.data ?? [],
-    customers: (customerResult.data ?? []).flatMap((customer) =>
-      customer.id && customer.organization_id && customer.name
-        ? [{
-            id: customer.id,
-            organization_id: customer.organization_id,
-            name: customer.name,
-          }]
-        : [],
-    ),
+  const aggregate = result.data as OperationalReportAggregate;
+  return operationalReportFromAggregate(period, {
+    ...aggregate,
     capabilities,
   });
 }
