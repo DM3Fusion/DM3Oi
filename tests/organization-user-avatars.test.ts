@@ -134,14 +134,12 @@ test("register navigation and invitation controls remain unchanged", () => {
 });
 
 test("the shared shell continues to render its canonical avatar URL", () => {
-  const layout = source("app/layout.tsx");
   const shell = source("components/layout/app-shell.tsx");
   const accountMenu = source("components/account-menu.tsx");
-  assert.match(layout, /getPresentationAccessContext\(\)/);
   assert.match(shell, /<AccountMenu displayName=\{access\.displayName\} title=\{access\.title\} email=\{access\.user\.email\} avatarUrl=\{access\.avatarUrl\}/);
   assert.match(accountMenu, /<UserAvatar displayName=\{displayName\} email=\{email\} src=\{avatarUrl\}/);
   assert.match(
     shellContext,
-    /resolvePresentationAccessContext[\s\S]*supabase\.storage[\s\S]*\.from\("user-avatars"\)[\s\S]*\.createSignedUrl\(access\.avatarPath!, 3600\)/,
+    /supabase\.storage[\s\S]*\.from\("user-avatars"\)[\s\S]*\.createSignedUrl\(profile\.avatar_path!, 3600\)/,
   );
 });

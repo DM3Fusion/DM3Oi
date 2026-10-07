@@ -229,7 +229,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
 
     const isSuperAdmin = Boolean(rpcContext.is_super_admin);
 
-    const organizations: AuthorizedOrganization[] = (
+    let organizations: AuthorizedOrganization[] = (
       rpcContext.organizations ?? []
     ).map((organization) => ({
       id: organization.id,
@@ -240,7 +240,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       avatarUrl: null,
     }));
 
-    const activeOrganization =
+    let activeOrganization =
       rpcContext.active_organization_id
         ? organizations.find(
             (organization) =>
@@ -293,6 +293,59 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     }
 
 
+    const [avatarUrl, activeOrganizationAvatarUrl] =
+      await Promise.all([
+        profile.avatar_path
+          ? getCachedAccessAvatarUrl(
+              "user-avatars",
+              profile.avatar_path,
+              () =>
+                supabase.storage
+                  .from("user-avatars")
+                  .createSignedUrl(profile.avatar_path!, 3600)
+                  .then(
+                    (result) =>
+                      result.data?.signedUrl ?? null,
+                  ),
+            )
+          : Promise.resolve<string | null>(null),
+        activeOrganization
+          ? resolveOwnedOrganizationAvatarUrl(
+              activeOrganization.avatarPath,
+              activeOrganization.id,
+              (ownedPath) =>
+                getCachedAccessAvatarUrl(
+                  ORGANIZATION_AVATAR_BUCKET,
+                  ownedPath,
+                  () =>
+                    supabase.storage
+                      .from(ORGANIZATION_AVATAR_BUCKET)
+                      .createSignedUrl(ownedPath, 3600)
+                      .then(
+                        (result) =>
+                          result.data?.signedUrl ?? null,
+                      ),
+                ),
+            )
+          : Promise.resolve<string | null>(null),
+      ]);
+
+
+    if (activeOrganization) {
+      const resolvedActiveOrganization: AuthorizedOrganization = {
+        ...activeOrganization,
+        avatarUrl: activeOrganizationAvatarUrl,
+      };
+
+      activeOrganization = resolvedActiveOrganization;
+
+      organizations = organizations.map((organization) =>
+        organization.id === resolvedActiveOrganization.id
+          ? resolvedActiveOrganization
+          : organization,
+      );
+    }
+
     const customerPortalIds =
       rpcContext.customer_portal_ids ?? [];
 
@@ -308,7 +361,7 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
       profileEmail: profile.email,
       title: profile.title,
       avatarPath: profile.avatar_path,
-      avatarUrl: null,
+      avatarUrl,
       isSuperAdmin,
       organizations,
       activeOrganization,
@@ -334,72 +387,6 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
 // React clears cache() between Server Component requests. This shares one
 // authoritative resolution within a render without persisting access state.
 export const getAccessContext = cache(resolveAccessContext);
-
-async function resolvePresentationAccessContext(): Promise<AccessContext | null> {
-  const access = await getAccessContext();
-  if (!access) return null;
-
-  const activeOrganization = access.activeOrganization;
-  if (!access.avatarPath && !activeOrganization?.avatarPath) return access;
-
-  const supabase = await createClient();
-  const [avatarUrl, activeOrganizationAvatarUrl] = await Promise.all([
-    access.avatarPath
-      ? getCachedAccessAvatarUrl(
-          "user-avatars",
-          access.avatarPath,
-          () =>
-            supabase.storage
-              .from("user-avatars")
-              .createSignedUrl(access.avatarPath!, 3600)
-              .then((result) => result.data?.signedUrl ?? null),
-        )
-      : Promise.resolve<string | null>(null),
-    activeOrganization
-      ? resolveOwnedOrganizationAvatarUrl(
-          activeOrganization.avatarPath,
-          activeOrganization.id,
-          (ownedPath) =>
-            getCachedAccessAvatarUrl(
-              ORGANIZATION_AVATAR_BUCKET,
-              ownedPath,
-              () =>
-                supabase.storage
-                  .from(ORGANIZATION_AVATAR_BUCKET)
-                  .createSignedUrl(ownedPath, 3600)
-                  .then((result) => result.data?.signedUrl ?? null),
-            ),
-        )
-      : Promise.resolve<string | null>(null),
-  ]);
-
-  if (!activeOrganization) {
-    return { ...access, avatarUrl };
-  }
-
-  const hydratedActiveOrganization: AuthorizedOrganization = {
-    ...activeOrganization,
-    avatarUrl: activeOrganizationAvatarUrl,
-  };
-
-  return {
-    ...access,
-    avatarUrl,
-    activeOrganization: hydratedActiveOrganization,
-    organizations: access.organizations.map((organization) =>
-      organization.id === hydratedActiveOrganization.id
-        ? hydratedActiveOrganization
-        : organization,
-    ),
-  };
-}
-
-// Presentation hydration shares the request-scoped core context and only adds
-// signed avatar URLs for consumers that render those images.
-export const getPresentationAccessContext = cache(
-  resolvePresentationAccessContext,
-);
-
 export async function requireInternalContext(): Promise<InternalAccessContext> {
   const context = await getAccessContext();
   if (!context?.user || !hasTenantInternalAccess(context))

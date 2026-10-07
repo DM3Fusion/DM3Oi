@@ -10,12 +10,12 @@ import {
   NewTrialRequestsNavigationBadge,
   UnreadCommunicationsNavigationBadge,
 } from "@/components/layout/navigation-attention-badges";
-import { getPresentationAccessContext } from "@/lib/auth/context";
+import { getAccessContext } from "@/lib/auth/context";
 import { getApplicationVersionLabel } from "@/lib/app-version";
 export const dynamic="force-dynamic";
 export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Business Operations Intelligence for organizations managing customers, cases, tasks, service requests, communications, workflows, and operational performance."};
 export default async function RootLayout({children}:{children:React.ReactNode}){
-  const [access, requestHeaders]=await Promise.all([getPresentationAccessContext(), headers()]);
+  const [access, requestHeaders]=await Promise.all([getAccessContext(), headers()]);
   const requestPathname=requestHeaders.get("x-dm3oi-route-pathname");
   const staticGuideRequest=requestPathname==="/how-to-guide"||requestPathname==="/staff-how-to-guide";
   const unreadAttention =

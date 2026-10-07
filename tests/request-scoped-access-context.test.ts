@@ -5,14 +5,6 @@ import test from "node:test";
 
 const source = (path: string) => readFileSync(path, "utf8");
 const context = source("lib/auth/context.ts");
-const coreResolver = context.slice(
-  context.indexOf("async function resolveAccessContext"),
-  context.indexOf("export const getAccessContext"),
-);
-const presentationResolver = context.slice(
-  context.indexOf("async function resolvePresentationAccessContext"),
-  context.indexOf("export const getPresentationAccessContext"),
-);
 
 test("React cache shares a resolution within one server render and refreshes the next render", () => {
   const script = `
@@ -51,54 +43,43 @@ test("access context uses React request memoization around one authoritative res
 });
 
 test("each uncached resolution still reads authoritative request and authorization state", () => {
-  assert.match(coreResolver, /await createClient\(\)/);
-  assert.match(coreResolver, /supabase\.auth\.getClaims\(\)/);
-  assert.match(coreResolver, /typeof claims\?\.sub === "string"/);
-  assert.match(coreResolver, /typeof claims\?\.email === "string"/);
-  assert.doesNotMatch(coreResolver, /supabase\.auth\.getUser\(\)/);
-  assert.match(coreResolver, /\(await cookies\(\)\)\.get\(ACTIVE_ORGANIZATION_COOKIE\)/);
-  assert.match(coreResolver, /get_my_access_context/);
-  assert.match(coreResolver, /target_organization_id: requestedOrganizationId/);
+  const resolver = context.slice(
+    context.indexOf("async function resolveAccessContext"),
+    context.indexOf("export const getAccessContext"),
+  );
 
-  assert.doesNotMatch(coreResolver, /\.from\("profiles"\)/);
-  assert.doesNotMatch(coreResolver, /\.from\("platform_user_roles"\)/);
-  assert.doesNotMatch(coreResolver, /\.from\("organization_members"\)/);
-  assert.doesNotMatch(coreResolver, /\.from\("customer_portal_users"\)/);
-  assert.doesNotMatch(coreResolver, /\.from\("organization_role_permissions"\)/);
-  assert.doesNotMatch(coreResolver, /\.from\("organization_licenses"\)/);
+  assert.match(resolver, /await createClient\(\)/);
+  assert.match(resolver, /supabase\.auth\.getClaims\(\)/);
+  assert.match(resolver, /typeof claims\?\.sub === "string"/);
+  assert.match(resolver, /typeof claims\?\.email === "string"/);
+  assert.doesNotMatch(resolver, /supabase\.auth\.getUser\(\)/);
+  assert.match(resolver, /\(await cookies\(\)\)\.get\(ACTIVE_ORGANIZATION_COOKIE\)/);
+  assert.match(resolver, /get_my_access_context/);
+  assert.match(resolver, /target_organization_id: requestedOrganizationId/);
+
+  assert.doesNotMatch(resolver, /\.from\("profiles"\)/);
+  assert.doesNotMatch(resolver, /\.from\("platform_user_roles"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_members"\)/);
+  assert.doesNotMatch(resolver, /\.from\("customer_portal_users"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_role_permissions"\)/);
+  assert.doesNotMatch(resolver, /\.from\("organization_licenses"\)/);
 });
 
-test("core access resolves authorization fields without presentation storage work", () => {
-  assert.match(
-    coreResolver,
-    /rpcContext\.active_organization_id[\s\S]*organizations\.find/,
-  );
-  assert.match(coreResolver, /getEffectiveOrganizationPermissions/);
-  assert.match(coreResolver, /effectiveLicense/);
-  assert.match(coreResolver, /avatarPath: profile\.avatar_path/);
-  assert.match(coreResolver, /avatarUrl: null/);
-  assert.match(coreResolver, /organizations/);
-  assert.match(coreResolver, /activeOrganization/);
-  assert.match(coreResolver, /effectivePermissions/);
-  assert.doesNotMatch(coreResolver, /createSignedUrl|getCachedAccessAvatarUrl|\.storage/);
-  assert.equal(
-    context.match(/\.rpc\(\s*"get_my_access_context"/g)?.length,
-    1,
-  );
-});
-
-test("presentation access is request-cached and reuses the core resolution", () => {
+test("active organization permissions licensing and private avatar signing remain in one resolution", () => {
   assert.match(
     context,
-    /export const getPresentationAccessContext = cache\(\s*resolvePresentationAccessContext,?\s*\)/,
+    /rpcContext\.active_organization_id[\s\S]*organizations\.find/,
   );
-  assert.match(presentationResolver, /const access = await getAccessContext\(\)/);
-  assert.doesNotMatch(presentationResolver, /get_my_access_context|getClaims\(\)/);
-  assert.match(presentationResolver, /if \(!access\.avatarPath && !activeOrganization\?\.avatarPath\) return access/);
-  assert.match(presentationResolver, /Promise\.all\(\[/);
-  assert.match(presentationResolver, /getCachedAccessAvatarUrl/);
-  assert.match(presentationResolver, /resolveOwnedOrganizationAvatarUrl/);
-  assert.match(presentationResolver, /avatarUrl: activeOrganizationAvatarUrl/);
+  assert.match(context, /getEffectiveOrganizationPermissions/);
+  assert.match(context, /effectiveLicense/);
+  assert.match(
+    context,
+    /ORGANIZATION_AVATAR_BUCKET[\s\S]*createSignedUrl/,
+  );
+  assert.match(
+    context,
+    /\.from\("user-avatars"\)[\s\S]*createSignedUrl/,
+  );
 });
 
 test("access avatar URLs reuse exact immutable object paths inside the signed URL lifetime", () => {
@@ -124,7 +105,7 @@ test("access avatar URLs reuse exact immutable object paths inside the signed UR
   );
   assert.match(
     context,
-    /getCachedAccessAvatarUrl\(\s*"user-avatars",\s*access\.avatarPath/,
+    /getCachedAccessAvatarUrl\(\s*"user-avatars",\s*profile\.avatar_path/,
   );
   assert.match(
     context,
@@ -136,7 +117,7 @@ test("access avatar URLs reuse exact immutable object paths inside the signed UR
   );
   assert.match(
     context,
-    /createSignedUrl\(access\.avatarPath!, 3600\)/,
+    /createSignedUrl\(profile\.avatar_path!, 3600\)/,
   );
   assert.match(
     context,
@@ -159,30 +140,6 @@ test("Home and Communications consumers naturally converge on the shared accesso
   const communications = source("lib/data/communications-repository.ts");
   assert.match(communications, /getNotifications[\s\S]*await requireInternalContext\(\)/);
   assert.match(communications, /getUnreadNotificationCount[\s\S]*await requireInternalContext\(\)/);
-});
-
-test("only shell and profile presentation consumers request hydrated access", () => {
-  const layout = source("app/layout.tsx");
-  const profile = source("app/account/profile/page.tsx");
-  assert.match(layout, /getPresentationAccessContext\(\)/);
-  assert.match(profile, /getPresentationAccessContext\(\)/);
-  assert.match(profile, /requireAuthenticatedInternalUser\(\)/);
-
-  for (const path of [
-    "app/page.tsx",
-    "app/cases/page.tsx",
-    "app/service-desk/page.tsx",
-    "app/customers/page.tsx",
-    "lib/data/case-repository.ts",
-    "lib/data/reports-repository.ts",
-    "lib/data/communications-repository.ts",
-    "lib/data/goals-repository.ts",
-    "lib/data/operational-intelligence-repository.ts",
-  ]) {
-    const consumer = source(path);
-    assert.match(consumer, /getAccessContext\(\)|requireInternalContext\(\)/);
-    assert.doesNotMatch(consumer, /getPresentationAccessContext/);
-  }
 });
 
 test("proxy and Customer Portal retain separate fresh authorization stages", () => {
