@@ -5,7 +5,7 @@ import { ApplicationIcon } from "@/components/application-icon";
 import { BusinessReachMap } from "@/components/reports/business-reach-map";
 import { mapBusinessReachCustomersAction } from "@/lib/data/business-reach-actions";
 import { PendingSubmitButton } from "@/components/pending-submit-button";
-import { buildReportRouteHref } from "@/lib/report-route-state";
+import { buildReportRouteHref, type ReportRouteState } from "@/lib/report-route-state";
 
 const formatDays = (value: number | null) => value === null ? "—" : `${value.toFixed(value < 10 ? 1 : 0)} days`;
 const formatKpi = (label: string, value: number | null) => {
@@ -31,27 +31,26 @@ function CompactTrend({ label, rows }: { label: string; rows: Array<{ key: strin
   return rows.length ? <div className="report-compact-trend" role="list" aria-label={label}>{rows.map((item) => <div key={item.key} role="listitem"><span>{item.key}</span><strong>{item.primary}</strong>{item.secondary ? <small>{item.secondary}</small> : null}</div>)}</div> : <div className="no-results">No trend is available for this period.</div>;
 }
 
-function BusinessReach({
+export function BusinessReach({
   report,
-  period,
+  routeState,
   status,
 }: {
   report: BusinessReachReport;
-  period: OperationalReport["period"];
+  routeState: ReportRouteState;
   status?: string;
 }) {
+  const period = routeState.period ?? "30d";
+  const comparison = routeState.compare === "previous" ? "previous" : "none";
   const unmappedHref = buildReportRouteHref("/reports/unmapped-customers", {
-    period: period.key,
-    compare: period.comparison,
-    from: period.key === "custom" ? period.range.from : undefined,
-    to: period.key === "custom" ? period.range.to : undefined,
+    ...routeState,
     reach: status,
   });
   const mapAction = report.available && !report.loadError && report.canRefresh && report.pendingCustomers > 0 ? (
     <form action={mapBusinessReachCustomersAction}>
-      <input type="hidden" name="period" value={period.key} />
-      <input type="hidden" name="compare" value={period.comparison} />
-      {period.key === "custom" ? <><input type="hidden" name="from" value={period.range.from} /><input type="hidden" name="to" value={period.range.to} /></> : null}
+      <input type="hidden" name="period" value={period} />
+      <input type="hidden" name="compare" value={comparison} />
+      {period === "custom" ? <><input type="hidden" name="from" value={routeState.from} /><input type="hidden" name="to" value={routeState.to} /></> : null}
       <PendingSubmitButton className="secondary-button" pendingLabel="Mapping locations…">Map customer locations</PendingSubmitButton>
     </form>
   ) : null;
@@ -89,12 +88,11 @@ function BusinessReach({
   </section>;
 }
 
-export function ReportsDashboard({ report, businessReach, reachStatus }: { report: OperationalReport; businessReach: BusinessReachReport; reachStatus?: string }) {
+export function OperationalReportsDashboard({ report }: { report: OperationalReport }) {
   const { period, capabilities } = report;
   const availableKpis = report.kpis.filter((kpi) => kpi.value !== null);
   const maximumVolume = Math.max(1, ...report.caseVolume.flatMap((item) => [item.opened, item.completed]));
-  return <div className="reports-dashboard">
-    <BusinessReach report={businessReach} period={period} status={reachStatus} />
+  return <>
     <form className="report-controls panel" method="get">
       <label><span>Reporting period</span><select name="period" defaultValue={period.key}>{reportPeriodKeys.map((key) => <option key={key} value={key}>{reportPeriodLabels[key]}</option>)}</select></label>
       <label><span>Comparison</span><select name="compare" defaultValue={period.comparison}><option value="none">No comparison</option><option value="previous">Previous equivalent period</option></select></label>
@@ -125,5 +123,21 @@ export function ReportsDashboard({ report, businessReach, reachStatus }: { repor
         <section className="panel report-panel"><div className="section-head"><div><h2>Work Distribution</h2><p>Current assignment coverage for Tasks in period scope</p></div></div>{capabilities.tasks ? <BarList rows={[{ key: "assigned", label: "Assigned", value: report.workDistribution.assigned }, { key: "unassigned", label: "Unassigned", value: report.workDistribution.unassigned }]} empty="No Tasks are available for distribution reporting." /> : <div className="no-results">Work distribution requires Task access.</div>}<p className="report-note">Historical assignee changes are not stored; this section uses current assignment only.</p></section>
       </div>
       <p className="report-limitations">Historical readiness, Question response state, and historical Rule truth are not reconstructed because point-in-time snapshots are not stored. Readiness remains a current-state calculation, and Rule provenance appears only when VIEW_RULES is available.</p>
+  </>;
+}
+
+export function ReportsDashboard({ report, businessReach, reachStatus }: { report: OperationalReport; businessReach: BusinessReachReport; reachStatus?: string }) {
+  return <div className="reports-dashboard">
+    <BusinessReach
+      report={businessReach}
+      routeState={{
+        period: report.period.key,
+        compare: report.period.comparison,
+        from: report.period.key === "custom" ? report.period.range.from : undefined,
+        to: report.period.key === "custom" ? report.period.range.to : undefined,
+      }}
+      status={reachStatus}
+    />
+    <OperationalReportsDashboard report={report} />
   </div>;
 }

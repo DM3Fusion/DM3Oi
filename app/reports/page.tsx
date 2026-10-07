@@ -1,15 +1,52 @@
+import { Suspense } from "react";
+import { ReportSectionSkeleton } from "@/components/loading/route-skeletons";
+import {
+  BusinessReachServerSection,
+  OperationalReportsServerSection,
+} from "@/components/reports/report-server-sections";
 import { PageHeader } from "@/components/ui";
-import { ReportsDashboard } from "@/components/reports/reports-dashboard";
-import { getBusinessReach, getOperationalReport, type ReportSearchParams } from "@/lib/data/reports-repository";
+import {
+  getBusinessReach,
+  getOperationalReport,
+  type ReportSearchParams,
+} from "@/lib/data/reports-repository";
 
 export const metadata = { title: "Reports" };
 
-export default async function Page({ searchParams }: { searchParams: Promise<ReportSearchParams & { reach?: string }> }) {
-  const params = await searchParams;
-  const report = await getOperationalReport(params);
-  const businessReach = await getBusinessReach();
-  return <>
-    <PageHeader eyebrow="Insights" title="Reports" />
-    <ReportsDashboard report={report} businessReach={businessReach} reachStatus={params.reach} />
-  </>;
+type ReportsRouteParams = ReportSearchParams & { reach?: string };
+
+export default function Page({
+  searchParams,
+}: {
+  searchParams: Promise<ReportsRouteParams>;
+}) {
+  const reportPromise = searchParams.then((params) =>
+    getOperationalReport(params),
+  );
+  const businessReachPromise = getBusinessReach();
+
+  return (
+    <>
+      <PageHeader eyebrow="Insights" title="Reports" />
+      <div className="reports-dashboard">
+        <Suspense
+          fallback={
+            <ReportSectionSkeleton label="Loading Business Reach" compact />
+          }
+        >
+          <BusinessReachServerSection
+            businessReachPromise={businessReachPromise}
+            searchParams={searchParams}
+          />
+        </Suspense>
+        <Suspense
+          fallback={
+            <ReportSectionSkeleton label="Loading operational reports" />
+          }
+        >
+          <OperationalReportsServerSection reportPromise={reportPromise} />
+        </Suspense>
+      </div>
+    </>
+  );
 }

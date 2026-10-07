@@ -126,7 +126,8 @@ test("responsive shell architecture and representative width rules remain safe",
 test("Portal security navigation performance and icon architecture stay isolated", () => {
   assert.doesNotMatch(source("app/portal/layout.tsx") + source("components/portal-nav.tsx"), /AppShell|MobileBottomNavigation|organizationNavigation/);
   assert.match(source("lib/auth/context.ts"), /export const getAccessContext = cache\(resolveAccessContext\)/);
-  assert.equal(existsSync("app/loading.tsx"), false);
+  assert.equal(existsSync("app/loading.tsx"), true);
+  assert.doesNotMatch(source("app/loading.tsx"), /portal|PortalNav|Customer Portal/);
   assert.match(source("components/application-icon.tsx"), /color="currentColor"/);
   assert.doesNotMatch(css.slice(css.lastIndexOf("Authenticated application typography")), /\.portal-/);
 });

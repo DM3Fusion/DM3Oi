@@ -84,7 +84,7 @@ test("customer create and update use effective permissions instead of broad memb
 });
 
 test("UI mutation controls consume capabilities without changing record visibility",()=>{
- assert.match(source("app/cases/page.tsx"),/hasPermission\(access, "CREATE_CASE"\)/);
+ assert.match(source("app/cases/page.tsx")+source("components/cases/cases-page-sections.tsx"),/hasPermission\(access, "CREATE_CASE"\)/);
  assert.match(source("app/cases/[caseId]/page.tsx"),/hasPermission\(access, "MANAGE_TASKS"\)/);
  assert.match(source("app/service-desk/page.tsx"),/hasPermission\(access, "CREATE_SERVICE_REQUEST"\)/);
  assert.match(source("components/service-request-form.tsx"),/canAssign/);

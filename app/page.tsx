@@ -1,4 +1,13 @@
-import { Dashboard } from "@/components/dashboard/dashboard";
+import { Suspense } from "react";
+import {
+  DashboardCasesAttentionServerSection,
+  DashboardIntelligenceServerSection,
+  DashboardServerSection,
+} from "@/components/dashboard/dashboard-server-sections";
+import {
+  DashboardBodySkeleton,
+  ReportSectionSkeleton,
+} from "@/components/loading/route-skeletons";
 import { PlatformDashboard } from "@/components/platform/platform-dashboard";
 import { PageHeader } from "@/components/ui";
 import Link from "next/link";
@@ -88,22 +97,15 @@ export default async function Page({
     redirect("/account/license-expired");
   }
 
-  const [
-    data,
-    unreadCommunications,
-    goalSummary,
-  ] = await Promise.all([
-    getLiveOrganizationData(),
-    getUnreadNotificationCount({
-      organizationId:
-        access.activeOrganization!.id,
-      userId: access.user.id,
-    }),
-    getGoalDashboardSummary(),
-  ]);
-
-  const intelligence =
-    await getOperationalIntelligence(data);
+  const dataPromise = getLiveOrganizationData();
+  const unreadPromise = getUnreadNotificationCount({
+    organizationId: access.activeOrganization!.id,
+    userId: access.user.id,
+  });
+  const goalSummaryPromise = getGoalDashboardSummary();
+  const intelligencePromise = dataPromise.then((data) =>
+    getOperationalIntelligence(data),
+  );
 
   return (
     <>
@@ -120,14 +122,40 @@ export default async function Page({
         eyebrow="Dashboard"
         title="Operational Dashboard"
       />
-      <Dashboard
-        data={data}
-        intelligence={intelligence}
-        goalSummary={goalSummary}
-        unreadCommunications={
-          unreadCommunications
-        }
-      />
+      <Suspense fallback={<DashboardBodySkeleton />}>
+        <DashboardServerSection
+          dataPromise={dataPromise}
+          unreadPromise={unreadPromise}
+          casesAttention={
+            <Suspense
+              fallback={
+                <ReportSectionSkeleton
+                  label="Loading Cases needing attention"
+                  compact
+                />
+              }
+            >
+              <DashboardCasesAttentionServerSection
+                intelligencePromise={intelligencePromise}
+              />
+            </Suspense>
+          }
+          operationalIntelligence={
+            <Suspense
+              fallback={
+                <ReportSectionSkeleton
+                  label="Loading operational intelligence"
+                />
+              }
+            >
+              <DashboardIntelligenceServerSection
+                intelligencePromise={intelligencePromise}
+                goalSummaryPromise={goalSummaryPromise}
+              />
+            </Suspense>
+          }
+        />
+      </Suspense>
     </>
   );
 }

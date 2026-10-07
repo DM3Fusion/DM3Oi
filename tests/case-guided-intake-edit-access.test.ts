@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import test from "node:test";
 
-const casesPage = fs.readFileSync("app/cases/page.tsx", "utf8");
+const casesPage = [
+  fs.readFileSync("app/cases/page.tsx", "utf8"),
+  fs.readFileSync("components/cases/cases-page-sections.tsx", "utf8"),
+].join("\n");
 const caseDetail = fs.readFileSync(
   "app/cases/[caseId]/page.tsx",
   "utf8",

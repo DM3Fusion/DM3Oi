@@ -242,8 +242,8 @@ test("phone Top Bottlenecks contains the customer-waiting message in normal flow
 });
 
 test("destination filters reuse authorized organization data and shared semantics", () => {
-  const tasks = source("app/tasks/page.tsx");
-  const cases = source("app/cases/page.tsx");
+  const tasks = `${source("app/tasks/page.tsx")}\n${source("components/tasks/tasks-page-sections.tsx")}`;
+  const cases = `${source("app/cases/page.tsx")}\n${source("components/cases/cases-page-sections.tsx")}`;
   const requests = source("app/service-desk/requests/page.tsx");
   const filters = source("lib/operational-filters.ts");
   assert.match(tasks, /getTaskRegisterData\(\)/);

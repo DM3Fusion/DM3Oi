@@ -30,11 +30,15 @@ export function Dashboard({
   unreadCommunications,
   intelligence,
   goalSummary,
+  casesAttention,
+  operationalIntelligence,
 }: {
   data: LiveOrganizationData;
   unreadCommunications: number;
   intelligence: AuthorizedOperationalIntelligence | null;
   goalSummary: GoalDashboardSummary | null;
+  casesAttention?: React.ReactNode;
+  operationalIntelligence?: React.ReactNode;
 }) {
   const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers,unreadCommunications,data.timezone);
   const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
@@ -54,7 +58,8 @@ export function Dashboard({
         </div>
         {summary.attention.length?<div className="attention-summary-layout"><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
       </section>
-      {intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null}
+      {casesAttention ??
+        (intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null)}
     </div>
     <section className="panel customer-metrics-panel" aria-labelledby="customer-metrics-heading">
       <div className="section-head">
@@ -91,12 +96,12 @@ export function Dashboard({
       </section>
     </div>
     <div className="operations-lower">
-      {intelligence ? (
+      {operationalIntelligence ?? (intelligence ? (
         <OperationalIntelligenceSection
           intelligence={intelligence}
           goalSummary={goalSummary}
         />
-      ) : null}
+      ) : null)}
       <section className="panel recent-activity">
         <div className="section-head"><h2>Recent Activity</h2><Link href="/cases">View all <ApplicationIcon name="forward" /></Link></div>
         {data.activities.length?<div className="activity-list">{data.activities.slice(0,8).map(activity=><Link href={`/cases/${activity.case_id}`} key={activity.id}>

@@ -109,7 +109,7 @@ test("KPI links target the truthful lifecycle while Total Cases preserves the se
 });
 
 test("Cases dashboard summarizes active plus completed Cases while lifecycle tabs scope only the register", () => {
-  const page = source("app/cases/page.tsx");
+  const page = `${source("app/cases/page.tsx")}\n${source("components/cases/cases-page-sections.tsx")}`;
   const repository = source("lib/data/case-repository.ts");
 
   const dashboardIndex = page.indexOf("const dashboardCases = data.cases.filter");
@@ -210,7 +210,7 @@ test("KPI cards are semantic links with selected state and responsive six-three-
 });
 
 test("existing Cases controls, zero-result state, and navigable rows remain intact", () => {
-  const page = source("app/cases/page.tsx");
+  const page = `${source("app/cases/page.tsx")}\n${source("components/cases/cases-page-sections.tsx")}`;
   const register = source("components/cases/cases-register.tsx");
   const filters = source("components/cases/case-register-filters.tsx");
   const table = source("components/cases/case-table.tsx");

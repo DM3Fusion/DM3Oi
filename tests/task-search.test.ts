@@ -109,7 +109,7 @@ test("history navigation resynchronizes local search without a form submission",
 });
 
 test("Tasks filters only the existing authorized organization dataset and distinguishes empty states", () => {
-  const page = source("app/tasks/page.tsx");
+  const page = `${source("app/tasks/page.tsx")}\n${source("components/tasks/tasks-page-sections.tsx")}`;
   const repository = source("lib/data/case-repository.ts");
 
   assert.match(page, /getTaskRegisterData\(\)/);
