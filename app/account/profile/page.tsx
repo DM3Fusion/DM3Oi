@@ -2,7 +2,10 @@ import { PageHeader } from "@/components/ui";
 import { UserAvatar } from "@/components/user-avatar";
 import { AvatarUploadForm } from "@/components/avatar-upload-form";
 import { ProfileIdentityForm } from "@/components/profile-identity-form";
-import { requireAuthenticatedInternalUser } from "@/lib/auth/context";
+import {
+  getPresentationAccessContext,
+  requireAuthenticatedInternalUser,
+} from "@/lib/auth/context";
 import {
   removeOwnAvatarAction,
 } from "@/lib/data/profile-actions";
@@ -12,10 +15,12 @@ export default async function Page({
 }: {
   searchParams: Promise<{ error?: string; message?: string }>;
 }) {
-  const [access, query] = await Promise.all([
+  const [authorizedAccess, presentationAccess, query] = await Promise.all([
     requireAuthenticatedInternalUser(),
+    getPresentationAccessContext(),
     searchParams,
   ]);
+  const access = presentationAccess ?? authorizedAccess;
   const roleSummary = access.isSuperAdmin
     ? "SUPER ADMIN · Platform-level access"
     : access.organizations
