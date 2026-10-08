@@ -50,11 +50,23 @@ test("Top Pages and Geography share a card-contained responsive control structur
   assert.match(css, /\.admin-top-pages-heading>div\{min-width:0\}/);
   assert.match(
     css,
-    /\.admin-top-pages-controls\{min-width:0;max-width:100%;flex:0 1 auto;flex-wrap:wrap;justify-content:flex-end\}/,
+    /\.admin-top-pages-controls\{min-width:0;max-width:100%;flex-wrap:wrap\}/,
   );
   assert.match(
     css,
-    /\.admin-top-pages-search\{min-width:0;flex:1 1 10rem\}/,
+    /\.admin-top-pages-heading\{display:grid;align-items:start;justify-content:stretch;gap:10px\}/,
+  );
+  assert.match(
+    css,
+    /\.admin-top-pages-heading p\{text-align:left\}/,
+  );
+  assert.match(
+    css,
+    /\.admin-top-pages-controls\{display:flex;width:100%;align-items:center;justify-content:flex-start;gap:7px\}/,
+  );
+  assert.match(
+    css,
+    /\.admin-top-pages-search\{min-width:0;flex:1 1 10rem;max-width:320px\}/,
   );
   assert.match(
     css,
@@ -212,7 +224,18 @@ test("Geography explains unique visit and page semantics without exposing PII", 
   );
   assert.match(
     geography,
-    /row\.uniquePages === 1 \? "unique page" : "unique pages"/,
+    /row\.uniquePages === 1 \? "page" : "pages"/,
+  );
+  assert.match(geography, /<span>Location<\/span>/);
+  assert.match(geography, /<span>Visits<\/span>/);
+  assert.match(geography, /<span>Pages<\/span>/);
+  assert.match(
+    geography,
+    /className="admin-geography-row"/,
+  );
+  assert.match(
+    geography,
+    /className="admin-geography-value"/,
   );
   assert.match(geography, /Approx\. network: \{coordinateLabel\(row\)\}/);
   assert.match(geography, /row\.latitude\.toFixed\(2\)/);

@@ -101,7 +101,16 @@ export function AdminGeography({
         </div>
       </div>
 
-      <div className="admin-analytics-breakdown">
+      <div className="admin-geography-table">
+        <div
+          className="admin-geography-table-header"
+          aria-hidden="true"
+        >
+          <span>Location</span>
+          <span>Visits</span>
+          <span>Pages</span>
+        </div>
+
         {visibleRows.length === 0 ? (
           <p className="muted admin-top-pages-empty">
             No locations match this filter.
@@ -109,6 +118,7 @@ export function AdminGeography({
         ) : (
           visibleRows.map((row) => (
             <div
+              className="admin-geography-row"
               key={[
                 row.label,
                 row.postalCode,
@@ -116,7 +126,7 @@ export function AdminGeography({
                 row.longitude,
               ].join(":")}
             >
-              <span>
+              <span className="admin-geography-location">
                 {row.label}
                 {coordinateLabel(row) ? (
                   <small className="admin-geography-coordinate">
@@ -124,11 +134,23 @@ export function AdminGeography({
                   </small>
                 ) : null}
               </span>
-              <strong>
-                {row.visits} {row.visits === 1 ? "visit" : "visits"}
-                {" · "}
-                {row.uniquePages}{" "}
-                {row.uniquePages === 1 ? "unique page" : "unique pages"}
+
+              <strong
+                className="admin-geography-value"
+                aria-label={`${row.visits} ${
+                  row.visits === 1 ? "visit" : "visits"
+                }`}
+              >
+                {row.visits}
+              </strong>
+
+              <strong
+                className="admin-geography-value"
+                aria-label={`${row.uniquePages} unique ${
+                  row.uniquePages === 1 ? "page" : "pages"
+                }`}
+              >
+                {row.uniquePages}
               </strong>
             </div>
           ))
