@@ -1,7 +1,4 @@
-import {
-  Dashboard,
-  DashboardAttentionSummary,
-} from "@/components/dashboard/dashboard";
+import { Dashboard } from "@/components/dashboard/dashboard";
 import {
   CasesNeedingAttention,
   OperationalIntelligenceSection,
@@ -18,35 +15,14 @@ type GoalSummaryPromise = ReturnType<typeof getGoalDashboardSummary>;
 
 export async function DashboardServerSection({
   dataPromise,
-  attentionSummary,
+  unreadPromise,
   casesAttention,
   operationalIntelligence,
 }: {
   dataPromise: LiveDataPromise;
-  attentionSummary: React.ReactNode;
+  unreadPromise: UnreadPromise;
   casesAttention: React.ReactNode;
   operationalIntelligence: React.ReactNode;
-}) {
-  const data = await dataPromise;
-
-  return (
-    <Dashboard
-      data={data}
-      intelligence={null}
-      goalSummary={null}
-      attentionSummary={attentionSummary}
-      casesAttention={casesAttention}
-      operationalIntelligence={operationalIntelligence}
-    />
-  );
-}
-
-export async function DashboardAttentionServerSection({
-  dataPromise,
-  unreadPromise,
-}: {
-  dataPromise: LiveDataPromise;
-  unreadPromise: UnreadPromise;
 }) {
   const [data, unreadCommunications] = await Promise.all([
     dataPromise,
@@ -54,9 +30,13 @@ export async function DashboardAttentionServerSection({
   ]);
 
   return (
-    <DashboardAttentionSummary
+    <Dashboard
       data={data}
       unreadCommunications={unreadCommunications}
+      intelligence={null}
+      goalSummary={null}
+      casesAttention={casesAttention}
+      operationalIntelligence={operationalIntelligence}
     />
   );
 }

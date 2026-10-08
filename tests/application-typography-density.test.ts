@@ -70,17 +70,11 @@ test("Dashboard metric-summary cards center labels values and supporting metrics
 });
 
 test("phone Dashboard hides Rule and Recent Activity without changing their data behavior", () => {
-  const attentionRow = dashboard.indexOf('className="operations-attention-row"');
-  const attentionSlot = dashboard.indexOf("{attentionSummary}");
+  const needsAttention = dashboard.indexOf("panel needs-attention");
   const operationalIntelligence = dashboard.indexOf("<OperationalIntelligenceSection");
   const recentActivity = dashboard.indexOf('className="panel recent-activity"');
-
-  assert.ok(attentionRow > -1 && attentionRow < attentionSlot);
-  assert.ok(attentionSlot < operationalIntelligence);
+  assert.ok(needsAttention > -1 && needsAttention < operationalIntelligence);
   assert.ok(operationalIntelligence < recentActivity);
-
-  assert.match(dashboard, /export function DashboardAttentionSummary/);
-  assert.match(dashboard, /className=\{`panel needs-attention/);
   assert.equal(dashboard.match(/<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/g)?.length, 1);
   assert.equal(dashboard.match(/className="panel recent-activity"/g)?.length, 1);
   assert.match(dashboard, /data\.activities\.slice\(0,8\)\.map/);
@@ -88,8 +82,8 @@ test("phone Dashboard hides Rule and Recent Activity without changing their data
   assert.match(intelligence, /className="panel intelligence-panel rule-activity"/);
   assert.match(intelligence, /activeRuleActivity\.slice\(0, 5\)\.map/);
   assert.match(intelligence, /href="\/questions\?view=rules">View Rules/);
-  assert.match(css, /@media[(]max-width:600px[)][{][\s\S]*?\.operational-intelligence \.rule-activity,\.operations-lower>\.recent-activity[{]display:none[}][\s\S]*?\.operations-attention-row[{]grid-template-columns:1fr[}]/);
-  assert.doesNotMatch(css, /@media[(]min-width:601px[)][{][^}]*rule-activity[^}]*display:none/);
+  assert.match(css, /@media\(max-width:600px\)\{[\s\S]*?\.operational-intelligence \.rule-activity,\.operations-lower>\.recent-activity\{display:none\}[\s\S]*?\.operations-attention-row\{grid-template-columns:1fr\}/);
+  assert.doesNotMatch(css, /@media\(min-width:601px\)\{[^}]*rule-activity[^}]*display:none/);
 });
 
 test("tablet and desktop pair attention panels before Intelligence and finish with Recent Activity", () => {
