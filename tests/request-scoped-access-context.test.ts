@@ -146,7 +146,8 @@ test("proxy and Customer Portal retain separate fresh authorization stages", () 
   const proxy = source("proxy.ts");
   const portal = source("lib/auth/customer-portal.ts");
 
-  assert.match(proxy, /supabase\.auth\.getUser\(\)/);
+  assert.match(proxy, /supabase\.auth\.getClaims\(\)/);
+  assert.doesNotMatch(proxy, /supabase\.auth\.getUser\(\)/);
   assert.doesNotMatch(proxy, /getAccessContext|cache\(/);
   assert.match(portal, /async function resolveCustomerPortalContext/);
   assert.match(portal, /getCustomerPortalContext = cache\(resolveCustomerPortalContext\)/);

@@ -156,7 +156,10 @@ test("guide routes are protected server pages and absent from every public allow
   const publicRoutes = proxy.match(/const publicRoutes=\[([^\]]*)\]/)?.[1] ?? "";
 
   assert.doesNotMatch(publicRoutes, /how-to-guide/);
-  assert.match(proxy, /if\(!user&&protectedRoute\)[\s\S]*new URL\("\/login"/);
+  assert.match(
+    proxy,
+    /if\(!authenticated&&protectedRoute\)[\s\S]*new URL\("\/login"/,
+  );
   assert.match(
     ownerGuide,
     /if \(!canAccessOrganizationGuide\(access, "\/how-to-guide"\)\)\s*\{\s*notFound\(\);\s*\}/,

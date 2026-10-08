@@ -12,10 +12,11 @@ export async function proxy(request:NextRequest){
  const protectedRoute=isProtected(pathname); const env=getPublicEnvironment();
  if(!env.configured){if(protectedRoute)return NextResponse.redirect(new URL("/login?error=Supabase%20environment%20variables%20are%20not%20configured.",request.url));return response;}
  const supabase=createServerClient<Database>(env.supabaseUrl,env.supabaseAnonKey,{cookies:{getAll:()=>request.cookies.getAll(),setAll(items){items.forEach(({name,value})=>request.cookies.set(name,value));response=NextResponse.next({request:forwardedRequest});items.forEach(({name,value,options})=>response.cookies.set(name,value,options));}}});
- const {data:{user}}=await supabase.auth.getUser();
- if(!user&&protectedRoute){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
- if(user&&pathname==="/login")return NextResponse.redirect(new URL("/",request.url));
- if(user&&protectedRoute){
+ const {data:claimsData}=await supabase.auth.getClaims();
+ const authenticated=typeof claimsData?.claims.sub==="string";
+ if(!authenticated&&protectedRoute){const target=new URL("/login",request.url);target.searchParams.set("next",safeInternalPath(`${pathname}${request.nextUrl.search}`));return NextResponse.redirect(target);}
+ if(authenticated&&pathname==="/login")return NextResponse.redirect(new URL("/",request.url));
+ if(authenticated&&protectedRoute){
   const {data:routeState,error:routeStateError}=await supabase.rpc("get_my_route_access_state").maybeSingle();
   if(routeStateError)console.error("Proxy route access state lookup failed",{code:routeStateError.code,message:routeStateError.message});
   const profileActive=routeState?.profile_active===true;

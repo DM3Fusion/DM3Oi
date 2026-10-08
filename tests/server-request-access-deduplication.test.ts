@@ -10,7 +10,8 @@ const migration = source(
 );
 
 test("protected proxy routing performs one Auth verification and one access-state RPC", () => {
-  assert.equal(proxy.match(/supabase\.auth\.getUser\(\)/g)?.length, 1);
+  assert.equal(proxy.match(/supabase\.auth\.getClaims\(\)/g)?.length, 1);
+  assert.doesNotMatch(proxy, /supabase\.auth\.getUser\(\)/);
   assert.equal(proxy.match(/rpc\("get_my_route_access_state"\)/g)?.length, 1);
   assert.doesNotMatch(
     proxy,
@@ -25,7 +26,7 @@ test("public analytics requests bypass proxy Auth before a Supabase client is cr
   );
   assert.ok(bypass > -1);
   assert.ok(bypass < proxy.indexOf("createServerClient<Database>"));
-  assert.ok(bypass < proxy.indexOf("supabase.auth.getUser()"));
+  assert.ok(bypass < proxy.indexOf("supabase.auth.getClaims()"));
 });
 
 test("route-state RPC is self-only, minimal, authenticated-only, and fail closed", () => {

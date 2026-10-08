@@ -56,7 +56,7 @@ test("the analytics exemption does not make unrelated or nested API routes publi
   assert.doesNotMatch(proxy, /pathname\.startsWith\(`\/api\/analytics/);
   assert.match(
     proxy,
-    /if\(!user&&protectedRoute\)\{const target=new URL\("\/login"/,
+    /if\(!authenticated&&protectedRoute\)\{const target=new URL\("\/login"/,
   );
 });
 
@@ -65,14 +65,23 @@ test("existing public routes and authenticated proxy behavior remain unchanged",
     proxy,
     /publicRoutes=\["\/","\/login","\/terms","\/privacy","\/request-trial","\/robots\.txt","\/sitemap\.xml","\/auth\/callback","\/auth\/invite","\/auth\/sign-out","\/api\/public\/overview-download"\]/,
   );
-  assert.match(proxy, /supabase\.auth\.getUser\(\)/);
-  assert.match(proxy, /if\(user&&pathname==="\/login"\)/);
-  assert.match(proxy, /if\(user&&protectedRoute\)/);
+  assert.match(proxy, /supabase\.auth\.getClaims\(\)/);
+  assert.doesNotMatch(proxy, /supabase\.auth\.getUser\(\)/);
+  assert.match(
+    proxy,
+    /const authenticated=typeof claimsData\?\.claims\.sub==="string"/,
+  );
+  assert.match(proxy, /if\(authenticated&&pathname==="\/login"\)/);
+  assert.match(proxy, /if\(authenticated&&protectedRoute\)\{/);
+  assert.match(
+    proxy,
+    /if\(authenticated&&protectedRoute\)\{[\s\S]*?supabase\.rpc\("get_my_route_access_state"\)\.maybeSingle\(\)/,
+  );
 });
 
 test("public analytics routes return before Supabase Auth verification", () => {
   assert.ok(
     proxy.indexOf("if(publicAnalyticsRoutes.has(pathname)) return response") <
-      proxy.indexOf("supabase.auth.getUser()"),
+      proxy.indexOf("supabase.auth.getClaims()"),
   );
 });

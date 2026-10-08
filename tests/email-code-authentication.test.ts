@@ -45,7 +45,8 @@ test("OTP verification preserves secure redirect and session flow", () => {
   assert.match(actions, /verifyOtp\(\{email,token,type:"email"\}\)/);
   assert.match(actions, /safeInternalPath\(read\(formData,"next"\)\)/);
   assert.match(actions, /redirect\(next\)/);
-  assert.match(proxy, /supabase\.auth\.getUser\(\)/);
+  assert.match(proxy, /supabase\.auth\.getClaims\(\)/);
+  assert.doesNotMatch(proxy, /supabase\.auth\.getUser\(\)/);
 });
 
 test("post-auth access routing preserves internal, portal, platform, and unprovisioned isolation", () => {
