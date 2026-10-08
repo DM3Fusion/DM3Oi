@@ -16,20 +16,20 @@ test("Guided Intake Customer search filters by Customer number or name", () => {
   );
   assert.match(
     component,
-    /`\$\{customer\.customerNumber\} \$\{customer\.name\}`[\s\S]*\.includes\(normalizedCustomerSearch\)/,
+    /customer\.customerNumber[\s\S]*customer\.name[\s\S]*customer\.email[\s\S]*\.includes\(normalizedCustomerSearch\)/,
   );
 });
 
-test("active Customer search exposes the filtered results instead of hiding them in a closed select", () => {
+test("active Customer search exposes professional visible result rows", () => {
   assert.match(
     component,
-    /customerSearchActive[\s\S]*size=\{[\s\S]*Math\.min\(Math\.max\(filtered\.length \+ 1, 2\), 8\)/,
+    /customerSearchActive[\s\S]*className="intake-customer-results"/,
   );
-  assert.match(
-    component,
-    /className=\{[\s\S]*"intake-customer-select filtered"/,
-  );
-  assert.match(css, /\.intake-customer-select\.filtered\{/);
+  assert.match(component, /role="listbox"/);
+  assert.match(component, /className="intake-customer-result-main"/);
+  assert.match(component, /className="intake-customer-result-action"/);
+  assert.match(css, /\.intake-customer-results\{/);
+  assert.match(css, /\.intake-customer-result\{/);
 });
 
 test("Customer search reports matching and empty result states", () => {
@@ -41,6 +41,6 @@ test("Customer search reports matching and empty result states", () => {
 test("selecting a filtered Customer restores the normal picker", () => {
   assert.match(
     component,
-    /selectCustomer\(event\.target\.value\);[\s\S]*setCustomerSearch\(""\)/,
+    /selectCustomer\(customer\.id\);[\s\S]*setCustomerSearch\(""\)/,
   );
 });

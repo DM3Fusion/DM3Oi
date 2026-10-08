@@ -1092,7 +1092,12 @@ export function GuidedCaseIntake({
   const renderCustomer = () => {
     const normalizedCustomerSearch = customerSearch.trim().toLowerCase();
     const filtered = selectableCustomers.filter((customer) =>
-      `${customer.customerNumber} ${customer.name}`
+      [
+        customer.customerNumber,
+        customer.name,
+        customer.email ?? "",
+      ]
+        .join(" ")
         .toLowerCase()
         .includes(normalizedCustomerSearch),
     );
@@ -1136,41 +1141,71 @@ export function GuidedCaseIntake({
                 </small>
               ) : null}
             </label>
-            <label>
-              <span>Customer</span>
-              <select
-                value={draft.customerId}
-                onChange={(event) => {
-                  selectCustomer(event.target.value);
-                  if (event.target.value) setCustomerSearch("");
-                }}
-                aria-invalid={Boolean(errors.customerId)}
-                size={
-                  customerSearchActive
-                    ? Math.min(Math.max(filtered.length + 1, 2), 8)
-                    : undefined
-                }
-                className={
-                  customerSearchActive
-                    ? "intake-customer-select filtered"
-                    : "intake-customer-select"
-                }
-              >
-                <option value="">
-                  {customerSearchActive
-                    ? filtered.length
-                      ? "Select a matching Customer"
-                      : "No matching Customers"
-                    : "Select a Customer"}
-                </option>
-                {filtered.map((customer) => (
-                  <option key={customer.id} value={customer.id}>
-                    {customer.customerNumber} — {customer.name}
-                  </option>
-                ))}
-              </select>
+            <div className="intake-customer-selection">
+              <span className="intake-customer-selection-label">Customer</span>
+
+              {customerSearchActive ? (
+                <div
+                  className="intake-customer-results"
+                  role="listbox"
+                  aria-label="Matching Customers"
+                >
+                  {filtered.length ? (
+                    filtered.map((customer) => (
+                      <button
+                        key={customer.id}
+                        type="button"
+                        className={
+                          customer.id === draft.customerId
+                            ? "intake-customer-result selected"
+                            : "intake-customer-result"
+                        }
+                        role="option"
+                        aria-selected={customer.id === draft.customerId}
+                        onClick={() => {
+                          selectCustomer(customer.id);
+                          setCustomerSearch("");
+                        }}
+                      >
+                        <span className="intake-customer-result-main">
+                          <strong>{customer.name}</strong>
+                          <small>
+                            {customer.customerNumber}
+                            {customer.email ? ` · ${customer.email}` : ""}
+                          </small>
+                        </span>
+                        <span className="intake-customer-result-action">
+                          Select
+                        </span>
+                      </button>
+                    ))
+                  ) : (
+                    <div className="intake-customer-results-empty">
+                      <strong>No matching Customers</strong>
+                      <span>
+                        Try another name, Customer number, or email address.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <select
+                  value={draft.customerId}
+                  onChange={(event) => selectCustomer(event.target.value)}
+                  aria-invalid={Boolean(errors.customerId)}
+                  className="intake-customer-select"
+                >
+                  <option value="">Select a Customer</option>
+                  {selectableCustomers.map((customer) => (
+                    <option key={customer.id} value={customer.id}>
+                      {customer.customerNumber} — {customer.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
               {fieldError(errors, "customerId")}
-            </label>
+            </div>
           </div>
         ) : (
           <div className="entity-form intake-inline-customer">
