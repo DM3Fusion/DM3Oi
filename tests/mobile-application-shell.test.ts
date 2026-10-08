@@ -12,6 +12,10 @@ const communications = source("app/communications/page.tsx");
 const account = source("app/account/profile/page.tsx");
 const applicationNavigation = source("lib/application-navigation.ts");
 const css = source("app/globals.css");
+const publicShell = shell.slice(
+  shell.indexOf("if (isPublic(pathname, access))"),
+  shell.indexOf("const org = access?.activeOrganization"),
+);
 
 test("phone shell exposes semantic primary navigation with the established destinations", () => {
   assert.match(applicationNavigation, /mobilePrimaryDestinations = new Set\(\["\/", "\/cases", "\/communications"\]\)/);
@@ -40,7 +44,8 @@ test("More remains active for secondary destinations while opening the shell pan
 test("mobile destinations derive from the existing effective-permission navigation", () => {
   assert.match(shell, /authorizedOrganizationNavigation\(access\)/);
   assert.match(shell, /\.\.\.nav\s*\.filter\(\(item\) => mobilePrimaryDestinations\.has\(item\.href\)\)/);
-  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">/);
+  assert.match(publicShell, /className="public-main"/);
+  assert.match(publicShell, /\{children\}/);
   assert.match(applicationNavigation, /organizationNavigation\.filter\(\(item\) => hasPermission\(context, item\.permission\)\)/);
 });
 
@@ -168,7 +173,8 @@ test("mobile More orders authorized organization destinations without bypassing 
 
 test("Customer Portal bypasses every internal mobile navigation surface", () => {
   assert.match(shell, /path === "\/portal" \|\| path\.startsWith\("\/portal\/"\)/);
-  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">/);
+  assert.match(publicShell, /className="public-main"/);
+  assert.doesNotMatch(publicShell, /MobileBottomNavigation/);
   assert.match(account, /requireAuthenticatedInternalUser\(\)/);
   assert.doesNotMatch(source("app/portal/layout.tsx") + source("components/portal-nav.tsx"), /MobileBottomNavigation|mobile-account-navigation|mobileSecondaryNavigation/);
 });

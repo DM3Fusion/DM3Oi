@@ -43,7 +43,13 @@ test("phone header and Customer Portal remain outside version presentation", () 
   const shell = readFileSync("components/layout/app-shell.tsx", "utf8");
   const portal = readFileSync("app/portal/layout.tsx", "utf8");
   const topbar = shell.slice(shell.indexOf('<header className="topbar">'), shell.indexOf("</header>"));
+  const publicShell = shell.slice(
+    shell.indexOf("if (isPublic(pathname, access))"),
+    shell.indexOf("const org = access?.activeOrganization"),
+  );
   assert.doesNotMatch(topbar, /applicationVersionLabel|brand-version|mobile-account-version/);
   assert.doesNotMatch(portal, /app-version|ApplicationVersion|applicationVersion|brand-version|mobile-account-version/);
-  assert.match(shell, /if \(isPublic\(pathname,\s*access\)\)\s*return <main className="public-main">\{children\}<\/main>/);
+  assert.match(publicShell, /className="public-main"/);
+  assert.match(publicShell, /\{children\}/);
+  assert.doesNotMatch(publicShell, /applicationVersionLabel|brand-version|mobile-account-version/);
 });

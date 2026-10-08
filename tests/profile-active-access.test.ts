@@ -20,7 +20,7 @@ test("inactive profiles are rejected by proxy and request-scoped access resoluti
     "supabase/migrations/20261003120000_dm3oi_route_access_state.sql",
   );
 
-  assert.match(proxy, /rpc\("get_my_route_access_state"\)/);
+  assert.match(proxy, /rpc\("get_my_route_access_state",\{/);
   assert.match(proxy, /profileActive=routeState\?\.profile_active===true/);
   assert.match(proxy, /if\(!profileActive\)/);
   assert.match(routeStateMigration, /from public\.profiles profile/);

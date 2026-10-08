@@ -23,10 +23,19 @@ import {
   platformTemplatesNavigation,
 } from "@/lib/application-navigation";
 import { hasPermission } from "@/lib/auth/permissions";
+import {
+  SESSION_ACTIVITY_MARKER_COOKIE,
+  SESSION_ACTIVITY_MARKER_MAX_AGE_SECONDS,
+} from "@/lib/auth/session-policy";
 
 const phoneMediaQuery = "(max-width: 600px)";
 const getPhoneSnapshot = () => window.matchMedia(phoneMediaQuery).matches;
 const getServerPhoneSnapshot = () => false;
+
+function markAuthenticatedActivity(event: React.SyntheticEvent) {
+  if (!event.isTrusted) return;
+  document.cookie = `${SESSION_ACTIVITY_MARKER_COOKIE}=1; Path=/; SameSite=Lax; Secure; Max-Age=${SESSION_ACTIVITY_MARKER_MAX_AGE_SECONDS}`;
+}
 
 function usePhoneLayout(onPhoneLayout: () => void) {
   const subscribe = useCallback((notify: () => void) => {
@@ -80,7 +89,15 @@ export function AppShell({
   const closeDrawer = useCallback(() => setOpen(false), []);
   const phoneLayout = usePhoneLayout(closeDrawer);
   if (isPublic(pathname, access))
-    return <main className="public-main">{children}</main>;
+    return (
+      <main
+        className="public-main"
+        onPointerDownCapture={access ? markAuthenticatedActivity : undefined}
+        onKeyDownCapture={access ? markAuthenticatedActivity : undefined}
+      >
+        {children}
+      </main>
+    );
   const org = access?.activeOrganization;
   const platformContext = Boolean(
     access?.isSuperAdmin && (!org || pathname.startsWith("/admin")),
@@ -147,7 +164,11 @@ export function AppShell({
       : []),
   ];
   return (
-    <div className="app-frame">
+    <div
+      className="app-frame"
+      onPointerDownCapture={markAuthenticatedActivity}
+      onKeyDownCapture={markAuthenticatedActivity}
+    >
       {!phoneLayout && open && (
         <button
           className="scrim"

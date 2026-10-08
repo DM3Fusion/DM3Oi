@@ -36,7 +36,7 @@ test("pending organization membership lookup is authenticated self-only and narr
 test("proxy resolves pending organization access through the consolidated self-only state", () => {
   const proxy = source("proxy.ts");
 
-  assert.match(proxy, /rpc\("get_my_route_access_state"\)/);
+  assert.match(proxy, /rpc\("get_my_route_access_state",\{/);
   assert.match(
     proxy,
     /hasPendingOrganizationAccess=routeState\?\.has_pending_organization_membership===true/,

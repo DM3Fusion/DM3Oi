@@ -12,7 +12,8 @@ const migration = source(
 test("protected proxy routing performs one Auth verification and one access-state RPC", () => {
   assert.equal(proxy.match(/supabase\.auth\.getClaims\(\)/g)?.length, 1);
   assert.doesNotMatch(proxy, /supabase\.auth\.getUser\(\)/);
-  assert.equal(proxy.match(/rpc\("get_my_route_access_state"\)/g)?.length, 1);
+  assert.equal(proxy.match(/rpc\("get_my_route_access_state",\{/g)?.length, 1);
+  assert.match(proxy, /target_is_meaningful_activity:meaningfulActivity/);
   assert.doesNotMatch(
     proxy,
     /\.from\("(?:profiles|platform_user_roles|organization_members|customer_portal_users)"\)/,

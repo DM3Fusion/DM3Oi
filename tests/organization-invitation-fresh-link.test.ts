@@ -181,7 +181,7 @@ test("pending organization identities reach awaiting activation without gaining 
 
   assert.match(
     proxy,
-    /rpc\("get_my_route_access_state"\)/,
+    /rpc\("get_my_route_access_state",\{/,
   );
   assert.doesNotMatch(
     proxy,

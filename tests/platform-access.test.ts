@@ -46,7 +46,7 @@ test("summary drilldown rows preserve full-width button layout",()=>{
   assert.match(css, /summary-drilldown-row\{[^}]*justify-content:space-between/);
   assert.match(css, /summary-drilldown-row:hover/);
 });
-test("portal-only sessions pass middleware access gating",()=>{const source=readFileSync("proxy.ts","utf8");assert.match(source,/rpc\("get_my_route_access_state"\)/);assert.match(source,/hasActiveAccess=Boolean\(routeState\?\.has_active_super_admin_access\|\|routeState\?\.has_active_organization_access\|\|routeState\?\.has_active_customer_portal_access\)/);});
+test("portal-only sessions pass middleware access gating",()=>{const source=readFileSync("proxy.ts","utf8");assert.match(source,/rpc\("get_my_route_access_state",\{/);assert.match(source,/hasActiveAccess=Boolean\(routeState\?\.has_active_super_admin_access\|\|routeState\?\.has_active_organization_access\|\|routeState\?\.has_active_customer_portal_access\)/);});
 
 test("SUPER_ADMIN organization context requires an explicit valid organization selection", () => {
   const context = readFileSync("lib/auth/context.ts", "utf8");

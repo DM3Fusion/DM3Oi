@@ -75,7 +75,7 @@ test("existing public routes and authenticated proxy behavior remain unchanged",
   assert.match(proxy, /if\(authenticated&&protectedRoute\)\{/);
   assert.match(
     proxy,
-    /if\(authenticated&&protectedRoute\)\{[\s\S]*?supabase\.rpc\("get_my_route_access_state"\)\.maybeSingle\(\)/,
+    /rpc\("get_my_route_access_state",\{target_is_meaningful_activity:meaningfulActivity\}\)\.maybeSingle\(\)/,
   );
 });
 
