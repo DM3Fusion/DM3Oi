@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-html-link-for-pages */
 import Link from "next/link";
 import { Badge, PageHeader } from "@/components/ui";
 import { getCustomerRegisterData } from "@/lib/data/case-repository";
@@ -40,20 +41,19 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
           canSubmitCustomerData(access) ? (
             <div className="page-header-actions">
               {/* A document navigation avoids the (.)[customerId] modal treating "import" as a Customer ID. */}
-              {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
               <a className="secondary-button" href="/customers/import">
                 Submit Customer Data
               </a>
               {hasPermission(access, "CREATE_CUSTOMER") ? (
-                <Link className="primary-button" href="/customers/new">
+                <a className="primary-button" href="/customers/new">
                   <ApplicationIcon name="add" />New Customer
-                </Link>
+                </a>
               ) : null}
             </div>
           ) : hasPermission(access, "CREATE_CUSTOMER") ? (
-            <Link className="primary-button" href="/customers/new">
+            <a className="primary-button" href="/customers/new">
               <ApplicationIcon name="add" />New Customer
-            </Link>
+            </a>
           ) : undefined
         }
       />
@@ -106,9 +106,9 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ m
           <div className="empty compact-empty">
             <h2>No customers yet</h2>
             <p>Create the first customer before opening case work.</p>
-            <Link className="primary-button" href="/customers/new">
+            <a className="primary-button" href="/customers/new">
               <ApplicationIcon name="add" />Create Customer
-            </Link>
+            </a>
           </div>
         )}
       </section>
