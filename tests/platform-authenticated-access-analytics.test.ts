@@ -26,6 +26,10 @@ const originalSchema = source(
 const guardedIngestionMigration = source(
   "supabase/migrations/20261004150000_dm3oi_analytics_ingestion_guard.sql",
 );
+const activityMigration = source(
+  "supabase/migrations/20261008140000_dm3oi_authenticated_access_activity_modal.sql",
+);
+const css = source("app/globals.css");
 
 test("existing page views already retain first-party identity, route, session, time, and approximate geography", () => {
   for (const field of [
@@ -223,38 +227,142 @@ test("repository runs existing and authenticated aggregates in parallel for the 
   );
 });
 
-test("Platform Analytics presents searchable identities and keeps geography secondary", () => {
+test("forward authenticated-access aggregate exposes visit page and route activity measures without raw telemetry", () => {
+  const aggregate = activityMigration.slice(
+    activityMigration.indexOf(
+      "create or replace function public.get_platform_authenticated_access_analytics",
+    ),
+  );
+
+  assert.match(
+    aggregate,
+    /count\(distinct session_id\) as sessions/,
+  );
+  assert.match(
+    aggregate,
+    /count\(distinct normalized_path\) as unique_pages/,
+  );
+  assert.match(
+    aggregate,
+    /count\(distinct session_id\) as visits/,
+  );
+  assert.match(
+    aggregate,
+    /'internalVisits'[\s\S]*'internalUniquePages'[\s\S]*'internalPageViews'/,
+  );
+  assert.match(
+    aggregate,
+    /'customerPortalVisits'[\s\S]*'customerPortalUniquePages'[\s\S]*'customerPortalPageViews'/,
+  );
+  assert.match(
+    aggregate,
+    /'publicVisits'[\s\S]*'publicUniquePages'[\s\S]*'publicPageViews'/,
+  );
+  assert.match(
+    aggregate,
+    /'uniquePages', rollup\.unique_pages/,
+  );
+  assert.match(
+    aggregate,
+    /'activity', \([\s\S]*'path', route\.normalized_path,[\s\S]*'visits', route\.visits,[\s\S]*'pageViews', route\.page_views,[\s\S]*'lastActivity', route\.last_activity/,
+  );
+
+  assert.doesNotMatch(
+    aggregate,
+    /'sessionId'|'ipAddress'|'rawIp'|'cookie'|'token'/i,
+  );
+  assert.doesNotMatch(
+    activityMigration,
+    /(?:update|delete\s+from|truncate)\s+public\.analytics_page_views/i,
+  );
+});
+
+test("Platform Analytics keeps summary cards centered while the user register stays identity-only and opens aggregate activity", () => {
   assert.match(
     dashboard,
     /<AuthenticatedAccessAnalytics[\s\S]*data=\{analytics\.authenticatedAccess\}/,
   );
+
   assert.match(
     component,
     /<h3 id="authenticated-access-heading">[\s\S]*Authenticated Access[\s\S]*<\/h3>/,
   );
-  assert.match(component, /<th>User<\/th>/);
-  assert.match(component, /<th>Account<\/th>/);
-  assert.match(component, /<th>Access Type \/ Role<\/th>/);
-  assert.match(component, /<th>Organization<\/th>/);
-  assert.match(component, /<th>Page Views<\/th>/);
-  assert.match(component, /<th>Sessions<\/th>/);
-  assert.match(component, /<th>Last Activity<\/th>/);
-  assert.match(component, /<th>Top Route<\/th>/);
+
+  const registerStart = component.indexOf(
+    '<table className="admin-authenticated-access-table">',
+  );
+  const registerEnd = component.indexOf(
+    "</table>",
+    registerStart,
+  );
+  const register = component.slice(
+    registerStart,
+    registerEnd + "</table>".length,
+  );
+
+  assert.notEqual(registerStart, -1);
+  assert.notEqual(registerEnd, -1);
+
+  assert.match(register, /<th>User<\/th>/);
+  assert.match(register, /<th>Account<\/th>/);
   assert.match(
-    component,
+    register,
+    /<th>Access Type \/ Role<\/th>/,
+  );
+  assert.match(register, /<th>Organization<\/th>/);
+
+  assert.doesNotMatch(register, /<th>Page Views<\/th>/);
+  assert.doesNotMatch(register, /<th>Sessions<\/th>/);
+  assert.doesNotMatch(register, /<th>Last Activity<\/th>/);
+  assert.doesNotMatch(register, /<th>Top Route<\/th>/);
+  assert.doesNotMatch(
+    register,
     /<th>Approx\. Network Geography<\/th>/,
   );
+
+  assert.match(
+    component,
+    /className="admin-authenticated-access-row"/,
+  );
+  assert.match(component, /aria-haspopup="dialog"/);
+  assert.match(component, /role="button"/);
+  assert.match(component, /tabIndex=\{0\}/);
+
+  assert.match(
+    component,
+    /aria-modal="true"[\s\S]*role="dialog"/,
+  );
+  assert.match(component, />Page Activity</);
+  assert.match(component, /<th>Page<\/th>/);
+  assert.match(component, /<th>Visits<\/th>/);
+  assert.match(component, /<th>Page Views<\/th>/);
+  assert.match(component, /<th>Last Activity<\/th>/);
+
+  assert.match(component, /Authenticated Internal/);
+  assert.match(component, /Customer Portal/);
+  assert.match(component, /Public \/ Anonymous/);
+  assert.match(component, /internalUniquePages/);
+  assert.match(component, /customerPortalUniquePages/);
+  assert.match(component, /publicUniquePages/);
+
+  assert.match(
+    css,
+    /\.admin-authenticated-access-summary article\{[\s\S]*text-align:center/,
+  );
+  assert.match(
+    css,
+    /\.admin-authenticated-access-table th,[\s\S]*\.admin-authenticated-access-table td\{[\s\S]*text-align:left/,
+  );
+
   assert.match(
     component,
     /Filter authenticated access by user or organization/,
   );
-  assert.match(component, /Authenticated Internal/);
-  assert.match(component, /Customer Portal/);
-  assert.match(component, /Public \/ Anonymous/);
   assert.match(
     component,
-    /Network geography is[\s\S]*supporting context only/,
+    /Network geography is supporting[\s\S]*context only/,
   );
+
   assert.doesNotMatch(
     component,
     /ip address|raw ip|session token|cookie/i,
