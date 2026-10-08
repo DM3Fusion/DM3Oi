@@ -124,10 +124,14 @@ test("progressive route code adds no client fetching, refresh loops, polling, or
   assert.doesNotMatch(changedApplicationCode, /server-performance/);
 });
 
-test("primary navigation retains native Next Link prefetch behavior", () => {
+test("primary navigation uses explicit full Next Link prefetching", () => {
   const navigation = `${source("components/layout/app-shell.tsx")}\n${source("components/layout/mobile-bottom-navigation.tsx")}`;
   assert.match(navigation, /import Link from "next\/link"/);
   assert.match(navigation, /<Link[\s\S]*?href=\{href\}/);
+  assert.equal(
+    navigation.match(/<Link\b/g)?.length,
+    navigation.match(/prefetch=\{true\}/g)?.length,
+  );
   assert.doesNotMatch(navigation, /prefetch=\{false\}/);
   assert.doesNotMatch(navigation, /router\.prefetch|window\.location/);
 });

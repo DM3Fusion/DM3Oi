@@ -10,13 +10,37 @@ test("ordinary internal navigation uses a route skeleton without replacing the a
   assert.doesNotMatch(source("app/globals.css"), /loading-spinner|Loading organization workspace/);
 });
 
-test("application shell navigation remains client-side and preserves the mounted shell", () => {
+test("authenticated shell navigation fully prefetches through normal Next Links", () => {
   const shell = source("components/layout/app-shell.tsx");
   const mobileNavigation = source("components/layout/mobile-bottom-navigation.tsx");
+  const navigation = `${shell}\n${mobileNavigation}`;
 
   assert.match(shell, /<Link[\s\S]*?href=\{href\}/);
   assert.match(shell, /<main>\{children\}<\/main>/);
   assert.match(mobileNavigation, /<Link[\s\S]*?href=\{href\}/);
-  assert.doesNotMatch(shell + mobileNavigation, /window\.location/);
-  assert.doesNotMatch(shell + mobileNavigation, /prefetch=\{false\}/);
+  assert.equal(
+    navigation.match(/<Link\b/g)?.length,
+    navigation.match(/prefetch=\{true\}/g)?.length,
+  );
+  assert.doesNotMatch(navigation, /prefetch=\{false\}/);
+  assert.doesNotMatch(
+    navigation,
+    /useRouter|router\.(?:refresh|push|replace|prefetch)|window\.location|document\.location/,
+  );
+});
+
+test("full navigation prefetch preserves UI close handlers and authorization", () => {
+  const layout = source("app/layout.tsx");
+  const shell = source("components/layout/app-shell.tsx");
+  const mobileNavigation = source("components/layout/mobile-bottom-navigation.tsx");
+
+  assert.match(shell, /onClick=\{\(\) => setOpen\(false\)\}/);
+  assert.match(mobileNavigation, /onClick=\{\(\) => setMoreOpen\(false\)\}/);
+  assert.match(shell, /authorizedOrganizationNavigation\(access\)/);
+  assert.match(shell, /authorizedOrganizationAdministrationNavigation\(access\)/);
+  assert.match(shell, /authorizedOrganizationSettingsNavigation\(access\)/);
+  assert.match(shell, /<form action=\{signOutAction\}/);
+  assert.doesNotMatch(shell, /<Link[^>]+signOutAction/);
+  assert.match(layout, /export const dynamic="force-dynamic"/);
+  assert.match(layout, /Promise\.all\(\[getAccessContext\(\), headers\(\)\]\)/);
 });

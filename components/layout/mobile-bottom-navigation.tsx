@@ -105,6 +105,7 @@ export function MobileBottomNavigation({
                     <div className="mobile-settings-nav-group" key={item.href}>
                       <Link
                         href={item.href}
+                        prefetch={true}
                         className={`mobile-settings-nav-parent${active ? " active" : ""}`}
                         onClick={() => setMoreOpen(false)}
                       >
@@ -121,6 +122,7 @@ export function MobileBottomNavigation({
                           return (
                             <Link
                               href={child.href}
+                              prefetch={true}
                               className={childActive ? "active" : ""}
                               aria-current={childActive ? "page" : undefined}
                               onClick={() => setMoreOpen(false)}
@@ -141,6 +143,7 @@ export function MobileBottomNavigation({
                     <div className="mobile-settings-nav-group" key={item.href}>
                       <Link
                         href={item.href}
+                        prefetch={true}
                         className={`mobile-settings-nav-parent${active ? " active" : ""}`}
                         onClick={() => setMoreOpen(false)}
                       >
@@ -156,6 +159,7 @@ export function MobileBottomNavigation({
                             return (
                               <Link
                                 href={settingsItem.href}
+                                prefetch={true}
                                 className={childActive ? "active" : ""}
                                 aria-current={childActive ? "page" : undefined}
                                 onClick={() => setMoreOpen(false)}
@@ -175,6 +179,7 @@ export function MobileBottomNavigation({
                 return (
                   <Link
                     href={item.href}
+                    prefetch={true}
                     className={active ? "active" : ""}
                     aria-current={active ? "page" : undefined}
                     onClick={() => setMoreOpen(false)}
@@ -228,7 +233,13 @@ export function MobileBottomNavigation({
         }
 
         return (
-          <Link key={href} href={href} className={active ? "active" : undefined} aria-current={active ? "page" : undefined}>
+          <Link
+            key={href}
+            href={href}
+            prefetch={true}
+            className={active ? "active" : undefined}
+            aria-current={active ? "page" : undefined}
+          >
             {content}
           </Link>
         );

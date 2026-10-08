@@ -160,6 +160,7 @@ export function AppShell({
           <div className="brand-row">
             <Link
               href="/"
+              prefetch={true}
               className="brand brand-hero"
               aria-label="DM3Oi Operational Intelligence home"
             >
@@ -204,6 +205,7 @@ export function AppShell({
                   >
                     <Link
                       href={href}
+                      prefetch={true}
                       onClick={() => {
                         setOpen(false);
                         setTemplatesOpen(true);
@@ -245,6 +247,7 @@ export function AppShell({
                           <Link
                             key={item.href}
                             href={item.href}
+                            prefetch={true}
                             onClick={() => setOpen(false)}
                             className={childActive ? "active" : ""}
                             aria-current={childActive ? "page" : undefined}
@@ -267,6 +270,7 @@ export function AppShell({
               <Link
                 key={href}
                 href={href}
+                prefetch={true}
                 onClick={() => setOpen(false)}
                 className={`${active ? "active " : ""}${mobilePrimaryDestinations.has(href) ? "mobile-primary-nav-item" : ""}`.trim()}
               >
@@ -290,6 +294,7 @@ export function AppShell({
                     >
                       <Link
                         href="/settings/case-configuration"
+                        prefetch={true}
                         onClick={() => {
                           setOpen(false);
                           setSettingsOpen(true);
@@ -326,6 +331,7 @@ export function AppShell({
                             <Link
                               key={item.href}
                               href={item.href}
+                              prefetch={true}
                               onClick={() => setOpen(false)}
                               className={childActive ? "active" : ""}
                             >
@@ -345,6 +351,7 @@ export function AppShell({
                 <Link
                   key={href}
                   href={href}
+                  prefetch={true}
                   onClick={() => setOpen(false)}
                   className={active ? "active" : ""}
                 >
@@ -391,6 +398,7 @@ export function AppShell({
             <div>
               <Link
                 href="/account/profile"
+                prefetch={true}
                 aria-label="Open My Profile"
                 className="avatar-profile-link"
               >
