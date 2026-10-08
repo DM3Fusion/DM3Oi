@@ -9,12 +9,33 @@ test("Organization Defaults is exposed only to SUPER_ADMIN in an active organiza
   const settings=readFileSync("app/settings/page.tsx","utf8");
   const defaults=readFileSync("app/settings/general/page.tsx","utf8");
   const actions=readFileSync("lib/data/organization-administration-actions.ts","utf8");
+  const defaultsAction=actions.slice(
+    actions.indexOf("export async function saveOrganizationDefaults"),
+    actions.indexOf("export async function saveCustomerPortalSettings"),
+  );
+  const portalAction=actions.slice(
+    actions.indexOf("export async function saveCustomerPortalSettings"),
+    actions.indexOf("const caseConfigurationPath"),
+  );
 
   assert.match(settings,/card\.href !== "\/settings\/general" \|\| access\?\.isSuperAdmin/);
   assert.match(defaults,/!access\?\.isSuperAdmin\s*\|\|\s*!access\.activeOrganization/);
-  assert.match(actions,/export async function saveOrganizationDefaults/);
-  assert.match(actions,/export async function saveCustomerPortalSettings/);
-  assert.equal((actions.match(/!access\?\.isSuperAdmin/g) ?? []).length,2);
+  assert.match(defaultsAction,/!organizationId \|\| !access\?\.isSuperAdmin/);
+  assert.doesNotMatch(portalAction,/!access\?\.isSuperAdmin/);
+  assert.match(portalAction,/!organizationId \|\| !ok\(access\)/);
+  assert.match(
+    actions,
+    /const ok=\(a:any\)=>hasPermission\(a,"MANAGE_ORGANIZATION_SETTINGS"\)/,
+  );
+  assert.match(
+    portalAction,
+    /revalidatePath\("\/settings\/customer-portal"\)/,
+  );
+  assert.match(
+    portalAction,
+    /redirect\("\/settings\/customer-portal\?message=Changes%20Saved"\)/,
+  );
+  assert.doesNotMatch(portalAction,/\/administration\/customer-portal/);
 });
 
 test("Case Lifecycle configuration is SUPER_ADMIN-only in the UI and save action",()=>{

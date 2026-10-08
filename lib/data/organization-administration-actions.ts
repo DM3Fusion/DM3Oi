@@ -71,8 +71,8 @@ export async function saveOrganizationDefaults(form: FormData) {
 export async function saveCustomerPortalSettings(form: FormData) {
   const access = await getAccessContext();
   const organizationId = access?.activeOrganization?.id;
-  if (!organizationId || !access?.isSuperAdmin)
-    redirect("/administration?error=Not%20authorized");
+  if (!organizationId || !ok(access))
+    redirect("/settings/customer-portal?error=Not%20authorized");
 
   const parsed = buildCustomerPortalSettingsWrite(
     {
@@ -90,7 +90,7 @@ export async function saveCustomerPortalSettings(form: FormData) {
   );
   if (!parsed.ok) {
     redirect(
-      `/administration/customer-portal?error=${encodeURIComponent(parsed.error)}`,
+      `/settings/customer-portal?error=${encodeURIComponent(parsed.error)}`,
     );
   }
 
@@ -105,13 +105,13 @@ export async function saveCustomerPortalSettings(form: FormData) {
       message: result.error.message,
     });
     redirect(
-      "/administration/customer-portal?error=Unable%20to%20save%20settings",
+      "/settings/customer-portal?error=Unable%20to%20save%20settings",
     );
   }
 
-  revalidatePath("/administration");
-  revalidatePath("/administration/customer-portal");
-  redirect("/administration/customer-portal?message=Changes%20Saved");
+  revalidatePath("/settings");
+  revalidatePath("/settings/customer-portal");
+  redirect("/settings/customer-portal?message=Changes%20Saved");
 }
 
 const caseConfigurationPath = "/settings/case-configuration";

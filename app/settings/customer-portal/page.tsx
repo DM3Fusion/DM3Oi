@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui";
 import { getAccessContext } from "@/lib/auth/context";
+import { hasPermission } from "@/lib/auth/permissions";
 import { saveCustomerPortalSettings } from "@/lib/data/organization-administration-actions";
 import { createClient } from "@/lib/supabase/server";
 
@@ -11,7 +12,11 @@ export default async function Page({
   searchParams?: Promise<{ message?: string; error?: string }>;
 }) {
   const access = await getAccessContext();
-  if (!access?.activeOrganization) notFound();
+  if (
+    !access?.activeOrganization ||
+    !hasPermission(access, "MANAGE_ORGANIZATION_SETTINGS")
+  )
+    notFound();
 
   const organizationId = access.activeOrganization.id;
   const db = await createClient();
