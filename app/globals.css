@@ -14407,3 +14407,33 @@ dialog.intake-save-progress-modal {
     min-width: 0;
   }
 }
+
+
+/* Guided Intake Save Progress compact layout. */
+dialog.intake-save-progress-modal {
+  width: min(31rem, calc(100vw - 2rem));
+  max-width: 31rem;
+}
+
+.intake-save-progress-modal .task-modal-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  width: 100%;
+}
+
+.intake-save-progress-modal .task-modal-form > header,
+.intake-save-progress-modal .intake-save-progress-copy,
+.intake-save-progress-modal .task-modal-form > footer {
+  grid-column: 1 / -1;
+}
+
+.intake-save-progress-modal .task-modal-form > footer {
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  dialog.intake-save-progress-modal {
+    width: calc(100vw - 1.25rem);
+    max-width: none;
+  }
+}
