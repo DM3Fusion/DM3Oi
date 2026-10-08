@@ -1073,14 +1073,58 @@ export function GuidedCaseIntake({
       },
     });
 
-    setPending(false);
-
     if (!result.ok) {
+      setPending(false);
       setFormError(result.error);
       return;
     }
 
-    router.push("/cases?message=Intake%20draft%20saved");
+    const documentNoticeTasks = draft.followUpTasks.filter(
+      (task) =>
+        task.missingOptionIds.length > 0 &&
+        !task.completed &&
+        !noticeSentFollowUpIds.has(task.id),
+    );
+
+    const sentFollowUpIds: string[] = [];
+
+    for (const task of documentNoticeTasks) {
+      if (!draft.caseId) break;
+
+      const noticeResult =
+        await sendGuidedIntakeMissingDocumentsNoticeAction(
+          draft.caseId,
+          task.id,
+        );
+
+      if (!noticeResult.ok) {
+        setPending(false);
+        setFormError(
+          `Progress was saved, but the Customer notice was not sent. ${noticeResult.error}`,
+        );
+        return;
+      }
+
+      sentFollowUpIds.push(task.id);
+    }
+
+    if (sentFollowUpIds.length) {
+      setNoticeSentFollowUpIds((current) => {
+        const next = new Set(current);
+        for (const followUpId of sentFollowUpIds) {
+          next.add(followUpId);
+        }
+        return next;
+      });
+    }
+
+    setPending(false);
+
+    router.push(
+      sentFollowUpIds.length
+        ? "/cases?message=Intake%20draft%20saved%20and%20Customer%20notice%20sent"
+        : "/cases?message=Intake%20draft%20saved",
+    );
   };
 
   const answerLabel = (question: GuidedIntakeQuestion) => {
