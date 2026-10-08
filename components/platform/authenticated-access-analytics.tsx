@@ -29,6 +29,13 @@ type RouteActivity = {
   lastActivity: string | null;
 };
 
+type AccessLocation = {
+  location: string;
+  visits: number;
+  pageViews: number;
+  lastActivity: string | null;
+};
+
 type AccessRow = {
   identityKey: string;
   user: string;
@@ -43,6 +50,7 @@ type AccessRow = {
   lastActivity: string | null;
   topRoute: string | null;
   geography: string | null;
+  locations: AccessLocation[];
   activity: RouteActivity[];
 };
 
@@ -83,6 +91,28 @@ function nullableStringOf(value: unknown) {
   return typeof value === "string"
     ? value
     : null;
+}
+
+function parseLocations(value: unknown): AccessLocation[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.map((entry) => {
+    const row = recordOf(entry);
+
+    return {
+      location: stringOf(
+        row.location,
+        "Approximate network location",
+      ),
+      visits: numberOf(row.visits),
+      pageViews: numberOf(row.pageViews),
+      lastActivity: nullableStringOf(
+        row.lastActivity,
+      ),
+    };
+  });
 }
 
 function parseActivity(value: unknown): RouteActivity[] {
@@ -150,6 +180,9 @@ function parseAuthenticatedAccess(
           ),
           geography: nullableStringOf(
             row.geography,
+          ),
+          locations: parseLocations(
+            row.locations,
           ),
           activity: parseActivity(row.activity),
         };
@@ -629,6 +662,50 @@ export function AuthenticatedAccessAnalytics({
                 {selectedRow.geography ??
                   "Not captured"}
               </span>
+            </div>
+
+            <div className="admin-authenticated-access-modal-locations">
+              <h5>Locations</h5>
+
+              {selectedRow.locations.length === 0 ? (
+                <p className="muted">
+                  No approximate network locations are available
+                  for this reporting period.
+                </p>
+              ) : (
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Location</th>
+                        <th>Visits</th>
+                        <th>Page Views</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {selectedRow.locations.map(
+                        (location) => (
+                          <tr
+                            key={[
+                              location.location,
+                              location.lastActivity ?? "",
+                            ].join(":")}
+                          >
+                            <td>
+                              {location.location}
+                            </td>
+                            <td>{location.visits}</td>
+                            <td>
+                              {location.pageViews}
+                            </td>
+                          </tr>
+                        ),
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
 
             <div className="admin-authenticated-access-modal-activity">

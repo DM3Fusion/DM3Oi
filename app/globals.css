@@ -13217,3 +13217,55 @@ dialog.task-modal.intake-document-availability-modal {
     padding-inline:16px;
   }
 }
+
+
+/* Platform Analytics modal location and compact activity rows. */
+
+.admin-authenticated-access-modal-locations{
+  padding:18px 20px;
+  border-bottom:1px solid var(--line);
+}
+
+.admin-authenticated-access-modal-locations h5{
+  margin:0 0 12px;
+  color:#263548;
+  font-size:14px;
+}
+
+.admin-authenticated-access-modal-locations .muted{
+  margin:0;
+  padding:14px 0;
+  text-align:left;
+}
+
+.admin-authenticated-access-modal-locations table td{
+  font-size:10px;
+}
+
+.admin-authenticated-access-modal-locations table th{
+  font-size:9px;
+}
+
+/* Page Activity is intentionally denser than the main user register. */
+.admin-authenticated-access-modal-activity table td{
+  font-size:10px;
+}
+
+.admin-authenticated-access-modal-activity table td code{
+  font-size:10px;
+}
+
+.admin-authenticated-access-modal-activity table th{
+  font-size:9px;
+}
+
+@media(max-width:520px){
+  .admin-authenticated-access-modal-locations{
+    padding-inline:16px;
+  }
+
+  .admin-authenticated-access-modal-activity table td,
+  .admin-authenticated-access-modal-activity table td code{
+    font-size:9px;
+  }
+}

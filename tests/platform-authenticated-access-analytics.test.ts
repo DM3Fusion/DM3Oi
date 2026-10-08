@@ -29,6 +29,9 @@ const guardedIngestionMigration = source(
 const activityMigration = source(
   "supabase/migrations/20261008140000_dm3oi_authenticated_access_activity_modal.sql",
 );
+const locationsMigration = source(
+  "supabase/migrations/20261008150000_dm3oi_authenticated_access_locations.sql",
+);
 const css = source("app/globals.css");
 
 test("existing page views already retain first-party identity, route, session, time, and approximate geography", () => {
@@ -366,6 +369,52 @@ test("Platform Analytics keeps summary cards centered while the user register st
   assert.doesNotMatch(
     component,
     /ip address|raw ip|session token|cookie/i,
+  );
+});
+
+test("authenticated access modal exposes every coarse location as aggregate-only activity", () => {
+  const aggregate = locationsMigration.slice(
+    locationsMigration.indexOf(
+      "create or replace function public.get_platform_authenticated_access_analytics",
+    ),
+  );
+
+  assert.match(
+    aggregate,
+    /geography_grouped as \([\s\S]*count\(distinct session_id\) as visits,[\s\S]*max\(created_at\) as last_activity/,
+  );
+
+  assert.match(
+    aggregate,
+    /'locations', \([\s\S]*'location', location\.geography,[\s\S]*'visits', location\.visits,[\s\S]*'pageViews', location\.page_views/,
+  );
+
+  assert.doesNotMatch(
+    aggregate,
+    /'sessionId'|'ipAddress'|'rawIp'|'cookie'|'token'|'GPS'/i,
+  );
+
+  assert.doesNotMatch(
+    locationsMigration,
+    /(?:update|delete\s+from|truncate)\s+public\.analytics_page_views/i,
+  );
+
+  assert.match(component, /type AccessLocation = \{/);
+  assert.match(component, /locations: AccessLocation\[\]/);
+  assert.match(component, /<h5>Locations<\/h5>/);
+  assert.match(component, /<th>Location<\/th>/);
+  assert.match(
+    component,
+    /selectedRow\.locations\.map/,
+  );
+
+  assert.match(
+    css,
+    /\.admin-authenticated-access-modal-activity table td\{[\s\S]*font-size:10px/,
+  );
+  assert.match(
+    css,
+    /\.admin-authenticated-access-modal-activity table td code\{[\s\S]*font-size:10px/,
   );
 });
 
