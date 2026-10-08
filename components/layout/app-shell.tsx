@@ -32,9 +32,35 @@ const phoneMediaQuery = "(max-width: 600px)";
 const getPhoneSnapshot = () => window.matchMedia(phoneMediaQuery).matches;
 const getServerPhoneSnapshot = () => false;
 
+const SESSION_ACTIVITY_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+let lastSessionActivityRefreshAt = 0;
+
+function refreshAuthenticatedSessionActivity() {
+  const now = Date.now();
+
+  if (
+    lastSessionActivityRefreshAt > 0 &&
+    now - lastSessionActivityRefreshAt < SESSION_ACTIVITY_REFRESH_INTERVAL_MS
+  ) {
+    return;
+  }
+
+  lastSessionActivityRefreshAt = now;
+
+  void fetch("/api/session/activity", {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    keepalive: true,
+  }).catch(() => {
+    // Proxy enforcement remains authoritative for session expiry.
+  });
+}
+
 function markAuthenticatedActivity(event: React.SyntheticEvent) {
   if (!event.isTrusted) return;
   document.cookie = `${SESSION_ACTIVITY_MARKER_COOKIE}=1; Path=/; SameSite=Lax; Secure; Max-Age=${SESSION_ACTIVITY_MARKER_MAX_AGE_SECONDS}`;
+  refreshAuthenticatedSessionActivity();
 }
 
 function usePhoneLayout(onPhoneLayout: () => void) {

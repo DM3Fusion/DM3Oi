@@ -473,3 +473,48 @@ test("activity marking adds no polling and preserves explicit navigation prefetc
   );
   assert.doesNotMatch(navigation, /prefetch=\{false\}/);
 });
+
+test("trusted activity explicitly refreshes server session state without polling", () => {
+  const shell = source("components/layout/app-shell.tsx");
+  const route = source("app/api/session/activity/route.ts");
+
+  assert.match(
+    shell,
+    /SESSION_ACTIVITY_REFRESH_INTERVAL_MS = 5 \* 60 \* 1000/,
+  );
+  assert.match(
+    shell,
+    /void fetch\("\/api\/session\/activity",[\s\S]*method: "POST"/,
+  );
+  assert.match(shell, /credentials: "same-origin"/);
+  assert.match(shell, /cache: "no-store"/);
+  assert.match(shell, /keepalive: true/);
+
+  assert.match(
+    shell,
+    /function markAuthenticatedActivity\(event: React\.SyntheticEvent\)[\s\S]*if \(!event\.isTrusted\) return[\s\S]*refreshAuthenticatedSessionActivity\(\)/,
+  );
+
+  assert.doesNotMatch(
+    shell,
+    /setInterval|setTimeout|visibilitychange|addEventListener\("focus"/,
+  );
+
+  assert.match(route, /target_is_meaningful_activity: true/);
+  assert.match(route, /session_policy_valid !== true/);
+  assert.match(route, /status: 401/);
+  assert.match(route, /status: 204/);
+  assert.doesNotMatch(route, /createAdminClient|service[_-]?role/i);
+});
+
+test("explicit activity refresh preserves prefetched navigation", () => {
+  const shell = source("components/layout/app-shell.tsx");
+  const mobile = source("components/layout/mobile-bottom-navigation.tsx");
+  const navigation = `${shell}\n${mobile}`;
+
+  assert.equal(
+    navigation.match(/<Link\b/g)?.length,
+    navigation.match(/prefetch=\{true\}/g)?.length,
+  );
+  assert.doesNotMatch(navigation, /prefetch=\{false\}/);
+});
