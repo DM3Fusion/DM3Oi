@@ -14081,13 +14081,6 @@ dialog.task-modal.intake-document-availability-modal {
 
 /* Guided Intake desktop rail width refinement. */
 @media (min-width: 851px) {
-  .guided-case-intake .intake-workspace {
-    grid-template-columns:
-      minmax(15rem, 0.9fr)
-      minmax(28rem, 2.7fr)
-      minmax(15rem, 1fr);
-  }
-
   .guided-case-intake .intake-step-copy {
     min-width: 0;
   }
@@ -14097,5 +14090,42 @@ dialog.task-modal.intake-document-availability-modal {
     text-overflow: clip;
     white-space: normal;
     line-height: 1.25;
+  }
+}
+
+/* Full three-column Guided Intake workspace on wide screens. */
+@media (min-width: 1181px) {
+  .guided-case-intake .intake-workspace {
+    grid-template-columns:
+      minmax(15rem, 0.9fr)
+      minmax(28rem, 2.7fr)
+      minmax(15rem, 1fr);
+  }
+}
+
+/* Medium desktop / tablet landscape:
+   give the intake card the remaining page width and move the
+   context card below without allowing horizontal overflow. */
+@media (min-width: 851px) and (max-width: 1180px) {
+  .guided-case-intake .intake-workspace {
+    grid-template-columns:
+      minmax(15rem, 0.9fr)
+      minmax(0, 2.7fr);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .guided-case-intake .intake-progress-rail,
+  .guided-case-intake .intake-workspace-main {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .guided-case-intake .intake-context-panel {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 }
