@@ -7,7 +7,8 @@ type GeographyRow = {
   postalCode: string | null;
   latitude: number | null;
   longitude: number | null;
-  pageViews: number;
+  visits: number;
+  uniquePages: number;
 };
 
 function coordinateLabel(row: GeographyRow) {
@@ -61,9 +62,9 @@ export function AdminGeography({
         <div>
           <h3>Geography</h3>
           <p className="muted">
-            Page views grouped by approximate network
-            location. Different network routes can resolve
-            to the same city.
+            Unique visits grouped by approximate network
+            location, with the number of distinct pages viewed
+            from each location.
           </p>
         </div>
 
@@ -123,7 +124,12 @@ export function AdminGeography({
                   </small>
                 ) : null}
               </span>
-              <strong>{row.pageViews}</strong>
+              <strong>
+                {row.visits} {row.visits === 1 ? "visit" : "visits"}
+                {" · "}
+                {row.uniquePages}{" "}
+                {row.uniquePages === 1 ? "unique page" : "unique pages"}
+              </strong>
             </div>
           ))
         )}

@@ -80,7 +80,8 @@ export type PlatformAnalytics = {
     postalCode: string | null;
     latitude: number | null;
     longitude: number | null;
-    pageViews: number;
+    visits: number;
+    uniquePages: number;
   }[];
   authenticatedAccess: PlatformAuthenticatedAccess;
 };
@@ -102,7 +103,8 @@ type PlatformAnalyticsAggregate = {
     postalCode: string | null;
     latitude: number | null;
     longitude: number | null;
-    pageViews: number;
+    visits: number;
+    uniquePages: number;
   }[];
 };
 

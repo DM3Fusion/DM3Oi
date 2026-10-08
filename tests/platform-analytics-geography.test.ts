@@ -23,12 +23,12 @@ const trustedMigration = source(
 const networkGeographyMigration = source(
   "supabase/migrations/20261008100000_dm3oi_platform_analytics_network_geography.sql",
 );
-const geographySql = networkGeographyMigration.slice(
-  networkGeographyMigration.indexOf(
+const visitGeographyMigration = source(
+  "supabase/migrations/20261008130000_dm3oi_platform_analytics_geography_visits.sql",
+);
+const geographySql = visitGeographyMigration.slice(
+  visitGeographyMigration.indexOf(
     "create or replace function public.get_platform_analytics_before_trusted_baseline",
-  ),
-  networkGeographyMigration.indexOf(
-    "create or replace function public.get_platform_authenticated_access_analytics",
   ),
 );
 const authenticatedGeographySql = networkGeographyMigration.slice(
@@ -140,22 +140,40 @@ test("valid coordinates are rounded to two decimals and invalid coordinates fail
   assert.match(analytics, /Number\(coordinate\.toFixed\(2\)\)/);
 });
 
-test("Geography groups identical full tuples while separating postal and coarse-coordinate differences", () => {
+test("Geography groups identical full tuples and reports unique visits and pages", () => {
   assert.match(
     geographySql,
     /group by\s+nullif\(trim\(city\), ''\),\s+nullif\(trim\(region_code\), ''\),\s+nullif\(trim\(country_code\), ''\),\s+nullif\(trim\(postal_code\), ''\),\s+network_latitude,\s+network_longitude/,
   );
-  assert.match(geographySql, /count\(\*\) as page_views/);
   assert.match(
     geographySql,
-    /'postalCode', postal_code,[\s\S]*'latitude', network_latitude,[\s\S]*'longitude', network_longitude,[\s\S]*'pageViews', page_views/,
+    /count\(distinct session_id\) as visits/,
+  );
+  assert.match(
+    geographySql,
+    /count\(distinct normalized_path\) as unique_pages/,
+  );
+  assert.match(
+    geographySql,
+    /'postalCode', postal_code,[\s\S]*'latitude', network_latitude,[\s\S]*'longitude', network_longitude,[\s\S]*'visits', visits,[\s\S]*'uniquePages', unique_pages/,
+  );
+  const geographyAggregate = geographySql.slice(
+    geographySql.indexOf("'geography', ("),
+  );
+
+  assert.doesNotMatch(
+    geographyAggregate,
+    /count\(\*\) as page_views/,
   );
   assert.match(
     geographySql,
     /concat_ws\(' ', region_code, postal_code\)/,
   );
   assert.match(geographySql, /else 'Unknown'/);
-  assert.doesNotMatch(networkGeographyMigration, /update public\.analytics_page_views/);
+  assert.doesNotMatch(
+    visitGeographyMigration,
+    /(?:update|delete\s+from|truncate)\s+public\.analytics_page_views/i,
+  );
 });
 
 test("there is no Maryland or Brandywine fallback in ingestion normalization or grouping", () => {
@@ -171,21 +189,30 @@ test("there is no Maryland or Brandywine fallback in ingestion normalization or 
   assert.match(geographySql, /coalesce\([\s\S]*'Unknown'/);
 });
 
-test("Geography explains its approximate page-view metric without exposing PII", () => {
+test("Geography explains unique visit and page semantics without exposing PII", () => {
   assert.match(
     geography,
-    /Page views grouped by approximate network\s+location\. Different network routes can resolve\s+to the same city\./,
+    /Unique visits grouped by approximate network\s+location, with the number of distinct pages viewed\s+from each location\./,
   );
   assert.deepEqual(
     geography.match(/type GeographyRow = \{[\s\S]*?\};/)?.[0]
-      .match(/\b(?:label|postalCode|latitude|longitude|pageViews):/g),
+      .match(/\b(?:label|postalCode|latitude|longitude|visits|uniquePages):/g),
     [
       "label:",
       "postalCode:",
       "latitude:",
       "longitude:",
-      "pageViews:",
+      "visits:",
+      "uniquePages:",
     ],
+  );
+  assert.match(
+    geography,
+    /row\.visits === 1 \? "visit" : "visits"/,
+  );
+  assert.match(
+    geography,
+    /row\.uniquePages === 1 \? "unique page" : "unique pages"/,
   );
   assert.match(geography, /Approx\. network: \{coordinateLabel\(row\)\}/);
   assert.match(geography, /row\.latitude\.toFixed\(2\)/);
