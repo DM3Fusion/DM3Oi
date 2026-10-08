@@ -2036,52 +2036,74 @@ export function GuidedCaseIntake({
 
     if (step === 2) {
       return (
-        <>
-          <p className="intake-context-eyebrow">Intake Progress</p>
-          <h3>Question Summary</h3>
-          <div className="intake-context-progress">
-            <div>
-              <strong>
-                {completedVisibleQuestions}/{visibleQuestions.length}
-              </strong>
-              <span>Questions Complete</span>
+        <div className="intake-context-card-grid">
+          <section
+            className="intake-context-card"
+            aria-label="Intake progress"
+          >
+            <p className="intake-context-eyebrow">Intake Progress</p>
+            <h3>Question Summary</h3>
+
+            <div className="intake-context-progress">
+              <div>
+                <strong>
+                  {completedVisibleQuestions}/{visibleQuestions.length}
+                </strong>
+                <span>Questions Complete</span>
+              </div>
+              <div>
+                <strong>
+                  {completedRequiredQuestions}/{requiredVisibleQuestions.length}
+                </strong>
+                <span>Required Complete</span>
+              </div>
             </div>
-            <div>
-              <strong>
-                {completedRequiredQuestions}/{requiredVisibleQuestions.length}
-              </strong>
-              <span>Required Complete</span>
-            </div>
-          </div>
+          </section>
 
-          <div className="intake-context-divider" />
+          <section
+            className="intake-context-card"
+            aria-label="Document requirements"
+          >
+            <p className="intake-context-eyebrow">Document Requirements</p>
+            <h3>
+              {outstandingDocumentLabels.length
+                ? `${outstandingDocumentLabels.length} Required`
+                : "No Required Documents"}
+            </h3>
 
-          <p className="intake-context-eyebrow">Document Requirements</p>
-          <h3>
-            {outstandingDocumentLabels.length
-              ? `${outstandingDocumentLabels.length} Required`
-              : "No Required Documents"}
-          </h3>
+            {outstandingDocumentLabels.length ? (
+              <ul className="intake-context-documents">
+                {outstandingDocumentLabels.slice(0, 6).map((label) => (
+                  <li key={label}>{label}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="intake-context-help">
+                DM3Oi will identify document requirements from the Customer’s
+                answers.
+              </p>
+            )}
 
-          {outstandingDocumentLabels.length ? (
-            <ul className="intake-context-documents">
-              {outstandingDocumentLabels.slice(0, 6).map((label) => (
-                <li key={label}>{label}</li>
-              ))}
-            </ul>
-          ) : (
+            {outstandingDocumentLabels.length > 6 ? (
+              <small className="intake-context-more">
+                +{outstandingDocumentLabels.length - 6} more
+              </small>
+            ) : null}
+          </section>
+
+          <section
+            className="intake-context-card intake-context-card-intelligence"
+            aria-label="Case intelligence"
+          >
+            <p className="intake-context-eyebrow">Case Intelligence</p>
+            <h3>Qualification Requirements</h3>
+
             <p className="intake-context-help">
-              DM3Oi will identify document requirements from the Customer’s
-              answers.
+              Select a filing status to view the qualification requirements
+              that still need to be satisfied.
             </p>
-          )}
-
-          {outstandingDocumentLabels.length > 6 ? (
-            <small className="intake-context-more">
-              +{outstandingDocumentLabels.length - 6} more
-            </small>
-          ) : null}
-        </>
+          </section>
+        </div>
       );
     }
 
@@ -2649,7 +2671,14 @@ export function GuidedCaseIntake({
           </div>
         </main>
 
-        <aside className="intake-context-panel" aria-label="Guided Intake context">
+        <aside
+          className={
+            step === 2
+              ? "intake-context-panel intake-context-panel-question-step"
+              : "intake-context-panel"
+          }
+          aria-label="Guided Intake context"
+        >
           {renderIntakeContextPanel()}
         </aside>
       </div>

@@ -14129,3 +14129,70 @@ dialog.task-modal.intake-document-availability-modal {
     box-sizing: border-box;
   }
 }
+
+
+/* Guided Intake question-step intelligence cards.
+   Keep Progress, Documents and Case Intelligence below the
+   Intake Questions workspace at every responsive width. */
+.guided-case-intake .intake-context-panel-question-step {
+  grid-column: 1 / -1;
+  position: static;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.guided-case-intake .intake-context-card-grid {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.guided-case-intake .intake-context-card {
+  min-width: 0;
+  padding: 1.2rem;
+  border: 1px solid #d8e1ea;
+  border-radius: 0.65rem;
+  background: #fff;
+  box-shadow: 0 0.35rem 1rem #17243a0a;
+}
+
+.guided-case-intake .intake-context-card > h3 {
+  margin-top: 0.35rem;
+}
+
+.guided-case-intake .intake-context-card .intake-context-progress {
+  margin-top: 1rem;
+}
+
+.guided-case-intake .intake-context-card-intelligence {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1100px) {
+  .guided-case-intake .intake-context-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guided-case-intake .intake-context-card-intelligence {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 700px) {
+  .guided-case-intake .intake-context-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .guided-case-intake .intake-context-card-intelligence {
+    grid-column: auto;
+  }
+}
