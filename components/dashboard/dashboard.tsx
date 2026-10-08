@@ -27,20 +27,20 @@ function AttentionSummaryRing({items}:{items:ReadonlyArray<{value:number;tone:st
 
 export function Dashboard({
   data,
-  unreadCommunications,
   intelligence,
   goalSummary,
+  attentionSummary,
   casesAttention,
   operationalIntelligence,
 }: {
   data: LiveOrganizationData;
-  unreadCommunications: number;
   intelligence: AuthorizedOperationalIntelligence | null;
   goalSummary: GoalDashboardSummary | null;
+  attentionSummary: React.ReactNode;
   casesAttention?: React.ReactNode;
   operationalIntelligence?: React.ReactNode;
 }) {
-  const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers,unreadCommunications,data.timezone);
+  const summary=getOperationalDashboardMetrics(data.cases,data.serviceRequests,data.customers,0,data.timezone);
   const maxCases=Math.max(1,...summary.caseProgress.map(item=>item.value));
   const taskCompletion=summary.tasks.total?Math.round((summary.tasks.completed/summary.tasks.total)*100):0;
   return <div className="operations-dashboard">
@@ -51,13 +51,7 @@ export function Dashboard({
       </Link>)}
     </section>
     <div className="operations-attention-row">
-      <section className={`panel needs-attention${summary.attention.length ? " has-attention-summary" : ""}`}>
-        <div className={`section-head attention-heading${summary.attention.length ? " attention-summary-heading" : ""}`}>
-          {summary.attention.length ? <AttentionSummaryRing items={summary.attention} /> : <span className="attention-heading-icon"><ApplicationIcon name="warning" /></span>}
-          <h2>All Needing Attention</h2>
-        </div>
-        {summary.attention.length?<div className="attention-summary-layout"><div className="attention-list">{summary.attention.map(item=><Link href={item.href} key={item.label}><i className={`attention-marker tone-${item.tone}`} aria-hidden/><span><strong>{item.label}</strong></span><b>{item.value}</b><em><ApplicationIcon name="forward" /></em></Link>)}</div></div>:<div className="dashboard-healthy"><span><ApplicationIcon name="completed" /></span><div><strong>Nothing requires immediate attention</strong><p>No overdue, due-today, unassigned, awaiting-response, or unread signals are currently visible.</p></div></div>}
-      </section>
+      {attentionSummary}
       {casesAttention ??
         (intelligence ? <CasesNeedingAttention intelligence={intelligence} /> : null)}
     </div>
@@ -112,4 +106,67 @@ export function Dashboard({
       </section>
     </div>
   </div>;
+}
+
+export function DashboardAttentionSummary({
+  data,
+  unreadCommunications,
+}: {
+  data: LiveOrganizationData;
+  unreadCommunications: number;
+}) {
+  const attention = getOperationalDashboardMetrics(
+    data.cases,
+    data.serviceRequests,
+    data.customers,
+    unreadCommunications,
+    data.timezone,
+  ).attention;
+
+  return (
+    <section
+      className={`panel needs-attention${attention.length ? " has-attention-summary" : ""}`}
+    >
+      <div
+        className={`section-head attention-heading${attention.length ? " attention-summary-heading" : ""}`}
+      >
+        {attention.length ? (
+          <AttentionSummaryRing items={attention} />
+        ) : (
+          <span className="attention-heading-icon">
+            <ApplicationIcon name="warning" />
+          </span>
+        )}
+        <h2>All Needing Attention</h2>
+      </div>
+      {attention.length ? (
+        <div className="attention-summary-layout">
+          <div className="attention-list">
+            {attention.map((item) => (
+              <Link href={item.href} key={item.label}>
+                <i
+                  className={`attention-marker tone-${item.tone}`}
+                  aria-hidden
+                />
+                <span><strong>{item.label}</strong></span>
+                <b>{item.value}</b>
+                <em><ApplicationIcon name="forward" /></em>
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="dashboard-healthy">
+          <span><ApplicationIcon name="completed" /></span>
+          <div>
+            <strong>Nothing requires immediate attention</strong>
+            <p>
+              No overdue, due-today, unassigned, awaiting-response, or unread
+              signals are currently visible.
+            </p>
+          </div>
+        </div>
+      )}
+    </section>
+  );
 }

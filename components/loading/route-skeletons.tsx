@@ -141,6 +141,15 @@ export function DashboardBodySkeleton() {
   );
 }
 
+export function ServiceDeskBodySkeleton() {
+  return (
+    <div className="route-loading-stack">
+      <KpiGridSkeleton count={8} label="Loading Service Desk summary" />
+      <TableSkeleton label="Loading recent Service Requests" rows={8} />
+    </div>
+  );
+}
+
 export function RootRouteSkeleton() {
   return (
     <div className="route-loading-stack">

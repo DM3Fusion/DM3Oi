@@ -62,23 +62,37 @@ test("dashboard includes deterministic attention, progress, task status, and lin
 test("Dashboard DOM places attention directly after workload KPIs and before Customer Metrics", () => {
   const dashboard = source("components/dashboard/dashboard.tsx");
   const workload = dashboard.indexOf('aria-label="Action and workload summary"');
-  const attention = dashboard.indexOf('className="operations-attention-row"');
-  const needsAttention = dashboard.indexOf(">All Needing Attention<");
-  const casesNeedingAttention = dashboard.indexOf("<CasesNeedingAttention intelligence={intelligence}");
+  const attentionRow = dashboard.indexOf('className="operations-attention-row"');
+  const attentionSlot = dashboard.indexOf("{attentionSummary}");
+  const casesAttentionSlot = dashboard.indexOf("{casesAttention ??");
   const customerMetrics = dashboard.indexOf(">Customer Metrics<");
   const caseProgress = dashboard.indexOf(">Case Progress<");
   const intelligence = dashboard.indexOf("<OperationalIntelligenceSection");
   const recentActivity = dashboard.indexOf(">Recent Activity<");
 
-  assert.ok(workload > -1 && workload < attention);
-  assert.ok(attention < needsAttention && needsAttention < casesNeedingAttention);
-  assert.ok(casesNeedingAttention < customerMetrics);
+  assert.ok(workload > -1 && workload < attentionRow);
+  assert.ok(
+    attentionRow < attentionSlot &&
+      attentionSlot < casesAttentionSlot &&
+      casesAttentionSlot < customerMetrics,
+  );
   assert.ok(customerMetrics < caseProgress);
   assert.ok(caseProgress < intelligence && intelligence < recentActivity);
 
+  assert.match(dashboard, /export function DashboardAttentionSummary/);
+  assert.match(dashboard, /<h2>All Needing Attention<\/h2>/);
   assert.equal(dashboard.match(/>Recent Activity</g)?.length, 1);
-  assert.equal(dashboard.match(/<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/g)?.length, 1);
-  assert.equal(dashboard.match(/<CasesNeedingAttention intelligence=\{intelligence\}/g)?.length, 1);
+  assert.equal(
+    dashboard.match(
+      /<OperationalIntelligenceSection[\s\S]*?intelligence=\{intelligence\}/g,
+    )?.length,
+    1,
+  );
+  assert.equal(
+    dashboard.match(/<CasesNeedingAttention intelligence=\{intelligence\}/g)
+      ?.length,
+    1,
+  );
 });
 
 test("desktop and tablet pair the attention cards in their dedicated row", () => {
@@ -127,17 +141,21 @@ test("Needs Attention donut summarizes only the existing actionable row counts",
   const css = source("app/globals.css");
   assert.match(dashboard, /function AttentionSummaryRing\(\{items\}/);
   assert.match(dashboard, /const total=items\.reduce\(\(sum,item\)=>sum\+item\.value,0\)/);
-  assert.match(dashboard, /<AttentionSummaryRing items=\{summary\.attention\}/);
-  assert.match(dashboard, /needs-attention\$\{summary\.attention\.length \? " has-attention-summary" : ""\}/);
-  assert.match(dashboard, /summary\.attention\.map\(item=><Link href=\{item\.href\}/);
+  assert.match(dashboard, /const attention = getOperationalDashboardMetrics\([\s\S]*?unreadCommunications[\s\S]*?\)\.attention/);
+  assert.match(dashboard, /<AttentionSummaryRing items=\{attention\} \/>/);
+  assert.match(dashboard, /needs-attention\$\{attention\.length \? " has-attention-summary" : ""\}/);
+  assert.match(dashboard, /attention\.map\(\(item\) => \(/);
   assert.match(dashboard, /aria-label=\{`\$\{total\} current attention items`\}/);
   assert.match(dashboard, /<small>Items<\/small>/);
   assert.doesNotMatch(dashboard, /attention-summary-ring[\s\S]{0,300}(?:Complete|Progress|Readiness)/);
   assert.doesNotMatch(dashboard, /getLiveOrganizationData|getOperationalIntelligence/);
   assert.match(dashboard, /attention-summary-heading/);
-  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{summary\.attention\}\s*\/>/);
+  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{attention\}\s*\/>/);
   assert.match(dashboard, /<h2>All Needing Attention<\/h2>/);
-  assert.match(dashboard, /<div className="attention-summary-layout"><div className="attention-list">/);
+  assert.match(
+    dashboard,
+    /<div className="attention-summary-layout">\s*<div className="attention-list">/,
+  );
   assert.doesNotMatch(css, /grid-template-areas:"attention-summary attention-heading"/);
   assert.match(css, /\.attention-summary-heading\{display:block\}/);
 });
@@ -168,7 +186,7 @@ test("wide attention cards share structural header geometry and equivalent donut
   const css = source("app/globals.css");
 
   assert.match(dashboard, /attention-summary-heading/);
-  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{summary\.attention\}\s*\/>/);
+  assert.match(dashboard, /<AttentionSummaryRing\s+items=\{attention\}\s*\/>/);
 
   assert.match(
     css,

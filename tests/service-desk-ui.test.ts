@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 const source = (path: string) => readFileSync(path, "utf8");
 test("Service Desk list and creation surfaces use the dedicated lightweight loader", () => {
-  const dashboard = source("app/service-desk/page.tsx");
+  const dashboard = `${source("app/service-desk/page.tsx")}\n${source("components/service-desk/service-desk-page-sections.tsx")}`;
   const register = source("app/service-desk/requests/page.tsx");
   const create = source("app/service-desk/new/page.tsx");
   const repository = source("lib/data/case-repository.ts");
@@ -36,19 +36,31 @@ test("Service Desk list and creation surfaces use the dedicated lightweight load
 });
 
 test("service desk dashboard links recent work to the filtered register", () => {
-  const page = source("app/service-desk/page.tsx");
+  const route = source("app/service-desk/page.tsx");
+  const body = source("components/service-desk/service-desk-page-sections.tsx");
+  const dashboard = `${route}\n${body}`;
   const register = source("app/service-desk/requests/page.tsx");
-  assert.match(page, /getServiceRequestMetrics/);
-  assert.match(page, /Recent Service Requests/);
-  assert.match(page, /service-desk\/requests/);
-  assert.match(page, /NavigableRow/);
+
+  assert.match(dashboard, /getServiceRequestMetrics/);
+  assert.match(dashboard, /Recent Service Requests/);
+  assert.match(dashboard, /service-desk\/requests/);
+  assert.match(dashboard, /NavigableRow/);
   assert.match(register, /Search requests/);
   assert.match(register, /No service requests match these filters/);
+
+  const headerIndex = route.indexOf("<PageHeader");
+  const bodyBoundaryIndex = route.indexOf(
+    '<Suspense fallback={<ServiceDeskBodySkeleton />}>',
+  );
+  assert.ok(headerIndex > -1);
+  assert.ok(bodyBoundaryIndex > headerIndex);
+  assert.match(route, /ServiceDeskCreateActionServerSection/);
+  assert.match(route, /ServiceDeskBodyServerSection/);
 });
 test("service request updated timestamps include organization-local time without seconds", () => {
   const formatter = source("lib/organization-timezone.ts");
   const serviceFormatter = source("lib/service-request-format.ts");
-  const dashboard = source("app/service-desk/page.tsx");
+  const dashboard = `${source("app/service-desk/page.tsx")}\n${source("components/service-desk/service-desk-page-sections.tsx")}`;
   const register = source("app/service-desk/requests/page.tsx");
   for (const option of [/month: "numeric"/, /day: "numeric"/, /year: "numeric"/, /hour: "numeric"/, /minute: "2-digit"/, /hour12: true/]) assert.match(formatter, option);
   assert.doesNotMatch(formatter, /second: "2-digit"/);
@@ -119,7 +131,7 @@ test("service request detail exposes supported controls and activity", () => {
   assert.match(page, /get_service_request_detail_activity/);
 });
 test("dashboard includes ordered linked service request metrics", () => {
-  const dashboard = source("app/service-desk/page.tsx");
+  const dashboard = `${source("app/service-desk/page.tsx")}\n${source("components/service-desk/service-desk-page-sections.tsx")}`;
   const metricSource = source("lib/live-dashboard-metrics.ts");
   const start = metricSource.indexOf("export function getServiceRequestMetrics");
   const metrics = metricSource.slice(start, metricSource.indexOf("export function", start + 1));

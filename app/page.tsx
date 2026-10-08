@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import {
+  DashboardAttentionServerSection,
   DashboardCasesAttentionServerSection,
   DashboardIntelligenceServerSection,
   DashboardServerSection,
@@ -125,7 +126,21 @@ export default async function Page({
       <Suspense fallback={<DashboardBodySkeleton />}>
         <DashboardServerSection
           dataPromise={dataPromise}
-          unreadPromise={unreadPromise}
+          attentionSummary={
+            <Suspense
+              fallback={
+                <ReportSectionSkeleton
+                  label="Loading attention summary"
+                  compact
+                />
+              }
+            >
+              <DashboardAttentionServerSection
+                dataPromise={dataPromise}
+                unreadPromise={unreadPromise}
+              />
+            </Suspense>
+          }
           casesAttention={
             <Suspense
               fallback={
