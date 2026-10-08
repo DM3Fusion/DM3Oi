@@ -4,6 +4,7 @@ import { AdminGeography } from "@/components/admin-geography";
 import { AdminTopPages } from "@/components/admin-top-pages";
 import { AnalyticsDonut } from "@/components/analytics-donut";
 import { ApplicationIcon } from "@/components/application-icon";
+import { AuthenticatedAccessAnalytics } from "@/components/platform/authenticated-access-analytics";
 import { OrganizationTable } from "@/components/platform/organization-table";
 import type { ApplicationIconName } from "@/lib/application-icons";
 import type { PlatformAnalytics } from "@/lib/data/platform-analytics-repository";
@@ -21,6 +22,16 @@ const analyticsRanges = [
   { key: "all", label: "All Time" },
   { key: "custom", label: "Custom" },
 ] as const;
+
+function trustedAnalyticsStartLabel(value: string) {
+  const date = new Date(value);
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "UTC",
+  }).format(date);
+}
 
 export function PlatformDashboard({
   summary,
@@ -161,6 +172,16 @@ export function PlatformDashboard({
             <p className="muted">
               First-party DM3Oi activity.
               Reporting periods use UTC.
+            </p>
+            <p className="muted admin-analytics-trusted-baseline">
+              Trusted analytics data begins{" "}
+              <time dateTime={analytics.trustedDataStartedAt}>
+                {trustedAnalyticsStartLabel(
+                  analytics.trustedDataStartedAt,
+                )}{" "}
+                UTC
+              </time>
+              .
             </p>
           </div>
 
@@ -352,6 +373,10 @@ export function PlatformDashboard({
             rows={analytics.geography}
           />
         </div>
+
+        <AuthenticatedAccessAnalytics
+          data={analytics.authenticatedAccess}
+        />
       </section>
 
       {summary.organizations === 0 ? (

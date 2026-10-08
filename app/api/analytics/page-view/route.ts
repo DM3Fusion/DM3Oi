@@ -38,6 +38,17 @@ function isExcludedIp(ip: string | null) {
   return excluded.has(ip);
 }
 
+function validAnalyticsCookieUuid(
+  value: string | undefined,
+) {
+  return value &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+    ? value
+    : null;
+}
+
 
 export async function POST(request: NextRequest) {
   if (isExcludedIp(requestIp(request))) {
@@ -76,6 +87,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const normalizedPath =
+    normalizeAnalyticsPath(path);
+
   const { sessionId } = await getOrCreateAnalyticsSessionId();
 
   const supabase = await createClient();
@@ -110,24 +124,39 @@ export async function POST(request: NextRequest) {
   }
 
   let organizationId: string | null = null;
+  let accessType = userId
+    ? "AUTHENTICATED_UNCLASSIFIED"
+    : "PUBLIC";
+  let accessRole: string | null = null;
 
   if (userId) {
-    const {
-      data: memberships,
-      error: membershipError,
-    } = await supabase
-      .from("organization_members")
-      .select(
-        "organization_id,organization:organizations(id,status)",
-      )
-      .eq("user_id", userId)
-      .eq("is_active", true)
-      .eq("status", "ACTIVE");
+    const selectedOrganizationId =
+      validAnalyticsCookieUuid(
+        request.cookies.get(
+          "dm3iqcm-active-organization",
+        )?.value,
+      );
+    const selectedPortalAccessId =
+      validAnalyticsCookieUuid(
+        request.cookies.get(
+          "dm3iqcm-active-portal-access",
+        )?.value,
+      );
+    const { data: identityRows, error: identityError } =
+      await supabase.rpc(
+        "get_my_analytics_identity_context",
+        {
+          target_organization_id:
+            selectedOrganizationId,
+          target_portal_access_id:
+            selectedPortalAccessId,
+        },
+      );
 
-    if (membershipError) {
+    if (identityError) {
       console.error(
-        "Analytics organization membership lookup failed",
-        membershipError.message,
+        "Analytics identity context lookup failed",
+        identityError.message,
       );
 
       return NextResponse.json(
@@ -136,17 +165,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    for (const membership of memberships ?? []) {
-      const value = membership.organization;
-      const organization = Array.isArray(value)
-        ? value[0]
-        : value;
+    const identity = (
+      Array.isArray(identityRows)
+        ? identityRows[0]
+        : identityRows
+    ) as
+      | {
+          access_type?: unknown;
+          access_role?: unknown;
+          organization_id?: unknown;
+        }
+      | null;
 
-      if (organization?.status === "ACTIVE") {
-        organizationId = membership.organization_id;
-        break;
-      }
-    }
+    accessType =
+      typeof identity?.access_type === "string"
+        ? identity.access_type
+        : "AUTHENTICATED_UNCLASSIFIED";
+    accessRole =
+      typeof identity?.access_role === "string"
+        ? identity.access_role
+        : null;
+    organizationId =
+      typeof identity?.organization_id === "string"
+        ? identity.organization_id
+        : null;
   }
 
   const userAgent =
@@ -206,8 +248,6 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  const normalizedPath =
-    normalizeAnalyticsPath(path);
   const referrerHost =
     analyticsReferrerHost(referrer);
   const deviceType =
@@ -233,11 +273,13 @@ export async function POST(request: NextRequest) {
 
   const { data: accepted, error } =
     await admin.rpc(
-      "record_analytics_page_view_guarded" as never,
+      "record_analytics_page_view_guarded",
       {
         target_session_id: sessionId,
         target_user_id: userId,
         target_organization_id: organizationId,
+        target_access_type: accessType,
+        target_access_role: accessRole,
         target_path: path,
         target_normalized_path: normalizedPath,
         target_referrer_host: referrerHost,
@@ -250,7 +292,7 @@ export async function POST(request: NextRequest) {
         target_city: city,
         target_traffic_type: trafficType,
         target_traffic_signal: trafficSignal,
-      } as never,
+      },
     );
 
   if (error) {

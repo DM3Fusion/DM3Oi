@@ -6,26 +6,30 @@ function source(path: string) {
   return readFileSync(path, "utf8");
 }
 
-test("page-view attribution uses the DM3Oi organization status model", () => {
+test("page-view attribution uses the self-only analytics identity resolver", () => {
   const route = source(
     "app/api/analytics/page-view/route.ts",
   );
 
   assert.match(
     route,
-    /organization:organizations\(id,status\)/,
+    /rpc\(\s*"get_my_analytics_identity_context"/,
   );
   assert.match(
     route,
-    /organization\?\.status === "ACTIVE"/,
+    /target_organization_id:\s*selectedOrganizationId/,
+  );
+  assert.match(
+    route,
+    /target_portal_access_id:\s*selectedPortalAccessId/,
   );
   assert.doesNotMatch(
     route,
-    /organization:organizations\(id,is_active\)/,
+    /\.from\("organization_members"\)/,
   );
   assert.doesNotMatch(
     route,
-    /organization\?\.is_active/,
+    /\.from\("customer_portal_users"\)/,
   );
 });
 
@@ -39,15 +43,15 @@ test("page-view attribution retains SUPER_ADMIN exclusion", () => {
   assert.match(route, /ignored: true/);
 });
 
-test("page-view membership lookup failures remain observable", () => {
+test("page-view identity lookup failures remain observable", () => {
   const route = source(
     "app/api/analytics/page-view/route.ts",
   );
 
-  assert.match(route, /membershipError/);
+  assert.match(route, /identityError/);
   assert.match(
     route,
-    /Analytics organization membership lookup failed/,
+    /Analytics identity context lookup failed/,
   );
 });
 

@@ -22,10 +22,40 @@ export type PlatformAnalyticsDatum = {
   value: number;
 };
 
+export type PlatformAuthenticatedAccessRow = {
+  identityKey: string;
+  user: string;
+  email: string | null;
+  accountIdentifier: string;
+  accessType:
+    | "INTERNAL"
+    | "CUSTOMER_PORTAL"
+    | "AUTHENTICATED_UNCLASSIFIED"
+    | "AUTHENTICATED_HISTORICAL";
+  role: string | null;
+  organization: string;
+  pageViews: number;
+  sessions: number;
+  lastActivity: string;
+  topRoute: string;
+  geography: string;
+};
+
+export type PlatformAuthenticatedAccess = {
+  summary: {
+    internalPageViews: number;
+    customerPortalPageViews: number;
+    unclassifiedAuthenticatedPageViews: number;
+    publicPageViews: number;
+  };
+  rows: PlatformAuthenticatedAccessRow[];
+};
+
 export type PlatformAnalytics = {
   range: PlatformAnalyticsRange;
   from: string;
   through: string;
+  trustedDataStartedAt: string;
   customRangeError: string | null;
   pageViews: number;
   sessions: number;
@@ -49,9 +79,11 @@ export type PlatformAnalytics = {
     label: string;
     pageViews: number;
   }[];
+  authenticatedAccess: PlatformAuthenticatedAccess;
 };
 
 type PlatformAnalyticsAggregate = {
+  trustedDataStartedAt: string;
   pageViews: number;
   sessions: number;
   users: number;
@@ -65,15 +97,42 @@ type PlatformAnalyticsAggregate = {
   geography: { label: string; pageViews: number }[];
 };
 
+function asAuthenticatedAccess(
+  value: unknown,
+): PlatformAuthenticatedAccess {
+  const aggregate = value as
+    | Partial<PlatformAuthenticatedAccess>
+    | null;
+  const summary = aggregate?.summary;
+
+  return {
+    summary: {
+      internalPageViews: Number(
+        summary?.internalPageViews ?? 0,
+      ),
+      customerPortalPageViews: Number(
+        summary?.customerPortalPageViews ?? 0,
+      ),
+      unclassifiedAuthenticatedPageViews: Number(
+        summary?.unclassifiedAuthenticatedPageViews ?? 0,
+      ),
+      publicPageViews: Number(
+        summary?.publicPageViews ?? 0,
+      ),
+    },
+    rows: Array.isArray(aggregate?.rows)
+      ? aggregate.rows
+      : [],
+  };
+}
+
 export async function getOverviewDownloadCount(): Promise<number> {
   await requireSuperAdmin();
 
   try {
     const supabase = await createClient();
 
-    // The no-argument RPC was deployed after the current generated schema types.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result = await (supabase as any).rpc(
+    const result = await supabase.rpc(
       "get_overview_download_count",
     );
 
@@ -218,8 +277,19 @@ function resolveRange(query: PlatformAnalyticsQuery, now = new Date()) {
 
 function asAggregate(value: unknown): PlatformAnalyticsAggregate {
   const row = value as Partial<PlatformAnalyticsAggregate> | null;
+  const trustedDataStartedAt = row?.trustedDataStartedAt;
+
+  if (
+    typeof trustedDataStartedAt !== "string" ||
+    Number.isNaN(new Date(trustedDataStartedAt).getTime())
+  ) {
+    throw new Error(
+      "Platform analytics trusted baseline is unavailable.",
+    );
+  }
 
   return {
+    trustedDataStartedAt,
     pageViews: Number(row?.pageViews ?? 0),
     sessions: Number(row?.sessions ?? 0),
     users: Number(row?.users ?? 0),
@@ -250,12 +320,25 @@ export async function getPlatformAnalytics(
   const supabase = await createClient();
   const range = resolveRange(query);
 
-  const aggregateResult = await supabase.rpc("get_platform_analytics", {
+  const parameters = {
     target_start: range.start?.toISOString() ?? null,
     target_end_exclusive: range.endExclusive.toISOString(),
-  });
+  };
+  const [aggregateResult, authenticatedAccessResult] =
+    await Promise.all([
+      supabase.rpc(
+        "get_platform_analytics",
+        parameters,
+      ),
+      supabase.rpc(
+        "get_platform_authenticated_access_analytics",
+        parameters,
+      ),
+    ]);
 
-  const error = aggregateResult.error;
+  const error =
+    aggregateResult.error ??
+    authenticatedAccessResult.error;
 
   if (error) {
     console.error("Platform analytics query failed", {
@@ -267,12 +350,20 @@ export async function getPlatformAnalytics(
   }
 
   const aggregate = asAggregate(aggregateResult.data);
+  const authenticatedAccess = asAuthenticatedAccess(
+    authenticatedAccessResult.data,
+  );
   const dailyTraffic = new Map(
     aggregate.trafficDays.map((day) => [day.key, Number(day.value)]),
   );
 
-  const firstAllTimeDay = parseUtcDate(aggregate.trafficDays[0]?.key);
-  const chartStart = range.start ?? firstAllTimeDay ?? startOfUtcDay(new Date());
+  const trustedStart = new Date(aggregate.trustedDataStartedAt);
+  const requestedStart = range.start ?? trustedStart;
+  const effectiveStart =
+    requestedStart < trustedStart
+      ? trustedStart
+      : requestedStart;
+  const chartStart = startOfUtcDay(effectiveStart);
   const trafficDays = [];
 
   for (
@@ -292,10 +383,11 @@ export async function getPlatformAnalytics(
   return {
     range: range.range,
     from:
-      range.range === "all" && firstAllTimeDay
-        ? utcDateKey(firstAllTimeDay)
+      range.range === "all"
+        ? utcDateKey(startOfUtcDay(trustedStart))
         : range.from,
     through: range.through,
+    trustedDataStartedAt: aggregate.trustedDataStartedAt,
     customRangeError: range.customRangeError,
     pageViews: aggregate.pageViews,
     sessions: aggregate.sessions,
@@ -309,5 +401,6 @@ export async function getPlatformAnalytics(
     trafficTypeBreakdown: aggregate.trafficTypeBreakdown,
     topPages: aggregate.topPages,
     geography: aggregate.geography,
+    authenticatedAccess,
   };
 }

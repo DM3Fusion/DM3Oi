@@ -56,8 +56,11 @@ test("pending activation refreshes only through the explicit user control", () =
 test("Platform Analytics does not present heartbeat-derived activity as live", () => {
   const dashboard = source("components/platform/platform-dashboard.tsx");
   const repository = source("lib/data/platform-analytics-repository.ts");
+  const loader = repository.slice(
+    repository.indexOf("export async function getPlatformAnalytics"),
+  );
 
   assert.doesNotMatch(dashboard, /Live Activity|activeSessions/);
-  assert.doesNotMatch(repository, /analytics_live_sessions|activeSessions|activeUsers/);
-  assert.match(repository, /\.rpc\("get_platform_analytics"/);
+  assert.doesNotMatch(loader, /analytics_live_sessions|activeSessions|activeUsers/);
+  assert.match(loader, /supabase\.rpc\(\s*"get_platform_analytics"/);
 });

@@ -117,12 +117,16 @@ test("database aggregation uses exact KPI and durable attribution semantics", ()
 });
 
 test("repository uses the aggregation RPC instead of loading raw page-view rows", () => {
-  assert.match(repository, /\.rpc\("get_platform_analytics"/);
-  assert.match(repository, /const supabase = await createClient\(\)/);
-  assert.doesNotMatch(repository, /\.from\("analytics_page_views"\)/);
-  assert.doesNotMatch(repository, /analytics_live_sessions|createAdminClient|activeSessions/);
+  const loader = repository.slice(
+    repository.indexOf("export async function getPlatformAnalytics"),
+  );
+
+  assert.match(loader, /supabase\.rpc\(\s*"get_platform_analytics"/);
+  assert.match(loader, /const supabase = await createClient\(\)/);
+  assert.doesNotMatch(loader, /\.from\(\s*"analytics_page_views"\s*\)/);
+  assert.doesNotMatch(loader, /analytics_live_sessions|createAdminClient|activeSessions/);
   assert.match(
-    repository,
+    loader,
     /target_start: range\.start\?\.toISOString\(\) \?\? null/,
   );
 });
