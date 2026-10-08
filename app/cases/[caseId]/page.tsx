@@ -310,6 +310,13 @@ export default async function Page({
   );
 
   const qualificationQuestions = questions.map((question) => {
+    const sourceQuestionId =
+      (
+        question as unknown as {
+          question_definition_id?: string | null;
+        }
+      ).question_definition_id ?? question.id;
+
     const rawSnapshot = (
       question as unknown as {
         options_snapshot?: unknown;
@@ -356,7 +363,7 @@ export default async function Page({
       : [];
 
     return {
-      id: question.id,
+      id: sourceQuestionId,
       text: question.question_text,
       options,
     };
@@ -364,8 +371,15 @@ export default async function Page({
 
   const qualificationAnswers = Object.fromEntries(
     questions.flatMap((question) => {
+      const sourceQuestionId =
+        (
+          question as unknown as {
+            question_definition_id?: string | null;
+          }
+        ).question_definition_id ?? question.id;
+
       const draftAnswer =
-        item.intakeProgress?.answers[question.id];
+        item.intakeProgress?.answers[sourceQuestionId];
 
       const savedAnswer =
         question.response?.response_value;
@@ -377,7 +391,7 @@ export default async function Page({
 
       if (answer === undefined || answer === null) return [];
 
-      return [[question.id, answer]];
+      return [[sourceQuestionId, answer]];
     }),
   );
 
