@@ -14240,3 +14240,19 @@ dialog.task-modal.intake-document-availability-modal {
     max-width: 100%;
   }
 }
+
+/* Guided Intake question-step context must not inherit the legacy
+   responsive two-column context-panel grid. */
+.guided-case-intake .intake-context-panel-question-step {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+}
+
+.guided-case-intake
+  .intake-context-panel-question-step
+  > .intake-context-card-grid {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 100%;
+}
