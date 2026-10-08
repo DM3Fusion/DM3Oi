@@ -371,7 +371,7 @@ export async function provisionCustomerPortalAccess(input: {
   const admin = createAdminClient();
   const { data: customer, error: customerError } = await admin
     .from("customers")
-    .select("id,name,first_name,email,status")
+    .select("id,name,first_name,last_name,email,status")
     .eq("organization_id", input.organizationId)
     .eq("id", input.customerId)
     .maybeSingle();
@@ -508,10 +508,21 @@ export async function provisionCustomerPortalAccess(input: {
 
   existingLink = links?.find((link) => link.user_id === authUser.id);
 
+  const customerFirstName = customer.first_name?.trim() || null;
+  const customerLastName = customer.last_name?.trim() || null;
+  const customerDisplayName =
+    [customerFirstName, customerLastName]
+      .filter(Boolean)
+      .join(" ") ||
+    customer.name?.trim() ||
+    email;
+
   const profile = await admin.from("profiles").upsert({
     id: authUser.id,
     email,
-    display_name: authUser.user_metadata?.display_name ?? email,
+    first_name: customerFirstName,
+    last_name: customerLastName,
+    display_name: customerDisplayName,
   });
   if (profile.error) {
     console.error("Customer Portal profile provisioning failed", {

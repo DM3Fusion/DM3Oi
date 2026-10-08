@@ -207,12 +207,41 @@ test("internal and generic invitation contracts remain distinct", () => {
 });
 
 
+test("Customer Portal profile identity comes from the authoritative Customer record", () => {
+  const service = source(
+    "lib/data/customer-portal-provisioning-service.ts",
+  );
+
+  assert.match(
+    service,
+    /const customerFirstName = customer\.first_name\?\.trim\(\) \|\| null/,
+  );
+  assert.match(
+    service,
+    /const customerLastName = customer\.last_name\?\.trim\(\) \|\| null/,
+  );
+  assert.match(
+    service,
+    /const customerDisplayName =[\s\S]*\[customerFirstName, customerLastName\][\s\S]*customer\.name\?\.trim\(\)[\s\S]*email/,
+  );
+
+  assert.match(
+    service,
+    /from\("profiles"\)\.upsert\(\{[\s\S]*first_name: customerFirstName,[\s\S]*last_name: customerLastName,[\s\S]*display_name: customerDisplayName/,
+  );
+
+  assert.doesNotMatch(
+    service,
+    /display_name:\s*authUser\.user_metadata\?\.display_name\s*\?\?\s*email/,
+  );
+});
+
 test("Customer Portal invitation greeting uses the authoritative Customer name", () => {
   const service = source("lib/data/customer-portal-provisioning-service.ts");
 
   assert.match(
     service,
-    /\.from\("customers"\)[\s\S]*\.select\("id,name,first_name,email,status"\)/,
+    /\.from\("customers"\)[\s\S]*\.select\("id,name,first_name,last_name,email,status"\)/,
   );
 
   assert.match(
