@@ -41,7 +41,7 @@ export function CaseTable({
               </td>
               <td>{item.customer?.name ?? "Unknown"}</td>
               <td>
-                <b>{item.title}</b>
+                <span>{item.title}</span>
               </td>
               <td>
                 <Badge value={item.status} />
