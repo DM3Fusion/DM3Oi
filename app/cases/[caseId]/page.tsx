@@ -113,14 +113,17 @@ export default async function Page({
 
   const qualifierQuestionsQuery = supabase
     .from("question_definitions")
-    .select("id,question_text")
+    .select("id,question_text,response_type")
     .eq("organization_id", data.organizationId)
-    .eq("response_type", "YES_NO")
     .eq("active", true)
-    .in("question_text", [
-      "Are dependents being claimed?",
-      "Is self-employment or business income involved?",
-    ]);
+    .order("display_order");
+
+  const qualificationOptionsQuery = supabase
+    .from("question_options")
+    .select("id,question_id,option_label,option_value,display_order")
+    .eq("organization_id", data.organizationId)
+    .eq("is_active", true)
+    .order("display_order");
 
   const editableIntakeQuery = supabase
     .from("guided_case_intake_drafts")
@@ -141,11 +144,13 @@ export default async function Page({
   const [
     purposeResult,
     qualifierQuestionsResult,
+    qualificationOptionsResult,
     editableIntakeResult,
     finalizedIntakeResult,
   ] = await Promise.all([
     purposeQuery,
     qualifierQuestionsQuery,
+    qualificationOptionsQuery,
     editableIntakeQuery,
     finalizedIntakeQuery,
   ]);
@@ -183,15 +188,28 @@ export default async function Page({
     throw new Error("Case intake status is temporarily unavailable.");
   }
 
-  if (qualifierQuestionsResult.error) {
-    console.error("Case qualifier Question lookup failed", {
+  if (
+    qualifierQuestionsResult.error ||
+    qualificationOptionsResult.error
+  ) {
+    const qualificationError =
+      qualifierQuestionsResult.error ??
+      qualificationOptionsResult.error;
+
+    console.error("Case qualification configuration lookup failed", {
       organizationId: data.organizationId,
-      code: qualifierQuestionsResult.error.code,
-      message: qualifierQuestionsResult.error.message,
+      code: qualificationError?.code,
+      message: qualificationError?.message,
     });
+
+    throw new Error(
+      "Case qualification intelligence is temporarily unavailable.",
+    );
   }
 
   const qualifierDefinitions = qualifierQuestionsResult.data ?? [];
+  const qualificationOptionDefinitions =
+    qualificationOptionsResult.data ?? [];
 
   const finalizedDependentsQuestion = questions.find(
     (question) =>
@@ -309,91 +327,83 @@ export default async function Page({
     (activity) => activity.case_id === item.id,
   );
 
-  const qualificationQuestions = questions.map((question) => {
-    const sourceQuestionId =
-      (
-        question as unknown as {
-          question_definition_id?: string | null;
-        }
-      ).question_definition_id ?? question.id;
+  const qualificationQuestions = item.intakeProgress
+    ? qualifierDefinitions.map((question) => ({
+        id: question.id,
+        text: question.question_text,
+        options: qualificationOptionDefinitions
+          .filter(
+            (option) => option.question_id === question.id,
+          )
+          .map((option) => ({
+            id: option.id,
+            label: option.option_label,
+            value: option.option_value,
+          })),
+      }))
+    : questions.map((question) => {
+        const sourceQuestionId =
+          question.question_definition_id ?? question.id;
 
-    const rawSnapshot = (
-      question as unknown as {
-        options_snapshot?: unknown;
-      }
-    ).options_snapshot;
+        const rawSnapshot = question.options_snapshot;
 
-    const options = Array.isArray(rawSnapshot)
-      ? rawSnapshot.flatMap((entry) => {
-          if (
-            !entry ||
-            typeof entry !== "object" ||
-            Array.isArray(entry)
-          ) {
+        const options = Array.isArray(rawSnapshot)
+          ? rawSnapshot.flatMap((entry) => {
+              if (
+                !entry ||
+                typeof entry !== "object" ||
+                Array.isArray(entry)
+              ) {
+                return [];
+              }
+
+              const option = entry as Record<string, unknown>;
+
+              const value =
+                typeof option.value === "string"
+                  ? option.value
+                  : "";
+
+              const id =
+                typeof option.id === "string"
+                  ? option.id
+                  : value;
+
+              const label =
+                typeof option.label === "string"
+                  ? option.label
+                  : value;
+
+              if (!id || !label) return [];
+
+              return [{ id, label, value }];
+            })
+          : [];
+
+        return {
+          id: sourceQuestionId,
+          text: question.question_text,
+          options,
+        };
+      });
+
+  const qualificationAnswers = item.intakeProgress
+    ? item.intakeProgress.answers
+    : Object.fromEntries(
+        questions.flatMap((question) => {
+          const sourceQuestionId =
+            question.question_definition_id ?? question.id;
+
+          const answer =
+            question.response?.response_value;
+
+          if (answer === undefined || answer === null) {
             return [];
           }
 
-          const option = entry as Record<string, unknown>;
-
-          const value =
-            typeof option.value === "string"
-              ? option.value
-              : typeof option.option_value === "string"
-                ? option.option_value
-                : "";
-
-          const id =
-            typeof option.id === "string"
-              ? option.id
-              : typeof option.option_id === "string"
-                ? option.option_id
-                : value;
-
-          const label =
-            typeof option.label === "string"
-              ? option.label
-              : typeof option.option_label === "string"
-                ? option.option_label
-                : value;
-
-          if (!id || !label) return [];
-
-          return [{ id, label, value }];
-        })
-      : [];
-
-    return {
-      id: sourceQuestionId,
-      text: question.question_text,
-      options,
-    };
-  });
-
-  const qualificationAnswers = Object.fromEntries(
-    questions.flatMap((question) => {
-      const sourceQuestionId =
-        (
-          question as unknown as {
-            question_definition_id?: string | null;
-          }
-        ).question_definition_id ?? question.id;
-
-      const draftAnswer =
-        item.intakeProgress?.answers[sourceQuestionId];
-
-      const savedAnswer =
-        question.response?.response_value;
-
-      const answer =
-        draftAnswer !== undefined
-          ? draftAnswer
-          : savedAnswer;
-
-      if (answer === undefined || answer === null) return [];
-
-      return [[sourceQuestionId, answer]];
-    }),
-  );
+          return [[sourceQuestionId, answer]];
+        }),
+      );
 
   const qualificationFindings =
     evaluateGuidedIntakeQualificationFindings(
