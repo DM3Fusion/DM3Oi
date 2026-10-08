@@ -159,8 +159,8 @@ export async function TaskRegisterServerSection({
           <table>
             <thead>
               <tr>
-                <th>Task</th>
                 <th>Case</th>
+                <th>Task</th>
                 <th>Status</th>
                 <th>Due</th>
               </tr>
@@ -173,12 +173,12 @@ export async function TaskRegisterServerSection({
                   label={`Open case ${item.case_number}`}
                 >
                   <td>
-                    <b>{task.title}</b>
-                  </td>
-                  <td>
                     <Link className="case-link" href={`/cases/${item.id}`}>
                       {item.case_number}
                     </Link>
+                  </td>
+                  <td>
+                    <span>{task.title}</span>
                   </td>
                   <td>
                     <Badge value={task.status} />
