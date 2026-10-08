@@ -23,7 +23,10 @@ import { CaseCompletionModal } from "@/components/cases/case-completion-modal";
 import { formatOrganizationDate, formatOrganizationDateTime, organizationDateInputValue } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
-import { evaluateGuidedIntakeQualificationFindings } from "@/lib/guided-intake-qualification";
+import {
+  evaluateGuidedIntakeQualificationFindings,
+  getGuidedIntakeFilingStatusLabel,
+} from "@/lib/guided-intake-qualification";
 import { createClient } from "@/lib/supabase/server";
 import {
   CANONICAL_ACTIVE_CASE_STATUSES,
@@ -384,6 +387,12 @@ export default async function Page({
       qualificationAnswers,
     );
 
+  const filingStatusLabel =
+    getGuidedIntakeFilingStatusLabel(
+      { questions: qualificationQuestions },
+      qualificationAnswers,
+    );
+
   return (
     <>
       {query.error ? (
@@ -410,6 +419,10 @@ export default async function Page({
               <div>
                 <dt>Tax Year</dt>
                 <dd>{item.tax_year ?? "—"}</dd>
+              </div>
+              <div>
+                <dt>Filing Status</dt>
+                <dd>{filingStatusLabel ?? "—"}</dd>
               </div>
             </dl>
           </div>
