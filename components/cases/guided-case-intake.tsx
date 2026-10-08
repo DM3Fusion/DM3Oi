@@ -2582,7 +2582,13 @@ export function GuidedCaseIntake({
         </div>
       ) : null}
 
-      <div className="intake-workspace">
+      <div
+        className={
+          step === 2
+            ? "intake-workspace intake-workspace-question-step"
+            : "intake-workspace"
+        }
+      >
         <aside className="intake-progress-rail">
           <div className="intake-progress-rail-heading">
             <strong>Guided Intake</strong>

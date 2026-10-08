@@ -14196,3 +14196,47 @@ dialog.task-modal.intake-document-availability-modal {
     grid-column: auto;
   }
 }
+
+
+/* Guided Intake question-step workspace correction.
+   Step 3 uses two columns for the rail + question workspace.
+   The three summary/intelligence cards always occupy the next
+   row across the full available workspace width. */
+@media (min-width: 851px) {
+  .guided-case-intake .intake-workspace-question-step {
+    grid-template-columns:
+      minmax(15rem, 0.9fr)
+      minmax(0, 3.7fr);
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .guided-case-intake
+    .intake-workspace-question-step
+    > .intake-progress-rail {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .guided-case-intake
+    .intake-workspace-question-step
+    > .intake-workspace-main {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .guided-case-intake
+    .intake-workspace-question-step
+    > .intake-context-panel-question-step {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    position: static;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
