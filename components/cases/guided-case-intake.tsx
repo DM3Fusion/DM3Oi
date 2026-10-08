@@ -400,6 +400,7 @@ export function GuidedCaseIntake({
   const followUpDialog = useRef<HTMLDialogElement>(null);
   const requiredDocumentsDialog = useRef<HTMLDialogElement>(null);
   const saveProgressDialog = useRef<HTMLDialogElement>(null);
+  const [saveAndSendPending, setSaveAndSendPending] = useState(false);
   const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
   const [documentAvailabilityIds, setDocumentAvailabilityIds] =
     useState<string[]>([]);
@@ -703,19 +704,107 @@ export function GuidedCaseIntake({
     setFormError(null);
   };
   const openFollowUpTask = (questionId: string) => {
+    setSaveAndSendPending(false);
     setFollowUpQuestionId(questionId);
     setFollowUpError(null);
     followUpDialog.current?.showModal();
   };
+  const persistDraftAndSendDocumentNotices = async (
+    workingDraft: GuidedCaseIntakeDraft,
+  ): Promise<
+    | { ok: true; sentCount: number }
+    | { ok: false; error: string }
+  > => {
+    const saveResult = await saveGuidedIntakeDraftAction({
+      currentStep: step,
+      customerMode,
+      draft: workingDraft,
+      newCustomer: {
+        ...customerValues,
+        firstName: customerFirstName,
+        lastName: customerLastName,
+      },
+    });
+
+    if (!saveResult.ok) {
+      return { ok: false, error: saveResult.error };
+    }
+
+    const documentNoticeTasks = workingDraft.followUpTasks.filter(
+      (task) =>
+        task.missingOptionIds.length > 0 &&
+        !task.completed &&
+        !noticeSentFollowUpIds.has(task.id),
+    );
+
+    const sentFollowUpIds: string[] = [];
+
+    for (const task of documentNoticeTasks) {
+      if (!workingDraft.caseId) break;
+
+      const noticeResult =
+        await sendGuidedIntakeMissingDocumentsNoticeAction(
+          workingDraft.caseId,
+          task.id,
+        );
+
+      if (!noticeResult.ok) {
+        return {
+          ok: false,
+          error:
+            `Progress was saved, but the Customer notice was not sent. ${noticeResult.error}`,
+        };
+      }
+
+      sentFollowUpIds.push(task.id);
+    }
+
+    if (sentFollowUpIds.length) {
+      setNoticeSentFollowUpIds((current) => {
+        const next = new Set(current);
+        for (const followUpId of sentFollowUpIds) {
+          next.add(followUpId);
+        }
+        return next;
+      });
+    }
+
+    return {
+      ok: true,
+      sentCount: sentFollowUpIds.length,
+    };
+  };
+
+  const finishSaveAndSendNavigation = (
+    caseId: string | null,
+    sentCount: number,
+  ) => {
+    const message =
+      sentCount > 0
+        ? "Intake draft saved and Customer notice sent."
+        : "Intake draft saved.";
+
+    if (caseId) {
+      router.push(
+        `/cases/${caseId}?message=${encodeURIComponent(message)}`,
+      );
+      return;
+    }
+
+    router.push(`/cases?message=${encodeURIComponent(message)}`);
+  };
+
   const saveFollowUpTask = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!activeFollowUpRequirement || pending) return;
+
     const form = new FormData(event.currentTarget);
     const assignedUserId = String(form.get("assignedUserId") ?? "");
     const dueDate = String(form.get("dueDate") ?? "");
     const requestedStatus = String(
       form.get("status") ?? "NOT_STARTED",
     );
+
     const allowedStatuses = new Set([
       "NOT_STARTED",
       "IN_PROGRESS",
@@ -723,25 +812,37 @@ export function GuidedCaseIntake({
       "REQUIRED_UNAVAILABLE",
       "COMPLETED",
     ]);
+
     if (
       !assignedUserId ||
       !/^\d{4}-\d{2}-\d{2}$/.test(dueDate) ||
       !allowedStatuses.has(requestedStatus)
-    ) return;
+    ) {
+      return;
+    }
+
     const existing = draft.followUpTasks.find(
-      (task) => task.questionId === activeFollowUpRequirement.question.id,
+      (task) =>
+        task.questionId === activeFollowUpRequirement.question.id,
     );
-    const missingOptionIds = activeFollowUpRequirement.missingOptions.map(
-      (option) => option.id,
-    );
-    const missingOptionLabels = activeFollowUpRequirement.missingOptions.map(
-      (option) => option.label,
-    );
+
+    const missingOptionIds =
+      activeFollowUpRequirement.missingOptions.map(
+        (option) => option.id,
+      );
+
+    const missingOptionLabels =
+      activeFollowUpRequirement.missingOptions.map(
+        (option) => option.label,
+      );
+
     const documentRequirement =
       activeFollowUpRequirement.documentRequirement;
+
     const status = documentRequirement
       ? "WAITING_ON_CUSTOMER"
       : requestedStatus;
+
     const task: GuidedIntakeFollowUpTask = {
       id: existing?.id ?? crypto.randomUUID(),
       questionId: activeFollowUpRequirement.question.id,
@@ -757,28 +858,93 @@ export function GuidedCaseIntake({
       dueDate,
       status: status as GuidedIntakeFollowUpTask["status"],
       completed:
-        status === "COMPLETED" || status === "REQUIRED_UNAVAILABLE",
+        status === "COMPLETED" ||
+        status === "REQUIRED_UNAVAILABLE",
     };
 
     setPending(true);
     setFormError(null);
-    const result = await upsertGuidedIntakeFollowUpTaskAction(draft, task);
-    setPending(false);
+    setFollowUpError(null);
+
+    const result =
+      await upsertGuidedIntakeFollowUpTaskAction(draft, task);
 
     if (!result.ok) {
-      setFormError(result.error);
+      setPending(false);
+      setFollowUpError(result.error);
       return;
     }
 
-    updateDraft(
-      "followUpTasks",
-      existing
-        ? draft.followUpTasks.map((item) =>
-            item.questionId === task.questionId ? task : item,
-          )
-        : [...draft.followUpTasks, task],
-    );
+    const nextFollowUpTasks = existing
+      ? draft.followUpTasks.map((item) =>
+          item.questionId === task.questionId ? task : item,
+        )
+      : [...draft.followUpTasks, task];
+
+    const nextDraft: GuidedCaseIntakeDraft = {
+      ...draft,
+      followUpTasks: nextFollowUpTasks,
+    };
+
+    updateDraft("followUpTasks", nextFollowUpTasks);
+
+    if (!saveAndSendPending || !documentRequirement) {
+      setPending(false);
+      followUpDialog.current?.close();
+      return;
+    }
+
+    const nextUnstagedDocumentRequirement =
+      followUpRequirements.find(
+        (requirement) =>
+          requirement.documentRequirement &&
+          !nextFollowUpTasks.some(
+            (candidate) =>
+              candidate.questionId === requirement.question.id &&
+              guidedFollowUpTaskMatchesMissingOptions(
+                candidate,
+                evaluation,
+                draft.answers,
+                effectiveRequiredOptionIds,
+              ),
+          ),
+      );
+
+    if (nextUnstagedDocumentRequirement) {
+      setFollowUpQuestionId(
+        nextUnstagedDocumentRequirement.question.id,
+      );
+      setPending(false);
+
+      window.setTimeout(() => {
+        followUpDialog.current?.showModal();
+      }, 0);
+
+      return;
+    }
+
     followUpDialog.current?.close();
+
+    const saveAndSendResult =
+      await persistDraftAndSendDocumentNotices(nextDraft);
+
+    setSaveAndSendPending(false);
+    setPending(false);
+
+    if (!saveAndSendResult.ok) {
+      setFormError(saveAndSendResult.error);
+
+      window.setTimeout(() => {
+        saveProgressDialog.current?.showModal();
+      }, 0);
+
+      return;
+    }
+
+    finishSaveAndSendNavigation(
+      nextDraft.caseId,
+      saveAndSendResult.sentCount,
+    );
   };
 
   const sendFollowUpNotice = async (task: GuidedIntakeFollowUpTask) => {
@@ -1044,94 +1210,58 @@ export function GuidedCaseIntake({
   const saveAndContinueLater = async () => {
     if (pending) return;
 
-    if (
-      step >= 3 &&
-      missingRequirements.some(
+    setFormError(null);
+
+    const unstagedDocumentRequirement =
+      followUpRequirements.find(
         (requirement) =>
+          requirement.documentRequirement &&
           !draft.followUpTasks.some(
-            (task) => task.questionId === requirement.question.id,
+            (task) =>
+              task.questionId === requirement.question.id &&
+              guidedFollowUpTaskMatchesMissingOptions(
+                task,
+                evaluation,
+                draft.answers,
+                effectiveRequiredOptionIds,
+              ),
           ),
-      )
-    ) {
-      setFormError(
-        "Create a follow-up Task for each missing required-document group before saving this intake.",
       );
+
+    if (unstagedDocumentRequirement) {
+      setSaveAndSendPending(true);
+      setFollowUpQuestionId(
+        unstagedDocumentRequirement.question.id,
+      );
+      setFollowUpError(null);
+
+      saveProgressDialog.current?.close();
+
+      window.setTimeout(() => {
+        followUpDialog.current?.showModal();
+      }, 0);
+
       return;
     }
 
     setPending(true);
-    setFormError(null);
 
-    const result = await saveGuidedIntakeDraftAction({
-      currentStep: step,
-      customerMode,
-      draft,
-      newCustomer: {
-        ...customerValues,
-        firstName: customerFirstName,
-        lastName: customerLastName,
-      },
-    });
+    const result =
+      await persistDraftAndSendDocumentNotices(draft);
+
+    setPending(false);
 
     if (!result.ok) {
-      setPending(false);
       setFormError(result.error);
       return;
     }
 
-    const documentNoticeTasks = draft.followUpTasks.filter(
-      (task) =>
-        task.missingOptionIds.length > 0 &&
-        !task.completed &&
-        !noticeSentFollowUpIds.has(task.id),
+    saveProgressDialog.current?.close();
+
+    finishSaveAndSendNavigation(
+      draft.caseId,
+      result.sentCount,
     );
-
-    const sentFollowUpIds: string[] = [];
-
-    for (const task of documentNoticeTasks) {
-      if (!draft.caseId) break;
-
-      const noticeResult =
-        await sendGuidedIntakeMissingDocumentsNoticeAction(
-          draft.caseId,
-          task.id,
-        );
-
-      if (!noticeResult.ok) {
-        setPending(false);
-        setFormError(
-          `Progress was saved, but the Customer notice was not sent. ${noticeResult.error}`,
-        );
-        return;
-      }
-
-      sentFollowUpIds.push(task.id);
-    }
-
-    if (sentFollowUpIds.length) {
-      setNoticeSentFollowUpIds((current) => {
-        const next = new Set(current);
-        for (const followUpId of sentFollowUpIds) {
-          next.add(followUpId);
-        }
-        return next;
-      });
-    }
-
-    setPending(false);
-
-    const message = sentFollowUpIds.length
-      ? "Intake draft saved and Customer notice sent."
-      : "Intake draft saved.";
-
-    if (draft.caseId) {
-      router.push(
-        `/cases/${draft.caseId}?message=${encodeURIComponent(message)}`,
-      );
-      return;
-    }
-
-    router.push(`/cases?message=${encodeURIComponent(message)}`);
   };
 
   const answerLabel = (question: GuidedIntakeQuestion) => {
