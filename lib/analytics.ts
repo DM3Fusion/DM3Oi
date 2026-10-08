@@ -288,6 +288,28 @@ export function decodeAnalyticsHeader(
   }
 }
 
+export function coarseAnalyticsNetworkCoordinate(
+  value: string | null,
+  minimum: number,
+  maximum: number,
+) {
+  if (!value?.trim()) return null;
+
+  const coordinate = Number(value);
+
+  if (
+    !Number.isFinite(coordinate) ||
+    coordinate < minimum ||
+    coordinate > maximum
+  ) {
+    return null;
+  }
+
+  const rounded = Number(coordinate.toFixed(2));
+
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
 export function analyticsLiveActivityCutoffMs(
   nowMs = Date.now(),
   windowMinutes = 5,

@@ -4,8 +4,24 @@ import { useMemo, useState } from "react";
 
 type GeographyRow = {
   label: string;
+  postalCode: string | null;
+  latitude: number | null;
+  longitude: number | null;
   pageViews: number;
 };
+
+function coordinateLabel(row: GeographyRow) {
+  if (
+    typeof row.latitude !== "number" ||
+    !Number.isFinite(row.latitude) ||
+    typeof row.longitude !== "number" ||
+    !Number.isFinite(row.longitude)
+  ) {
+    return null;
+  }
+
+  return `${row.latitude.toFixed(2)}, ${row.longitude.toFixed(2)}`;
+}
 
 export function AdminGeography({
   rows,
@@ -46,8 +62,8 @@ export function AdminGeography({
           <h3>Geography</h3>
           <p className="muted">
             Page views grouped by approximate network
-            location. Different physical locations can
-            resolve to the same city.
+            location. Different network routes can resolve
+            to the same city.
           </p>
         </div>
 
@@ -91,8 +107,22 @@ export function AdminGeography({
           </p>
         ) : (
           visibleRows.map((row) => (
-            <div key={row.label}>
-              <span>{row.label}</span>
+            <div
+              key={[
+                row.label,
+                row.postalCode,
+                row.latitude,
+                row.longitude,
+              ].join(":")}
+            >
+              <span>
+                {row.label}
+                {coordinateLabel(row) ? (
+                  <small className="admin-geography-coordinate">
+                    Approx. network: {coordinateLabel(row)}
+                  </small>
+                ) : null}
+              </span>
               <strong>{row.pageViews}</strong>
             </div>
           ))

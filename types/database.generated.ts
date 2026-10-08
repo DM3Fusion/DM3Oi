@@ -108,10 +108,13 @@ export type Database = {
           device_model: string | null
           device_type: string
           id: string
+          network_latitude: number | null
+          network_longitude: number | null
           normalized_path: string
           operating_system: string
           organization_id: string | null
           path: string
+          postal_code: string | null
           referrer_host: string | null
           region_code: string | null
           session_id: string
@@ -131,10 +134,13 @@ export type Database = {
           device_model?: string | null
           device_type: string
           id?: string
+          network_latitude?: number | null
+          network_longitude?: number | null
           normalized_path: string
           operating_system: string
           organization_id?: string | null
           path: string
+          postal_code?: string | null
           referrer_host?: string | null
           region_code?: string | null
           session_id: string
@@ -154,10 +160,13 @@ export type Database = {
           device_model?: string | null
           device_type?: string
           id?: string
+          network_latitude?: number | null
+          network_longitude?: number | null
           normalized_path?: string
           operating_system?: string
           organization_id?: string | null
           path?: string
+          postal_code?: string | null
           referrer_host?: string | null
           region_code?: string | null
           session_id?: string
@@ -7287,6 +7296,31 @@ export type Database = {
         Returns: Json
       }
       record_analytics_page_view_guarded:
+        | {
+            Args: {
+              target_access_role: string
+              target_access_type: string
+              target_browser: string
+              target_city: string
+              target_country_code: string
+              target_device_model: string
+              target_device_type: string
+              target_network_latitude: number
+              target_network_longitude: number
+              target_normalized_path: string
+              target_operating_system: string
+              target_organization_id: string
+              target_path: string
+              target_postal_code: string
+              target_referrer_host: string
+              target_region_code: string
+              target_session_id: string
+              target_traffic_signal: string
+              target_traffic_type: string
+              target_user_id: string
+            }
+            Returns: boolean
+          }
         | {
             Args: {
               target_access_role: string

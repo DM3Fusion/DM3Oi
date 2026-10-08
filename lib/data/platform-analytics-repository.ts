@@ -77,6 +77,9 @@ export type PlatformAnalytics = {
   }[];
   geography: {
     label: string;
+    postalCode: string | null;
+    latitude: number | null;
+    longitude: number | null;
     pageViews: number;
   }[];
   authenticatedAccess: PlatformAuthenticatedAccess;
@@ -94,7 +97,13 @@ type PlatformAnalyticsAggregate = {
   operatingSystemBreakdown: PlatformAnalyticsDatum[];
   trafficTypeBreakdown: PlatformAnalyticsDatum[];
   topPages: { path: string; pageViews: number }[];
-  geography: { label: string; pageViews: number }[];
+  geography: {
+    label: string;
+    postalCode: string | null;
+    latitude: number | null;
+    longitude: number | null;
+    pageViews: number;
+  }[];
 };
 
 function asAuthenticatedAccess(

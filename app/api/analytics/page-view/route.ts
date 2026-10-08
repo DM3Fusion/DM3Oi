@@ -6,6 +6,7 @@ import {
   analyticsOperatingSystem,
   analyticsReferrerHost,
   analyticsTrafficClassification,
+  coarseAnalyticsNetworkCoordinate,
   decodeAnalyticsHeader,
   isExcludedAnalyticsGeo,
   normalizeAnalyticsPath,
@@ -232,6 +233,24 @@ export async function POST(request: NextRequest) {
   const city = decodeAnalyticsHeader(
     request.headers.get("x-vercel-ip-city"),
   );
+  const postalCode =
+    decodeAnalyticsHeader(
+      request.headers.get("x-vercel-ip-postal-code"),
+    )
+      ?.trim()
+      .slice(0, 32) || null;
+  const networkLatitude =
+    coarseAnalyticsNetworkCoordinate(
+      request.headers.get("x-vercel-ip-latitude"),
+      -90,
+      90,
+    );
+  const networkLongitude =
+    coarseAnalyticsNetworkCoordinate(
+      request.headers.get("x-vercel-ip-longitude"),
+      -180,
+      180,
+    );
 
   if (
     isExcludedAnalyticsGeo(
@@ -290,6 +309,9 @@ export async function POST(request: NextRequest) {
         target_country_code: countryCode,
         target_region_code: regionCode,
         target_city: city,
+        target_postal_code: postalCode,
+        target_network_latitude: networkLatitude,
+        target_network_longitude: networkLongitude,
         target_traffic_type: trafficType,
         target_traffic_signal: trafficSignal,
       },

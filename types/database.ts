@@ -257,6 +257,9 @@ type AnalyticsFunctionOverrides = {
     | "target_country_code"
     | "target_region_code"
     | "target_city"
+    | "target_postal_code"
+    | "target_network_latitude"
+    | "target_network_longitude"
   >;
 };
 
