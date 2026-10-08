@@ -13792,3 +13792,21 @@ dialog.task-modal.intake-document-availability-modal {
     justify-content:center;
   }
 }
+
+
+/* Guided Intake Customer search results. */
+.intake-customer-search-summary{
+  display:block;
+  margin-top:2px;
+  color:var(--muted);
+  font-size:12px;
+  font-weight:600;
+}
+.intake-customer-select.filtered{
+  height:auto;
+  min-height:82px;
+  padding:4px;
+}
+.intake-customer-select.filtered option{
+  padding:9px 10px;
+}

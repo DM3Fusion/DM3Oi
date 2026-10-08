@@ -1090,11 +1090,13 @@ export function GuidedCaseIntake({
   };
 
   const renderCustomer = () => {
+    const normalizedCustomerSearch = customerSearch.trim().toLowerCase();
     const filtered = selectableCustomers.filter((customer) =>
       `${customer.customerNumber} ${customer.name}`
         .toLowerCase()
-        .includes(customerSearch.trim().toLowerCase()),
+        .includes(normalizedCustomerSearch),
     );
+    const customerSearchActive = normalizedCustomerSearch.length > 0;
     return (
       <div className="intake-step-content">
         {configuration.canCreateCustomer ? (
@@ -1124,16 +1126,43 @@ export function GuidedCaseIntake({
                 value={customerSearch}
                 onChange={(event) => setCustomerSearch(event.target.value)}
                 placeholder="Search by name or Customer number"
+                autoComplete="off"
               />
+              {customerSearchActive ? (
+                <small className="intake-customer-search-summary" aria-live="polite">
+                  {filtered.length
+                    ? `${filtered.length} matching Customer${filtered.length === 1 ? "" : "s"}`
+                    : "No Customers match this search."}
+                </small>
+              ) : null}
             </label>
             <label>
               <span>Customer</span>
               <select
                 value={draft.customerId}
-                onChange={(event) => selectCustomer(event.target.value)}
+                onChange={(event) => {
+                  selectCustomer(event.target.value);
+                  if (event.target.value) setCustomerSearch("");
+                }}
                 aria-invalid={Boolean(errors.customerId)}
+                size={
+                  customerSearchActive
+                    ? Math.min(Math.max(filtered.length + 1, 2), 8)
+                    : undefined
+                }
+                className={
+                  customerSearchActive
+                    ? "intake-customer-select filtered"
+                    : "intake-customer-select"
+                }
               >
-                <option value="">Select a Customer</option>
+                <option value="">
+                  {customerSearchActive
+                    ? filtered.length
+                      ? "Select a matching Customer"
+                      : "No matching Customers"
+                    : "Select a Customer"}
+                </option>
                 {filtered.map((customer) => (
                   <option key={customer.id} value={customer.id}>
                     {customer.customerNumber} — {customer.name}
