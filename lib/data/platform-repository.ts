@@ -94,6 +94,15 @@ export interface PlatformSummary {
   organizationUsers: number;
   pendingProvisioning: number;
 }
+export interface PlatformCustomerCount {
+  organizationId: string;
+  organizationName: string;
+  customerCount: number;
+}
+export interface PlatformCustomerSummary {
+  totalCustomers: number;
+  byOrganization: PlatformCustomerCount[];
+}
 async function listAllAuthUsers(admin: ReturnType<typeof createAdminClient>) {
   const users: User[] = [];
   const perPage = 1000;
@@ -128,7 +137,10 @@ async function loadPlatformData() {
     organizationSettings,
     authUsers,
   ] = await Promise.all([
-    supabase.from("organizations").select("*").order("name"),
+    supabase
+      .from("organizations")
+      .select("*,organization_customers(count)")
+      .order("name"),
     supabase.from("organization_members").select("*"),
     supabase.from("profiles").select("*").order("display_name"),
     supabase.from("platform_user_roles").select("*"),
@@ -163,7 +175,7 @@ async function loadPlatformData() {
   const hydratedProfiles = await attachAuthorizedAvatarUrls(
     profiles.data ?? [],
   );
-  const organizationsWithAvatars = await Promise.all((organizations.data ?? []).map(async (org) => {
+  const organizationsWithAvatars = await Promise.all((organizations.data ?? []).map(async ({ organization_customers: customerCounts, ...org }) => {
     const avatarUrl = await resolveOwnedOrganizationAvatarUrl(
       org.avatar_path,
       org.id,
@@ -172,7 +184,11 @@ async function loadPlatformData() {
         return signed.data?.signedUrl ?? null;
       },
     );
-    return { ...org, avatarUrl };
+    return {
+      ...org,
+      avatarUrl,
+      customerCount: customerCounts[0]?.count ?? 0,
+    };
   }));
   return {
     organizations: organizationsWithAvatars.map((org) => ({ ...org, license: (licenses ?? []).find((l: any) => l.organization_id === org.id) ?? null })),
@@ -190,11 +206,12 @@ export async function getPlatformAdministration() {
   const data = await loadPlatformData();
   const organizations: OrganizationAdminRow[] = data.organizations.map(
     (org) => {
+      const { customerCount, ...organization } = org;
       const members = data.memberships.filter(
         (m) => m.organization_id === org.id && m.is_active,
       );
       return {
-        ...org,
+        ...organization,
         activeUsers: members.length,
         businessOwners: members.filter((m) => m.role === "BUSINESS_OWNER")
           .length,
@@ -205,8 +222,7 @@ export async function getPlatformAdministration() {
             c.organization_id === org.id &&
             isIncompleteCompatibilityCaseStatus(c.status),
         ).length,
-        customers: data.customers.filter((c) => c.organization_id === org.id)
-          .length,
+        customers: customerCount,
         lastActivity: [...data.cases.filter((c) => c.organization_id === org.id), ...data.customers.filter((c) => c.organization_id === org.id)]
           .map((item) => item.updated_at ?? item.created_at)
           .filter(Boolean)
@@ -343,9 +359,23 @@ export async function getPlatformAdministration() {
   }).sort((a, b) =>
     (a.display_name ?? a.email ?? "").localeCompare(b.display_name ?? b.email ?? ""),
   );
+  const byOrganization = organizations
+    .filter((organization) => organization.customers > 0)
+    .map((organization) => ({
+      organizationId: organization.id,
+      organizationName: organization.name,
+      customerCount: organization.customers,
+    }));
   return {
     organizations,
     users,
+    customerSummary: {
+      totalCustomers: byOrganization.reduce(
+        (total, organization) => total + organization.customerCount,
+        0,
+      ),
+      byOrganization,
+    } satisfies PlatformCustomerSummary,
     summary: {
       organizations: organizations.length,
       activeOrganizations: organizations.filter((o) => o.status === "ACTIVE")

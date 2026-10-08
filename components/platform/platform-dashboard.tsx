@@ -9,6 +9,7 @@ import type { ApplicationIconName } from "@/lib/application-icons";
 import type { PlatformAnalytics } from "@/lib/data/platform-analytics-repository";
 import type {
   OrganizationAdminRow,
+  PlatformCustomerSummary,
   PlatformSummary,
 } from "@/lib/data/platform-repository";
 
@@ -23,11 +24,13 @@ const analyticsRanges = [
 
 export function PlatformDashboard({
   summary,
+  customerSummary,
   organizations,
   analytics,
   overviewDownloadCount,
 }: {
   summary: PlatformSummary;
+  customerSummary: PlatformCustomerSummary;
   organizations: readonly OrganizationAdminRow[];
   analytics: PlatformAnalytics;
   overviewDownloadCount: number;
@@ -57,7 +60,7 @@ export function PlatformDashboard({
       tone: "slate",
     },
     {
-      label: "Platform Operationsistrators",
+      label: "Platform Administrators",
       value: summary.platformAdministrators,
       icon: "platform",
       tone: "violet",
@@ -103,14 +106,50 @@ export function PlatformDashboard({
         )}
       </div>
 
-      <section
-        aria-label="Overview download metric"
-        className="metric platform-overview-download-metric"
-      >
-        <span>Overview Downloads</span>
-        <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
-        <small>DM3Oi Overview served</small>
-      </section>
+      <div className="platform-supporting-metrics">
+        <section
+          aria-label="Overview download metric"
+          className="metric platform-overview-download-metric"
+        >
+          <span>Overview Downloads</span>
+          <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
+          <small>DM3Oi Overview served</small>
+        </section>
+
+        <section
+          aria-label="Total customer metric"
+          className="metric platform-total-customers-metric"
+        >
+          <span>Total Customers</span>
+          <strong>{customerSummary.totalCustomers.toLocaleString("en-US")}</strong>
+          <small>Across all organizations</small>
+        </section>
+      </div>
+
+      {customerSummary.byOrganization.length ? (
+        <section
+          aria-labelledby="platform-customer-breakdown-heading"
+          className="panel platform-customer-breakdown"
+        >
+          <div className="section-head">
+            <div>
+              <h2 id="platform-customer-breakdown-heading">
+                Customers by Organization
+              </h2>
+              <p>Aggregate Customer records only.</p>
+            </div>
+          </div>
+
+          <div className="admin-analytics-breakdown">
+            {customerSummary.byOrganization.map((organization) => (
+              <div key={organization.organizationId}>
+                <span>{organization.organizationName}</span>
+                <strong>{organization.customerCount.toLocaleString("en-US")}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="admin-analytics">
         <div className="admin-analytics-heading">

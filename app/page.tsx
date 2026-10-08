@@ -74,6 +74,7 @@ export default async function Page({
         />
         <PlatformDashboard
           analytics={analytics}
+          customerSummary={administration.customerSummary}
           organizations={administration.organizations}
           overviewDownloadCount={overviewDownloadCount}
           summary={administration.summary}
