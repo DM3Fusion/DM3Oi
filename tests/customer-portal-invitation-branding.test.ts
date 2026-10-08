@@ -202,7 +202,7 @@ test("internal and generic invitation contracts remain distinct", () => {
   assert.doesNotMatch(internalAction, /customer_portal/);
   assert.match(
     internalAction,
-    /invitationOrganization[\s\S]*organizationInvitationMetadata[\s\S]*: \{ display_name: displayName, title: title \|\| null \}/,
+    /invitationOrganization[\s\S]*organizationInvitationMetadata[\s\S]*first_name: firstName,[\s\S]*last_name: lastName,[\s\S]*display_name: displayName,[\s\S]*title: title \|\| null/,
   );
 });
 

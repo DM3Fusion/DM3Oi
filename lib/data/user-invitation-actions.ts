@@ -86,13 +86,25 @@ export async function inviteUserAction(form: FormData) {
   await requireSuperAdmin();
   const email = value(form, "email").toLowerCase();
   const title = value(form, "title").slice(0, 100);
-  const displayName = value(form, "displayName");
+  const firstName = value(form, "firstName").slice(0, 80);
+  const lastName = value(form, "lastName").slice(0, 80);
+  const displayName = [firstName, lastName]
+    .filter(Boolean)
+    .join(" ");
   const organizationId = value(form, "organizationId");
   const role = value(form, "role") as Role;
   const active = value(form, "active") !== "false";
   const sendInvitation = form.get("sendInvitation") === "on";
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !displayName)
-    go("/admin/users/new", "error", "Enter a valid email and display name.");
+  if (
+    !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ||
+    !firstName ||
+    !lastName
+  )
+    go(
+      "/admin/users/new",
+      "error",
+      "Enter a valid email, first name, and last name.",
+    );
   if (organizationId && !isOrganizationUserRole(role))
     go("/admin/users/new", "error", "Select a valid organization role.");
   const session = await createClient();
@@ -138,6 +150,8 @@ export async function inviteUserAction(form: FormData) {
     const { error: profileError } = await admin.from("profiles").upsert({
       id: existingAuthUser.id,
       email,
+      first_name: firstName,
+      last_name: lastName,
       display_name: displayName,
       title: title || null,
       is_active: active,
@@ -180,10 +194,20 @@ export async function inviteUserAction(form: FormData) {
   }
   const organizationInvitationData = invitationOrganization
     ? organizationInvitationMetadata(
-        { display_name: displayName, title: title || null },
+        {
+          first_name: firstName,
+          last_name: lastName,
+          display_name: displayName,
+          title: title || null,
+        },
         invitationOrganization.name,
       )
-    : { display_name: displayName, title: title || null };
+    : {
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        title: title || null,
+      };
   const generatedOrganizationInvitation = Boolean(sendInvitation && invitationOrganization);
   let invitedUser: User | null = null;
   let invitationUrl: string | null = null;
@@ -227,7 +251,12 @@ export async function inviteUserAction(form: FormData) {
     const created = await admin.auth.admin.createUser({
       email,
       email_confirm: true,
-      user_metadata: { display_name: displayName, title: title || null },
+      user_metadata: {
+        first_name: firstName,
+        last_name: lastName,
+        display_name: displayName,
+        title: title || null,
+      },
     });
     if (created.error || !created.data.user) {
       console.error("Auth user creation failed", { message: created.error?.message });
@@ -242,6 +271,8 @@ export async function inviteUserAction(form: FormData) {
   const { error: profileError } = await admin.from("profiles").upsert({
     id: userId,
     email,
+    first_name: firstName,
+    last_name: lastName,
     display_name: displayName,
     title: title || null,
     is_active: active,
@@ -297,7 +328,7 @@ export async function inviteUserAction(form: FormData) {
         membershipId,
         recipientUserId: userId,
         recipientEmail: email,
-        recipientFirstName: displayName.split(/\s+/)[0],
+        recipientFirstName: firstName,
         recipientName: displayName,
         role,
         invitationUrl,

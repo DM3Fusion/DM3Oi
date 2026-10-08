@@ -207,6 +207,33 @@ test("authenticated access is grouped by user, organization, category, and role 
   );
 });
 
+test("repository preserves visit and unique-page summary metrics returned by the authenticated aggregate", () => {
+  assert.match(
+    repository,
+    /internalVisits:\s*Number\([\s\S]*summary\?\.internalVisits/,
+  );
+  assert.match(
+    repository,
+    /internalUniquePages:\s*Number\([\s\S]*summary\?\.internalUniquePages/,
+  );
+  assert.match(
+    repository,
+    /customerPortalVisits:\s*Number\([\s\S]*summary\?\.customerPortalVisits/,
+  );
+  assert.match(
+    repository,
+    /customerPortalUniquePages:\s*Number\([\s\S]*summary\?\.customerPortalUniquePages/,
+  );
+  assert.match(
+    repository,
+    /publicVisits:\s*Number\([\s\S]*summary\?\.publicVisits/,
+  );
+  assert.match(
+    repository,
+    /publicUniquePages:\s*Number\([\s\S]*summary\?\.publicUniquePages/,
+  );
+});
+
 test("repository runs existing and authenticated aggregates in parallel for the same date range", () => {
   const loader = repository.slice(
     repository.indexOf("export async function getPlatformAnalytics"),

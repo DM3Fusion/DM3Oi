@@ -38,12 +38,21 @@ export default async function Page({
               <input name="email" type="email" autoComplete="email" required />
             </label>
             <label>
-              <span>Display name</span>
+              <span>First name</span>
               <input
-                name="displayName"
-                autoComplete="name"
+                name="firstName"
+                autoComplete="given-name"
                 required
-                maxLength={160}
+                maxLength={80}
+              />
+            </label>
+            <label>
+              <span>Last name</span>
+              <input
+                name="lastName"
+                autoComplete="family-name"
+                required
+                maxLength={80}
               />
             </label>
             <label>

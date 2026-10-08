@@ -43,9 +43,17 @@ export type PlatformAuthenticatedAccessRow = {
 
 export type PlatformAuthenticatedAccess = {
   summary: {
+    internalVisits: number;
+    internalUniquePages: number;
     internalPageViews: number;
+    customerPortalVisits: number;
+    customerPortalUniquePages: number;
     customerPortalPageViews: number;
+    unclassifiedAuthenticatedVisits: number;
+    unclassifiedAuthenticatedUniquePages: number;
     unclassifiedAuthenticatedPageViews: number;
+    publicVisits: number;
+    publicUniquePages: number;
     publicPageViews: number;
   };
   rows: PlatformAuthenticatedAccessRow[];
@@ -118,14 +126,41 @@ function asAuthenticatedAccess(
 
   return {
     summary: {
+      internalVisits: Number(
+        summary?.internalVisits ?? 0,
+      ),
+      internalUniquePages: Number(
+        summary?.internalUniquePages ?? 0,
+      ),
       internalPageViews: Number(
         summary?.internalPageViews ?? 0,
+      ),
+
+      customerPortalVisits: Number(
+        summary?.customerPortalVisits ?? 0,
+      ),
+      customerPortalUniquePages: Number(
+        summary?.customerPortalUniquePages ?? 0,
       ),
       customerPortalPageViews: Number(
         summary?.customerPortalPageViews ?? 0,
       ),
+
+      unclassifiedAuthenticatedVisits: Number(
+        summary?.unclassifiedAuthenticatedVisits ?? 0,
+      ),
+      unclassifiedAuthenticatedUniquePages: Number(
+        summary?.unclassifiedAuthenticatedUniquePages ?? 0,
+      ),
       unclassifiedAuthenticatedPageViews: Number(
         summary?.unclassifiedAuthenticatedPageViews ?? 0,
+      ),
+
+      publicVisits: Number(
+        summary?.publicVisits ?? 0,
+      ),
+      publicUniquePages: Number(
+        summary?.publicUniquePages ?? 0,
       ),
       publicPageViews: Number(
         summary?.publicPageViews ?? 0,

@@ -102,3 +102,58 @@ test("email-code login remains available without interactive password authentica
   assert.match(login, /verifyLoginOtpAction/);
   assert.doesNotMatch(login, /signInAction|type="password"|Password/);
 });
+
+test("SUPER_ADMIN user creation captures first and last name and derives display identity", () => {
+  const page = readFileSync(
+    "app/admin/users/new/page.tsx",
+    "utf8",
+  );
+  const actions = readFileSync(
+    "lib/data/user-invitation-actions.ts",
+    "utf8",
+  );
+
+  assert.match(page, /<span>First name<\/span>/);
+  assert.match(page, /name="firstName"/);
+  assert.match(page, /autoComplete="given-name"/);
+
+  assert.match(page, /<span>Last name<\/span>/);
+  assert.match(page, /name="lastName"/);
+  assert.match(page, /autoComplete="family-name"/);
+
+  assert.doesNotMatch(
+    page,
+    /name="displayName"/,
+  );
+
+  assert.match(
+    actions,
+    /const firstName = value\(form, "firstName"\)/,
+  );
+  assert.match(
+    actions,
+    /const lastName = value\(form, "lastName"\)/,
+  );
+  assert.match(
+    actions,
+    /const displayName = \[firstName, lastName\][\s\S]*\.join\(" "\)/,
+  );
+
+  assert.match(
+    actions,
+    /first_name: firstName/,
+  );
+  assert.match(
+    actions,
+    /last_name: lastName/,
+  );
+  assert.match(
+    actions,
+    /display_name: displayName/,
+  );
+
+  assert.match(
+    actions,
+    /user_metadata:\s*\{[\s\S]*first_name: firstName,[\s\S]*last_name: lastName,[\s\S]*display_name: displayName/,
+  );
+});
