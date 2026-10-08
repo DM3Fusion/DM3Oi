@@ -2338,3 +2338,203 @@ export async function publishConfigurationTemplateAction(form:FormData){
   "Configuration template published.",
  ));
 }
+
+
+
+export async function deleteOrphanedTestIdentityAction(form:FormData){
+  const access=await requireSuperAdmin();
+  const userId=value(form,"userId");
+  const confirmation=value(form,"confirmation");
+  const path=`/admin/users/${userId}`;
+
+  if(!userId){
+    redirect(destination(
+      "/admin/users",
+      "error",
+      "The test identity could not be identified.",
+    ));
+  }
+
+  if(access.user.id===userId){
+    redirect(destination(
+      path,
+      "error",
+      "You cannot permanently delete your own platform identity.",
+    ));
+  }
+
+  const admin=createAdminClient();
+
+  const profile=await admin
+    .from("profiles")
+    .select("display_name,first_name,last_name,email")
+    .eq("id",userId)
+    .maybeSingle();
+
+  if(profile.error||!profile.data){
+    console.error("Test identity profile lookup failed",{
+      userId,
+      message:profile.error?.message??null,
+    });
+
+    redirect(destination(
+      path,
+      "error",
+      "The test identity could not be safely resolved.",
+    ));
+  }
+
+  const displayName=
+    profile.data.display_name?.trim()||
+    [profile.data.first_name,profile.data.last_name]
+      .filter(Boolean)
+      .join(" ")
+      .trim()||
+    profile.data.email?.trim()||
+    "Unnamed user";
+
+  const expectedConfirmation=`DELETE TEST USER ${displayName}`;
+
+  if(confirmation!==expectedConfirmation){
+    redirect(destination(
+      path,
+      "error",
+      `Type ${expectedConfirmation} exactly to confirm test identity deletion.`,
+    ));
+  }
+
+  const memberships=await admin
+    .from("organization_members")
+    .select("id",{count:"exact",head:true})
+    .eq("user_id",userId);
+
+  if(memberships.error){
+    console.error("Test identity membership recheck failed",{
+      userId,
+      message:memberships.error.message,
+    });
+
+    redirect(destination(
+      path,
+      "error",
+      "The test identity could not be safely rechecked.",
+    ));
+  }
+
+  if((memberships.count??0)>0){
+    redirect(destination(
+      path,
+      "error",
+      "This identity now has organization access and is no longer eligible for orphaned test cleanup.",
+    ));
+  }
+
+  const {
+    getGlobalUserDeletionEligibility,
+  }=await import("@/lib/data/platform-user-global-deletion");
+
+  const before=await getGlobalUserDeletionEligibility(userId);
+
+  const allowedCleanupBlockers=new Set([
+    "A Customer Portal identity exists.",
+    "Service Desk history or responsibility exists.",
+  ]);
+
+  if(before.eligible){
+    redirect(destination(
+      path,
+      "error",
+      "This identity no longer requires dependency cleanup. Use the normal permanent deletion control.",
+    ));
+  }
+
+  const unsupportedBlockers=before.blockers.filter(
+    (blocker)=>!allowedCleanupBlockers.has(blocker),
+  );
+
+  if(unsupportedBlockers.length>0){
+    redirect(destination(
+      path,
+      "error",
+      unsupportedBlockers[0]??
+        "Additional retained history prevents test identity cleanup.",
+    ));
+  }
+
+  const supabase=await createClient();
+
+  const cleanupClient=supabase as unknown as {
+    rpc(
+      name:"super_admin_cleanup_orphaned_test_identity",
+      args:{target_user_id:string},
+    ):PromiseLike<{
+      data:unknown;
+      error:{
+        code?:string;
+        message:string;
+      }|null;
+    }>;
+  };
+
+  const cleanup=await cleanupClient.rpc(
+    "super_admin_cleanup_orphaned_test_identity",
+    {target_user_id:userId},
+  );
+
+  if(cleanup.error){
+    console.error("SUPER_ADMIN orphaned test identity cleanup failed",{
+      userId,
+      code:cleanup.error.code??null,
+      message:cleanup.error.message,
+    });
+
+    redirect(destination(
+      path,
+      "error",
+      "The test identity dependencies could not be safely cleaned up. No identity was deleted.",
+    ));
+  }
+
+  /*
+   * The cleanup RPC is not permission to delete. The existing global,
+   * fail-closed deletion guard is authoritative and runs again here.
+   */
+  const after=await getGlobalUserDeletionEligibility(userId);
+
+  if(!after.eligible){
+    redirect(destination(
+      path,
+      "error",
+      after.blockers[0]??
+        "The identity still has retained dependencies and was not deleted.",
+    ));
+  }
+
+  const deletion=await admin.auth.admin.deleteUser(userId);
+
+  if(deletion.error){
+    console.error("SUPER_ADMIN orphaned test identity Auth deletion failed",{
+      userId,
+      message:deletion.error.message,
+    });
+
+    redirect(destination(
+      path,
+      "error",
+      "The dependencies were cleaned up, but the Auth identity could not be permanently deleted.",
+    ));
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/organizations");
+  revalidatePath("/users");
+  revalidatePath("/service-desk");
+  revalidatePath("/communications");
+
+  redirect(destination(
+    "/admin/users",
+    "message",
+    `Test identity ${displayName} permanently deleted.`,
+  ));
+}

@@ -13688,3 +13688,75 @@ dialog.task-modal.intake-document-availability-modal {
     justify-content:center;
   }
 }
+
+
+/* SUPER_ADMIN targeted orphaned test-identity cleanup */
+.admin-test-identity-cleanup{
+  margin-top:18px;
+  padding:16px;
+  border:1px solid #e5bcbc;
+  border-left:4px solid #b42318;
+  border-radius:7px;
+  background:#fff8f8;
+}
+
+.admin-test-identity-cleanup h3{
+  margin:0 0 6px;
+  color:#7f1d1d;
+  font-size:15px;
+}
+
+.admin-test-identity-cleanup>p{
+  max-width:850px;
+  margin:0 0 14px;
+  color:#5f2730;
+  font-size:12px;
+  line-height:1.55;
+}
+
+.admin-test-identity-cleanup form{
+  display:grid;
+  max-width:760px;
+  gap:12px;
+}
+
+.admin-test-identity-cleanup label{
+  display:grid;
+  gap:7px;
+}
+
+.admin-test-identity-cleanup label>span{
+  color:#40506a;
+  font-size:11px;
+}
+
+.admin-test-identity-cleanup input:not([type="hidden"]){
+  width:100%;
+  min-height:42px;
+  border:1px solid #d7b7b7;
+  border-radius:6px;
+  background:#fff;
+  padding:0 11px;
+  color:var(--ink);
+}
+
+.admin-test-identity-cleanup input:not([type="hidden"]):focus{
+  border-color:#b42318;
+  outline:0;
+  box-shadow:0 0 0 3px rgba(180,35,24,.12);
+}
+
+.admin-test-identity-cleanup .danger-button{
+  justify-self:start;
+}
+
+@media(max-width:600px){
+  .admin-test-identity-cleanup{
+    padding:14px;
+  }
+
+  .admin-test-identity-cleanup .danger-button{
+    width:100%;
+    justify-content:center;
+  }
+}

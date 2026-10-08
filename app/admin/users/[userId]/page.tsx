@@ -13,6 +13,7 @@ import {
 import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 import { ApplicationIcon } from "@/components/application-icon";
 import { SuperAdminUserDelete } from "@/components/super-admin-user-delete";
+import { deleteOrphanedTestIdentityAction } from "@/lib/data/platform-actions";
 import { getPlatformUserDeletionEligibility } from "@/lib/data/platform-user-deletion";
 import { getGlobalUserDeletionEligibility } from "@/lib/data/platform-user-global-deletion";
 import {
@@ -76,6 +77,24 @@ export default async function Page({
     [user.first_name, user.last_name].filter(Boolean).join(" ") ||
     user.email ||
     "Unnamed user";
+
+  const testIdentityCleanupBlockers = new Set([
+    "A Customer Portal identity exists.",
+    "Service Desk history or responsibility exists.",
+  ]);
+
+  const canDeleteTestIdentity =
+    !isOwnProfile &&
+    user.memberships.length === 0 &&
+    orphanDeletionEligibility !== null &&
+    !orphanDeletionEligibility.eligible &&
+    orphanDeletionEligibility.blockers.length > 0 &&
+    orphanDeletionEligibility.blockers.every((blocker) =>
+      testIdentityCleanupBlockers.has(blocker),
+    );
+
+  const testIdentityConfirmation = `DELETE TEST USER ${name}`;
+
   return (
     <>
       <PageHeader
@@ -386,6 +405,37 @@ export default async function Page({
             }
             orphaned
           />
+
+          {canDeleteTestIdentity ? (
+            <div className="admin-test-identity-cleanup">
+              <h3>Delete test identity and dependencies</h3>
+              <p>
+                This SUPER_ADMIN recovery action removes this orphaned
+                identity&apos;s Customer Portal relationship and Service Desk
+                identity references, then runs the global deletion guard again.
+                Any other retained business history still blocks deletion.
+              </p>
+
+              <form action={deleteOrphanedTestIdentityAction}>
+                <input type="hidden" name="userId" value={user.id} />
+
+                <label>
+                  <span>
+                    Type <strong>{testIdentityConfirmation}</strong> to confirm
+                  </span>
+                  <input
+                    name="confirmation"
+                    autoComplete="off"
+                    required
+                  />
+                </label>
+
+                <button type="submit" className="danger-button">
+                  Delete Test Identity
+                </button>
+              </form>
+            </div>
+          ) : null}
         </section>
       ) : null}
       <Link className="auth-link" href="/admin/users">
