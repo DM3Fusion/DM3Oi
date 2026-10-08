@@ -17,6 +17,19 @@ export type CaseCommunicationMessage = {
   created_at: string;
 };
 
+export type CaseCommunicationEmailDelivery = {
+  id: string;
+  organization_id: string | null;
+  customer_id: string | null;
+  case_id: string | null;
+  subject: string;
+  delivery_status: string;
+  sent_at: string | null;
+  failed_at: string | null;
+  error_summary: string | null;
+  created_at: string;
+};
+
 export type RecentCaseCommunication = {
   id: string;
   serviceRequestId: string;
@@ -38,6 +51,7 @@ export function selectRecentCaseCommunications(input: {
   caseCustomerId: string;
   requests: readonly CaseCommunicationRequest[];
   messages: readonly CaseCommunicationMessage[];
+  emailDeliveries?: readonly CaseCommunicationEmailDelivery[];
   limit?: number;
 }): RecentCaseCommunication[] {
   const linkedRequests = input.requests.filter(
@@ -77,6 +91,44 @@ export function selectRecentCaseCommunications(input: {
       createdAt: message.created_at,
     });
   }
+
+  for (const delivery of input.emailDeliveries ?? []) {
+    if (
+      delivery.organization_id !== input.organizationId ||
+      delivery.case_id !== input.caseId ||
+      delivery.customer_id !== input.caseCustomerId
+    ) {
+      continue;
+    }
+
+    const deliveryState =
+      delivery.delivery_status === "FAILED"
+        ? "Email failed"
+        : delivery.delivery_status === "SENT"
+          ? "Email sent"
+          : "Email pending";
+
+    const deliverySummary =
+      delivery.delivery_status === "FAILED" && delivery.error_summary
+        ? `${delivery.subject} — ${delivery.error_summary}`
+        : delivery.subject;
+
+    candidates.push({
+      id: `email:${delivery.id}`,
+      serviceRequestId: "",
+      serviceRequestNumber: deliveryState,
+      direction: "OUTBOUND",
+      participantLabel: "DM3Oi team",
+      summary: summary(deliverySummary),
+      createdAt:
+        delivery.delivery_status === "FAILED"
+          ? delivery.failed_at ?? delivery.created_at
+          : delivery.delivery_status === "SENT"
+            ? delivery.sent_at ?? delivery.created_at
+            : delivery.created_at,
+    });
+  }
+
   return candidates
     .sort(
       (left, right) =>

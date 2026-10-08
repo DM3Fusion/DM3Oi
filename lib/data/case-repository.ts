@@ -11,6 +11,7 @@ import type { Database } from "@/types/database";
 import { getPlatformAdminUserIds, maskPlatformProfile, ORGANIZATION_SUPPORT_IDENTITY } from "@/lib/data/platform-privacy";
 import {
   selectRecentCaseCommunications,
+  type CaseCommunicationEmailDelivery,
   type CaseCommunicationMessage,
   type RecentCaseCommunication,
 } from "@/lib/case-communications";
@@ -1821,24 +1822,37 @@ export async function getLiveCase(caseId: string) {
     activeRules: ruleEvaluationBundle.activeRules,
   };
 
-  const messageResult = linkedRequests.length
-    ? await supabase
-        .from("organization_service_request_messages")
-        .select(
-          "id,organization_id,service_request_id,author_type,body,created_at",
-        )
-        .eq("organization_id", data.organizationId)
-        .in(
-          "service_request_id",
-          linkedRequests.map((request) => request.id),
-        )
-        .order("created_at", { ascending: false })
-        .order("id", { ascending: false })
-        .limit(5)
-    : {
-        data: [] as CaseCommunicationMessage[],
-        error: null,
-      };
+  const [messageResult, emailDeliveryResult] = await Promise.all([
+    linkedRequests.length
+      ? supabase
+          .from("organization_service_request_messages")
+          .select(
+            "id,organization_id,service_request_id,author_type,body,created_at",
+          )
+          .eq("organization_id", data.organizationId)
+          .in(
+            "service_request_id",
+            linkedRequests.map((request) => request.id),
+          )
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .limit(5)
+      : Promise.resolve({
+          data: [] as CaseCommunicationMessage[],
+          error: null,
+        }),
+    admin
+      .from("email_deliveries")
+      .select(
+        "id,organization_id,customer_id,case_id,subject,delivery_status,sent_at,failed_at,error_summary,created_at",
+      )
+      .eq("organization_id", data.organizationId)
+      .eq("case_id", item.id)
+      .eq("customer_id", item.customer_id)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(5),
+  ]);
 
   if (messageResult.error) {
     console.error("Recent Case communications query failed", {
@@ -1846,6 +1860,17 @@ export async function getLiveCase(caseId: string) {
       caseId,
       code: messageResult.error.code,
       message: messageResult.error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  if (emailDeliveryResult.error) {
+    console.error("Recent Case email delivery query failed", {
+      organizationId,
+      caseId,
+      code: emailDeliveryResult.error.code,
+      message: emailDeliveryResult.error.message,
     });
 
     throw new DataAccessError();
@@ -1859,6 +1884,8 @@ export async function getLiveCase(caseId: string) {
       requests: linkedRequests,
       messages:
         (messageResult.data ?? []) as CaseCommunicationMessage[],
+      emailDeliveries:
+        (emailDeliveryResult.data ?? []) as CaseCommunicationEmailDelivery[],
     });
 
   return {

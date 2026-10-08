@@ -188,3 +188,77 @@ test("pre-existing conversation visibility follows authoritative Case linkage", 
   request.case_id = null;
   assert.doesNotMatch(JSON.stringify(select("case-b")), /existing-message/);
 });
+
+
+test("Case-linked tracked email deliveries appear in Customer Communications", () => {
+  const communications = selectRecentCaseCommunications({
+    organizationId: "organization-a",
+    caseId: "case-a",
+    caseCustomerId: "customer-x",
+    requests: [],
+    messages: [],
+    emailDeliveries: [
+      {
+        id: "delivery-sent",
+        organization_id: "organization-a",
+        customer_id: "customer-x",
+        case_id: "case-a",
+        subject: "Missing documents needed for CASE-000166",
+        delivery_status: "SENT",
+        sent_at: "2026-10-08T23:50:00.000Z",
+        failed_at: null,
+        error_summary: null,
+        created_at: "2026-10-08T23:49:59.000Z",
+      },
+      {
+        id: "delivery-failed",
+        organization_id: "organization-a",
+        customer_id: "customer-x",
+        case_id: "case-a",
+        subject: "Missing documents needed for CASE-000166",
+        delivery_status: "FAILED",
+        sent_at: null,
+        failed_at: "2026-10-08T23:40:00.000Z",
+        error_summary: "Email notification could not be sent.",
+        created_at: "2026-10-08T23:39:59.000Z",
+      },
+      {
+        id: "different-case",
+        organization_id: "organization-a",
+        customer_id: "customer-x",
+        case_id: "case-b",
+        subject: "Must not appear",
+        delivery_status: "SENT",
+        sent_at: "2026-10-08T23:55:00.000Z",
+        failed_at: null,
+        error_summary: null,
+        created_at: "2026-10-08T23:55:00.000Z",
+      },
+    ],
+  });
+
+  assert.equal(communications.length, 2);
+  assert.equal(communications[0]?.id, "email:delivery-sent");
+  assert.equal(communications[0]?.serviceRequestNumber, "Email sent");
+  assert.equal(communications[0]?.direction, "OUTBOUND");
+  assert.match(communications[0]?.summary ?? "", /Missing documents/);
+
+  assert.equal(communications[1]?.id, "email:delivery-failed");
+  assert.equal(communications[1]?.serviceRequestNumber, "Email failed");
+  assert.match(
+    communications[1]?.summary ?? "",
+    /Email notification could not be sent/,
+  );
+
+  assert.doesNotMatch(
+    JSON.stringify(communications),
+    /different-case|Must not appear/,
+  );
+});
+
+test("Case repository loads tracked email history by authoritative Case linkage", () => {
+  assert.match(repository, /\.from\("email_deliveries"\)/);
+  assert.match(repository, /\.eq\("case_id", item\.id\)/);
+  assert.match(repository, /\.eq\("customer_id", item\.customer_id\)/);
+  assert.match(repository, /emailDeliveries:/);
+});
