@@ -14071,3 +14071,9 @@ dialog.task-modal.intake-document-availability-modal {
     width:100%;
   }
 }
+
+
+/* Guided Intake question label emphasis. */
+.guided-case-intake .intake-question-card > label > span {
+  font-size: 14px;
+}
