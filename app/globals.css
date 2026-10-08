@@ -12902,3 +12902,89 @@ dialog.task-modal.intake-document-availability-modal {
     column-gap:.65rem;
   }
 }
+
+/* Platform Analytics card alignment refinements. */
+
+/* Remove global .muted spacing from the Top Pages / Geography descriptions. */
+.admin-top-pages-heading > div:first-child{
+  min-height:55px;
+}
+
+.admin-top-pages-heading p.muted{
+  margin:4px 0 0;
+  padding:0;
+  text-align:left;
+}
+
+/* Keep both filter rows aligned and give both search fields the same width. */
+.admin-top-pages-controls{
+  display:flex;
+  width:100%;
+  align-items:center;
+  justify-content:flex-start;
+  gap:7px;
+}
+
+.admin-top-pages-search{
+  width:320px;
+  max-width:100%;
+  flex:0 1 320px;
+}
+
+.admin-top-pages-search input{
+  width:100%;
+}
+
+/* Keep Geography table content inset inside the card boundary. */
+.admin-geography-table{
+  width:auto;
+  min-width:0;
+  margin:0 20px 14px;
+  padding:0;
+}
+
+.admin-geography-table-header,
+.admin-geography-row{
+  width:100%;
+  min-width:0;
+  grid-template-columns:minmax(0,1fr) 64px 64px;
+  column-gap:12px;
+}
+
+.admin-geography-location{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+
+.admin-geography-value{
+  min-width:0;
+  text-align:right;
+}
+
+@media(max-width:520px){
+  .admin-top-pages-heading > div:first-child{
+    min-height:0;
+  }
+
+  .admin-top-pages-controls{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+
+  .admin-top-pages-search{
+    width:100%;
+    max-width:none;
+  }
+
+  .admin-geography-table{
+    width:auto;
+    margin:0 16px 14px;
+    padding:0;
+  }
+
+  .admin-geography-table-header,
+  .admin-geography-row{
+    grid-template-columns:minmax(0,1fr) 48px 48px;
+    column-gap:8px;
+  }
+}
