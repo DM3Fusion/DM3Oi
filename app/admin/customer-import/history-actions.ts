@@ -22,10 +22,10 @@ export async function removeCustomerImportRecordAction(input: {
     const supabase = await createClient();
 
     const { error } = await supabase.rpc(
-      "super_admin_remove_customer_import_record" as never,
+      "super_admin_remove_customer_import_record",
       {
         target_submission_id: input.submissionId,
-      } as never,
+      },
     );
 
     if (error) {

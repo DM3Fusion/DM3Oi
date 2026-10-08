@@ -1,4 +1,4 @@
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type GeneratedOrganizationCustomer =
   Database["public"]["Views"]["organization_customers"]["Row"];

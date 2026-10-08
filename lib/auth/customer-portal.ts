@@ -5,17 +5,44 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   resolveCustomerPortalAccesses,
+  type CustomerPortalCustomer,
   type CustomerPortalAccessReason,
+  type CustomerPortalLink,
+  type CustomerPortalOrganization,
+  type CustomerPortalSettings,
 } from "@/lib/auth/customer-portal-effectiveness";
 
 export const ACTIVE_PORTAL_ACCESS_COOKIE = "dm3iqcm-active-portal-access";
-// Portal rows are extended by the deployed Supabase schema; keep this guard isolated from generated types.
 export type PortalContextReason =
   | CustomerPortalAccessReason
   | "ACCOUNT_SELECTION_REQUIRED"
   | "INVALID_SELECTED_ACCESS";
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type CustomerPortalContext = { user: { id: string; email?: string }; access: any; organization: any; customer: any; links: any[]; settings: any; reason: PortalContextReason };
+type PortalContextSettings = Pick<
+  CustomerPortalSettings,
+  | "portal_enabled"
+  | "portal_submission_enabled"
+  | "portal_show_priority"
+  | "timezone"
+  | "secure_document_system_url"
+  | "document_submission_instructions"
+>;
+
+export type CustomerPortalContext = {
+  user: { id: string; email?: string };
+  access: CustomerPortalLink | null;
+  organization: CustomerPortalOrganization | null;
+  customer: CustomerPortalCustomer | null;
+  links: CustomerPortalLink[];
+  settings: PortalContextSettings | null;
+  reason: PortalContextReason;
+};
+
+export type ActiveCustomerPortalContext = CustomerPortalContext & {
+  access: CustomerPortalLink;
+  organization: CustomerPortalOrganization;
+  customer: CustomerPortalCustomer;
+  settings: PortalContextSettings;
+};
 
 export async function resolveEffectiveCustomerPortalAccessesForUser(
   userId: string,
@@ -86,7 +113,7 @@ async function resolveCustomerPortalContext(): Promise<CustomerPortalContext | n
     return { user, access: null, organization: null, customer: null, links: effectiveAccesses.map((item) => item.link), settings: null, reason };
   }
 
-  const effectiveSettings = resolved.settings ?? { portal_enabled: true, portal_submission_enabled: true, portal_show_priority: true, timezone: "UTC" };
+  const effectiveSettings = resolved.settings ?? { portal_enabled: true, portal_submission_enabled: true, portal_show_priority: true, timezone: "UTC", secure_document_system_url: null, document_submission_instructions: null };
   return { user, access: resolved.link, organization: resolved.organization, customer: resolved.customer, links: effectiveAccesses.map((item) => item.link), settings: effectiveSettings, reason: "VALID" };
 }
 
@@ -94,10 +121,10 @@ async function resolveCustomerPortalContext(): Promise<CustomerPortalContext | n
 // pages share one authoritative resolution without persisting user data.
 export const getCustomerPortalContext = cache(resolveCustomerPortalContext);
 
-export async function requireCustomerPortalContext(): Promise<CustomerPortalContext> {
+export async function requireCustomerPortalContext(): Promise<ActiveCustomerPortalContext> {
   const context = await getCustomerPortalContext();
   if (!context?.access) {
     redirect(context?.reason === "ACCOUNT_SELECTION_REQUIRED" ? "/portal/select-account" : "/account/unprovisioned");
   }
-  return context;
+  return context as ActiveCustomerPortalContext;
 }

@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type TrialIdentityReferenceDatabase = Database & {

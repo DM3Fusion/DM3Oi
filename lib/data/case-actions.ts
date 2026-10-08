@@ -10,7 +10,7 @@ import {
   MissingDocumentsNoticeError,
   sendMissingDocumentsNotice,
 } from "@/lib/data/missing-documents-notice-service";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 type CaseStatus = Database["public"]["Enums"]["case_status"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];
 const text = (data: FormData, key: string) => String(data.get(key) ?? "").trim();
@@ -105,9 +105,7 @@ export async function completeCaseAction(data: FormData) {
 
   const supabase = await createClient();
 
-  // Temporary schema bridge until generated Supabase types include complete_case.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc("complete_case", {
+  const { error } = await supabase.rpc("complete_case", {
     target_case_id: id,
     target_tax_outcome: taxOutcome,
   });
@@ -153,9 +151,7 @@ export async function createTaskAction(data: FormData) {
   if (!text(data, "taskPurposeId") || !text(data, "title") || !validDate(dueDate))
     fail(`/cases/${id}`, "Task Purpose, Task title, and Due Date are required.");
   const supabase = await createClient();
-  // Temporary RPC signature bridge until generated Supabase types are refreshed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc("create_case_task", {
+  const { error } = await supabase.rpc("create_case_task", {
     target_case_id: id,
     target_task_purpose_id: text(data, "taskPurposeId"),
     target_title: text(data, "title"),
@@ -181,9 +177,7 @@ export async function updateTaskAction(data: FormData) {
   const context = await requirePermission("WORK_TASKS");
   const supabase = await createClient();
   const taskId = text(data, "taskId");
-  // Temporary schema bridge until generated Supabase types include task_purpose_id.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: existing } = await (supabase as any)
+  const { data: existing } = await supabase
     .from("case_tasks")
     .select("title,description,assigned_user_id,status,required,due_at,task_purpose_id,source_rule_action_id,intake_follow_up_id")
     .eq("id", taskId)
@@ -218,9 +212,7 @@ export async function updateTaskAction(data: FormData) {
     );
   }
 
-  // Temporary RPC signature bridge until generated Supabase types are refreshed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc("update_case_task", {
+  const { error } = await supabase.rpc("update_case_task", {
     target_task_id: taskId,
     target_task_purpose_id:
       canManage &&
@@ -234,7 +226,7 @@ export async function updateTaskAction(data: FormData) {
     target_status: requestedStatus,
     target_required: existing.required,
     target_due_date: canManage ? dueDate : null,
-  });
+  } as never);
   if (error) {
     console.error("Update task failed", {
       code: error.code,
@@ -259,9 +251,7 @@ export async function setDocumentRequirementReceivedAction(data: FormData) {
 
   const supabase = await createClient();
 
-  // Temporary RPC bridge until generated Supabase types include this function.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc(
+  const { error } = await supabase.rpc(
     "set_case_document_requirement_received",
     {
       target_task_id: taskId,
@@ -307,10 +297,7 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
   const organization = context.activeOrganization;
   const supabase = await createClient();
 
-  // Temporary schema bridge until generated Supabase types include
-  // Guided Intake Task provenance.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: task, error: taskError } = await (supabase as any)
+  const { data: task, error: taskError } = await supabase
     .from("case_tasks")
     .select(
       "id,case_id,status,intake_follow_up_id,intake_requirement_context,description",
@@ -323,8 +310,9 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
   if (taskError || !task?.intake_follow_up_id) {
     fail(`/cases/${caseId}`, "The Requirements Task is not available.");
   }
+  const currentTask = task!;
 
-  if (task.status === "COMPLETED" || task.status === "NOT_APPLICABLE") {
+  if (currentTask.status === "COMPLETED" || currentTask.status === "NOT_APPLICABLE") {
     fail(`/cases/${caseId}`, "This Requirements Task no longer needs a notice.");
   }
 
@@ -353,10 +341,10 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
   const currentCustomer = customer!;
 
   const requirementContext =
-    task.intake_requirement_context &&
-    typeof task.intake_requirement_context === "object" &&
-    !Array.isArray(task.intake_requirement_context)
-      ? (task.intake_requirement_context as Record<string, unknown>)
+    currentTask.intake_requirement_context &&
+    typeof currentTask.intake_requirement_context === "object" &&
+    !Array.isArray(currentTask.intake_requirement_context)
+      ? (currentTask.intake_requirement_context as Record<string, unknown>)
       : null;
 
   if (requirementContext?.kind !== "DOCUMENT_REQUIREMENT") {
@@ -450,9 +438,7 @@ export async function sendMissingDocumentsNoticeAction(data: FormData) {
     );
   }
 
-  // Temporary RPC bridge until generated Supabase types include this function.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: statusError } = await (supabase as any).rpc(
+  const { error: statusError } = await supabase.rpc(
     "mark_intake_requirement_notice_sent",
     {
       target_task_id: taskId,

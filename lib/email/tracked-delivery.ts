@@ -36,12 +36,12 @@ export type TrackedDeliveryReferences = {
 type DeliveryRow = { id: string; tracking_token: string };
 
 const emailTable = (admin: ReturnType<typeof createAdminClient>) =>
-  admin.from("email_deliveries" as never);
+  admin.from("email_deliveries");
 
 export async function loadPlatformEmailTemplate(templateKey: EmailTemplateKey) {
   const admin = createAdminClient();
   const result = await admin
-    .from("platform_email_templates" as never)
+    .from("platform_email_templates")
     .select("template_key,subject_template,opening_message,closing_message")
     .eq("template_key", templateKey)
     .maybeSingle();
@@ -94,7 +94,7 @@ export async function sendTrackedTemplateEmail(input: {
       trial_request_id: references.trialRequestId ?? null,
       subject: message.subject,
       delivery_status: "PENDING",
-    } as never)
+    })
     .select("id,tracking_token")
     .single();
   const delivery = inserted.data as DeliveryRow | null;
@@ -154,7 +154,7 @@ export async function sendTrackedTemplateEmail(input: {
           error_code: result.errorCode.slice(0, 100),
           error_summary: result.safeMessage.slice(0, 500),
           updated_at: now,
-        }) as never)
+        }))
     .eq("id", delivery.id)
     .eq("delivery_status", "PENDING")
     .select("id")

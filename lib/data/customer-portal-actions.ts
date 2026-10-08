@@ -32,7 +32,7 @@ export async function createCustomerServiceRequestAction(form: FormData): Promis
   const description = String(form.get("description") ?? "").trim();
   if (!subject || !description) redirect("/portal/service-requests/new?error=Subject%20and%20description%20are%20required.");
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("create_customer_service_request" as never, { target_portal_access_id: context.access.id, target_subject: subject, target_description: description } as never);
+  const { data, error } = await supabase.rpc("create_customer_service_request", { target_portal_access_id: context.access.id, target_subject: subject, target_description: description });
   if (error || !data) redirect("/portal/service-requests/new?error=The%20service%20request%20could%20not%20be%20submitted.");
   revalidatePath("/portal");
   revalidatePath("/portal/service-requests");
@@ -61,7 +61,7 @@ export async function createCustomerServiceRequestMessageAction(form: FormData):
   if (body.length > 4000) return { ok: false, error: "Reply must be 4000 characters or fewer." };
   const context = await requireCustomerPortalContext();
   const supabase = await createClient();
-  const { data: created, error } = await supabase.rpc("create_customer_service_request_message" as never, { target_service_request_id: serviceRequestId, target_body: body } as never);
+  const { data: created, error } = await supabase.rpc("create_customer_service_request_message", { target_service_request_id: serviceRequestId, target_body: body });
   if (error || !created) {
     console.error("Customer reply submission failed", { code: error?.code, message: error?.message });
     return { ok: false, error: "The reply could not be sent." };

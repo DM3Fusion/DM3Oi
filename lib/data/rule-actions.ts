@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import type { Database, Json } from "@/types/database.generated";
+import type { Database, Json } from "@/types/database";
 import { synchronizeOrganizationRuleTasks } from "@/lib/data/rule-task-synchronization";
 
 type Operator = Database["public"]["Enums"]["rule_condition_operator"];
@@ -39,7 +39,7 @@ export async function saveRuleAction(form: FormData) {
     target_display_order: Number(value(form, "displayOrder") || 0),
     target_actions: actions,
     expected_updated_at: value(form, "expectedUpdatedAt") || null,
-  });
+  } as never);
   if (error) {
     console.error("Save Rule failed", { code: error.code, message: error.message });
     fail(friendly(error.message));

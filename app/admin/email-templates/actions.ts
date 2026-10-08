@@ -38,12 +38,12 @@ export async function updateEmailTemplateAction(form: FormData) {
     redirect(destination(templateKey, "error=invalid"));
 
   const supabase = await createClient();
-  const result = await supabase.rpc("update_platform_email_template" as never, {
+  const result = await supabase.rpc("update_platform_email_template", {
     target_template_key: templateKey,
     target_subject_template: subject,
     target_opening_message: opening,
     target_closing_message: closing,
-  } as never);
+  });
   if (result.error || result.data !== true) {
     console.error("Platform email template update failed", {
       operation: "updatePlatformEmailTemplate",

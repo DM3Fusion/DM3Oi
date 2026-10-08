@@ -1,4 +1,4 @@
-import type { Database } from "../types/database.generated.ts";
+import type { Database } from "../types/database";
 import {
   isValidTimeZone,
   resolveUsZipTimeZone,

@@ -91,8 +91,8 @@ export async function getHowToGuideTemplateForAdmin(
 
   const supabase = await createClient();
   const result = await supabase.rpc(
-    "get_how_to_guide_template_for_admin" as never,
-    { target_guide_key: guideKey } as never,
+    "get_how_to_guide_template_for_admin",
+    { target_guide_key: guideKey },
   );
 
   if (result.error) {
@@ -122,8 +122,8 @@ export async function getPublishedHowToGuideForServer(
 ): Promise<HowToGuideContent> {
   const admin = createAdminClient();
   const result = await admin.rpc(
-    "get_published_how_to_guide_server" as never,
-    { target_guide_key: guideKey } as never,
+    "get_published_how_to_guide_server",
+    { target_guide_key: guideKey },
   );
 
   if (result.error) {

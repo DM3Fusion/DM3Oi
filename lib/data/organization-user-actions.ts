@@ -7,7 +7,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { isOrganizationUserRole } from "@/lib/data/user-provisioning";
 import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (form: FormData, key: string) => String(form.get(key) ?? "").trim();

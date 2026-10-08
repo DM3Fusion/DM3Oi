@@ -1,4 +1,4 @@
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 export type ApplicationRole = Database["public"]["Enums"]["application_role"];
 export const permissions = [

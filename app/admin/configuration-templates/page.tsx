@@ -4,7 +4,7 @@ import { requireSuperAdmin } from "@/lib/auth/context";
 import { createConfigurationTemplateAction } from "@/lib/data/platform-actions";
 import { getPlatformAdministration } from "@/lib/data/platform-repository";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type ConfigurationTemplateRow = {
   id: string;

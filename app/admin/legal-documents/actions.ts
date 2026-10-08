@@ -12,6 +12,7 @@ import {
   type LegalDocumentKey,
 } from "@/lib/legal-documents";
 import { createClient } from "@/lib/supabase/server";
+import type { Json } from "@/types/database";
 
 function field(form: FormData, key: string) {
   return String(form.get(key) ?? "").trim();
@@ -48,11 +49,11 @@ export async function saveLegalDocumentDraftAction(form: FormData) {
 
   const supabase = await createClient();
   const result = await supabase.rpc(
-    "save_legal_document_draft" as never,
+    "save_legal_document_draft",
     {
       target_document_key: documentKey,
-      target_content: content,
-    } as never,
+      target_content: content as unknown as Json,
+    },
   );
 
   if (result.error) {
@@ -88,12 +89,12 @@ export async function publishLegalDocumentAction(form: FormData) {
 
   const supabase = await createClient();
   const result = await supabase.rpc(
-    "publish_legal_document" as never,
+    "publish_legal_document",
     {
       target_document_key: documentKey,
       target_version: version,
       target_effective_date: effectiveDate,
-    } as never,
+    },
   );
 
   if (result.error) {

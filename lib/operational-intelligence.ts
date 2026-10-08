@@ -1,7 +1,7 @@
 import { startOfOrganizationDay } from "./organization-timezone.ts";
 import type { CaseReadiness } from "./case-readiness.ts";
 import { isIncompleteCompatibilityCaseStatus } from "./case-lifecycle.ts";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type CaseStatus = Database["public"]["Enums"]["case_status"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];

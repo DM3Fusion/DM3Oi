@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { recordPortalCommunication, notifyCustomerOfStaffReply } from "@/lib/data/communication-service";
 import { deliverNewServiceRequestNotificationEmails } from "@/lib/data/new-service-request-email-service";
 import { after } from "next/server";
+import type { Database } from "@/types/database";
 const text = (data: FormData, key: string) => String(data.get(key) ?? "");
 const safe = (message: string) => (message.includes("invalid customer") ? "Select a valid customer." : message.includes("assignee") ? "Select a valid active staff member." : message.includes("not authorized") ? "You are not authorized to perform that action." : "The service request could not be saved.");
 export async function createServiceRequestAction(data: FormData) {
@@ -40,13 +41,13 @@ export async function createServiceRequestAction(data: FormData) {
     };
   const supabase = await createClient();
   const { data: created, error } = await supabase.rpc(
-    "create_service_request" as never,
+    "create_service_request",
     {
       target_organization_id: context.activeOrganization.id,
       target_customer_id: values.customerId,
       target_subject: values.subject,
       target_description: values.description,
-      target_priority: values.priority,
+      target_priority: values.priority as Database["public"]["Enums"]["priority_level"],
       target_assigned_user_id: values.assignedUserId || null,
     } as never,
   );
@@ -91,11 +92,11 @@ export async function updateServiceRequestStatusAction(data: { requestId: string
   await requirePermission("WORK_SERVICE_REQUEST");
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "update_service_request_status" as never,
+    "update_service_request_status",
     {
       target_service_request_id: data.requestId,
-      target_status: data.status,
-    } as never,
+      target_status: data.status as Database["public"]["Enums"]["service_request_status"],
+    },
   );
   if (error) {
     logFailure("Service request status update", error);
@@ -110,11 +111,11 @@ export async function updateServiceRequestPriorityAction(data: { requestId: stri
   await requirePermission("WORK_SERVICE_REQUEST");
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "update_service_request_priority" as never,
+    "update_service_request_priority",
     {
       target_service_request_id: data.requestId,
-      target_priority: data.priority,
-    } as never,
+      target_priority: data.priority as Database["public"]["Enums"]["priority_level"],
+    },
   );
   if (error) {
     console.error("Service request priority update failed", {
@@ -136,7 +137,7 @@ export async function setServiceRequestAssignmentAction(data: { requestId: strin
   await requirePermission("ASSIGN_SERVICE_REQUEST");
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "set_service_request_assignment" as never,
+    "set_service_request_assignment",
     {
       target_service_request_id: data.requestId,
       target_assigned_user_id: data.assignedUserId,
@@ -164,7 +165,7 @@ export async function setServiceRequestCaseAction(data: { requestId: string; cas
     return { ok: false, error: "The Service Request was not found or is not authorized." };
   }
   const { error } = await supabase.rpc(
-    "set_service_request_case" as never,
+    "set_service_request_case",
     {
       target_service_request_id: data.requestId,
       target_case_id: data.caseId,
@@ -229,7 +230,7 @@ export async function createInternalServiceRequestMessageAction(form: FormData):
   }
   const context = await requirePermission("RESPOND_SERVICE_REQUEST");
   const supabase = await createClient();
-  const { data: created, error } = await supabase.rpc("create_internal_service_request_message" as never, { target_service_request_id: serviceRequestId, target_body: body } as never);
+  const { data: created, error } = await supabase.rpc("create_internal_service_request_message", { target_service_request_id: serviceRequestId, target_body: body });
   if (error || !created) {
     console.error("Create internal service request message failed", {
       code: error?.code,

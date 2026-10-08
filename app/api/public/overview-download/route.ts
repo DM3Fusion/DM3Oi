@@ -21,10 +21,7 @@ function readOverviewFile() {
 async function recordOverviewDownloadServed() {
   const admin = createAdminClient();
 
-  // The deployed RPC is intentionally fixed and accepts no arguments.
-  // Cast locally until generated schema types are refreshed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (admin as any).rpc(
+  const { error } = await admin.rpc(
     "record_overview_download_served",
   );
 

@@ -36,10 +36,10 @@ export async function mapBusinessReachCustomersAction(formData: FormData) {
   const access = await requirePermission("EDIT_CUSTOMER");
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
-  const candidateResult = await supabase.rpc("get_business_reach_geocode_candidates" as never, {
+  const candidateResult = await supabase.rpc("get_business_reach_geocode_candidates", {
     target_organization_id: organizationId,
     target_limit: businessReachGeocodeBatchLimit,
-  } as never);
+  });
 
   if (candidateResult.error) {
     console.error("Business Reach candidate query failed", {
@@ -70,10 +70,10 @@ export async function mapBusinessReachCustomersAction(formData: FormData) {
     ...batch.invalidWrites,
     ...buildBusinessReachGeocodeWrites(batch.uniqueAddresses, geocoded),
   ];
-  const saveResult = await supabase.rpc("save_business_reach_geocodes" as never, {
+  const saveResult = await supabase.rpc("save_business_reach_geocodes", {
     target_organization_id: organizationId,
     target_rows: rows,
-  } as never);
+  });
   if (saveResult.error) {
     console.error("Business Reach geocode save failed", {
       code: saveResult.error.code,

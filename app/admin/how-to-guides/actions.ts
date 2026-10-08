@@ -53,11 +53,11 @@ export async function saveHowToGuideDraftAction(
 
   const supabase = await createClient();
   const result = await supabase.rpc(
-    "save_how_to_guide_draft" as never,
+    "save_how_to_guide_draft",
     {
       target_guide_key: guideKey,
       target_content: parsed,
-    } as never,
+    },
   );
 
   if (result.error) {
@@ -88,10 +88,10 @@ export async function publishHowToGuideAction(
 
   const supabase = await createClient();
   const result = await supabase.rpc(
-    "publish_how_to_guide" as never,
+    "publish_how_to_guide",
     {
       target_guide_key: guideKey,
-    } as never,
+    },
   );
 
   if (result.error) {

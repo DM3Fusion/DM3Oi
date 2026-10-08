@@ -27,8 +27,8 @@ export class CustomerPortalCaseDataError extends Error {
 export async function getCustomerPortalCases(portalAccessId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
-    "get_customer_portal_cases" as never,
-    { target_portal_access_id: portalAccessId } as never,
+    "get_customer_portal_cases",
+    { target_portal_access_id: portalAccessId },
   );
   if (error) {
     console.error("Customer Portal case summary query failed", {

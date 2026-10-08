@@ -9,7 +9,7 @@ import type {
   GuidedIntakeFollowUpTask,
   GuidedIntakeRequiredOptionIds,
 } from "@/lib/guided-case-intake";
-import type { Json } from "@/types/database.generated";
+import type { Json } from "@/types/database";
 import { parseGuidedIntakePortalResolution } from "@/lib/customer-portal-onboarding";
 
 export type GuidedIntakeNewCustomerDraft = {
@@ -222,10 +222,7 @@ export async function loadGuidedIntakeDraft(
   const noticeSentAtByFollowUpId: Record<string, string> = {};
 
   if (data.case_id && parsedFollowUpTasks.length) {
-    // Temporary schema bridge until generated Supabase types include
-    // Guided Intake Task provenance.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: persistedTasks, error: persistedTaskError } = await (supabase as any)
+    const { data: persistedTasks, error: persistedTaskError } = await supabase
       .from("case_tasks")
       .select("id,intake_follow_up_id,status,assigned_user_id,due_at")
       .eq("organization_id", organizationId)
@@ -304,8 +301,7 @@ export async function loadGuidedIntakeDraft(
 
     // TASK_STARTED with customer_notice_sent=true is the durable audit
     // event written after the missing-document email succeeds.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: activityRows, error: activityError } = await (supabase as any)
+    const { data: activityRows, error: activityError } = await supabase
       .from("organization_case_activity")
       .select("event_type,event_data,created_at")
       .eq("organization_id", organizationId)

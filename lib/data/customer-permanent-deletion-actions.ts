@@ -115,11 +115,11 @@ export async function getCustomerDeletionPreviewAction(
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
-    "super_admin_customer_deletion_preview" as never,
+    "super_admin_customer_deletion_preview",
     {
       target_organization_id: context.organizationId,
       target_customer_id: customerId,
-    } as never,
+    },
   );
 
   if (error) {
@@ -170,11 +170,11 @@ export async function permanentlyDeleteCustomerAction(
 
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "super_admin_permanently_delete_customer" as never,
+    "super_admin_permanently_delete_customer",
     {
       target_organization_id: context.organizationId,
       target_customer_id: customerId,
-    } as never,
+    },
   );
 
   if (error) {
@@ -253,11 +253,11 @@ export async function getCustomerDeletionPreviewForOrganizationAction(
 
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
-    "super_admin_customer_deletion_preview" as never,
+    "super_admin_customer_deletion_preview",
     {
       target_organization_id: context.organizationId,
       target_customer_id: customerId,
-    } as never,
+    },
   );
 
   if (error) {
@@ -313,11 +313,11 @@ export async function permanentlyDeleteCustomerForOrganizationAction(
 
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "super_admin_permanently_delete_customer" as never,
+    "super_admin_permanently_delete_customer",
     {
       target_organization_id: context.organizationId,
       target_customer_id: customerId,
-    } as never,
+    },
   );
 
   if (error) {

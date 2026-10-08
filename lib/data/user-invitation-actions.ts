@@ -15,7 +15,7 @@ import {
   organizationRoleLimit,
   type OrganizationUserRole,
 } from "@/lib/data/user-provisioning";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import type { User } from "@supabase/supabase-js";
 import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permissions";
 import { resolvePendingInviteIdentityRepair } from "@/lib/data/pending-invite-identity";

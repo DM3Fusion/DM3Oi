@@ -1,4 +1,4 @@
-import type { Json } from "../types/database.generated.ts";
+import type { Json } from "../types/database";
 import {
   evaluateCaseRules,
   type EffectiveTaskAction,

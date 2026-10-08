@@ -99,10 +99,7 @@ export default async function Page({
   const { data, item, recentCommunications } = await getLiveCase(caseId);
   if (!item) notFound();
   const supabase = await createClient();
-  // Temporary schema bridge until generated Supabase types include
-  // organization_task_purposes.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const purposeQuery = (supabase as any)
+  const purposeQuery = supabase
     .from("organization_task_purposes")
     .select("id,label")
     .eq("organization_id", data.organizationId)

@@ -5,7 +5,7 @@ import { randomUUID } from "node:crypto";
 import { parseCustomerImportCsv, previewCustomerImport } from "@/lib/customer-data-management";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Json } from "@/types/database.generated";
+import type { Json } from "@/types/database";
 import {
   getCustomerImportReadContext,
   requireReadyCustomerImportSubmission,
@@ -164,13 +164,13 @@ export async function executeAdministrativeCustomerImportAction(input: {
     const supabase = await createClient();
 
     const created = (await supabase.rpc(
-      "super_admin_create_administrative_import" as never,
+      "super_admin_create_administrative_import",
       {
         target_organization_id: organization.id,
         target_original_filename: safeFileName,
         target_storage_path: storagePath,
         target_file_size_bytes: fileBytes.length,
-      } as never,
+      },
     )) as unknown as {
       data: string | null;
       error: {

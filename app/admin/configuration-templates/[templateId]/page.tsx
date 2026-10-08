@@ -4,7 +4,7 @@ import { PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { publishConfigurationTemplateAction } from "@/lib/data/platform-actions";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type ConfigurationTemplateRow = {
   id: string;

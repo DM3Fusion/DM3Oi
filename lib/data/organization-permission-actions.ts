@@ -4,7 +4,7 @@ import { getAccessContext } from "@/lib/auth/context";
 import { canConfigureOrganizationRole } from "@/lib/auth/organization-permissions";
 import { configurableOrganizationPermissions,configurableOrganizationRoles,hasPermission,type ConfigurableOrganizationRole,type Permission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/types/database.generated";
+import type { Json } from "@/types/database";
 
 type Result={ok:true}|{ok:false;error:string};
 const validRole=(role:string):role is ConfigurableOrganizationRole=>configurableOrganizationRoles.some(item=>item===role);

@@ -4,7 +4,7 @@ import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { Badge, PageHeader } from "@/components/ui";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import {
   trialRequestUseCaseLabels,
   type TrialRequestUseCase,

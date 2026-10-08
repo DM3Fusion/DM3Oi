@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import type { Json } from "@/types/database.generated";
+import type { Json } from "@/types/database";
 
 export async function previewCustomerMergeAction(input: { organizationId: string; survivorId: string; mergedId: string }) {
   try {

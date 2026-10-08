@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getPublicEnvironment } from "@/lib/config/env";
 import { safeInternalPath } from "@/lib/auth/redirects";
 import { isMeaningfulSessionActivity, SESSION_ACTIVITY_MARKER_COOKIE } from "@/lib/auth/session-policy";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.txt","/sitemap.xml","/auth/callback","/auth/invite","/auth/sign-out","/api/public/overview-download"];
 const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction"]);
 const ACTIVE_ORGANIZATION_COOKIE="dm3iqcm-active-organization";
@@ -25,9 +25,7 @@ export async function proxy(request:NextRequest){
  const enforceSession=authenticated&&(protectedRoute||pathname==="/"||pathname==="/login");
  if(enforceSession){
   const meaningfulActivity=isMeaningfulSessionActivity(request);
-  // This overload is introduced by the unapplied session-policy migration.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sessionState=await (supabase as any).rpc("get_my_route_access_state",{target_is_meaningful_activity:meaningfulActivity}).maybeSingle();
+  const sessionState=await supabase.rpc("get_my_route_access_state",{target_is_meaningful_activity:meaningfulActivity}).maybeSingle();
   routeState=sessionState.data as RouteState|null;
   if(meaningfulActivity)response.cookies.delete(SESSION_ACTIVITY_MARKER_COOKIE);
   if(sessionState.error||routeState?.session_policy_valid!==true){

@@ -19,8 +19,8 @@ export async function GET(
       const admin = createAdminClient();
       const now = new Date().toISOString();
       const result = await admin
-        .from("email_deliveries" as never)
-        .update({ opened_at: now, updated_at: now } as never)
+        .from("email_deliveries")
+        .update({ opened_at: now, updated_at: now })
         .eq("tracking_token", token)
         .eq("delivery_status", "SENT")
         .is("opened_at", null);

@@ -1,4 +1,4 @@
-import type { Database, Json } from "@/types/database.generated";
+import type { Database, Json } from "@/types/database";
 
 type ResponseType = Database["public"]["Enums"]["question_response_type"];
 type ConditionOperator = Database["public"]["Enums"]["rule_condition_operator"];

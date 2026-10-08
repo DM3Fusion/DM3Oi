@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseConfig, requireSupabaseConfig } from "./config";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 export function isSupabaseConfigured() {
   return getSupabaseConfig().configured;

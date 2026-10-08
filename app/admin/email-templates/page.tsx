@@ -29,7 +29,7 @@ export default async function EmailTemplatesPage({
     : emailTemplateDefinitions[0].key;
   const admin = createAdminClient();
   const result = await admin
-    .from("platform_email_templates" as never)
+    .from("platform_email_templates")
     .select("template_key,subject_template,opening_message,closing_message")
     .order("template_key");
   const stored = (result.data ?? []) as unknown as EmailTemplate[];

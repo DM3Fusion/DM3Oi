@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { loadCaseRuleEvaluation, type CaseRuleEvaluation } from "@/lib/data/rule-task-synchronization";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 type Tables = Database["public"]["Tables"];
 export type QuestionDefinition = Tables["question_definitions"]["Row"] & {
   options: Tables["question_options"]["Row"][];

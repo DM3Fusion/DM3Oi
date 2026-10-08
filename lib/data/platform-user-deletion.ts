@@ -6,7 +6,7 @@ import {
   type OrganizationLifecycleStatusIdentityClient,
 } from "@/lib/data/platform-user-deletion-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type GoalIdentityDatabase = Database & {
   public: Database["public"] & {

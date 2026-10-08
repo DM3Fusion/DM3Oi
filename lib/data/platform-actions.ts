@@ -1,5 +1,5 @@
 "use server";
-import { cookies } from "next/headers";import { redirect } from "next/navigation";import { revalidatePath } from "next/cache";import { ACTIVE_ORGANIZATION_COOKIE,PLATFORM_CONTEXT_COOKIE_VALUE,requireSuperAdmin } from "@/lib/auth/context";import { createClient } from "@/lib/supabase/server";import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";import type { Database } from "@/types/database.generated";
+import { cookies } from "next/headers";import { redirect } from "next/navigation";import { revalidatePath } from "next/cache";import { ACTIVE_ORGANIZATION_COOKIE,PLATFORM_CONTEXT_COOKIE_VALUE,requireSuperAdmin } from "@/lib/auth/context";import { createClient } from "@/lib/supabase/server";import { createAdminClient, getInvitationRedirect } from "@/lib/supabase/admin";import type { Database } from "@/types/database";
 import type { OrganizationDetailsValues } from "@/lib/platform-organization-details";
 type AppRole=Database["public"]["Enums"]["application_role"];type OrgStatus=Database["public"]["Enums"]["organization_status"];const internalRoles:AppRole[]=["BUSINESS_OWNER","BUSINESS_ADMIN","STAFF_MANAGER","STAFF_USER"];
 const value=(form:FormData,key:string)=>String(form.get(key)??"").trim();const slugify=(input:string)=>input.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");const destination=(path:string,key:string,message:string,extraKey?:string,extraValue?:string)=>{
@@ -2261,7 +2261,7 @@ export async function createConfigurationTemplateAction(form:FormData){
  const result=await supabase.rpc("capture_configuration_template",{
   target_source_organization_id:sourceOrganizationId,
   target_name:name,
-  target_description:description||null,
+  target_description:description||undefined,
   target_status:status,
  });
 
@@ -2338,4 +2338,3 @@ export async function publishConfigurationTemplateAction(form:FormData){
   "Configuration template published.",
  ));
 }
-

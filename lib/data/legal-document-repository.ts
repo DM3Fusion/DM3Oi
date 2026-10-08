@@ -160,12 +160,12 @@ export async function getLegalDocumentForAdmin(
   const supabase = await createClient();
   const [stateResult, historyResult] = await Promise.all([
     supabase.rpc(
-      "get_legal_document_for_admin" as never,
-      { target_document_key: documentKey } as never,
+      "get_legal_document_for_admin",
+      { target_document_key: documentKey },
     ),
     supabase.rpc(
-      "get_legal_document_history_for_admin" as never,
-      { target_document_key: documentKey } as never,
+      "get_legal_document_history_for_admin",
+      { target_document_key: documentKey },
     ),
   ]);
 
@@ -201,8 +201,8 @@ export async function getPublishedLegalDocumentForServer(
   try {
     const admin = createAdminClient();
     const result = await admin.rpc(
-      "get_published_legal_document_server" as never,
-      { target_document_key: documentKey } as never,
+      "get_published_legal_document_server",
+      { target_document_key: documentKey },
     );
 
     if (result.error) {

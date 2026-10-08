@@ -11,7 +11,7 @@ export default async function PortalPage() {
   const context = await requireCustomerPortalContext();
   const supabase = await createClient();
   const [openResult, closedResult, requestsResult, cases, requirements] = await Promise.all([
-    supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["NEW", "OPEN", "PENDING_CUSTOMER", "PENDING_STAFF", "ON_HOLD"] as never),
+    supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["NEW", "OPEN", "PENDING_CUSTOMER", "PENDING_STAFF", "ON_HOLD"]),
     supabase.from("organization_service_requests").select("id", { count: "exact", head: true }).eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).in("status", ["RESOLVED", "CLOSED"]),
     supabase.from("organization_service_requests").select("id,request_number,subject,status,priority,updated_at").eq("organization_id", context.organization.id).eq("customer_id", context.customer.id).order("updated_at", { ascending: false }).limit(5),
     getCustomerPortalCases(context.access.id),

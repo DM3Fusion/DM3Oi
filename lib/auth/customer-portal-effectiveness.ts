@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type Tables = Database["public"]["Tables"];
 export type CustomerPortalLink = Tables["customer_portal_users"]["Row"];

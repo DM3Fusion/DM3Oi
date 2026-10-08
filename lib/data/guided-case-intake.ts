@@ -15,7 +15,7 @@ import type {
   GuidedIntakeConfiguration,
   GuidedIntakeQuestion,
 } from "@/lib/guided-case-intake";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import { parsePortalOnboardingMode } from "@/lib/customer-portal-onboarding";
 
 type Role = Database["public"]["Enums"]["application_role"];
@@ -245,10 +245,7 @@ export async function loadGuidedCaseIntakeConfiguration(
       .select("customer_id,tax_year")
       .eq("organization_id", organizationId)
       .not("tax_year", "is", null),
-    // Temporary schema bridge until generated Supabase types include
-    // Case Type Customer/Tax Year behavior fields.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (supabase as any)
+    supabase
       .from("organization_case_types")
       .select("id,name,customer_mode,tax_year_rule")
       .eq("organization_id", organizationId)

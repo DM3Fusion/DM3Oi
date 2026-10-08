@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireInternalContext, requirePermission } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import type { Database, Json } from "@/types/database.generated";
+import type { Database, Json } from "@/types/database";
 import { hasPermission } from "@/lib/auth/permissions";
 import { synchronizeCaseRuleTasks } from "@/lib/data/rule-task-synchronization";
 type ResponseType = Database["public"]["Enums"]["question_response_type"];
@@ -90,7 +90,7 @@ export async function saveQuestionAction(form: FormData) {
     target_active: form.get("active") === "on",
     target_display_order: Number(text(form, "displayOrder") || 0),
     target_options: options,
-    target_question_group: text(form, "questionGroup") || null,
+    target_question_group: text(form, "questionGroup") || undefined,
     target_completion_condition:
       text(form, "completionCondition") || "ANY_ANSWER",
   });

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getAccessContext } from "@/lib/auth/context";
 import { hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type Tables = Database["public"]["Tables"];
 type Views = Database["public"]["Views"];

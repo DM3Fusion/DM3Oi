@@ -18,7 +18,6 @@ import { transitionOrganizationMembershipAction } from "@/lib/data/organization-
 import { PendingSubmitButton } from "@/components/pending-submit-button";
 import { organizationUserDisplayName } from "@/lib/data/pending-invite-identity";
 const requireInternalContext = () => requirePermission("VIEW_USERS");
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export default async function Page({
   searchParams,
 }: {
@@ -58,7 +57,7 @@ export default async function Page({
   const q = normalizeUserQuery(query.q);
   const rows = (members ?? []).filter((member) => !platformAdminIds.has(member.user_id)&&userMatchesSearch(member, q));
   const avatarProfiles = await attachAuthorizedAvatarUrls(
-    rows.flatMap((member: any) => {
+    rows.flatMap((member) => {
       const profile = Array.isArray(member.profiles)
         ? member.profiles[0]
         : member.profiles;
@@ -71,7 +70,7 @@ export default async function Page({
 
   const admin = createAdminClient();
   const authUsers = await Promise.all(
-    rows.map(async (member: any) => {
+    rows.map(async (member) => {
       const { data, error } = await admin.auth.admin.getUserById(member.user_id);
       return [
         member.user_id,
@@ -146,7 +145,7 @@ export default async function Page({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((m: any) => {
+                {rows.map((m) => {
                   const membershipProfile = Array.isArray(m.profiles)
                     ? m.profiles[0]
                     : m.profiles;
@@ -157,6 +156,7 @@ export default async function Page({
                   const canActivate =
                     m.status === "VERIFIED" &&
                     canManageUsers &&
+                    m.role !== "SUPER_ADMIN" &&
                     canConfigureOrganizationRole(
                       org.role,
                       m.role,

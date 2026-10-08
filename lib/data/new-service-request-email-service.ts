@@ -135,7 +135,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
 
       const insertDelivery = async (status: "PENDING" | "FAILED", errorCode?: string) => {
         const result = await admin
-          .from("service_request_communications" as never)
+          .from("service_request_communications")
           .insert({
             organization_id: input.organizationId,
             service_request_id: input.serviceRequestId,
@@ -148,7 +148,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
             status,
             error_code: errorCode ?? null,
             error_summary: errorCode ? "Email notification could not be sent." : null,
-          } as never)
+          })
           .select("id")
           .maybeSingle();
         if (result.error?.code === "23505") return null;
@@ -172,13 +172,13 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
         claim: () => insertDelivery("PENDING"),
         async complete(deliveryId: string, result: MailResult) {
           const update = await admin
-            .from("service_request_communications" as never)
+            .from("service_request_communications")
             .update({
               status: result.ok ? "SENT" : "FAILED",
               error_code: result.ok ? null : result.errorCode,
               error_summary: result.ok ? null : result.safeMessage,
               delivered_at: result.ok ? new Date().toISOString() : null,
-            } as never)
+            })
             .eq("id", deliveryId)
             .eq("notification_id", notification.id);
           if (update.error) throw update.error;

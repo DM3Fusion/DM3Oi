@@ -1,4 +1,4 @@
-import type { Database } from "../types/database.generated.ts";
+import type { Database } from "../types/database";
 
 export type CaseLifecycleStatus =
   Database["public"]["Enums"]["case_status"];

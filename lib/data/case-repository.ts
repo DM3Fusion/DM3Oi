@@ -7,7 +7,7 @@ import {
   type ProfileWithAvatar,
 } from "@/lib/data/avatar-urls";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import { getPlatformAdminUserIds, maskPlatformProfile, ORGANIZATION_SUPPORT_IDENTITY } from "@/lib/data/platform-privacy";
 import {
   selectRecentCaseCommunications,
@@ -1120,9 +1120,9 @@ export async function getTaskRouteSummary(): Promise<{
     redirect("/account/unprovisioned");
 
   const supabase = await createClient();
-  const result = await supabase.rpc("get_task_route_summary" as never, {
+  const result = await supabase.rpc("get_task_route_summary", {
     target_organization_id: access.activeOrganization.id,
-  } as never);
+  });
   if (result.error) throw new DataAccessError();
   const payload = result.data as TaskRouteSummaryPayload;
   const profiles = await profilesForRouteWorkloads(supabase, payload.workloads);
@@ -1441,9 +1441,9 @@ export async function getCaseRouteSummary(): Promise<{
     redirect("/account/unprovisioned");
 
   const supabase = await createClient();
-  const result = await supabase.rpc("get_case_route_summary" as never, {
+  const result = await supabase.rpc("get_case_route_summary", {
     target_organization_id: access.activeOrganization.id,
-  } as never);
+  });
   if (result.error) throw new DataAccessError();
   const payload = result.data as CaseRouteSummaryPayload;
   const profiles = await profilesForRouteWorkloads(supabase, payload.workloads);

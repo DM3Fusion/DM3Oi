@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
 import { classifyAccess } from "@/lib/data/user-provisioning";
@@ -19,17 +18,18 @@ import {
   isEffectiveCustomerPortalAccess,
 } from "@/lib/auth/customer-portal-effectiveness";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import type { User } from "@supabase/supabase-js";
 import { requireOrganizationCustomers } from "@/lib/data/organization-customers";
 type Tables = Database["public"]["Tables"];
 export type OrganizationRow = Tables["organizations"]["Row"];
 export type MembershipRow = Tables["organization_members"]["Row"];
 export type ProfileRow = Tables["profiles"]["Row"];
+export type LicenseRow = Tables["organization_licenses"]["Row"];
 export type AvatarProfileRow = ProfileWithAvatar<ProfileRow>;
 export interface OrganizationAdminRow extends OrganizationRow {
   avatarUrl: string | null;
-  license: any | null;
+  license: LicenseRow | null;
   activeUsers: number;
   businessOwners: number;
   businessAdmins: number;
@@ -150,7 +150,7 @@ async function loadPlatformData() {
     supabase.from("organization_settings").select("organization_id,portal_enabled"),
     listAllAuthUsers(admin),
   ]);
-  const licenseQuery = await (supabase as any).from("organization_licenses").select("*").eq("is_current", true).order("created_at", { ascending: false });
+  const licenseQuery = await supabase.from("organization_licenses").select("*").eq("is_current", true).order("created_at", { ascending: false });
   if (licenseQuery.error) {
     console.error("License administration query failed", { code: licenseQuery.error.code, message: licenseQuery.error.message });
     throw new Error("License administration data is temporarily unavailable.");
@@ -191,7 +191,7 @@ async function loadPlatformData() {
     };
   }));
   return {
-    organizations: organizationsWithAvatars.map((org) => ({ ...org, license: (licenses ?? []).find((l: any) => l.organization_id === org.id) ?? null })),
+    organizations: organizationsWithAvatars.map((org) => ({ ...org, license: (licenses ?? []).find((license) => license.organization_id === org.id) ?? null })),
     memberships: memberships.data ?? [],
     profiles: hydratedProfiles,
     platformRoles: platformRoles.data ?? [],
@@ -432,7 +432,7 @@ export async function getOrganizationAdministration(id: string) {
       .select("timezone")
       .eq("organization_id", id)
       .maybeSingle(),
-    (supabase as any)
+    supabase
       .from("organization_licenses")
       .select("*")
       .eq("organization_id", id)

@@ -25,7 +25,7 @@ test("Organization Defaults is exposed only to SUPER_ADMIN in an active organiza
   assert.match(portalAction,/!organizationId \|\| !ok\(access\)/);
   assert.match(
     actions,
-    /const ok=\(a:any\)=>hasPermission\(a,"MANAGE_ORGANIZATION_SETTINGS"\)/,
+    /const ok=\(access:AccessContext\|null\)=>hasPermission\(access,"MANAGE_ORGANIZATION_SETTINGS"\)/,
   );
   assert.match(
     portalAction,

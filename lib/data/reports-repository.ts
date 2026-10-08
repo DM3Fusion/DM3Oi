@@ -126,9 +126,9 @@ export async function getBusinessReach() {
   if (!canViewCustomers) return unavailableBusinessReach(false);
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_business_reach" as never, {
+  const { data, error } = await supabase.rpc("get_business_reach", {
     target_organization_id: access.activeOrganization.id,
-  } as never);
+  });
   if (error) {
     console.error("Business Reach query failed", { code: error.code, message: error.message });
     return failedBusinessReach(canRefresh);
@@ -143,9 +143,9 @@ export async function getBusinessReachUnmappedCustomers() {
   if (!hasPermission(access, "VIEW_CUSTOMERS")) redirect("/reports");
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("get_business_reach_unmapped_customers" as never, {
+  const { data, error } = await supabase.rpc("get_business_reach_unmapped_customers", {
     target_organization_id: access.activeOrganization.id,
-  } as never);
+  });
   if (error) {
     console.error("Business Reach unmapped customer query failed", {
       code: error.code,
@@ -182,7 +182,7 @@ export async function getOperationalReport(params: ReportSearchParams, now = new
   const period = resolveReportingPeriod(params, settings.data?.timezone ?? "UTC", now);
   if (!isCanonicalReportParams(params, period)) redirect(`/reports?${period.canonicalQuery}`);
   const currentDayStart = startOfReportingDay(now, period.timezone).toISOString();
-  const result = await supabase.rpc("get_operational_report_aggregate" as never, {
+  const result = await supabase.rpc("get_operational_report_aggregate", {
     target_organization_id: organizationId,
     range_start: period.range.start.toISOString(),
     range_end: period.range.endExclusive.toISOString(),

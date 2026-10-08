@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Badge } from "@/components/ui";
@@ -19,12 +18,15 @@ import { ApplicationIcon } from "@/components/application-icon";
 // Detail contract: initial={{ status: item.status, priority: item.priority }}; query.error; actor_user_id || "System".
 // activityRows.filter((activity) => activity.activity_id); order("created_at", { ascending: false }).order("id", { ascending: false });
 // actor_user_id || "System"; activity.actor_display_name || activity.actor_email || activity.actor_user_id || "System".
-// from("service_request_communications" as never).order("created_at", { ascending: false }).order("id", { ascending: false });
-// from("service_request_messages" as never).order("created_at", { ascending: false }).order("id", { ascending: false });
+// from("organization_service_request_communications").order("created_at", { ascending: false }).order("id", { ascending: false });
+// from("organization_service_request_messages").order("created_at", { ascending: false }).order("id", { ascending: false });
 
 const storedValue = (value: unknown) => (typeof value === "string" ? value : value == null ? null : String(value));
 const transitionText = (
-  activity: ServiceRequestActivityRow & {
+  activity: Pick<
+    ServiceRequestActivityRow,
+    "event_type" | "previous_value" | "new_value"
+  > & {
     actor_display_name: string | null;
     actor_email: string | null;
   },
@@ -81,11 +83,12 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     {
       id: "opening",
       author_user_id: item.customer_id,
+      author_display_name: null,
       author_type: "CUSTOMER",
       body: item.description,
       created_at: item.created_at,
     },
-    ...((messages as any[]) ?? []),
+    ...(messages ?? []),
   ].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || b.id.localeCompare(a.id));
   const { data: communications } = await supabase
     .from("organization_service_request_communications")
@@ -95,17 +98,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
   const canReply = hasPermission(access, "RESPOND_SERVICE_REQUEST") && (canManage || assignedToCurrentUser);
-  const activityResult = await supabase.rpc("get_service_request_detail_activity" as never, { target_service_request_id: item.id } as never);
-  const activityRows = ((activityResult as any).data ?? []) as Array<
-    ServiceRequestActivityRow & {
-      created_by_user_id: string | null;
-      creator_display_name: string | null;
-      creator_email: string | null;
-      actor_display_name: string | null;
-      actor_email: string | null;
-      activity_id: string | null;
-    }
-  >;
+  const activityResult = await supabase.rpc("get_service_request_detail_activity", { target_service_request_id: item.id });
+  const activityRows = activityResult.data ?? [];
   const activities = activityRows
     .filter((activity) => activity.activity_id)
     .sort((a, b) => Date.parse(b.occurred_at) - Date.parse(a.occurred_at) || String(b.activity_id).localeCompare(String(a.activity_id)))
@@ -161,8 +155,8 @@ export default async function Page({ params, searchParams }: { params: Promise<{
       </section>
       <section className="panel detail-section service-request-communications">
         <h2>Communications</h2>
-        {((communications as any[]) ?? []).length ? (
-          (communications as any[]).map((communication) => (
+        {(communications ?? []).length ? (
+          (communications ?? []).map((communication) => (
             <article key={communication.id}>
               <strong>
                 {communication.channel} · {communication.communication_type.replaceAll("_", " ")}

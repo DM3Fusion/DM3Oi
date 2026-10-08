@@ -25,13 +25,8 @@ export default async function Page({
 
   const organizationId = access.activeOrganization.id;
   const supabase = await createClient();
-  // Temporary schema bridge until generated Supabase types include the new
-  // Case Type fields and organization_task_purposes table.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
-
   const [types, purposes, query] = await Promise.all([
-    db
+    supabase
       .from("organization_case_types")
       .select(
         "id,name,description,is_active,sort_order,customer_mode,tax_year_rule",
@@ -39,7 +34,7 @@ export default async function Page({
       .eq("organization_id", organizationId)
       .order("sort_order")
       .order("name"),
-    db
+    supabase
       .from("organization_task_purposes")
       .select("id,label,description,is_active,sort_order")
       .eq("organization_id", organizationId)
@@ -58,20 +53,20 @@ export default async function Page({
   }
 
   const caseTypes: CaseTypeConfiguration[] = (types.data ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (item: any) => ({
+    (item) => ({
       id: item.id,
       name: item.name,
       description: item.description,
-      customerMode: item.customer_mode,
-      taxYearRule: item.tax_year_rule,
+      customerMode:
+        item.customer_mode as CaseTypeConfiguration["customerMode"],
+      taxYearRule:
+        item.tax_year_rule as CaseTypeConfiguration["taxYearRule"],
       sortOrder: item.sort_order,
       isActive: item.is_active,
     }),
   );
   const taskPurposes: TaskPurposeConfiguration[] = (purposes.data ?? []).map(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (item: any) => ({
+    (item) => ({
       id: item.id,
       label: item.label,
       description: item.description,

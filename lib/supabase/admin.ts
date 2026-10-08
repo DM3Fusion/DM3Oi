@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import type { GenerateLinkProperties } from "@supabase/supabase-js";
 import { buildInvitationVerificationUrl } from "@/lib/auth/invitation-verification-url";
 import { requireSupabaseEnvironment } from "@/lib/config/env";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 export const ADMIN_KEY_ENV = "DM3IQCM_SUPABASE_SERVICE_ROLE_KEY";
 export function createAdminClient() {

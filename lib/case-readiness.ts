@@ -1,5 +1,5 @@
 import { isMeaningfulRuleAnswer } from "./rule-evaluator.ts";
-import type { Database, Json } from "@/types/database.generated";
+import type { Database, Json } from "@/types/database";
 
 type ResponseType = Database["public"]["Enums"]["question_response_type"];
 type TaskStatus = Database["public"]["Enums"]["case_task_status"];

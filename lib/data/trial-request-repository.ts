@@ -4,13 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 async function resolveNewTrialRequestCount() {
   const supabase = await createClient();
 
-  const trialRequests = supabase.from.bind(supabase) as unknown as (
-    relation: "trial_requests",
-  ) => ReturnType<typeof supabase.from>;
-
-  const { count, error } = await trialRequests("trial_requests")
+  const { count, error } = await supabase
+    .from("trial_requests")
     .select("id", { count: "exact", head: true })
-    .eq("status" as never, "NEW" as never);
+    .eq("status", "NEW");
 
   if (error) {
     return 0;

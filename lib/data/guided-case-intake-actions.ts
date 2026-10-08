@@ -385,11 +385,8 @@ export async function saveGuidedIntakeDraftAction(
       input.draft.followUpTasks.map((task) => [task.id, task.completed]),
     );
 
-    // Temporary schema bridge until generated Supabase types include
-    // Guided Intake Task provenance and lifecycle synchronization RPC.
     const { data: persistedFollowUpTasks, error: followUpTaskError } =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any)
+      await supabase
         .from("case_tasks")
         .select("id,intake_follow_up_id,status")
         .eq("organization_id", organizationId)
@@ -430,8 +427,7 @@ export async function saveGuidedIntakeDraftAction(
 
       // Guided Intake owns this workflow Task. Synchronize only lifecycle
       // state from the already-persisted Requirements state.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: syncError } = await (supabase as any).rpc(
+      const { error: syncError } = await supabase.rpc(
         "sync_guided_intake_requirement_task_status",
         {
           target_task_id: persistedTask.id,
@@ -574,8 +570,7 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
   // Reassignment of an already-created Guided Intake follow-up Task is
   // deliberately narrower than general Case assignment authority.
   // Only a Business Owner or Staff Manager with ASSIGN_TASKS may change it.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: persistedTask, error: persistedTaskError } = await (supabase as any)
+  const { data: persistedTask, error: persistedTaskError } = await supabase
     .from("case_tasks")
     .select("assigned_user_id")
     .eq("organization_id", access.activeOrganization!.id)
@@ -618,9 +613,7 @@ export async function upsertGuidedIntakeFollowUpTaskAction(
     }
   }
 
-  // Temporary RPC signature bridge until generated Supabase types are refreshed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc(
+  const { error } = await supabase.rpc(
     "upsert_guided_intake_follow_up_task",
     {
       target_organization_id: access.activeOrganization!.id,
@@ -682,10 +675,7 @@ export async function sendGuidedIntakeMissingDocumentsNoticeAction(
 
   const supabase = await createClient();
 
-  // Temporary schema bridge until generated Supabase types include
-  // Guided Intake Task provenance.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: task, error: taskError } = await (supabase as any)
+  const { data: task, error: taskError } = await supabase
     .from("case_tasks")
     .select(
       "id,case_id,status,intake_follow_up_id,intake_requirement_context,description",
@@ -779,8 +769,7 @@ export async function sendGuidedIntakeMissingDocumentsNoticeAction(
   // Record successful notice delivery without changing the document
   // requirement lifecycle. Outstanding requirements remain system-owned
   // WAITING_ON_CUSTOMER.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error: statusError } = await (supabase as any).rpc(
+  const { error: statusError } = await supabase.rpc(
     "mark_intake_requirement_notice_sent",
     {
       target_task_id: task.id,
@@ -863,9 +852,7 @@ export async function materializeGuidedCaseAction(
   }
 
   const supabase = await createClient();
-  // Temporary signature bridge until generated RPC types include Milestone 2.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: materialized, error } = await (supabase as any).rpc(
+  const { data: materialized, error } = await supabase.rpc(
     "materialize_guided_case_intake",
     {
       target_organization_id: access.activeOrganization!.id,
@@ -877,8 +864,8 @@ export async function materializeGuidedCaseAction(
       target_priority: guidedCasePriority(draft.priority),
       target_tax_year: draft.taxYear!,
       target_manager_user_id: configuration.canAssign
-        ? draft.managerUserId || null
-        : null,
+        ? draft.managerUserId || undefined
+        : undefined,
       target_staff_user_ids: configuration.canAssign
         ? draft.staffUserIds
         : [access.user.id],
@@ -1033,9 +1020,7 @@ export async function finalizeGuidedCaseAction(
     draft.answers,
     validation.evaluation.requiredOptionIds,
   );
-  // Temporary RPC signature bridge until generated Supabase types are refreshed.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: created, error } = await (supabase as any).rpc(
+  const { data: created, error } = await supabase.rpc(
     "finalize_guided_case_intake",
     {
       target_organization_id: access.activeOrganization!.id,
@@ -1055,7 +1040,7 @@ export async function finalizeGuidedCaseAction(
       target_answers: creationPlan.answers,
       target_follow_up_tasks: draft.followUpTasks,
       target_portal_onboarding: draft.portalOnboarding,
-    },
+    } as never,
   );
   if (error || !created) {
     console.error("Guided Case Intake finalization failed", {

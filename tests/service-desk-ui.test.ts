@@ -293,6 +293,6 @@ test("email formatting uses real line breaks and communications are newest-first
   assert.match(service, /replied to your service request:\\n\\n/);
   assert.match(service, /portal\/service-requests\//);
   assert.match(service, /replied to:\\n\\n/);
-  assert.match(page, /from\("service_request_communications" as never\)[\s\S]*?order\("created_at", \{ ascending: false \}\)\.order\("id", \{ ascending: false \}\)/);
-  assert.match(page, /from\("service_request_messages" as never\)[\s\S]*?order\("created_at", \{ ascending: false \}\)\.order\("id", \{ ascending: false \}\)/);
+  assert.match(page, /from\("organization_service_request_communications"\)[\s\S]*?order\("created_at", \{ ascending: false \}\)\.order\("id", \{ ascending: false \}\)/);
+  assert.match(page, /from\("organization_service_request_messages"\)[\s\S]*?order\("created_at", \{ ascending: false \}\)\.order\("id", \{ ascending: false \}\)/);
 });

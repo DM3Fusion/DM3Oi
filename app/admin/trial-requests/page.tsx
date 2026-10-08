@@ -8,7 +8,7 @@ import {
   trialRequestUseCaseLabels,
   type TrialRequestUseCase,
 } from "@/lib/trial-requests";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 const statuses = [
   "NEW",

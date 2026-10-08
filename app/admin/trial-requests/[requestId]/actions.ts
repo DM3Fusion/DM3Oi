@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 
 type ReviewStatus =
   | "NEW"
@@ -116,7 +116,7 @@ export async function transitionTrialRequestAction(
     {
       target_trial_request_id: requestId,
       target_status: targetStatus,
-      target_review_note: reviewNote || null,
+      target_review_note: reviewNote || undefined,
     },
   );
 
@@ -272,7 +272,7 @@ export async function convertTrialRequestAction(
       target_organization_name: organizationName,
       target_organization_slug: organizationSlug,
       target_conversion_note: conversionNote,
-    },
+    } as never,
   );
 
   if (result.error) {
@@ -431,7 +431,7 @@ export async function reviewTrialRequestQualificationAction(
     {
       target_trial_request_id: requestId,
       target_workflow_fit: workflowFit,
-      target_notes: qualificationNotes || null,
+      target_notes: qualificationNotes || undefined,
     },
   );
 

@@ -74,13 +74,13 @@ export async function deleteCommunicationAction(form: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.rpc(
-    "delete_platform_communication" as never,
+    "delete_platform_communication",
     {
       target_organization_id: organizationId,
       target_record_kind: recordKind,
       target_record_id: recordId,
-      target_reason: reason || null,
-    } as never,
+      target_reason: reason || undefined,
+    },
   );
 
   if (error) {

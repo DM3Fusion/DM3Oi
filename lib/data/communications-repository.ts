@@ -94,12 +94,12 @@ export async function getNotifications(filters: NotificationFilters = {}): Promi
       (!filters.source || filters.source === "all" || filters.source === "email");
     if (!includeEmailAudit) return newestFirst;
     const auditResult = await supabase.rpc(
-      "get_organization_email_delivery_audit" as never,
+      "get_organization_email_delivery_audit",
       {
         target_organization_id: context.activeOrganization.id,
-        created_after: filters.createdAfter ?? null,
-        search_text: filters.search?.trim() || null,
-      } as never,
+        created_after: filters.createdAfter ?? undefined,
+        search_text: filters.search?.trim() || undefined,
+      },
     );
     if (auditResult.error)
       throw new Error("Communications are temporarily unavailable.");

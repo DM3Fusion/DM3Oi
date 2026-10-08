@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { cache } from "react";
 import { createClient, isSupabaseConfigured } from "@/lib/supabase/server";
-import type { Database } from "@/types/database.generated";
+import type { Database } from "@/types/database";
 import { hasTenantInternalAccess } from "./access-routing";
 import {
   ORGANIZATION_AVATAR_BUCKET,
@@ -148,14 +148,10 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
         : null;
 
 
-    // The fast access-context RPC is introduced by migration
-    // 20261002012000. Cast locally until generated Supabase types
-    // are refreshed as part of a deliberate schema-type update.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: rawContext, error: accessError } = await (supabase as any).rpc(
+    const { data: rawContext, error: accessError } = await supabase.rpc(
       "get_my_access_context",
       {
-        target_organization_id: requestedOrganizationId,
+        target_organization_id: requestedOrganizationId ?? undefined,
       },
     );
 

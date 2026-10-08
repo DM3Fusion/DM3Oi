@@ -10,7 +10,7 @@ const finalization = source(
 );
 test("Step 6 calls the linked-Case Portal-aware finalization RPC", () => {
   const rpcCall = action.match(
-    /\.rpc\(\s*"finalize_guided_case_intake",[\s\S]*?\n\s*\},\s*\n\s*\);/,
+    /\.rpc\(\s*"finalize_guided_case_intake",[\s\S]*?\n\s*\}\s*(?:as never)?\s*,\s*\n\s*\);/,
   )?.[0] ?? "";
 
   assert.match(rpcCall, /target_customer_mode: customerMode/);
