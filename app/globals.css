@@ -13750,6 +13750,38 @@ dialog.task-modal.intake-document-availability-modal {
   justify-self:start;
 }
 
+.admin-test-identity-cleanup .admin-test-identity-delete-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:42px;
+  padding:0 16px;
+  border:1px solid #b42318;
+  border-radius:6px;
+  background:#b42318;
+  color:#fff;
+  font-weight:750;
+  line-height:1;
+  text-decoration:none;
+  cursor:pointer;
+  appearance:none;
+}
+
+.admin-test-identity-cleanup .admin-test-identity-delete-button:hover{
+  background:#912018;
+  border-color:#912018;
+}
+
+.admin-test-identity-cleanup .admin-test-identity-delete-button:focus-visible{
+  outline:3px solid rgba(180,35,24,.24);
+  outline-offset:2px;
+}
+
+.admin-test-identity-cleanup .admin-test-identity-delete-button:disabled{
+  cursor:not-allowed;
+  opacity:.6;
+}
+
 @media(max-width:600px){
   .admin-test-identity-cleanup{
     padding:14px;

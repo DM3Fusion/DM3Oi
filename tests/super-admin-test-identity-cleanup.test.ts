@@ -58,6 +58,32 @@ test("cleanup is limited to Portal and Service Desk identity dependencies", () =
   assert.doesNotMatch(migration, /delete from public\.profiles/i);
 });
 
+test("forward fix detaches requester-bound Service Requests before deleting Portal access", () => {
+  const forwardFix = source(
+    "supabase/migrations/20261008180000_dm3oi_orphaned_test_identity_cleanup_fk_order.sql",
+  );
+
+  const serviceRequestUpdate = forwardFix.indexOf(
+    "update public.service_requests request",
+  );
+  const portalDelete = forwardFix.indexOf(
+    "delete from public.customer_portal_users portal_user",
+  );
+
+  assert.ok(serviceRequestUpdate >= 0);
+  assert.ok(portalDelete > serviceRequestUpdate);
+
+  assert.match(
+    forwardFix,
+    /requester_user_id = case[\s\S]*request\.requester_user_id = target_user_id then null/,
+  );
+
+  assert.match(
+    forwardFix,
+    /service_requests[\s\S]*customer_portal_users/,
+  );
+});
+
 test("immutable Service Desk messages use the existing scoped deletion gate", () => {
   assert.match(
     migration,

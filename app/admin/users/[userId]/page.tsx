@@ -430,8 +430,11 @@ export default async function Page({
                   />
                 </label>
 
-                <button type="submit" className="danger-button">
-                  Delete Test Identity
+                <button
+                  type="submit"
+                  className="danger-button admin-test-identity-delete-button"
+                >
+                  Confirm Delete Test Identity
                 </button>
               </form>
             </div>
