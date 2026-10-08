@@ -399,6 +399,7 @@ export function GuidedCaseIntake({
   const [portalError, setPortalError] = useState<string | null>(null);
   const followUpDialog = useRef<HTMLDialogElement>(null);
   const requiredDocumentsDialog = useRef<HTMLDialogElement>(null);
+  const saveProgressDialog = useRef<HTMLDialogElement>(null);
   const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
   const [documentAvailabilityIds, setDocumentAvailabilityIds] =
     useState<string[]>([]);
@@ -2595,6 +2596,60 @@ export function GuidedCaseIntake({
         );
       })()}
     </dialog>
+    <dialog
+      ref={saveProgressDialog}
+      className="task-modal intake-save-progress-modal"
+      onCancel={(event) => {
+        event.preventDefault();
+        saveProgressDialog.current?.close();
+      }}
+    >
+      <form
+        className="task-modal-form"
+        onSubmit={(event) => event.preventDefault()}
+      >
+        <header>
+          <div>
+            <p className="eyebrow">Guided Intake</p>
+            <h2>Save and Continue Later?</h2>
+          </div>
+        </header>
+
+        <div className="intake-save-progress-copy">
+          <p>
+            Your Guided Intake progress will be saved.
+          </p>
+          <p>
+            If missing-document follow-up Tasks are created, DM3Oi will email
+            the Customer with the outstanding document requirements.
+          </p>
+        </div>
+
+        <footer>
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={pending}
+            onClick={() => saveProgressDialog.current?.close()}
+          >
+            Keep Working
+          </button>
+
+          <button
+            type="button"
+            className="primary-button"
+            disabled={pending}
+            onClick={() => {
+              saveProgressDialog.current?.close();
+              void saveAndContinueLater();
+            }}
+          >
+            Save Progress and Send Notice
+          </button>
+        </footer>
+      </form>
+    </dialog>
+
     <section className="guided-case-intake">
       <header className="intake-workspace-heading">
         <div>
@@ -2735,7 +2790,7 @@ export function GuidedCaseIntake({
             <button
               type="button"
               className="secondary-button"
-              onClick={saveAndContinueLater}
+              onClick={() => saveProgressDialog.current?.showModal()}
               disabled={pending}
             >
               {pending ? "Saving…" : "Save and Continue Later"}
