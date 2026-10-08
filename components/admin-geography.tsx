@@ -45,7 +45,9 @@ export function AdminGeography({
         <div>
           <h3>Geography</h3>
           <p className="muted">
-            Approximate network-derived location.
+            Page views grouped by approximate network
+            location. Different physical locations can
+            resolve to the same city.
           </p>
         </div>
 
