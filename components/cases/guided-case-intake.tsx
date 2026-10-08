@@ -1,4 +1,10 @@
 "use client";
+
+import {
+  evaluateGuidedIntakeQualificationFindings,
+  getGuidedIntakeFilingStatusLabel,
+} from "@/lib/guided-intake-qualification";
+
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -1982,6 +1988,18 @@ export function GuidedCaseIntake({
   );
 
   const renderIntakeContextPanel = () => {
+    const filingStatusLabel =
+      getGuidedIntakeFilingStatusLabel(
+        configuration,
+        draft.answers,
+      );
+
+    const qualificationFindings =
+      evaluateGuidedIntakeQualificationFindings(
+        configuration,
+        draft.answers,
+      );
+
     if (step === 0) {
       return (
         <>
@@ -2098,10 +2116,32 @@ export function GuidedCaseIntake({
             <p className="intake-context-eyebrow">Case Intelligence</p>
             <h3>Qualification Requirements</h3>
 
-            <p className="intake-context-help">
-              Select a filing status to view the qualification requirements
-              that still need to be satisfied.
-            </p>
+            {!filingStatusLabel ? (
+              <p className="intake-context-help">
+                Select a filing status to view the qualification requirements
+                that still need to be satisfied.
+              </p>
+            ) : qualificationFindings.length ? (
+              <ul className="intake-qualification-list">
+                {qualificationFindings.map((finding) => (
+                  <li
+                    key={finding.key}
+                    className={
+                      finding.severity === "ISSUE"
+                        ? "intake-qualification-item is-issue"
+                        : "intake-qualification-item"
+                    }
+                  >
+                    <strong>{finding.title}</strong>
+                    <span>{finding.message}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="intake-qualification-satisfied">
+                ✓ {filingStatusLabel} requirements satisfied
+              </p>
+            )}
           </section>
         </div>
       );

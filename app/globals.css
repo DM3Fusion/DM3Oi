@@ -14256,3 +14256,101 @@ dialog.task-modal.intake-document-availability-modal {
   width: 100%;
   max-width: 100%;
 }
+
+/* ============================================================
+   GUIDED INTAKE / CASE DETAIL — QUALIFICATION INTELLIGENCE
+   ============================================================ */
+
+.intake-qualification-list,
+.case-qualification-list {
+  margin: 0.9rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.75rem;
+  list-style: none;
+}
+
+.intake-qualification-item,
+.case-qualification-item {
+  padding-left: 0.8rem;
+  border-left: 3px solid #c89132;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.intake-qualification-item strong,
+.case-qualification-item strong {
+  color: #72551d;
+  font-size: 0.82rem;
+  line-height: 1.3;
+}
+
+.intake-qualification-item span,
+.case-qualification-item span {
+  color: #6a5b3c;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.intake-qualification-item.is-issue,
+.case-qualification-item.is-issue {
+  border-left-color: #8b1e24;
+}
+
+.intake-qualification-item.is-issue strong,
+.intake-qualification-item.is-issue span,
+.case-qualification-item.is-issue strong,
+.case-qualification-item.is-issue span {
+  color: #78191f;
+}
+
+.intake-qualification-satisfied {
+  margin: 0.9rem 0 0;
+  color: #28745d;
+  font-size: 0.82rem;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.detail-title-side {
+  min-width: 0;
+  display: grid;
+  justify-items: end;
+  gap: 1rem;
+}
+
+.case-qualification-card {
+  width: min(25rem, 100%);
+  padding: 1rem 1.05rem;
+  border: 1px solid #e3c4c7;
+  border-radius: 0.55rem;
+  background: #fffafa;
+  box-shadow: 0 0.3rem 0.9rem #17243a0a;
+}
+
+.case-qualification-eyebrow {
+  display: block;
+  color: #7b8796;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.case-qualification-card h2 {
+  margin: 0.28rem 0 0;
+  color: #273b52;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 850px) {
+  .detail-title-side {
+    width: 100%;
+    justify-items: stretch;
+  }
+
+  .case-qualification-card {
+    width: 100%;
+  }
+}

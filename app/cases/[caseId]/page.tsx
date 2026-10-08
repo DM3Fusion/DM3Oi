@@ -23,6 +23,7 @@ import { CaseCompletionModal } from "@/components/cases/case-completion-modal";
 import { formatOrganizationDate, formatOrganizationDateTime, organizationDateInputValue } from "@/lib/organization-timezone";
 import { hasPermission, roleHasPermission } from "@/lib/auth/permissions";
 import { ApplicationIcon } from "@/components/application-icon";
+import { evaluateGuidedIntakeQualificationFindings } from "@/lib/guided-intake-qualification";
 import { createClient } from "@/lib/supabase/server";
 import {
   CANONICAL_ACTIVE_CASE_STATUSES,
@@ -304,6 +305,85 @@ export default async function Page({
   const activities = data.activities.filter(
     (activity) => activity.case_id === item.id,
   );
+
+  const qualificationQuestions = questions.map((question) => {
+    const rawSnapshot = (
+      question as unknown as {
+        options_snapshot?: unknown;
+      }
+    ).options_snapshot;
+
+    const options = Array.isArray(rawSnapshot)
+      ? rawSnapshot.flatMap((entry) => {
+          if (
+            !entry ||
+            typeof entry !== "object" ||
+            Array.isArray(entry)
+          ) {
+            return [];
+          }
+
+          const option = entry as Record<string, unknown>;
+
+          const value =
+            typeof option.value === "string"
+              ? option.value
+              : typeof option.option_value === "string"
+                ? option.option_value
+                : "";
+
+          const id =
+            typeof option.id === "string"
+              ? option.id
+              : typeof option.option_id === "string"
+                ? option.option_id
+                : value;
+
+          const label =
+            typeof option.label === "string"
+              ? option.label
+              : typeof option.option_label === "string"
+                ? option.option_label
+                : value;
+
+          if (!id || !label) return [];
+
+          return [{ id, label, value }];
+        })
+      : [];
+
+    return {
+      id: question.id,
+      text: question.question_text,
+      options,
+    };
+  });
+
+  const qualificationAnswers = Object.fromEntries(
+    questions.flatMap((question) => {
+      const draftAnswer =
+        item.intakeProgress?.answers[question.id];
+
+      const savedAnswer =
+        question.response?.response_value;
+
+      const answer =
+        draftAnswer !== undefined
+          ? draftAnswer
+          : savedAnswer;
+
+      if (answer === undefined || answer === null) return [];
+
+      return [[question.id, answer]];
+    }),
+  );
+
+  const qualificationFindings =
+    evaluateGuidedIntakeQualificationFindings(
+      { questions: qualificationQuestions },
+      qualificationAnswers,
+    );
+
   return (
     <>
       {query.error ? (
@@ -333,17 +413,47 @@ export default async function Page({
               </div>
             </dl>
           </div>
-          <div className="detail-badges">
-            {canEditGuidedIntake ? (
-              <Link
-                className="secondary-button"
-                href={`/cases/new?case=${item.id}`}
+          <div className="detail-title-side">
+            <div className="detail-badges">
+              {canEditGuidedIntake ? (
+                <Link
+                  className="secondary-button"
+                  href={`/cases/new?case=${item.id}`}
+                >
+                  Edit Case
+                </Link>
+              ) : null}
+              <Badge value={item.status} />
+              <Badge value={item.priority} />
+            </div>
+
+            {qualificationFindings.length ? (
+              <section
+                className="case-qualification-card"
+                aria-label="Qualification requirements"
               >
-                Edit Case
-              </Link>
+                <span className="case-qualification-eyebrow">
+                  Case Intelligence
+                </span>
+                <h2>Qualification Requirements</h2>
+
+                <ul className="case-qualification-list">
+                  {qualificationFindings.map((finding) => (
+                    <li
+                      key={finding.key}
+                      className={
+                        finding.severity === "ISSUE"
+                          ? "case-qualification-item is-issue"
+                          : "case-qualification-item"
+                      }
+                    >
+                      <strong>{finding.title}</strong>
+                      <span>{finding.message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             ) : null}
-            <Badge value={item.status} />
-            <Badge value={item.priority} />
           </div>
         </div>
         <div className="detail-progress">
