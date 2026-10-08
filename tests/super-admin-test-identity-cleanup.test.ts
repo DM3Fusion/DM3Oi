@@ -84,6 +84,57 @@ test("forward fix detaches requester-bound Service Requests before deleting Port
   );
 });
 
+test("Service Request creator cleanup has a purpose-specific organization and user gate", () => {
+  const guardFix = source(
+    "supabase/migrations/20261008190000_dm3oi_orphaned_test_identity_service_request_guard.sql",
+  );
+
+  assert.match(
+    guardFix,
+    /dm3oi\.test_identity_cleanup_organization_id/,
+  );
+  assert.match(
+    guardFix,
+    /dm3oi\.test_identity_cleanup_user_id/,
+  );
+  assert.match(
+    guardFix,
+    /public\.is_super_admin\(auth\.uid\(\)\)/,
+  );
+  assert.match(
+    guardFix,
+    /cleanup_organization_id = old\.organization_id::text/,
+  );
+  assert.match(
+    guardFix,
+    /cleanup_user_id = old\.created_by_user_id::text/,
+  );
+  assert.match(
+    guardFix,
+    /new\.created_by_user_id is null/,
+  );
+
+  assert.doesNotMatch(
+    guardFix,
+    /disable trigger|drop trigger service_requests_identity_guard/i,
+  );
+});
+
+test("cleanup clears its purpose-specific Service Request maintenance gate", () => {
+  const guardFix = source(
+    "supabase/migrations/20261008190000_dm3oi_orphaned_test_identity_service_request_guard.sql",
+  );
+
+  assert.match(
+    guardFix,
+    /set_config\(\s*'dm3oi\.test_identity_cleanup_organization_id',\s*'',\s*true\s*\)/,
+  );
+  assert.match(
+    guardFix,
+    /set_config\(\s*'dm3oi\.test_identity_cleanup_user_id',\s*'',\s*true\s*\)/,
+  );
+});
+
 test("immutable Service Desk messages use the existing scoped deletion gate", () => {
   assert.match(
     migration,
