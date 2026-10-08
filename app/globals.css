@@ -14028,3 +14028,46 @@ dialog.task-modal.intake-document-availability-modal {
     padding:5px 8px;
   }
 }
+
+
+/* Guided Intake sticky workspace footer. */
+.intake-workspace-footer{
+  position:sticky;
+  bottom:18px;
+  z-index:12;
+  margin-top:22px;
+  margin-left:auto;
+  width:max-content;
+  max-width:100%;
+  padding:12px;
+  border:1px solid #d8e1ea;
+  border-radius:9px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 10px 28px rgba(16,35,63,.14);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+}
+
+.intake-workspace-footer .intake-actions-left,
+.intake-workspace-footer .intake-actions-right{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.intake-workspace-footer .intake-actions-right{
+  justify-content:flex-end;
+}
+
+@media(max-width:600px){
+  .intake-workspace-footer{
+    bottom:max(10px,env(safe-area-inset-bottom));
+    width:100%;
+    padding:10px;
+  }
+
+  .intake-workspace-footer .intake-actions-left,
+  .intake-workspace-footer .intake-actions-right{
+    width:100%;
+  }
+}
