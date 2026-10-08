@@ -14077,3 +14077,25 @@ dialog.task-modal.intake-document-availability-modal {
 .guided-case-intake .intake-question-card > label > span {
   font-size: 14px;
 }
+
+
+/* Guided Intake desktop rail width refinement. */
+@media (min-width: 851px) {
+  .guided-case-intake .intake-workspace {
+    grid-template-columns:
+      minmax(15rem, 0.9fr)
+      minmax(28rem, 2.7fr)
+      minmax(15rem, 1fr);
+  }
+
+  .guided-case-intake .intake-step-copy {
+    min-width: 0;
+  }
+
+  .guided-case-intake .intake-step-copy b {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    line-height: 1.25;
+  }
+}
