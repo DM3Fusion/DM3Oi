@@ -2,16 +2,18 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 const source = (path: string) => readFileSync(path, "utf8");
-test("Service Desk list and creation surfaces use the dedicated lightweight loader", () => {
+test("Service Desk surfaces use route-specific lightweight loaders", () => {
   const dashboard = source("app/service-desk/page.tsx");
   const register = source("app/service-desk/requests/page.tsx");
   const create = source("app/service-desk/new/page.tsx");
   const repository = source("lib/data/case-repository.ts");
 
-  for (const page of [dashboard, register, create]) {
+  for (const page of [dashboard, register]) {
     assert.match(page, /getServiceDeskData\(\)/);
     assert.doesNotMatch(page, /getLiveOrganizationData\(\)/);
   }
+  assert.match(create, /getNewServiceRequestFormData\(\)/);
+  assert.doesNotMatch(create, /getServiceDeskData|getLiveOrganizationData/);
 
   const start = repository.indexOf(
     "export async function getServiceDeskData",
@@ -33,6 +35,36 @@ test("Service Desk list and creation surfaces use the dedicated lightweight load
   assert.doesNotMatch(loader, /case_assignments/);
   assert.doesNotMatch(loader, /guided_case_intake_drafts/);
   assert.doesNotMatch(loader, /loadOrganizationCaseRuleEvaluationBundle/);
+});
+
+test("New Service Request loads only active customer and eligible staff inputs", () => {
+  const page = source("app/service-desk/new/page.tsx");
+  const repository = source("lib/data/case-repository.ts");
+  const start = repository.indexOf(
+    "export async function getNewServiceRequestFormData",
+  );
+  const end = repository.indexOf(
+    "export async function getServiceDeskData",
+    start,
+  );
+  const loader = repository.slice(start, end);
+
+  assert.match(loader, /getAccessContext\(\)/);
+  assert.match(loader, /access\?\.isSuperAdmin && !access\.activeOrganization[\s\S]*redirect\("\/"\)/);
+  assert.match(loader, /redirect\("\/account\/unprovisioned"\)/);
+  assert.match(loader, /Promise\.all\(\[/);
+  assert.match(loader, /from\("organization_customers"\)[\s\S]*select\("id,customer_number,name"\)[\s\S]*eq\("status", "ACTIVE"\)/);
+  assert.match(loader, /from\("organization_members"\)[\s\S]*select\("user_id,role"\)[\s\S]*eq\("is_active", true\)/);
+  assert.match(loader, /getPlatformAdminUserIds\(\)/);
+  assert.match(loader, /!platformAdminIds\.has\(membership\.user_id\)/);
+  assert.match(loader, /select\("id,display_name,first_name,last_name,email"\)/);
+  assert.doesNotMatch(loader, /organization_service_requests|organization_settings/);
+  assert.doesNotMatch(loader, /createAdminClient|\.select\("\*"\)/);
+
+  assert.match(page, /hasPermission\(data\.access, "CREATE_SERVICE_REQUEST"\)/);
+  assert.match(page, /hasPermission\(data\.access, "ASSIGN_SERVICE_REQUEST"\)/);
+  assert.match(page, /roleHasPermission\(s\.role, "VIEW_SERVICE_DESK"\)/);
+  assert.match(page, /customers=\{data\.customers\}/);
 });
 
 test("service desk dashboard links recent work to the filtered register", () => {

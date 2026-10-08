@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getAccessContext } from "@/lib/auth/context";
+import { getAccessContext, type AccessContext } from "@/lib/auth/context";
 import { hasTenantInternalAccess } from "@/lib/auth/access-routing";
 import {
   attachAuthorizedAvatarUrls,
@@ -429,6 +429,126 @@ export interface ServiceDeskData {
   customers: CustomerRow[];
   staff: ServiceDeskStaffMember[];
   serviceRequests: ServiceDeskRequest[];
+}
+
+export interface NewServiceRequestFormData {
+  access: AccessContext;
+  customers: Array<{
+    id: string;
+    customer_number: string;
+    name: string;
+  }>;
+  staff: Array<{
+    id: string;
+    name: string;
+    role: MemberRow["role"];
+  }>;
+}
+
+export async function getNewServiceRequestFormData(): Promise<NewServiceRequestFormData> {
+  const access = await getAccessContext();
+
+  if (access?.isSuperAdmin && !access.activeOrganization) redirect("/");
+
+  if (!hasTenantInternalAccess(access) || !access?.activeOrganization)
+    redirect("/account/unprovisioned");
+
+  const organizationId = access.activeOrganization.id;
+  const supabase = await createClient();
+  const [customerResult, memberResult, platformAdminIds] = await Promise.all([
+    supabase
+      .from("organization_customers")
+      .select("id,customer_number,name")
+      .eq("organization_id", organizationId)
+      .eq("status", "ACTIVE")
+      .order("name"),
+    supabase
+      .from("organization_members")
+      .select("user_id,role")
+      .eq("organization_id", organizationId)
+      .eq("is_active", true),
+    getPlatformAdminUserIds(),
+  ]);
+
+  const error = customerResult.error ?? memberResult.error;
+
+  if (error) {
+    console.error("New Service Request form query failed", {
+      organizationId,
+      code: error.code,
+      message: error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const memberships = (memberResult.data ?? []).filter(
+    (membership) => !platformAdminIds.has(membership.user_id),
+  );
+  const profileIds = memberships.map((membership) => membership.user_id);
+  const profileResult = profileIds.length
+    ? await supabase
+        .from("profiles")
+        .select("id,display_name,first_name,last_name,email")
+        .in("id", profileIds)
+    : {
+        data: [] as Array<{
+          id: string;
+          display_name: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          email: string | null;
+        }>,
+        error: null,
+      };
+
+  if (profileResult.error) {
+    console.error("New Service Request form profile query failed", {
+      organizationId,
+      code: profileResult.error.code,
+      message: profileResult.error.message,
+    });
+
+    throw new DataAccessError();
+  }
+
+  const customers = (customerResult.data ?? []).map((customer) => {
+    if (
+      customer.id === null ||
+      customer.customer_number === null ||
+      customer.name === null
+    ) {
+      throw new DataAccessError();
+    }
+
+    return {
+      id: customer.id,
+      customer_number: customer.customer_number,
+      name: customer.name,
+    };
+  });
+  const profilesById = new Map(
+    (profileResult.data ?? []).map((profile) => [profile.id, profile]),
+  );
+  const staff = memberships.flatMap((membership) => {
+    const profile = profilesById.get(membership.user_id);
+
+    if (!profile) return [];
+
+    return [
+      {
+        id: profile.id,
+        name:
+          profile.display_name ||
+          [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
+          profile.email ||
+          "Unassigned",
+        role: membership.role,
+      },
+    ];
+  });
+
+  return { access, customers, staff };
 }
 
 export async function getServiceDeskData(): Promise<ServiceDeskData> {
