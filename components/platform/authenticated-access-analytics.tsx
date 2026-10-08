@@ -151,12 +151,12 @@ function parseAuthenticatedAccess(
           ),
           user: stringOf(
             row.user,
-            "Unavailable account",
+            "Deleted Account",
           ),
           email: nullableStringOf(row.email),
           accountIdentifier: stringOf(
             row.accountIdentifier,
-            "Unavailable account",
+            "Deleted Account",
           ),
           accessType: stringOf(
             row.accessType,
