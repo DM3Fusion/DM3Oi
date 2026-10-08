@@ -103,7 +103,7 @@ export function OperationalReportsDashboard({ report }: { report: OperationalRep
     <div className="report-period-summary"><strong>{period.label}</strong><span>{formatDate(period.range.from)}–{formatDate(period.range.to)} · {period.timezone} · {period.bucket === "day" ? "Daily" : period.bucket === "week" ? "Weekly" : "Monthly"} buckets</span></div>
 
     {availableKpis.length ? <section className="report-kpis" aria-label="Historical performance summary">{availableKpis.map((kpi) => {
-        const content = <><small>{kpi.label}</small><strong>{formatKpi(kpi.label, kpi.value)}</strong><em>{kpi.description}</em>{kpi.delta ? <span className={kpi.delta.absolute > 0 ? "delta-up" : kpi.delta.absolute < 0 ? "delta-down" : "delta-flat"}>{deltaText(kpi.label, kpi.delta)}</span> : <span>{period.comparison === "previous" ? "No comparable value" : "Selected period"}</span>}</>;
+        const content = <><small>{kpi.label}</small><strong>{formatKpi(kpi.label, kpi.value)}</strong><em>{kpi.description}</em>{kpi.delta ? <span className={kpi.delta.absolute > 0 ? "delta-up" : kpi.delta.absolute < 0 ? "delta-down" : "delta-flat"}>{deltaText(kpi.label, kpi.delta)}</span> : period.comparison === "previous" ? <span>No comparable value</span> : null}</>;
         return kpi.href ? <Link className="report-kpi" href={kpi.href} key={kpi.label}>{content}</Link> : <div className="report-kpi" key={kpi.label}>{content}</div>;
       })}</section> : null}
 

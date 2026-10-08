@@ -192,6 +192,23 @@ test("reports repository enforces authorization scope and bounded safe-view quer
   assert.equal(hasPermission({ isSuperAdmin: false, internalAccess: false, activeOrganization: null, customerPortalCount: 1 }, "VIEW_REPORTS"), false);
 });
 
+test("KPI comparison footer is shown only when comparison is requested", () => {
+  const component = readFileSync(
+    "components/reports/reports-dashboard.tsx",
+    "utf8",
+  );
+
+  assert.doesNotMatch(component, /Selected period/);
+  assert.match(
+    component,
+    /period\.comparison === "previous" \? <span>No comparable value<\/span> : null/,
+  );
+  assert.match(component, /deltaText\(kpi\.label, kpi\.delta\)/);
+  assert.match(component, /delta-up/);
+  assert.match(component, /delta-down/);
+  assert.match(component, /delta-flat/);
+});
+
 test("reports UI exposes accessible responsive charts, truthful limitations, and supported drilldowns", () => {
   const component = readFileSync("components/reports/reports-dashboard.tsx", "utf8");
   const styles = readFileSync("app/globals.css", "utf8");
