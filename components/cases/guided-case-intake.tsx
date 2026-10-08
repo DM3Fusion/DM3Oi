@@ -1120,11 +1120,18 @@ export function GuidedCaseIntake({
 
     setPending(false);
 
-    router.push(
-      sentFollowUpIds.length
-        ? "/cases?message=Intake%20draft%20saved%20and%20Customer%20notice%20sent"
-        : "/cases?message=Intake%20draft%20saved",
-    );
+    const message = sentFollowUpIds.length
+      ? "Intake draft saved and Customer notice sent."
+      : "Intake draft saved.";
+
+    if (draft.caseId) {
+      router.push(
+        `/cases/${draft.caseId}?message=${encodeURIComponent(message)}`,
+      );
+      return;
+    }
+
+    router.push(`/cases?message=${encodeURIComponent(message)}`);
   };
 
   const answerLabel = (question: GuidedIntakeQuestion) => {
@@ -2669,6 +2676,12 @@ export function GuidedCaseIntake({
           </p>
         </div>
 
+        {formError ? (
+          <div className="task-modal-error" role="alert">
+            {formError}
+          </div>
+        ) : null}
+
         <footer>
           <button
             type="button"
@@ -2684,11 +2697,10 @@ export function GuidedCaseIntake({
             className="primary-button"
             disabled={pending}
             onClick={() => {
-              saveProgressDialog.current?.close();
               void saveAndContinueLater();
             }}
           >
-            Save Progress and Send Notice
+            {pending ? "Saving…" : "Save Progress and Send Notice"}
           </button>
         </footer>
       </form>
