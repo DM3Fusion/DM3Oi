@@ -403,6 +403,7 @@ export function GuidedCaseIntake({
   const followUpDialog = useRef<HTMLDialogElement>(null);
   const qualificationTaskDialog = useRef<HTMLDialogElement>(null);
   const requiredDocumentsDialog = useRef<HTMLDialogElement>(null);
+  const requiredDocumentsAutoOpened = useRef(initialStep >= 3);
   const saveProgressDialog = useRef<HTMLDialogElement>(null);
   const [saveAndSendPending, setSaveAndSendPending] = useState(false);
   const [qualificationTaskError, setQualificationTaskError] =
@@ -496,6 +497,9 @@ export function GuidedCaseIntake({
     draft.answers,
     effectiveRequiredOptionIds,
   );
+  const hasDocumentRequirements = followUpRequirements.some(
+    (requirement) => requirement.documentRequirement,
+  );
   const activeFollowUpRequirement = followUpRequirements.find(
     (item) => item.question.id === followUpQuestionId,
   );
@@ -511,6 +515,41 @@ export function GuidedCaseIntake({
       configuration,
       draft.answers,
     );
+
+  useEffect(() => {
+    if (
+      step !== 3 ||
+      requiredDocumentsAutoOpened.current ||
+      !hasDocumentRequirements
+    ) {
+      return;
+    }
+
+    requiredDocumentsAutoOpened.current = true;
+
+    const currentAvailability =
+      draft.answers[guidedTaxDocumentQuestionId];
+
+    setDocumentAvailabilityIds(
+      Array.isArray(currentAvailability)
+        ? currentAvailability.filter(
+            (value): value is string => typeof value === "string",
+          )
+        : [],
+    );
+
+    const timer = window.setTimeout(() => {
+      if (!requiredDocumentsDialog.current?.open) {
+        requiredDocumentsDialog.current?.showModal();
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [
+    draft.answers,
+    hasDocumentRequirements,
+    step,
+  ]);
 
   const requiredQuestionsResolved = !intakeQuestionEvaluation.questions.some((question) => {
     if (

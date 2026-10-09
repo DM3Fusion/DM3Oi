@@ -225,3 +225,45 @@ test("materialized Guided Intake Customers reopen in existing-Customer mode", ()
     /data\.customer_id[\s\S]*\? "existing"[\s\S]*data\.customer_mode === "new"/,
   );
 });
+
+test("Requirements auto-opens document availability once when documents are required", () => {
+  const intake = fs.readFileSync(
+    "components/cases/guided-case-intake.tsx",
+    "utf8",
+  );
+
+  assert.match(
+    intake,
+    /const requiredDocumentsAutoOpened = useRef\(initialStep >= 3\)/,
+  );
+
+  assert.match(
+    intake,
+    /const hasDocumentRequirements = followUpRequirements\.some\([\s\S]*?requirement\.documentRequirement/,
+  );
+
+  assert.match(
+    intake,
+    /if \([\s\S]*?step !== 3[\s\S]*?requiredDocumentsAutoOpened\.current[\s\S]*?!hasDocumentRequirements[\s\S]*?\) \{[\s\S]*?return;/,
+  );
+
+  assert.match(
+    intake,
+    /requiredDocumentsAutoOpened\.current = true/,
+  );
+
+  assert.match(
+    intake,
+    /draft\.answers\[guidedTaxDocumentQuestionId\][\s\S]*?setDocumentAvailabilityIds\(/,
+  );
+
+  assert.match(
+    intake,
+    /requiredDocumentsDialog\.current\?\.showModal\(\)/,
+  );
+
+  assert.match(
+    intake,
+    /if \(!requiredDocumentsDialog\.current\?\.open\)/,
+  );
+});
