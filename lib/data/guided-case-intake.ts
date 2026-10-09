@@ -146,8 +146,7 @@ export async function loadGuidedCaseIntakeValidationConfiguration(
         required: question.required,
         requireAllOptions: question.require_all_options,
         // Preserve the existing full-loader behavior exactly.
-        trackRequiredOptions:
-          question.id === "911c69ee-14bd-4391-ae87-f5b34047ea60",
+        trackRequiredOptions: question.track_required_options,
         completionCondition:
           question.completion_condition === "YES_REQUIRED"
             ? "YES_REQUIRED"
@@ -463,8 +462,7 @@ export async function loadGuidedCaseIntakeConfiguration(
         responseType: question.response_type,
         required: question.required,
         requireAllOptions: question.require_all_options,
-        trackRequiredOptions:
-          question.id === "911c69ee-14bd-4391-ae87-f5b34047ea60",
+        trackRequiredOptions: question.track_required_options,
         completionCondition:
           question.completion_condition === "YES_REQUIRED"
             ? "YES_REQUIRED"

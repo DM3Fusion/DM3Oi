@@ -514,3 +514,41 @@ test("open follow-up Task must still match the current missing required items", 
     false,
   );
 });
+
+test("Required Documents uses tracked-option mode consistently between database and loaders", () => {
+  const migration = readFileSync(
+    "supabase/migrations/20261008235000_dm3oi_restore_tracked_document_requirement_mode.sql",
+    "utf8",
+  );
+  const loader = readFileSync(
+    "lib/data/guided-case-intake.ts",
+    "utf8",
+  );
+
+  assert.match(
+    migration,
+    /track_required_options\s*=\s*true/,
+  );
+  assert.match(
+    migration,
+    /require_all_options\s*=\s*false/,
+  );
+  assert.match(
+    migration,
+    /911c69ee-14bd-4391-ae87-f5b34047ea60/,
+  );
+
+  assert.doesNotMatch(
+    loader,
+    /trackRequiredOptions:\s*question\.id\s*===\s*"911c69ee-14bd-4391-ae87-f5b34047ea60"/,
+  );
+
+  assert.equal(
+    (
+      loader.match(
+        /trackRequiredOptions:\s*question\.track_required_options/g,
+      ) ?? []
+    ).length,
+    2,
+  );
+});
