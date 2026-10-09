@@ -13395,11 +13395,55 @@ dialog.task-modal.intake-document-availability-modal {
 
 .customer-data-workspace{
   display:grid;
+  width:100%;
+  min-width:0;
+  max-width:100%;
   gap:18px;
+  box-sizing:border-box;
+}
+
+.customer-data-workspace>*{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
 }
 
 .customer-data-workspace>.panel{
+  min-width:0;
+  max-width:100%;
   margin:0;
+  box-sizing:border-box;
+  overflow:hidden;
+}
+
+.customer-data-workspace pre{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  margin:0;
+  overflow-x:auto;
+  box-sizing:border-box;
+}
+
+.customer-data-workspace code{
+  max-width:100%;
+}
+
+.customer-data-workspace .empty,
+.customer-data-workspace .section-head,
+.customer-data-workspace .duplicate-pair-list,
+.customer-data-workspace .duplicate-comparison,
+.customer-data-workspace .merge-field-grid{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+.customer-data-workspace .duplicate-pair{
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
 }
 
 .customer-data-step{
