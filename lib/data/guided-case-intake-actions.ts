@@ -707,7 +707,7 @@ export async function upsertGuidedIntakeQualificationTaskAction(
   if (
     !hasPermission(access, "WORK_TASKS") ||
     !assignedUserId ||
-    !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)
+    !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)
   ) {
     return {
       ok: false,

@@ -972,7 +972,7 @@ export function GuidedCaseIntake({
 
     if (
       !assignedUserId ||
-      !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)
+      !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)
     ) {
       setQualificationTaskError(
         "Select an assignee and valid Due Date.",
