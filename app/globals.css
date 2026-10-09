@@ -4367,6 +4367,24 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   line-height: 1.35;
 }
 
+/* Keep Platform Analytics card headings compact and consistent. */
+.admin-analytics-panel-heading > div:first-child {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+}
+
+.admin-analytics-panel-heading h3 {
+  margin: 0;
+}
+
+.admin-analytics-panel-heading p,
+.admin-analytics-panel-heading .muted {
+  margin: 0;
+  padding: 0;
+  line-height: 1.35;
+}
+
 .admin-analytics-range-wrap {
   width: 100%;
   justify-items: start;
