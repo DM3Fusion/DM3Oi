@@ -10222,6 +10222,61 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
 }
 
 
+/* Guided Intake Review — explicit Required Documents register */
+.intake-review-documents{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  column-gap:1rem;
+  align-items:start;
+}
+.intake-review-documents>h3{grid-column:1}
+.intake-review-documents>button{grid-column:2}
+.intake-review-section>.intake-review-document-register{
+  grid-column:1/-1;
+  display:grid;
+  grid-template-columns:1fr;
+  gap:0;
+  width:100%;
+  margin-top:.25rem;
+  padding:0;
+  border-top:1px solid var(--line);
+  font-size:inherit;
+}
+.intake-review-document-head,
+.intake-review-document-row{
+  display:grid;
+  grid-template-columns:minmax(7.5rem,9rem) minmax(0,1fr);
+  gap:1rem;
+  align-items:center;
+  padding:.7rem 0;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+.intake-review-document-head strong{
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.intake-review-document-row{font-size:12px}
+.intake-review-document-status{font-weight:750}
+.intake-review-document-status.received{color:#15803d}
+.intake-review-document-status.not-received{color:#be123c}
+.intake-review-documents-empty{
+  grid-column:1/-1;
+  margin:.3rem 0 0;
+  color:var(--muted);
+  font-size:11px;
+}
+@media(max-width:600px){
+  .intake-review-document-head,
+  .intake-review-document-row{
+    grid-template-columns:7rem minmax(0,1fr);
+    gap:.65rem;
+  }
+}
+
 /* Guided Intake document requirement checklist */
 .task-document-requirements {
   display: grid;

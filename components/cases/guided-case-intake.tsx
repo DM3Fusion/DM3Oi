@@ -2293,18 +2293,73 @@ export function GuidedCaseIntake({
         ))}
         <button type="button" onClick={() => setStep(2)}>Edit Questions</button>
       </div>
-      <div className="intake-review-section">
+      <div className="intake-review-section intake-review-documents">
         <h3>Required Documents</h3>
-        <span>
-          {(effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? []).length}
-          {" "}required document
-          {(effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? []).length === 1
-            ? ""
-            : "s"}
-        </span>
         <button type="button" onClick={() => setStep(3)}>
           Review Required Documents
         </button>
+
+        {(() => {
+          const requiredIds =
+            effectiveRequiredOptionIds[guidedTaxDocumentQuestionId] ?? [];
+
+          const selectedIds = new Set(
+            Array.isArray(draft.answers[guidedTaxDocumentQuestionId])
+              ? draft.answers[guidedTaxDocumentQuestionId].filter(
+                  (value): value is string => typeof value === "string",
+                )
+              : [],
+          );
+
+          const documentQuestion = evaluation.questions.find(
+            (question) => question.id === guidedTaxDocumentQuestionId,
+          );
+
+          const documents = documentQuestion
+            ? documentQuestion.options
+                .filter((option) => requiredIds.includes(option.id))
+                .sort((a, b) => a.displayOrder - b.displayOrder)
+            : [];
+
+          if (!documents.length) {
+            return (
+              <p className="intake-review-documents-empty">
+                No documents are currently required.
+              </p>
+            );
+          }
+
+          return (
+            <div className="intake-review-document-register">
+              <div className="intake-review-document-head" aria-hidden="true">
+                <strong>Status</strong>
+                <strong>Document</strong>
+              </div>
+
+              {documents.map((document) => {
+                const received = selectedIds.has(document.id);
+
+                return (
+                  <div
+                    key={document.id}
+                    className="intake-review-document-row"
+                  >
+                    <span
+                      className={
+                        received
+                          ? "intake-review-document-status received"
+                          : "intake-review-document-status not-received"
+                      }
+                    >
+                      {received ? "Received" : "Not Received"}
+                    </span>
+                    <span>{document.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

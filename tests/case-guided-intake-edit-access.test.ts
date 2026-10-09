@@ -267,3 +267,30 @@ test("Requirements auto-opens document availability once when documents are requ
     /if \(!requiredDocumentsDialog\.current\?\.open\)/,
   );
 });
+
+test("Review shows required documents with Status before Document", () => {
+  const intake = fs.readFileSync(
+    "components/cases/guided-case-intake.tsx",
+    "utf8",
+  );
+
+  assert.match(
+    intake,
+    /className="intake-review-document-head"[\s\S]*?<strong>Status<\/strong>[\s\S]*?<strong>Document<\/strong>/,
+  );
+
+  assert.match(
+    intake,
+    /\{received \? "Received" : "Not Received"\}/,
+  );
+
+  assert.match(
+    intake,
+    /document\.label/,
+  );
+
+  assert.match(
+    intake,
+    /Review Required Documents/,
+  );
+});
