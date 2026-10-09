@@ -1119,6 +1119,12 @@ export function GuidedCaseIntake({
         ...(!portalResolved
           ? { portalOnboarding: "Resolve Customer Portal onboarding." }
           : {}),
+        ...(blockingQualificationFindings.length > 0
+          ? {
+              qualificationRequirements:
+                "Resolve the filing-status qualification requirements before continuing.",
+            }
+          : {}),
       };
     }
     if (step === 4 && blockingQualificationFindings.length > 0) {
@@ -3255,7 +3261,9 @@ export function GuidedCaseIntake({
                 pending ||
                 portalPending ||
                 (step === 2 && !requiredQuestionsResolved) ||
-                (step === 3 && !portalResolved) ||
+                (step === 3 &&
+                  (!portalResolved ||
+                    blockingQualificationFindings.length > 0)) ||
                 (step === 4 && blockingQualificationFindings.length > 0)
               }
               title={
@@ -3263,10 +3271,13 @@ export function GuidedCaseIntake({
                   ? "Complete all required questions before continuing."
                   : step === 3 && !portalResolved
                     ? "Resolve Customer Portal onboarding before continuing."
-                    : step === 4 &&
+                    : step === 3 &&
                         blockingQualificationFindings.length > 0
-                      ? "Resolve the filing-status qualification requirements before finishing Guided Intake."
-                      : undefined
+                      ? "Resolve the filing-status qualification requirements before continuing."
+                      : step === 4 &&
+                          blockingQualificationFindings.length > 0
+                        ? "Resolve the filing-status qualification requirements before finishing Guided Intake."
+                        : undefined
               }
             >
               {pending &&
