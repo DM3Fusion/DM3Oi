@@ -14,6 +14,10 @@ const migration = source(
   "supabase/migrations/20261007130000_dm3oi_authenticated_session_policy.sql",
 );
 
+const internalScopeMigration = source(
+  "supabase/migrations/20261009140000_dm3oi_internal_session_scope_precedence.sql",
+);
+
 function request({
   method = "GET",
   pathname = "/cases",
@@ -517,4 +521,81 @@ test("explicit activity refresh preserves prefetched navigation", () => {
     navigation.match(/prefetch=\{true\}/g)?.length,
   );
   assert.doesNotMatch(navigation, /prefetch=\{false\}/);
+});
+
+
+test("internal access always takes precedence over Customer Portal session scope", () => {
+  assert.match(
+    internalScopeMigration,
+    /when route_state\.has_active_super_admin_access\s+or route_state\.has_active_organization_access\s+then 'INTERNAL'/,
+  );
+  assert.match(
+    internalScopeMigration,
+    /when route_state\.has_active_customer_portal_access\s+then 'CUSTOMER_PORTAL'/,
+  );
+
+  assert.ok(
+    internalScopeMigration.indexOf(
+      "when route_state.has_active_super_admin_access",
+    ) <
+      internalScopeMigration.indexOf(
+        "when route_state.has_active_customer_portal_access",
+      ),
+  );
+
+  assert.match(
+    internalScopeMigration,
+    /when policy_scope = 'CUSTOMER_PORTAL' then interval '30 minutes'/,
+  );
+  assert.match(
+    internalScopeMigration,
+    /else interval '2 hours'/,
+  );
+  assert.match(
+    internalScopeMigration,
+    /policy_now < activity_row\.session_started_at \+ interval '24 hours'/,
+  );
+});
+
+test("SUPER_ADMIN with a conflicting Portal relationship still receives the internal policy", () => {
+  const resolveScope = ({
+    superAdmin,
+    organization,
+    portal,
+  }: {
+    superAdmin: boolean;
+    organization: boolean;
+    portal: boolean;
+  }): PolicyScope => {
+    if (superAdmin || organization) return "INTERNAL";
+    if (portal) return "CUSTOMER_PORTAL";
+    return "INTERNAL";
+  };
+
+  assert.equal(
+    resolveScope({
+      superAdmin: true,
+      organization: false,
+      portal: true,
+    }),
+    "INTERNAL",
+  );
+
+  assert.equal(
+    resolveScope({
+      superAdmin: false,
+      organization: true,
+      portal: true,
+    }),
+    "INTERNAL",
+  );
+
+  assert.equal(
+    resolveScope({
+      superAdmin: false,
+      organization: false,
+      portal: true,
+    }),
+    "CUSTOMER_PORTAL",
+  );
 });
