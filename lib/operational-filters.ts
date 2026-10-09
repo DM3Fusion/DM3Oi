@@ -48,10 +48,19 @@ export function matchesTaskFilter(task: TaskRow, status: TaskStatusFilter | unde
   return true;
 }
 
-export function matchesTaskSearch(task: TaskRow, caseNumber: string, query: string) {
+export function matchesTaskSearch(
+  task: TaskRow,
+  caseNumber: string,
+  query: string,
+  customerName = "",
+) {
   if (!query) return true;
   const normalized = query.toLocaleLowerCase();
-  return task.title.toLocaleLowerCase().includes(normalized) || caseNumber.toLocaleLowerCase().includes(normalized);
+  return (
+    task.title.toLocaleLowerCase().includes(normalized) ||
+    caseNumber.toLocaleLowerCase().includes(normalized) ||
+    customerName.toLocaleLowerCase().includes(normalized)
+  );
 }
 
 export function matchesCaseFilter(

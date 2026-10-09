@@ -8,13 +8,54 @@ import { taskSearchUrl } from "../lib/task-search-url.ts";
 const source = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 const task = (title: string, status: TaskRow["status"] = "NOT_STARTED", due_at: string | null = null) => ({ title, status, due_at }) as TaskRow;
 
-test("task search is trimmed partial and case-insensitive across title and Case number", () => {
+test("task search is trimmed partial and case-insensitive across Task, Case, and Customer", () => {
   const installation = task("Complete Sign Installation");
   assert.equal(normalizeTaskQuery("  installation  "), "installation");
-  assert.equal(matchesTaskSearch(installation, "CASE-000010", "installation"), true);
-  assert.equal(matchesTaskSearch(installation, "CASE-000010", "INSTALLATION"), true);
-  assert.equal(matchesTaskSearch(installation, "CASE-000010", "case-00001"), true);
-  assert.equal(matchesTaskSearch(installation, "CASE-000010", "inspection"), false);
+  assert.equal(
+    matchesTaskSearch(
+      installation,
+      "CASE-000010",
+      "installation",
+      "Acme Holdings",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesTaskSearch(
+      installation,
+      "CASE-000010",
+      "INSTALLATION",
+      "Acme Holdings",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesTaskSearch(
+      installation,
+      "CASE-000010",
+      "case-00001",
+      "Acme Holdings",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesTaskSearch(
+      installation,
+      "CASE-000010",
+      "acme",
+      "Acme Holdings",
+    ),
+    true,
+  );
+  assert.equal(
+    matchesTaskSearch(
+      installation,
+      "CASE-000010",
+      "inspection",
+      "Acme Holdings",
+    ),
+    false,
+  );
 });
 
 test("task search composes with status and due-date filters", () => {
@@ -34,7 +75,10 @@ test("Tasks search is debounced clearable URL state that preserves other paramet
   assert.match(filters, /setTimeout\(\(\) => updateSearchUrl\(value\), 300\)/);
   assert.match(filters, /taskSearchUrl\(pathname, window\.location\.search, value\)/);
   assert.match(filters, /router\.replace\(destination, \{ scroll: false \}\)/);
-  assert.match(filters, /placeholder="Search tasks\.\.\."/);
+  assert.match(
+    filters,
+    /placeholder="Search tasks, cases, or customers\.\.\."/,
+  );
   assert.match(filters, /name="status"/);
   assert.match(filters, /name="due"/);
   assert.match(filters, /<form className="filters task-filters" action="\/tasks" method="get">[\s\S]*?<input type="search" name=\{search\.trim\(\) \? "q" : undefined\} value=\{search\}/);
@@ -117,7 +161,7 @@ test("Tasks filters only the existing authorized organization dataset and distin
 
   assert.match(
     page,
-    /matchesTaskFilter\(task, status, due, data\.timezone\)[\s\S]*matchesTaskSearch\(task, item\.case_number, q\)/,
+    /matchesTaskFilter\(task, status, due, data\.timezone\)[\s\S]*matchesTaskSearch\([\s\S]*task,[\s\S]*item\.case_number,[\s\S]*q,[\s\S]*item\.customer_name/,
   );
 
   assert.match(
@@ -126,13 +170,19 @@ test("Tasks filters only the existing authorized organization dataset and distin
   );
   assert.match(
     repository,
-    /export async function getTaskRegisterData[\s\S]*\.from\("organization_cases"\)[\s\S]*\.select\("id,case_number"\)/,
+    /export async function getTaskRegisterData[\s\S]*\.from\("organization_cases"\)[\s\S]*\.select\("id,case_number,customer_id"\)/,
+  );
+  assert.match(
+    repository,
+    /export async function getTaskRegisterData[\s\S]*\.from\("organization_customers"\)[\s\S]*\.select\("id,name"\)/,
   );
   assert.match(
     repository,
     /export async function getTaskRegisterData[\s\S]*\.from\("organization_settings"\)[\s\S]*\.select\("timezone"\)/,
   );
 
+  assert.match(page, /<th>Customer<\/th>/);
+  assert.match(page, /\{item\.customer_name\}/);
   assert.match(page, /No tasks match these filters\./);
   assert.match(page, /No tasks are available\./);
 });

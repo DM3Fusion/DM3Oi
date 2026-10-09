@@ -158,7 +158,7 @@ export function TaskFilters({
             maxLength={200}
             onChange={(event) => changeSearch(event.currentTarget.value)}
             onKeyDown={(event) => { if (event.key === "Enter") event.preventDefault(); }}
-            placeholder="Search tasks..."
+            placeholder="Search tasks, cases, or customers..."
             autoComplete="off"
           />
           {search ? (

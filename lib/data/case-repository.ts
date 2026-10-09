@@ -1020,7 +1020,12 @@ export async function getTaskRegisterData(): Promise<{
   organizationId: string;
   timezone: string;
   tasks: TaskRow[];
-  cases: Array<{ id: string; case_number: string }>;
+  cases: Array<{
+    id: string;
+    case_number: string;
+    customer_id: string;
+    customer_name: string;
+  }>;
 }> {
   const access = await getAccessContext();
 
@@ -1032,26 +1037,32 @@ export async function getTaskRegisterData(): Promise<{
   const supabase = await createClient();
   const admin = createAdminClient();
 
-  const [taskResult, caseResult, settingsResult] = await Promise.all([
-    supabase
-      .from("organization_case_tasks")
-      .select("*")
-      .eq("organization_id", organizationId)
-      .order("sequence"),
-    supabase
-      .from("organization_cases")
-      .select("id,case_number")
-      .eq("organization_id", organizationId),
-    admin
-      .from("organization_settings")
-      .select("timezone")
-      .eq("organization_id", organizationId)
-      .maybeSingle(),
-  ]);
+  const [taskResult, caseResult, customerResult, settingsResult] =
+    await Promise.all([
+      supabase
+        .from("organization_case_tasks")
+        .select("*")
+        .eq("organization_id", organizationId)
+        .order("sequence"),
+      supabase
+        .from("organization_cases")
+        .select("id,case_number,customer_id")
+        .eq("organization_id", organizationId),
+      supabase
+        .from("organization_customers")
+        .select("id,name")
+        .eq("organization_id", organizationId),
+      admin
+        .from("organization_settings")
+        .select("timezone")
+        .eq("organization_id", organizationId)
+        .maybeSingle(),
+    ]);
 
   const error =
     taskResult.error ??
     caseResult.error ??
+    customerResult.error ??
     settingsResult.error;
 
   if (error) {
@@ -1063,11 +1074,21 @@ export async function getTaskRegisterData(): Promise<{
     throw new DataAccessError();
   }
 
+  const customerNames = new Map(
+    (customerResult.data ?? []).map((customer) => [
+      customer.id,
+      customer.name,
+    ]),
+  );
+
   return {
     organizationId,
     timezone: settingsResult.data?.timezone ?? "UTC",
     tasks: taskResult.data ?? [],
-    cases: caseResult.data ?? [],
+    cases: (caseResult.data ?? []).map((item) => ({
+      ...item,
+      customer_name: customerNames.get(item.customer_id) ?? "Customer",
+    })),
   };
 }
 

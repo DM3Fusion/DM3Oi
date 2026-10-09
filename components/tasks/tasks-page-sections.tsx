@@ -56,7 +56,12 @@ export async function resolveTasksRegisterModel(
   const rows = allRows.filter(
     ({ task, item }) =>
       matchesTaskFilter(task, status, due, data.timezone) &&
-      matchesTaskSearch(task, item.case_number, q) &&
+      matchesTaskSearch(
+        task,
+        item.case_number,
+        q,
+        item.customer_name,
+      ) &&
       (!assignee || task.assigned_user_id === assignee),
   );
   const assignees = summary.workloads.map((item) => ({
@@ -160,6 +165,7 @@ export async function TaskRegisterServerSection({
             <thead>
               <tr>
                 <th>Case</th>
+                <th>Customer</th>
                 <th>Task</th>
                 <th>Status</th>
                 <th>Due</th>
@@ -176,6 +182,9 @@ export async function TaskRegisterServerSection({
                     <Link className="case-link" href={`/cases/${item.id}`}>
                       {item.case_number}
                     </Link>
+                  </td>
+                  <td>
+                    <span>{item.customer_name}</span>
                   </td>
                   <td>
                     <span>{task.title}</span>
