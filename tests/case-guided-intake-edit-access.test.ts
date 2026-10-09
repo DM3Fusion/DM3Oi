@@ -294,3 +294,25 @@ test("Review shows required documents with Status before Document", () => {
     /Review Required Documents/,
   );
 });
+
+test("authoritative finalization keeps document availability out of Step 3 question validation", () => {
+  const guided = fs.readFileSync(
+    "lib/guided-case-intake.ts",
+    "utf8",
+  );
+
+  assert.match(
+    guided,
+    /const intakeQuestionEvaluation: GuidedIntakeEvaluation = \{[\s\S]*?questions: evaluation\.questions\.filter\([\s\S]*?question\.id !== mimmsTaxDocumentQuestionId/,
+  );
+
+  assert.match(
+    guided,
+    /validateGuidedIntakeQuestions\(\s*intakeQuestionEvaluation,\s*effectiveRequiredOptionIds,\s*\)/,
+  );
+
+  assert.match(
+    guided,
+    /validateGuidedRequiredOptionMap\(\s*configuration\.questions,\s*draft\.answers,\s*effectiveRequiredOptionIds/,
+  );
+});

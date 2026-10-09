@@ -1032,11 +1032,18 @@ export function validateGuidedCaseIntake(
     draft.requiredOptionIds,
   );
   const effectiveRequiredOptionIds = evaluation.requiredOptionIds;
+  const intakeQuestionEvaluation: GuidedIntakeEvaluation = {
+    ...evaluation,
+    questions: evaluation.questions.filter(
+      (question) => question.id !== mimmsTaxDocumentQuestionId,
+    ),
+  };
+
   const fieldErrors: GuidedIntakeFieldErrors = {
     ...validateGuidedCustomerStep(draft, configuration),
     ...validateGuidedCaseDetails(draft, configuration, customerMode),
     ...validateGuidedIntakeQuestions(
-      evaluation,
+      intakeQuestionEvaluation,
       effectiveRequiredOptionIds,
     ),
     ...validateGuidedRequiredOptionMap(
