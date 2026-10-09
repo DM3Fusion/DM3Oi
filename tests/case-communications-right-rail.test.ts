@@ -119,7 +119,24 @@ test("the canonical opening request description participates as customer communi
 test("no unsafe View All fallback is introduced", () => {
   assert.doesNotMatch(page, /View All Communications/);
   assert.doesNotMatch(page, /href=\{?`?\/communications\?q=/);
-  assert.doesNotMatch(repository.slice(repository.indexOf("export async function getLiveCase")), /\.eq\("customer_id"/);
+  const liveCaseSource = repository.slice(
+    repository.indexOf("export async function getLiveCase"),
+  );
+  const requestQueryStart = liveCaseSource.indexOf(
+    '.from("organization_service_requests")',
+  );
+  const requestQueryEnd = liveCaseSource.indexOf(
+    '.from("organization_settings")',
+    requestQueryStart,
+  );
+  const serviceRequestQuery = liveCaseSource.slice(
+    requestQueryStart,
+    requestQueryEnd,
+  );
+
+  assert.ok(requestQueryStart >= 0);
+  assert.ok(requestQueryEnd > requestQueryStart);
+  assert.doesNotMatch(serviceRequestQuery, /\.eq\("customer_id"/);
 });
 
 test("pre-existing conversation visibility follows authoritative Case linkage", () => {

@@ -55,7 +55,7 @@ test("resuming a draft retains its own Customer despite fresh-intake exclusion",
 test("Customer search operates only on the already-eligible Customer set", () => {
   assert.match(
     component,
-    /const filtered = selectableCustomers\.filter\([\s\S]*customerSearch\.trim\(\)\.toLowerCase\(\)/,
+    /const normalizedCustomerSearch = customerSearch\.trim\(\)\.toLowerCase\(\);[\s\S]*const filtered = selectableCustomers\.filter\([\s\S]*\.includes\(normalizedCustomerSearch\)/,
   );
   assert.doesNotMatch(
     component,

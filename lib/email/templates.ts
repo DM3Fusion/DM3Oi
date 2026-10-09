@@ -50,8 +50,8 @@ export const emailTemplateDefinitions: Array<{
   },
   {
     key: "MISSING_DOCUMENTS_NOTICE",
-    title: "Missing Documents Notice",
-    description: "Sent when a Customer must provide required Case documents.",
+    title: "Customer Requirements Notice",
+    description: "Sent when a Customer must provide required Case documents or additional qualification information.",
     allowedVariables: [
       "organization_name",
       "recipient_first_name",
@@ -59,6 +59,7 @@ export const emailTemplateDefinitions: Array<{
       "recipient_email",
       "case_number",
       "missing_documents",
+      "additional_information",
       "action_url",
     ],
     sampleVariables: {
@@ -68,6 +69,8 @@ export const emailTemplateDefinitions: Array<{
       recipient_email: "jordan@example.com",
       case_number: "CASE-000123",
       missing_documents: "W-2, Form 1099",
+      additional_information:
+        "Qualifying person: Please provide additional information needed to confirm filing status.",
       action_url: "https://dm3oi.com/portal",
     },
   },
@@ -166,9 +169,9 @@ export const defaultEmailTemplates: Record<EmailTemplateKey, EmailTemplate> = {
   },
   MISSING_DOCUMENTS_NOTICE: {
     template_key: "MISSING_DOCUMENTS_NOTICE",
-    subject_template: "Documents needed for {{case_number}}",
+    subject_template: "Items needed for {{case_number}}",
     opening_message:
-      "Hello {{recipient_first_name}}, {{organization_name}} is waiting for the following document(s) to continue your Case: {{missing_documents}}.",
+      "Hello {{recipient_first_name}}, {{organization_name}} needs additional information or documents to continue your Case {{case_number}}.",
     closing_message:
       "View your Case and document-submission instructions in the Customer Portal: {{action_url}}",
   },
@@ -277,6 +280,9 @@ export function renderEmailTemplate(
     const documentSubmissionInstructions = String(
       variables.document_submission_instructions ?? "",
     ).trim();
+    const additionalInformation = String(
+      variables.additional_information ?? "",
+    ).trim();
 
     const safeOrganizationName = escapeHtml(organizationName);
     const safeMissingDocuments = escapeHtml(missingDocuments);
@@ -286,6 +292,15 @@ export function renderEmailTemplate(
     const safeInstructions = escapeHtml(
       documentSubmissionInstructions,
     ).replace(/\r?\n/g, "<br>");
+    const safeAdditionalInformation = additionalInformation
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map(
+        (line) =>
+          `<li style="margin:0 0 8px;line-height:1.55">${escapeHtml(line)}</li>`,
+      )
+      .join("");
 
     const secureAction = secureDocumentSystemUrl
       ? `<p style="margin:22px 0 26px"><a href="${safeSecureDocumentSystemUrl}" style="display:inline-block;max-width:100%;border-radius:7px;background:#17233c;color:#fff;padding:13px 20px;font-weight:800;text-decoration:none">Open Secure Document System</a></p>`
@@ -295,20 +310,51 @@ export function renderEmailTemplate(
       ? `<p style="margin:20px 0 0"><a href="${safeActionUrl}" style="display:inline-block;max-width:100%;overflow-wrap:anywhere;color:#1768e5;font-weight:700;text-decoration:none">View Case in Customer Portal</a></p>`
       : "";
 
+    const additionalInformationHtml = additionalInformation
+      ? `<div style="margin:18px 0 22px;padding:16px 18px;border:1px solid #e0d5b8;border-left:5px solid #a06a00;border-radius:7px;background:#fffaf0"><div style="margin-bottom:9px;color:#725117;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">Additional Information Needed</div><ul style="margin:0;padding-left:20px;color:#342815">${safeAdditionalInformation}</ul></div>`
+      : "";
+
+    if (!missingDocuments) {
+      return {
+        subject,
+        text:
+          `${opening}\n\n` +
+          `ADDITIONAL INFORMATION NEEDED\n${additionalInformation}\n\n` +
+          (actionUrl
+            ? `View your Case in the Customer Portal: ${actionUrl}\n\n`
+            : "") +
+          `DM3Oi™ — Operational Intelligence\nPeople. Work. Progress. Intelligence.`,
+        html: `<!doctype html><html lang="en"><body style="margin:0;background:#f4f7fb;color:#17233c;font-family:Arial,sans-serif"><div style="max-width:620px;margin:0 auto;padding:32px 20px"><div style="background:#17233c;border-radius:12px 12px 0 0;padding:24px 28px;color:#fff"><div style="font-size:28px;font-weight:800">DM3<span style="color:#18b8d9">Oi</span>™</div><div style="margin-top:5px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase">Operational Intelligence</div></div><div style="background:#fff;border:1px solid #d9e1ec;border-top:0;border-radius:0 0 12px 12px;padding:32px 28px"><p style="margin:0 0 18px;line-height:1.6">${openingHtml}</p>${additionalInformationHtml}${portalAction}<div style="border-top:1px solid #e3e8ef;margin-top:28px;padding-top:20px;color:#5d687b;font-size:13px;line-height:1.6">DM3Oi™ — Operational Intelligence<br>People. Work. Progress. Intelligence.</div></div></div></body></html>`,
+      };
+    }
+
     const privacyText =
       `For your privacy, do not reply to this email with documents, tax records, identification, or other sensitive information. You must use the secure document system required by ${organizationName} or follow the document-submission instructions provided.`;
+
+    const documentsText = missingDocuments
+      ? `DOCUMENTS NEEDED\n${missingDocuments}\n\n`
+      : "";
+
+    const additionalInformationText = additionalInformation
+      ? `ADDITIONAL INFORMATION NEEDED\n${additionalInformation}\n\n`
+      : "";
+
+    const documentsHtml = missingDocuments
+      ? `<div style="margin:18px 0 22px;padding:16px 18px;border:1px solid #d7dee7;border-left:5px solid #1768e5;border-radius:7px;background:#f7faff"><div style="margin-bottom:7px;color:#52677d;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">Documents Needed</div><div style="color:#10233f;font-size:19px;font-weight:800;line-height:1.4">${safeMissingDocuments}</div></div>`
+      : "";
 
     return {
       subject,
       text:
         `${opening}\n\n` +
-        `DOCUMENTS NEEDED\n${missingDocuments}\n\n` +
+        documentsText +
+        additionalInformationText +
         `PRIVACY NOTICE\n${privacyText}\n\n` +
         `HOW TO PROVIDE YOUR DOCUMENTS\n${documentSubmissionInstructions}\n\n` +
         `SECURE DOCUMENT SYSTEM\n${secureDocumentSystemUrl}\n\n` +
         (actionUrl ? `View your Case in the Customer Portal: ${actionUrl}\n\n` : "") +
         `DM3Oi™ — Operational Intelligence\nPeople. Work. Progress. Intelligence.`,
-      html: `<!doctype html><html lang="en"><body style="margin:0;background:#f4f7fb;color:#17233c;font-family:Arial,sans-serif"><div style="max-width:620px;margin:0 auto;padding:32px 20px"><div style="background:#17233c;border-radius:12px 12px 0 0;padding:24px 28px;color:#fff"><div style="font-size:28px;font-weight:800">DM3<span style="color:#18b8d9">Oi</span>™</div><div style="margin-top:5px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase">Operational Intelligence</div></div><div style="background:#fff;border:1px solid #d9e1ec;border-top:0;border-radius:0 0 12px 12px;padding:32px 28px"><p style="margin:0 0 18px;line-height:1.6">${openingHtml}</p><div style="margin:18px 0 22px;padding:16px 18px;border:1px solid #d7dee7;border-left:5px solid #1768e5;border-radius:7px;background:#f7faff"><div style="margin-bottom:7px;color:#52677d;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">Documents Needed</div><div style="color:#10233f;font-size:19px;font-weight:800;line-height:1.4">${safeMissingDocuments}</div></div><div style="margin:20px 0 24px;padding:17px 18px;border:1px solid #e5c1c1;border-left:5px solid #8b1e1e;border-radius:7px;background:#fff7f7;color:#5d1717"><div style="margin-bottom:8px;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase">Privacy Notice</div><div style="font-size:14px;font-weight:800;line-height:1.6">For your privacy, do not reply to this email with documents, tax records, identification, or other sensitive information.</div><div style="margin-top:8px;font-size:13px;line-height:1.6">You must use the secure document system required by ${safeOrganizationName} or follow the document-submission instructions provided below.</div></div><div style="margin:0 0 8px;color:#52677d;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">How to Provide Your Documents</div><p style="margin:0;line-height:1.65">${safeInstructions}</p>${secureAction}${portalAction}<div style="border-top:1px solid #e3e8ef;margin-top:28px;padding-top:20px;color:#5d687b;font-size:13px;line-height:1.6">DM3Oi™ — Operational Intelligence<br>People. Work. Progress. Intelligence.</div></div></div></body></html>`,
+      html: `<!doctype html><html lang="en"><body style="margin:0;background:#f4f7fb;color:#17233c;font-family:Arial,sans-serif"><div style="max-width:620px;margin:0 auto;padding:32px 20px"><div style="background:#17233c;border-radius:12px 12px 0 0;padding:24px 28px;color:#fff"><div style="font-size:28px;font-weight:800">DM3<span style="color:#18b8d9">Oi</span>™</div><div style="margin-top:5px;font-size:12px;letter-spacing:1.4px;text-transform:uppercase">Operational Intelligence</div></div><div style="background:#fff;border:1px solid #d9e1ec;border-top:0;border-radius:0 0 12px 12px;padding:32px 28px"><p style="margin:0 0 18px;line-height:1.6">${openingHtml}</p>${documentsHtml}${additionalInformationHtml}<div style="margin:20px 0 24px;padding:17px 18px;border:1px solid #e5c1c1;border-left:5px solid #8b1e1e;border-radius:7px;background:#fff7f7;color:#5d1717"><div style="margin-bottom:8px;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase">Privacy Notice</div><div style="font-size:14px;font-weight:800;line-height:1.6">For your privacy, do not reply to this email with documents, tax records, identification, or other sensitive information.</div><div style="margin-top:8px;font-size:13px;line-height:1.6">You must use the secure document system required by ${safeOrganizationName} or follow the document-submission instructions provided below.</div></div><div style="margin:0 0 8px;color:#52677d;font-size:11px;font-weight:800;letter-spacing:1px;text-transform:uppercase">How to Provide Your Documents</div><p style="margin:0;line-height:1.65">${safeInstructions}</p>${secureAction}${portalAction}<div style="border-top:1px solid #e3e8ef;margin-top:28px;padding-top:20px;color:#5d687b;font-size:13px;line-height:1.6">DM3Oi™ — Operational Intelligence<br>People. Work. Progress. Intelligence.</div></div></div></body></html>`,
     };
   }
 

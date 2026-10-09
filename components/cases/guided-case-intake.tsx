@@ -17,6 +17,8 @@ import {
   sendGuidedIntakePortalInvitationAction,
   setGuidedIntakePortalNotRequiredAction,
   sendGuidedIntakeMissingDocumentsNoticeAction,
+  sendGuidedIntakeCustomerRequirementsNoticeAction,
+  upsertGuidedIntakeQualificationTaskAction,
   upsertGuidedIntakeFollowUpTaskAction,
 } from "@/lib/data/guided-case-intake-actions";
 import {
@@ -398,9 +400,12 @@ export function GuidedCaseIntake({
     useState<CustomerPortalOnboardingStatus | null>(null);
   const [portalError, setPortalError] = useState<string | null>(null);
   const followUpDialog = useRef<HTMLDialogElement>(null);
+  const qualificationTaskDialog = useRef<HTMLDialogElement>(null);
   const requiredDocumentsDialog = useRef<HTMLDialogElement>(null);
   const saveProgressDialog = useRef<HTMLDialogElement>(null);
   const [saveAndSendPending, setSaveAndSendPending] = useState(false);
+  const [qualificationTaskError, setQualificationTaskError] =
+    useState<string | null>(null);
   const [followUpQuestionId, setFollowUpQuestionId] = useState<string | null>(null);
   const [documentAvailabilityIds, setDocumentAvailabilityIds] =
     useState<string[]>([]);
@@ -493,6 +498,11 @@ export function GuidedCaseIntake({
   const activeFollowUpRequirement = followUpRequirements.find(
     (item) => item.question.id === followUpQuestionId,
   );
+  const qualificationFindings =
+    evaluateGuidedIntakeQualificationFindings(
+      configuration,
+      draft.answers,
+    );
 
   const requiredQuestionsResolved = !intakeQuestionEvaluation.questions.some((question) => {
     if (
@@ -730,48 +740,37 @@ export function GuidedCaseIntake({
       return { ok: false, error: saveResult.error };
     }
 
-    const documentNoticeTasks = workingDraft.followUpTasks.filter(
-      (task) =>
-        task.missingOptionIds.length > 0 &&
-        !task.completed &&
-        !noticeSentFollowUpIds.has(task.id),
-    );
-
-    const sentFollowUpIds: string[] = [];
-
-    for (const task of documentNoticeTasks) {
-      if (!workingDraft.caseId) break;
-
-      const noticeResult =
-        await sendGuidedIntakeMissingDocumentsNoticeAction(
-          workingDraft.caseId,
-          task.id,
-        );
-
-      if (!noticeResult.ok) {
-        return {
-          ok: false,
-          error:
-            `Progress was saved, but the Customer notice was not sent. ${noticeResult.error}`,
-        };
-      }
-
-      sentFollowUpIds.push(task.id);
+    if (!workingDraft.caseId) {
+      return { ok: true, sentCount: 0 };
     }
 
-    if (sentFollowUpIds.length) {
-      setNoticeSentFollowUpIds((current) => {
-        const next = new Set(current);
-        for (const followUpId of sentFollowUpIds) {
-          next.add(followUpId);
-        }
-        return next;
-      });
+    const noticeResult =
+      await sendGuidedIntakeCustomerRequirementsNoticeAction(
+        workingDraft.caseId,
+      );
+
+    if (!noticeResult.ok) {
+      return {
+        ok: false,
+        error:
+          `Progress was saved, but the Customer notice was not sent. ${noticeResult.error}`,
+      };
+    }
+
+    if (
+      noticeResult.sent &&
+      !noticeResult.statusUpdated
+    ) {
+      return {
+        ok: false,
+        error:
+          "The Customer notice was sent, but one or more Task notice states could not be refreshed automatically. Do not resend the notice; review the Case Tasks.",
+      };
     }
 
     return {
       ok: true,
-      sentCount: sentFollowUpIds.length,
+      sentCount: noticeResult.sent ? 1 : 0,
     };
   };
 
@@ -925,6 +924,17 @@ export function GuidedCaseIntake({
 
     followUpDialog.current?.close();
 
+    if (qualificationFindings.length > 0) {
+      setPending(false);
+      setQualificationTaskError(null);
+
+      window.setTimeout(() => {
+        qualificationTaskDialog.current?.showModal();
+      }, 0);
+
+      return;
+    }
+
     const saveAndSendResult =
       await persistDraftAndSendDocumentNotices(nextDraft);
 
@@ -944,6 +954,82 @@ export function GuidedCaseIntake({
     finishSaveAndSendNavigation(
       nextDraft.caseId,
       saveAndSendResult.sentCount,
+    );
+  };
+
+  const saveQualificationTask = async (
+    event: FormEvent<HTMLFormElement>,
+  ) => {
+    event.preventDefault();
+
+    if (!draft.caseId || pending) return;
+
+    const form = new FormData(event.currentTarget);
+    const assignedUserId = String(
+      form.get("assignedUserId") ?? "",
+    );
+    const dueDate = String(form.get("dueDate") ?? "");
+
+    if (
+      !assignedUserId ||
+      !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)
+    ) {
+      setQualificationTaskError(
+        "Select an assignee and valid Due Date.",
+      );
+      return;
+    }
+
+    setPending(true);
+    setQualificationTaskError(null);
+    setFormError(null);
+
+    const draftSaveResult = await saveGuidedIntakeDraftAction({
+      currentStep: step,
+      customerMode,
+      draft,
+      newCustomer: {
+        ...customerValues,
+        firstName: customerFirstName,
+        lastName: customerLastName,
+      },
+    });
+
+    if (!draftSaveResult.ok) {
+      setPending(false);
+      setQualificationTaskError(draftSaveResult.error);
+      return;
+    }
+
+    const taskResult =
+      await upsertGuidedIntakeQualificationTaskAction(
+        draft.caseId,
+        assignedUserId,
+        dueDate,
+      );
+
+    if (!taskResult.ok) {
+      setPending(false);
+      setQualificationTaskError(taskResult.error);
+      return;
+    }
+
+    const result =
+      await persistDraftAndSendDocumentNotices(draft);
+
+    setPending(false);
+    setSaveAndSendPending(false);
+
+    if (!result.ok) {
+      setQualificationTaskError(result.error);
+      return;
+    }
+
+    qualificationTaskDialog.current?.close();
+
+    finishSaveAndSendNavigation(
+      draft.caseId,
+      result.sentCount,
     );
   };
 
@@ -1239,6 +1325,18 @@ export function GuidedCaseIntake({
 
       window.setTimeout(() => {
         followUpDialog.current?.showModal();
+      }, 0);
+
+      return;
+    }
+
+    if (qualificationFindings.length > 0) {
+      setSaveAndSendPending(true);
+      setQualificationTaskError(null);
+      saveProgressDialog.current?.close();
+
+      window.setTimeout(() => {
+        qualificationTaskDialog.current?.showModal();
       }, 0);
 
       return;
@@ -2176,12 +2274,6 @@ export function GuidedCaseIntake({
         draft.answers,
       );
 
-    const qualificationFindings =
-      evaluateGuidedIntakeQualificationFindings(
-        configuration,
-        draft.answers,
-      );
-
     if (step === 0) {
       return (
         <>
@@ -2534,6 +2626,131 @@ export function GuidedCaseIntake({
           </button>
           <button type="submit" className="primary-button">
             Save Availability
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog
+      ref={qualificationTaskDialog}
+      className="task-modal"
+      onCancel={(event) => {
+        event.preventDefault();
+        setSaveAndSendPending(false);
+        setQualificationTaskError(null);
+        qualificationTaskDialog.current?.close();
+      }}
+    >
+      <form
+        className="task-modal-form"
+        onSubmit={saveQualificationTask}
+      >
+        <header>
+          <div>
+            <p className="eyebrow">Guided Intake Task</p>
+            <h2>Resolve qualification requirements</h2>
+          </div>
+          <button
+            type="button"
+            className="rule-dialog-close task-modal-close"
+            aria-label="Close qualification Task modal"
+            onClick={() => {
+              setSaveAndSendPending(false);
+              setQualificationTaskError(null);
+              qualificationTaskDialog.current?.close();
+            }}
+          >
+            <span aria-hidden>×</span>
+          </button>
+        </header>
+
+        <label>
+          <span>Task title</span>
+          <input
+            value="Resolve qualification requirements"
+            readOnly
+          />
+        </label>
+
+        <div className="intake-modal-context">
+          <b>Additional information needed</b>
+          <ul>
+            {qualificationFindings.map((finding) => (
+              <li key={finding.key}>
+                <strong>{finding.title}</strong>
+                {" — "}
+                {finding.message}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <label>
+          <span>Assigned to</span>
+          <select
+            name="assignedUserId"
+            required
+            defaultValue={
+              draft.staffUserIds[0] ||
+              configuration.staff[0]?.id ||
+              ""
+            }
+          >
+            <option value="">Select Staff</option>
+            {configuration.staff.map((member) => (
+              <option value={member.id} key={member.id}>
+                {member.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label>
+          <span>Status</span>
+          <input value="Waiting on Customer" readOnly />
+          <small>
+            System controlled until the Guided Intake answers
+            satisfy the qualification requirements.
+          </small>
+        </label>
+
+        <label>
+          <span>Due Date</span>
+          <input
+            type="date"
+            name="dueDate"
+            required
+            onChange={(event) => event.currentTarget.blur()}
+          />
+        </label>
+
+        {qualificationTaskError ? (
+          <p className="form-error" role="alert">
+            {qualificationTaskError}
+          </p>
+        ) : null}
+
+        <div className="task-modal-actions">
+          <button
+            type="button"
+            className="secondary-button"
+            disabled={pending}
+            onClick={() => {
+              setSaveAndSendPending(false);
+              setQualificationTaskError(null);
+              qualificationTaskDialog.current?.close();
+            }}
+          >
+            Keep Working
+          </button>
+          <button
+            type="submit"
+            className="primary-button"
+            disabled={pending}
+          >
+            {pending
+              ? "Saving…"
+              : "Save Task and Send Notice"}
           </button>
         </div>
       </form>

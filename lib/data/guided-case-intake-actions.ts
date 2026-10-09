@@ -41,6 +41,9 @@ import {
   MissingDocumentsNoticeError,
   sendMissingDocumentsNotice,
 } from "@/lib/data/missing-documents-notice-service";
+import {
+  evaluateGuidedIntakeQualificationFindings,
+} from "@/lib/guided-intake-qualification";
 
 export async function createInlineIntakeCustomerAction(
   values: CustomerCreationValues,
@@ -380,6 +383,39 @@ export async function saveGuidedIntakeDraftAction(
     };
   }
 
+  if (linkedCaseId) {
+    const qualificationFindings =
+      evaluateGuidedIntakeQualificationFindings(
+        configuration,
+        input.draft.answers,
+      );
+
+    const qualificationSync = await admin.rpc(
+      "sync_guided_intake_qualification_task" as never,
+      {
+        target_organization_id: organizationId,
+        target_case_id: linkedCaseId,
+        target_actor_user_id: access.user.id,
+        target_findings: qualificationFindings,
+      } as never,
+    );
+
+    if (qualificationSync.error) {
+      console.error("Guided Intake qualification Task synchronization failed", {
+        organizationId,
+        caseId: linkedCaseId,
+        code: qualificationSync.error.code,
+        message: qualificationSync.error.message,
+      });
+
+      return {
+        ok: false,
+        error:
+          "The intake was saved, but its qualification Task could not be synchronized. Please try again.",
+      };
+    }
+  }
+
   if (linkedCaseId && input.draft.followUpTasks.length) {
     const completedByFollowUpId = new Map(
       input.draft.followUpTasks.map((task) => [task.id, task.completed]),
@@ -654,6 +690,448 @@ export type SendGuidedIntakeMissingDocumentsNoticeResult =
       statusUpdated: boolean;
     }
   | { ok: false; error: string };
+
+export type UpsertGuidedIntakeQualificationTaskResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function upsertGuidedIntakeQualificationTaskAction(
+  caseId: string,
+  assignedUserId: string,
+  dueDate: string,
+): Promise<UpsertGuidedIntakeQualificationTaskResult> {
+  const { access, configuration } =
+    await loadGuidedCaseIntakeValidationConfiguration(caseId);
+  const organization = access.activeOrganization!;
+
+  if (
+    !hasPermission(access, "WORK_TASKS") ||
+    !assignedUserId ||
+    !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)
+  ) {
+    return {
+      ok: false,
+      error: "Select an assignee and valid Due Date.",
+    };
+  }
+
+  const admin = createAdminClient();
+
+  const [draftResult, stateResult] = await Promise.all([
+    admin
+      .from("guided_case_intake_drafts")
+      .select("answers")
+      .eq("organization_id", organization.id)
+      .eq("case_id", caseId)
+      .is("finalized_at", null)
+      .maybeSingle(),
+    admin.rpc(
+      "get_guided_intake_qualification_notice_state" as never,
+      {
+        target_organization_id: organization.id,
+        target_case_id: caseId,
+      } as never,
+    ),
+  ]);
+
+  if (draftResult.error || !draftResult.data || stateResult.error) {
+    return {
+      ok: false,
+      error: "The qualification Task could not be prepared.",
+    };
+  }
+
+  const answers =
+    draftResult.data.answers &&
+    typeof draftResult.data.answers === "object" &&
+    !Array.isArray(draftResult.data.answers)
+      ? (draftResult.data.answers as Record<string, unknown>)
+      : {};
+
+  const findings =
+    evaluateGuidedIntakeQualificationFindings(
+      configuration,
+      answers,
+    );
+
+  if (!findings.length) {
+    return {
+      ok: false,
+      error: "The qualification requirements are already satisfied.",
+    };
+  }
+
+  const stateData =
+    (stateResult as unknown as { data: unknown }).data;
+
+  const taskId =
+    stateData &&
+    typeof stateData === "object" &&
+    !Array.isArray(stateData) &&
+    typeof (stateData as Record<string, unknown>).task_id === "string"
+      ? String((stateData as Record<string, unknown>).task_id)
+      : null;
+
+  if (taskId) {
+    const existingResult = await admin
+      .from("case_tasks")
+      .select("assigned_user_id")
+      .eq("organization_id", organization.id)
+      .eq("case_id", caseId)
+      .eq("id", taskId)
+      .maybeSingle();
+
+    if (existingResult.error || !existingResult.data) {
+      return {
+        ok: false,
+        error: "The qualification Task could not be loaded.",
+      };
+    }
+
+    if (
+      existingResult.data.assigned_user_id !== assignedUserId
+    ) {
+      const role = organization.role;
+      const mayReassign =
+        !access.isSuperAdmin &&
+        hasPermission(access, "ASSIGN_TASKS") &&
+        (
+          role === "BUSINESS_OWNER" ||
+          role === "STAFF_MANAGER"
+        );
+
+      if (!mayReassign) {
+        return {
+          ok: false,
+          error:
+            "Only a Business Owner or Staff Manager may reassign this Task.",
+        };
+      }
+    }
+  }
+
+  const syncResult = await admin.rpc(
+    "sync_guided_intake_qualification_task" as never,
+    {
+      target_organization_id: organization.id,
+      target_case_id: caseId,
+      target_actor_user_id: access.user.id,
+      target_findings: findings,
+      target_assigned_user_id: assignedUserId,
+      target_due_date: dueDate,
+    } as never,
+  );
+
+  if (syncResult.error) {
+    console.error("Guided Intake qualification Task save failed", {
+      organizationId: organization.id,
+      caseId,
+      code: syncResult.error.code,
+      message: syncResult.error.message,
+    });
+
+    return {
+      ok: false,
+      error: "The qualification Task could not be saved.",
+    };
+  }
+
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/cases");
+  revalidatePath(`/cases/${caseId}`);
+
+  return { ok: true };
+}
+
+export type SendGuidedIntakeCustomerRequirementsNoticeResult =
+  | {
+      ok: true;
+      sent: boolean;
+      recipientEmail: string;
+      documentTaskIds: string[];
+      qualificationIncluded: boolean;
+      statusUpdated: boolean;
+    }
+  | { ok: false; error: string };
+
+export async function sendGuidedIntakeCustomerRequirementsNoticeAction(
+  caseId: string,
+): Promise<SendGuidedIntakeCustomerRequirementsNoticeResult> {
+  const { access, configuration } =
+    await loadGuidedCaseIntakeValidationConfiguration(caseId);
+  const organization = access.activeOrganization!;
+
+  if (!hasPermission(access, "WORK_TASKS")) {
+    return {
+      ok: false,
+      error: "You are not authorized to send this Customer notice.",
+    };
+  }
+
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const [
+    caseResult,
+    draftResult,
+    taskResult,
+    qualificationNoticeStateResult,
+  ] = await Promise.all([
+    supabase
+      .from("cases")
+      .select("id,case_number,customer_id")
+      .eq("organization_id", organization.id)
+      .eq("id", caseId)
+      .maybeSingle(),
+    admin
+      .from("guided_case_intake_drafts")
+      .select("answers")
+      .eq("organization_id", organization.id)
+      .eq("case_id", caseId)
+      .is("finalized_at", null)
+      .maybeSingle(),
+    supabase
+      .from("case_tasks")
+      .select(
+        "id,intake_follow_up_id,intake_requirement_context,status",
+      )
+      .eq("organization_id", organization.id)
+      .eq("case_id", caseId)
+      .not("intake_follow_up_id", "is", null),
+    admin.rpc(
+      "get_guided_intake_qualification_notice_state" as never,
+      {
+        target_organization_id: organization.id,
+        target_case_id: caseId,
+      } as never,
+    ),
+  ]);
+
+  if (caseResult.error || !caseResult.data) {
+    return { ok: false, error: "The Case is not available." };
+  }
+
+  if (draftResult.error || !draftResult.data) {
+    return {
+      ok: false,
+      error: "The Guided Intake draft is not available.",
+    };
+  }
+
+  if (taskResult.error || qualificationNoticeStateResult.error) {
+    console.error("Guided Intake Customer requirements notice lookup failed", {
+      organizationId: organization.id,
+      caseId,
+      taskCode: taskResult.error?.code,
+      qualificationCode: qualificationNoticeStateResult.error?.code,
+    });
+
+    return {
+      ok: false,
+      error: "The Customer requirements could not be prepared.",
+    };
+  }
+
+  const currentCase = caseResult.data;
+
+  const customerResult = await supabase
+    .from("customers")
+    .select("id,name,email,status")
+    .eq("organization_id", organization.id)
+    .eq("id", currentCase.customer_id)
+    .maybeSingle();
+
+  if (customerResult.error || !customerResult.data) {
+    return { ok: false, error: "The Customer is not available." };
+  }
+
+  const customer = customerResult.data;
+
+  const answers =
+    draftResult.data.answers &&
+    typeof draftResult.data.answers === "object" &&
+    !Array.isArray(draftResult.data.answers)
+      ? (draftResult.data.answers as Record<string, unknown>)
+      : {};
+
+  const qualificationFindings =
+    evaluateGuidedIntakeQualificationFindings(
+      configuration,
+      answers,
+    );
+
+  const qualificationNoticeStateData =
+    (
+      qualificationNoticeStateResult as unknown as {
+        data: unknown;
+      }
+    ).data;
+
+  const qualificationNoticeState =
+    qualificationNoticeStateData &&
+    typeof qualificationNoticeStateData === "object" &&
+    !Array.isArray(qualificationNoticeStateData)
+      ? (qualificationNoticeStateData as Record<string, unknown>)
+      : {};
+
+  const qualificationNeedsNotice =
+    qualificationFindings.length > 0 &&
+    typeof qualificationNoticeState.notice_sent_at !== "string";
+
+  const documentTaskIds: string[] = [];
+  const unsentDocumentTaskIds: string[] = [];
+  const documentLabels = new Set<string>();
+
+  for (const task of taskResult.data ?? []) {
+    if (
+      task.status === "COMPLETED" ||
+      task.status === "NOT_APPLICABLE" ||
+      task.status === "REQUIRED_UNAVAILABLE"
+    ) {
+      continue;
+    }
+
+    const context =
+      task.intake_requirement_context &&
+      typeof task.intake_requirement_context === "object" &&
+      !Array.isArray(task.intake_requirement_context)
+        ? (task.intake_requirement_context as Record<string, unknown>)
+        : null;
+
+    if (context?.kind !== "DOCUMENT_REQUIREMENT") continue;
+
+    const labels = Array.isArray(context.missing_option_labels)
+      ? context.missing_option_labels.filter(
+          (value): value is string =>
+            typeof value === "string" && value.trim().length > 0,
+        )
+      : [];
+
+    if (!labels.length) continue;
+
+    documentTaskIds.push(task.id);
+
+    for (const label of labels) {
+      documentLabels.add(label.trim());
+    }
+
+    if (typeof context.notice_sent_at !== "string") {
+      unsentDocumentTaskIds.push(task.id);
+    }
+  }
+
+  const shouldSend =
+    unsentDocumentTaskIds.length > 0 ||
+    qualificationNeedsNotice;
+
+  if (!shouldSend) {
+    return {
+      ok: true,
+      sent: false,
+      recipientEmail: customer.email ?? "",
+      documentTaskIds,
+      qualificationIncluded: qualificationFindings.length > 0,
+      statusUpdated: true,
+    };
+  }
+
+  const additionalInformation = qualificationFindings
+    .map(
+      (finding) =>
+        `${finding.title}: ${finding.message}`,
+    )
+    .join("\n");
+
+  try {
+    await sendMissingDocumentsNotice({
+      organizationId: organization.id,
+      organizationName: organization.name,
+      customerId: customer.id,
+      customerName: customer.name,
+      customerEmail: customer.email,
+      caseId,
+      caseNumber: currentCase.case_number,
+      missingDocuments: [...documentLabels].join(", "),
+      additionalInformation,
+      actorUserId: access.user.id,
+    });
+  } catch (error) {
+    console.error("Guided Intake Customer requirements notice failed", {
+      organizationId: organization.id,
+      caseId,
+      message:
+        error instanceof Error
+          ? error.message
+          : "Unknown error",
+    });
+
+    return {
+      ok: false,
+      error:
+        error instanceof MissingDocumentsNoticeError
+          ? error.safeMessage
+          : "The Customer notice could not be sent.",
+    };
+  }
+
+  let statusUpdated = true;
+
+  for (const taskId of unsentDocumentTaskIds) {
+    const statusResult = await supabase.rpc(
+      "mark_intake_requirement_notice_sent",
+      {
+        target_task_id: taskId,
+      },
+    );
+
+    if (statusResult.error) {
+      statusUpdated = false;
+      console.error("Guided Intake document notice status update failed", {
+        organizationId: organization.id,
+        caseId,
+        taskId,
+        code: statusResult.error.code,
+        message: statusResult.error.message,
+      });
+    }
+  }
+
+  if (qualificationNeedsNotice) {
+    const qualificationStatusResult = await admin.rpc(
+      "mark_guided_intake_qualification_notice_sent" as never,
+      {
+        target_organization_id: organization.id,
+        target_case_id: caseId,
+      } as never,
+    );
+
+    if (qualificationStatusResult.error) {
+      statusUpdated = false;
+      console.error("Guided Intake qualification notice status update failed", {
+        organizationId: organization.id,
+        caseId,
+        code: qualificationStatusResult.error.code,
+        message: qualificationStatusResult.error.message,
+      });
+    }
+  }
+
+  revalidatePath("/");
+  revalidatePath("/tasks");
+  revalidatePath("/cases");
+  revalidatePath(`/cases/${caseId}`);
+  revalidatePath("/communications");
+
+  return {
+    ok: true,
+    sent: true,
+    recipientEmail: customer.email ?? "",
+    documentTaskIds,
+    qualificationIncluded: qualificationFindings.length > 0,
+    statusUpdated,
+  };
+}
 
 export async function sendGuidedIntakeMissingDocumentsNoticeAction(
   caseId: string,

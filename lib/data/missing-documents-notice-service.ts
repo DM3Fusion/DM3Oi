@@ -24,6 +24,7 @@ export async function sendMissingDocumentsNotice(input: {
   caseId: string;
   caseNumber: string;
   missingDocuments: string;
+  additionalInformation?: string;
   actorUserId: string;
 }) {
   let portalStatus;
@@ -54,50 +55,58 @@ export async function sendMissingDocumentsNotice(input: {
     );
   }
 
-  const admin = createAdminClient();
-  const settingsResult = await admin
-    .from("organization_settings")
-    .select(
-      "secure_document_system_url,document_submission_instructions",
-    )
-    .eq("organization_id", input.organizationId)
-    .maybeSingle();
+  const hasDocuments = input.missingDocuments.trim().length > 0;
+  let secureDocumentSystemUrl = "";
+  let documentSubmissionInstructions = "";
 
-  if (settingsResult.error) {
-    console.error("Missing documents routing settings lookup failed", {
-      organizationId: input.organizationId,
-      code: settingsResult.error.code,
-      message: settingsResult.error.message,
-    });
-    throw new MissingDocumentsNoticeError(
-      "Document submission settings could not be loaded.",
-    );
-  }
+  if (hasDocuments) {
+    const admin = createAdminClient();
+    const settingsResult = await admin
+      .from("organization_settings")
+      .select(
+        "secure_document_system_url,document_submission_instructions",
+      )
+      .eq("organization_id", input.organizationId)
+      .maybeSingle();
 
-  const secureDocumentSystemUrl =
-    settingsResult.data?.secure_document_system_url?.trim() ?? "";
-  const documentSubmissionInstructions =
-    settingsResult.data?.document_submission_instructions?.trim() ?? "";
+    if (settingsResult.error) {
+      console.error("Customer requirements routing settings lookup failed", {
+        organizationId: input.organizationId,
+        code: settingsResult.error.code,
+        message: settingsResult.error.message,
+      });
+      throw new MissingDocumentsNoticeError(
+        "Document submission settings could not be loaded.",
+      );
+    }
 
-  if (!secureDocumentSystemUrl || !documentSubmissionInstructions) {
-    throw new MissingDocumentsNoticeError(
-      "Configure the Secure Document System URL and Document Submission Instructions in Customer Portal settings before sending this notice.",
-    );
-  }
+    secureDocumentSystemUrl =
+      settingsResult.data?.secure_document_system_url?.trim() ?? "";
+    documentSubmissionInstructions =
+      settingsResult.data?.document_submission_instructions?.trim() ?? "";
 
-  let secureUrl: URL;
-  try {
-    secureUrl = new URL(secureDocumentSystemUrl);
-  } catch {
-    throw new MissingDocumentsNoticeError(
-      "The configured Secure Document System URL is invalid.",
-    );
-  }
+    if (!secureDocumentSystemUrl || !documentSubmissionInstructions) {
+      throw new MissingDocumentsNoticeError(
+        "Configure the Secure Document System URL and Document Submission Instructions in Customer Portal settings before sending a document request.",
+      );
+    }
 
-  if (secureUrl.protocol !== "https:") {
-    throw new MissingDocumentsNoticeError(
-      "The configured Secure Document System URL must use HTTPS.",
-    );
+    let secureUrl: URL;
+    try {
+      secureUrl = new URL(secureDocumentSystemUrl);
+    } catch {
+      throw new MissingDocumentsNoticeError(
+        "The configured Secure Document System URL is invalid.",
+      );
+    }
+
+    if (secureUrl.protocol !== "https:") {
+      throw new MissingDocumentsNoticeError(
+        "The configured Secure Document System URL must use HTTPS.",
+      );
+    }
+
+    secureDocumentSystemUrl = secureUrl.toString();
   }
 
   const firstName =
@@ -121,7 +130,8 @@ export async function sendMissingDocumentsNotice(input: {
       recipient_email: recipientEmail,
       case_number: input.caseNumber,
       missing_documents: input.missingDocuments,
-      secure_document_system_url: secureUrl.toString(),
+      additional_information: input.additionalInformation ?? "",
+      secure_document_system_url: secureDocumentSystemUrl,
       document_submission_instructions: documentSubmissionInstructions,
       action_url: `${baseUrl.replace(/\/$/, "")}/portal`,
     },
@@ -140,7 +150,7 @@ export async function sendMissingDocumentsNotice(input: {
     });
 
     throw new MissingDocumentsNoticeError(
-      "Customer Portal access was prepared, but the missing-documents notice could not be sent.",
+      "Customer Portal access was prepared, but the Customer requirements notice could not be sent.",
     );
   }
 
