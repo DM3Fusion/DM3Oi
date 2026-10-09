@@ -1192,7 +1192,11 @@ export function GuidedCaseIntake({
     const blockers = validateStep();
     setErrors(blockers);
     if (Object.keys(blockers).length) {
-      setFormError("Complete the highlighted items before continuing.");
+      setFormError(
+        step === 4 && blockers.qualificationRequirements
+          ? blockers.qualificationRequirements
+          : "Complete the highlighted items before continuing.",
+      );
       return;
     }
     setFormError(null);
@@ -3089,49 +3093,70 @@ export function GuidedCaseIntake({
 
           <ol className="intake-stepper" aria-label="Case intake progress">
             {guidedCaseIntakeSteps.map((label, index) => {
-              const completed = index < step;
+              const visited = index < step;
               const current = index === step;
+              const qualificationActionRequired =
+                index === 3 &&
+                visited &&
+                blockingQualificationFindings.length > 0;
+              const completed = visited && !qualificationActionRequired;
               const identityLocked = Boolean(draft.caseId) && index < 2;
 
               return (
                 <li
                   key={label}
-                  className={current ? "active" : completed ? "complete" : ""}
+                  className={
+                    current
+                      ? "active"
+                      : qualificationActionRequired
+                        ? "action-required"
+                        : completed
+                          ? "complete"
+                          : ""
+                  }
                   aria-current={current ? "step" : undefined}
                 >
                   <button
                     type="button"
                     className="intake-step-tab"
-                    disabled={!completed || identityLocked}
+                    disabled={!visited || identityLocked}
                     onClick={() => {
-                      if (!completed || identityLocked) return;
+                      if (!visited || identityLocked) return;
                       setStep(index);
                       setErrors({});
                       setFormError(null);
                     }}
                     aria-label={
-                      completed && !identityLocked
-                        ? `Go back to ${label}`
-                        : identityLocked
-                          ? `${label}, Case identity is already established`
-                          : current
-                            ? `${label}, current step`
-                            : `${label}, not yet available`
+                      qualificationActionRequired
+                        ? `${label}, action required`
+                        : visited && !identityLocked
+                          ? `Go back to ${label}`
+                          : identityLocked
+                            ? `${label}, Case identity is already established`
+                            : current
+                              ? `${label}, current step`
+                              : `${label}, not yet available`
                     }
                   >
                     <span aria-hidden>
-                      {completed ? "✓" : index + 1}
+                      {qualificationActionRequired
+                        ? "!"
+                        : completed
+                          ? "✓"
+                          : index + 1}
                     </span>
                     <span className="intake-step-copy">
                       <b>{label}</b>
                       <small>
                         {current
                           ? "Current"
-                          : completed
-                            ? identityLocked
-                              ? "Complete · Locked"
-                              : "Complete"
-                            : "Pending"}
+                          : qualificationActionRequired
+                            ? "Action Required"
+                            : completed
+                              ? identityLocked
+                                ? "Complete · Locked"
+                                : "Complete"
+                              : "Pending"}
                       </small>
                     </span>
                   </button>
@@ -3230,7 +3255,8 @@ export function GuidedCaseIntake({
                 pending ||
                 portalPending ||
                 (step === 2 && !requiredQuestionsResolved) ||
-                (step === 3 && !portalResolved)
+                (step === 3 && !portalResolved) ||
+                (step === 4 && blockingQualificationFindings.length > 0)
               }
               title={
                 step === 2 && !requiredQuestionsResolved

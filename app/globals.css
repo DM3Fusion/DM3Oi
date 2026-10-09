@@ -14463,3 +14463,45 @@ dialog.intake-save-progress-modal {
     width: 100%;
   }
 }
+
+
+/* Guided Intake qualification-blocked workflow states. */
+.guided-case-intake
+  .intake-stepper
+  li.action-required
+  > .intake-step-tab
+  > span:first-child {
+  border-color: #d99121;
+  background: #fff7e6;
+  color: #9a570b;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.action-required
+  > .intake-step-tab
+  > .intake-step-copy
+  > b {
+  color: #7c4a13;
+}
+
+.guided-case-intake
+  .intake-stepper
+  li.action-required
+  > .intake-step-tab
+  > .intake-step-copy
+  > small {
+  color: #9a570b;
+  font-weight: 750;
+}
+
+.guided-case-intake
+  .intake-workspace-footer
+  .primary-button:disabled {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #64748b;
+  opacity: 1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
