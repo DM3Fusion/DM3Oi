@@ -169,12 +169,8 @@ export function PlatformDashboard({
               Platform Intelligence
             </span>
             <h2>Platform Analytics</h2>
-            <p className="muted">
-              First-party DM3Oi activity.
-              Reporting periods use UTC.
-            </p>
-            <p className="muted admin-analytics-trusted-baseline">
-              Trusted analytics data begins{" "}
+            <p className="muted admin-analytics-summary">
+              First-party DM3Oi activity. Reporting periods use UTC. Trusted analytics data begins{" "}
               <time dateTime={analytics.trustedDataStartedAt}>
                 {trustedAnalyticsStartLabel(
                   analytics.trustedDataStartedAt,
