@@ -2326,7 +2326,7 @@ export function GuidedCaseIntake({
       );
     }
 
-    if (step === 2) {
+    if (step === 2 || step === 3) {
       return (
         <div className="intake-context-card-grid">
           <section
@@ -2418,38 +2418,6 @@ export function GuidedCaseIntake({
             )}
           </section>
         </div>
-      );
-    }
-
-    if (step === 3) {
-      return (
-        <>
-          <p className="intake-context-eyebrow">Requirements</p>
-          <h3>Case Readiness</h3>
-          <div className="intake-context-progress">
-            <div>
-              <strong>{outstandingDocumentLabels.length}</strong>
-              <span>Documents Outstanding</span>
-            </div>
-            <div>
-              <strong>
-                {draft.followUpTasks.filter((task) => !task.completed).length}
-              </strong>
-              <span>Open Follow-up Tasks</span>
-            </div>
-          </div>
-          <div className="intake-context-divider" />
-          <div className="intake-context-list">
-            <div>
-              <span>Portal</span>
-              <strong>{portalResolved ? "Resolved" : "Action Required"}</strong>
-            </div>
-            <div>
-              <span>Generated Tasks</span>
-              <strong>{evaluation.generatedTasks.length}</strong>
-            </div>
-          </div>
-        </>
       );
     }
 
@@ -3177,7 +3145,7 @@ export function GuidedCaseIntake({
 
         <aside
           className={
-            step === 2
+            step === 2 || step === 3
               ? "intake-context-panel intake-context-panel-question-step"
               : "intake-context-panel"
           }
