@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  evaluateGuidedIntakeFilingStatusQualificationFindings,
   evaluateGuidedIntakeQualificationFindings,
   getGuidedIntakeFilingStatusLabel,
 } from "@/lib/guided-intake-qualification";
@@ -500,6 +501,13 @@ export function GuidedCaseIntake({
   );
   const qualificationFindings =
     evaluateGuidedIntakeQualificationFindings(
+      configuration,
+      draft.answers,
+    );
+
+
+  const blockingQualificationFindings =
+    evaluateGuidedIntakeFilingStatusQualificationFindings(
       configuration,
       draft.answers,
     );
@@ -1113,10 +1121,15 @@ export function GuidedCaseIntake({
           : {}),
       };
     }
-    // Review is a summary step. Earlier steps were already validated while
-    // advancing through the intake, and Finish Intake performs the authoritative
-    // full server-side validation before finalization. Do not surface hidden
-    // field errors on Review that the user cannot resolve from this screen.
+    if (step === 4 && blockingQualificationFindings.length > 0) {
+      return {
+        qualificationRequirements:
+          "Resolve the filing-status qualification requirements before finishing Guided Intake.",
+      };
+    }
+
+    // Review is otherwise a summary step. Finish Intake still performs the
+    // authoritative full server-side validation before finalization.
     return {};
   };
 
@@ -2425,7 +2438,11 @@ export function GuidedCaseIntake({
       return (
         <>
           <p className="intake-context-eyebrow">Review</p>
-          <h3>Ready to Finish?</h3>
+          <h3>
+            {blockingQualificationFindings.length > 0
+              ? "Qualification Required"
+              : "Ready to Finish?"}
+          </h3>
           <div className="intake-context-list">
             <div>
               <span>Customer</span>
@@ -2448,6 +2465,13 @@ export function GuidedCaseIntake({
               </strong>
             </div>
           </div>
+
+          {blockingQualificationFindings.length > 0 ? (
+            <p className="intake-context-help">
+              Resolve the filing-status qualification requirements before
+              finishing Guided Intake.
+            </p>
+          ) : null}
         </>
       );
     }
@@ -3213,7 +3237,10 @@ export function GuidedCaseIntake({
                   ? "Complete all required questions before continuing."
                   : step === 3 && !portalResolved
                     ? "Resolve Customer Portal onboarding before continuing."
-                    : undefined
+                    : step === 4 &&
+                        blockingQualificationFindings.length > 0
+                      ? "Resolve the filing-status qualification requirements before finishing Guided Intake."
+                      : undefined
               }
             >
               {pending &&
@@ -3227,7 +3254,17 @@ export function GuidedCaseIntake({
             <button
               type="button"
               className="primary-button"
-              disabled={pending || portalPending || !portalResolved}
+              disabled={
+                pending ||
+                portalPending ||
+                !portalResolved ||
+                blockingQualificationFindings.length > 0
+              }
+              title={
+                blockingQualificationFindings.length > 0
+                  ? "Resolve the filing-status qualification requirements before finishing Guided Intake."
+                  : undefined
+              }
               onClick={async () => {
                 setPending(true);
                 setFormError(null);

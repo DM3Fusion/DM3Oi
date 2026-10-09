@@ -287,3 +287,17 @@ export function evaluateGuidedIntakeQualificationFindings(
 
   return findings;
 }
+
+export function evaluateGuidedIntakeFilingStatusQualificationFindings(
+  configuration: QualificationConfiguration,
+  answers: QualificationAnswers,
+): GuidedIntakeQualificationFinding[] {
+  return evaluateGuidedIntakeQualificationFindings(
+    configuration,
+    answers,
+  ).filter(
+    (finding) =>
+      finding.key.startsWith("hoh-") ||
+      finding.key.startsWith("qss-"),
+  );
+}

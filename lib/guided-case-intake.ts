@@ -1,5 +1,8 @@
 import type { Json } from "../types/database";
 import {
+  evaluateGuidedIntakeFilingStatusQualificationFindings,
+} from "./guided-intake-qualification.ts";
+import {
   evaluateCaseRules,
   type EffectiveTaskAction,
   type RuleEvaluationAction,
@@ -1084,7 +1087,27 @@ export function validateGuidedCaseIntake(
       delete fieldErrors[`question.${task.questionId}`];
     followUpQuestionIds.add(task.questionId);
   }
-  return { valid: Object.keys(fieldErrors).length === 0, fieldErrors, evaluation };
+
+  // Filing-status qualification requirements remain authoritative.
+  // A workflow Task may track the required follow-up, but it must never
+  // substitute for answers that actually satisfy HOH/QSS eligibility.
+  const qualificationFindings =
+    evaluateGuidedIntakeFilingStatusQualificationFindings(
+      configuration,
+      draft.answers,
+    );
+
+  for (const finding of qualificationFindings) {
+    for (const questionId of finding.questionIds) {
+      fieldErrors[`question.${questionId}`] = finding.message;
+    }
+  }
+
+  return {
+    valid: Object.keys(fieldErrors).length === 0,
+    fieldErrors,
+    evaluation,
+  };
 }
 
 export function buildGuidedIntakeCreationPlan(

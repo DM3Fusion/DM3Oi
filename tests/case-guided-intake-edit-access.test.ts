@@ -178,7 +178,7 @@ test("Edit Case preserves the Guided Intake customer mode established before mat
 });
 
 
-test("Review advances without re-running hidden step validation", () => {
+test("Review remains a summary step except for filing-status qualification blockers", () => {
   const component = fs.readFileSync(
     "components/cases/guided-case-intake.tsx",
     "utf8",
@@ -190,7 +190,11 @@ test("Review advances without re-running hidden step validation", () => {
 
   assert.match(
     validation,
-    /Review is a summary step[\s\S]*return \{\};/,
+    /if \(step === 4 && blockingQualificationFindings\.length > 0\)[\s\S]*qualificationRequirements:[\s\S]*Resolve the filing-status qualification requirements before finishing Guided Intake\./,
+  );
+  assert.match(
+    validation,
+    /Review is otherwise a summary step[\s\S]*return \{\};/,
   );
   assert.match(
     component,
