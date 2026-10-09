@@ -164,7 +164,7 @@ export function PlatformDashboard({
 
       <section className="admin-analytics">
         <div className="admin-analytics-heading">
-          <div>
+          <div className="admin-analytics-intro">
             <span className="eyebrow">
               Platform Intelligence
             </span>
