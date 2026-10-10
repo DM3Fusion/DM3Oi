@@ -10,6 +10,11 @@ import {
 } from "../lib/legal-documents.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
+
+const termsSectionText = (heading: string) =>
+  termsOfService.sections
+    .find((section) => section.heading === heading)
+    ?.paragraphs.join(" ") ?? "";
 const migration = source(
   "supabase/migrations/20261004152000_dm3oi_managed_legal_documents.sql",
 );
@@ -51,18 +56,21 @@ test("legal content parser accepts fallbacks and rejects metadata, HTML, and bou
   }
 });
 
-test("code fallbacks remain the current v1.1 legal definitions", () => {
-  for (const documentKey of ["TERMS_OF_SERVICE", "PRIVACY_POLICY"] as const) {
-    const fallback = getFallbackLegalDocument(documentKey);
-    assert.equal(fallback.version, "1.1");
-    assert.equal(fallback.effectiveDate, "2026-10-04");
-  }
+test("code fallbacks retain the current legal publication metadata", () => {
+  const terms = getFallbackLegalDocument("TERMS_OF_SERVICE");
+  assert.equal(terms.version, "1.2");
+  assert.equal(terms.effectiveDate, "2026-10-10");
+
+  const privacy = getFallbackLegalDocument("PRIVACY_POLICY");
+  assert.equal(privacy.version, "1.1");
+  assert.equal(privacy.effectiveDate, "2026-10-04");
 });
 
 test("Terms use the complete sequential hosted SaaS structure", () => {
   const expectedTitles = [
     "Fees",
     "Service",
+    "Trial, Test Drive, and Evaluation Use",
     "Organization Accounts and Authorized Users",
     "Customer Data",
     "Acceptable Use and Security",
@@ -98,9 +106,8 @@ test("approved Fees language remains verbatim", () => {
 });
 
 test("Terms distinguish Customer Data rights from DM3Oi platform IP and limit processing", () => {
-  const customerData = termsOfService.sections[3]?.paragraphs.join(" ") ?? "";
-  const intellectualProperty =
-    termsOfService.sections[6]?.paragraphs.join(" ") ?? "";
+  const customerData = termsSectionText("5. Customer Data");
+  const intellectualProperty = termsSectionText("8. Intellectual Property");
 
   assert.match(customerData, /organization retains ownership and control/);
   assert.match(customerData, /do not transfer ownership of Customer Data/);
@@ -118,10 +125,9 @@ test("Terms distinguish Customer Data rights from DM3Oi platform IP and limit pr
 
 test("Terms retain operational safeguards without promising an SLA or replacing professional advice", () => {
   const termsText = JSON.stringify(termsOfService);
-  const thirdParty = termsOfService.sections[7]?.paragraphs.join(" ") ?? "";
-  const outputs = termsOfService.sections[9]?.paragraphs.join(" ") ?? "";
-  const communications =
-    termsOfService.sections[13]?.paragraphs.join(" ") ?? "";
+  const thirdParty = termsSectionText("9. Third-Party Services");
+  const outputs = termsSectionText("11. Reports, Outputs, and Business Reliance");
+  const communications = termsSectionText("15. Electronic Communications");
 
   assert.match(thirdParty, /hosting, database, authentication/);
   assert.match(thirdParty, /mapping or geocoding/);
@@ -136,7 +142,7 @@ test("Terms retain operational safeguards without promising an SLA or replacing 
 });
 
 test("measurement and public-results protections remain explicit", () => {
-  const measurement = termsOfService.sections[12]?.paragraphs.join(" ") ?? "";
+  const measurement = termsSectionText("14. Product Measurement and Aggregated Results");
 
   assert.match(measurement, /service usage, workflow activity, operational performance/);
   assert.match(
@@ -152,8 +158,7 @@ test("measurement and public-results protections remain explicit", () => {
 });
 
 test("customer indemnification is bounded to supplied content and material acceptable-use violations", () => {
-  const indemnification =
-    termsOfService.sections[16]?.paragraphs.join(" ") ?? "";
+  const indemnification = termsSectionText("18. Indemnification");
 
   assert.match(indemnification, /Customer Data or other content supplied by the organization/);
   assert.match(indemnification, /material violation of the acceptable-use obligations/);
@@ -178,7 +183,7 @@ test("Terms intentionally defer jurisdiction and public contact facts and exclud
 test("expanded Terms remain within aligned application and migration bounds", () => {
   const content = legalDocumentContent(termsOfService);
 
-  assert.equal(content.sections.length, 21);
+  assert.equal(content.sections.length, 22);
   assert.ok(content.sections.length <= 30);
   assert.ok(content.introduction.length <= 12);
   assert.ok(content.introduction.every((paragraph) => paragraph.length <= 4000));
@@ -189,6 +194,18 @@ test("expanded Terms remain within aligned application and migration bounds", ()
       section.paragraphs.every((paragraph) => paragraph.length <= 4000),
     ),
   );
+  const trialSection = termsOfService.sections.find(
+    (section) => section.heading === "3. Trial, Test Drive, and Evaluation Use",
+  );
+  assert.ok(trialSection);
+  const trialText = trialSection.paragraphs.join("\n");
+  assert.match(trialText, /fictitious, synthetic, anonymized/i);
+  assert.match(trialText, /non-production/i);
+  assert.match(trialText, /must not be relied upon as an operational system of record/i);
+  assert.match(trialText, /reset, or delete an evaluation environment/i);
+  assert.match(trialText, /authorized Business Owner must accept/i);
+  assert.match(trialText, /clean operational environment/i);
+
   assert.deepEqual(parseLegalDocumentContent("TERMS_OF_SERVICE", content), content);
   assert.match(
     migration,
