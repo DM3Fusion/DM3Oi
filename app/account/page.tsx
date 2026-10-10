@@ -6,6 +6,11 @@ import { signOutAction } from "@/lib/auth/actions";
 import { getApplicationVersionLabel } from "@/lib/app-version";
 import { mobileSecondaryNavigation } from "@/lib/application-navigation";
 import { getNewTrialRequestCount } from "@/lib/data/trial-request-repository";
+import { getMyOrganizationLegalState } from "@/lib/data/organization-legal-repository";
+import {
+  acceptOrganizationLegalDocumentsAction,
+  withdrawOrganizationLegalAcceptanceAction,
+} from "@/lib/data/organization-legal-actions";
 
 export default async function Page() {
   const access = await requireAuthenticatedInternalUser();
@@ -14,6 +19,15 @@ export default async function Page() {
   const newTrialRequestCount = platformContext
     ? await getNewTrialRequestCount()
     : 0;
+
+  const legalState = access.activeOrganization
+    ? await getMyOrganizationLegalState(
+        access.activeOrganization.id,
+      )
+    : null;
+
+  const isBusinessOwner =
+    access.activeOrganization?.role === "BUSINESS_OWNER";
 
   return (
     <>
@@ -46,6 +60,126 @@ export default async function Page() {
           ))}
         </nav>
       </section>
+
+      {access.activeOrganization && legalState ? (
+        <section
+          className="panel detail-section"
+          aria-labelledby="organization-legal-heading"
+        >
+          <div className="section-head">
+            <div>
+              <h2 id="organization-legal-heading">
+                Organization Legal Authorization
+              </h2>
+              <p>
+                {legalState.display_name}
+              </p>
+            </div>
+            <strong>
+              {legalState.state.replaceAll("_", " ")}
+            </strong>
+          </div>
+
+          {legalState.current_documents ? (
+            <div className="detail-list">
+              <div>
+                <span>Terms of Service</span>
+                <strong>
+                  Version {legalState.current_documents.terms_version}
+                  {" · "}
+                  {legalState.current_documents.terms_effective_date}
+                </strong>
+              </div>
+              <div>
+                <span>Privacy Policy</span>
+                <strong>
+                  Version {legalState.current_documents.privacy_version}
+                  {" · "}
+                  {legalState.current_documents.privacy_effective_date}
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <p>
+              Current legal documents are not available for
+              organization authorization.
+            </p>
+          )}
+
+          {legalState.is_sandbox ? (
+            <p>
+              This organization is currently designated as Sandbox.
+            </p>
+          ) : null}
+
+          {isBusinessOwner &&
+          legalState.current_documents &&
+          legalState.state !== "ACTIVE" ? (
+            <form
+              action={acceptOrganizationLegalDocumentsAction}
+              className="entity-form"
+            >
+              <input
+                type="hidden"
+                name="organizationId"
+                value={access.activeOrganization.id}
+              />
+              <label>
+                <span>Business Owner authorization</span>
+                <span>
+                  <input
+                    type="checkbox"
+                    name="legalConsent"
+                    value="accepted"
+                    required
+                  />{" "}
+                  I have authority to bind this organization. I
+                  accept the current{" "}
+                  <Link href="/terms">Terms of Service</Link> and
+                  acknowledge the current{" "}
+                  <Link href="/privacy">Privacy Policy</Link>.
+                </span>
+              </label>
+              <div className="form-actions">
+                <PendingSubmitButton
+                  className="primary-button"
+                  pendingLabel="Accepting…"
+                >
+                  Accept for Organization
+                </PendingSubmitButton>
+              </div>
+            </form>
+          ) : null}
+
+          {isBusinessOwner &&
+          legalState.state === "ACTIVE" ? (
+            <form
+              action={withdrawOrganizationLegalAcceptanceAction}
+              className="form-actions"
+            >
+              <input
+                type="hidden"
+                name="organizationId"
+                value={access.activeOrganization.id}
+              />
+              <PendingSubmitButton
+                className="secondary-button"
+                pendingLabel="Withdrawing…"
+              >
+                Withdraw Organization Acceptance
+              </PendingSubmitButton>
+            </form>
+          ) : null}
+
+          {!isBusinessOwner &&
+          legalState.state !== "ACTIVE" ? (
+            <p>
+              A Business Owner must complete organization legal
+              authorization.
+            </p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section
         className="panel detail-section mobile-account-actions mobile-more-actions"

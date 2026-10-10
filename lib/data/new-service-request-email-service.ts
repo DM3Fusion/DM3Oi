@@ -9,6 +9,7 @@ import {
 } from "@/lib/email/delivery";
 import { sendTrackedTemplateEmail } from "@/lib/email/tracked-delivery";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 
 type NotificationRow = { id: string; recipient_user_id: string };
 type MemberRow = {
@@ -185,6 +186,12 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
         },
       };
 
+      const organizationDisplayName =
+        await resolveOrganizationDisplayName(
+          input.organizationId,
+          organizationResult.data!.name,
+        );
+
       const trackedProvider: EmailProvider = {
         send: () =>
           sendTrackedTemplateEmail({
@@ -196,7 +203,7 @@ export async function deliverNewServiceRequestNotificationEmails(input: {
               serviceRequestId: input.serviceRequestId,
             },
             variables: {
-              organization_name: organizationResult.data!.name,
+              organization_name: organizationDisplayName,
               recipient_first_name:
                 member.profiles.first_name?.trim() || recipientName.split(/\s+/)[0],
               recipient_name: recipientName,

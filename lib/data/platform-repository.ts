@@ -29,6 +29,10 @@ export type LicenseRow = Tables["organization_licenses"]["Row"];
 export type AvatarProfileRow = ProfileWithAvatar<ProfileRow>;
 export interface OrganizationAdminRow extends OrganizationRow {
   avatarUrl: string | null;
+  displayName: string;
+  isSandbox: boolean;
+  sandboxDesignationSuppressed: boolean;
+  legalState: string;
   license: LicenseRow | null;
   activeUsers: number;
   businessOwners: number;
@@ -156,6 +160,49 @@ async function loadPlatformData() {
     throw new Error("License administration data is temporarily unavailable.");
   }
   const licenses = licenseQuery.data;
+
+  type SandboxStateRow = {
+    organization_id: string;
+    canonical_name: string;
+    display_name: string;
+    is_sandbox: boolean;
+    sandbox_designation_suppressed: boolean;
+    legal_state: string;
+  };
+
+  type SandboxRpcResult = {
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  };
+
+  const sandboxRpc = supabase.rpc as unknown as (
+    fn: string,
+  ) => Promise<SandboxRpcResult>;
+
+  const sandboxStateResult =
+    await sandboxRpc("get_platform_organization_sandbox_states");
+
+  if (sandboxStateResult.error) {
+    console.error("Platform Sandbox state query failed", {
+      code: sandboxStateResult.error.code,
+      message: sandboxStateResult.error.message,
+    });
+    throw new Error(
+      "Organization Sandbox state is temporarily unavailable.",
+    );
+  }
+
+  const sandboxStates = Array.isArray(sandboxStateResult.data)
+    ? (sandboxStateResult.data as SandboxStateRow[])
+    : [];
+
+  const sandboxStateByOrganization = new Map(
+    sandboxStates.map((state) => [
+      state.organization_id,
+      state,
+    ]),
+  );
+
   const error =
     organizations.error ??
     memberships.error ??
@@ -191,7 +238,25 @@ async function loadPlatformData() {
     };
   }));
   return {
-    organizations: organizationsWithAvatars.map((org) => ({ ...org, license: (licenses ?? []).find((license) => license.organization_id === org.id) ?? null })),
+    organizations: organizationsWithAvatars.map((org) => {
+      const sandboxState =
+        sandboxStateByOrganization.get(org.id);
+
+      return {
+        ...org,
+        displayName:
+          sandboxState?.display_name?.trim() || org.name,
+        isSandbox: sandboxState?.is_sandbox === true,
+        sandboxDesignationSuppressed:
+          sandboxState?.sandbox_designation_suppressed === true,
+        legalState:
+          sandboxState?.legal_state ?? "NOT_CONFIGURED",
+        license:
+          (licenses ?? []).find(
+            (license) => license.organization_id === org.id,
+          ) ?? null,
+      };
+    }),
     memberships: memberships.data ?? [],
     profiles: hydratedProfiles,
     platformRoles: platformRoles.data ?? [],
@@ -498,6 +563,47 @@ export async function getOrganizationAdministration(id: string) {
 
   const baseOrganization = organizationResult.data;
 
+  type OrganizationSandboxAuditProjection = {
+    display_name?: string;
+    is_sandbox?: boolean;
+    sandbox_designation_suppressed?: boolean;
+    legal_state?: string;
+  };
+
+  type OrganizationSandboxAuditRpcResult = {
+    data: unknown;
+    error: { code?: string; message: string } | null;
+  };
+
+  const organizationSandboxAuditRpc =
+    supabase.rpc as unknown as (
+      fn: string,
+      args: Record<string, unknown>,
+    ) => Promise<OrganizationSandboxAuditRpcResult>;
+
+  const organizationSandboxAuditResult =
+    await organizationSandboxAuditRpc(
+      "get_organization_legal_audit_admin",
+      {
+        target_organization_id: id,
+      },
+    );
+
+  if (organizationSandboxAuditResult.error) {
+    console.error("Organization Sandbox state query failed", {
+      organizationId: id,
+      code: organizationSandboxAuditResult.error.code,
+      message: organizationSandboxAuditResult.error.message,
+    });
+    throw new Error(
+      "Organization Sandbox state is temporarily unavailable.",
+    );
+  }
+
+  const organizationSandboxAudit =
+    (organizationSandboxAuditResult.data ??
+      null) as OrganizationSandboxAuditProjection | null;
+
   const organizationAvatarUrl = await resolveOwnedOrganizationAvatarUrl(
     baseOrganization.avatar_path,
     baseOrganization.id,
@@ -516,6 +622,17 @@ export async function getOrganizationAdministration(id: string) {
   const organization: OrganizationAdminRow = {
     ...baseOrganization,
     avatarUrl: organizationAvatarUrl,
+    displayName:
+      organizationSandboxAudit?.display_name?.trim() ||
+      baseOrganization.name,
+    isSandbox:
+      organizationSandboxAudit?.is_sandbox === true,
+    sandboxDesignationSuppressed:
+      organizationSandboxAudit
+        ?.sandbox_designation_suppressed === true,
+    legalState:
+      organizationSandboxAudit?.legal_state ??
+      "NOT_CONFIGURED",
     license: licenseResult.data ?? null,
     activeUsers: activeMemberships.length,
     businessOwners: activeMemberships.filter(

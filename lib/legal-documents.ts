@@ -26,7 +26,7 @@ export const termsOfService = {
   type: "TERMS_OF_SERVICE",
   title: "Terms of Service",
   version: "1.2",
-  effectiveDate: "2026-10-10",
+  effectiveDate: "2026-10-09",
   introduction: [
     "These Terms of Service govern access to and use of DM3Oi Business Operations Intelligence by a customer organization and its authorized users.",
     "By accepting these Terms on behalf of an organization, the Business Owner represents that the Business Owner has authority to bind the organization to these Terms. The organization is responsible for use of DM3Oi by its authorized users.",

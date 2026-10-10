@@ -60,7 +60,10 @@ test("organization rows are fully navigable and retain a real accessible link", 
     organizationTable,
     /const href = `\/admin\/organizations\/\$\{organization\.id\}`/,
   );
-  assert.match(organizationTable, /label=\{`Open organization \$\{organization\.name\}`\}/);
+  assert.match(
+    organizationTable,
+    /label=\{`Open organization \$\{organization\.displayName\}`\}/,
+  );
   assert.match(organizationTable, /className="entity-row-link" href=\{href\}/);
 });
 

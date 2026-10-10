@@ -3,6 +3,7 @@ import {
   sendTrackedTemplateEmail,
   type TrackedEmailDeliveryResult,
 } from "@/lib/email/tracked-delivery";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 
 export async function sendCustomerPortalInvitationEmail(
   input: {
@@ -15,7 +16,15 @@ export async function sendCustomerPortalInvitationEmail(
     invitationUrl: string;
   },
 ): Promise<TrackedEmailDeliveryResult> {
-  const firstName = input.recipientName.trim().split(/\s+/)[0] || "Customer";
+  const firstName =
+    input.recipientName.trim().split(/\s+/)[0] || "Customer";
+
+  const organizationDisplayName =
+    await resolveOrganizationDisplayName(
+      input.organizationId,
+      input.organizationName,
+    );
+
   return sendTrackedTemplateEmail({
     templateKey: "CUSTOMER_PORTAL_INVITATION",
     recipientEmail: input.recipientEmail,
@@ -25,7 +34,7 @@ export async function sendCustomerPortalInvitationEmail(
       customerId: input.customerId,
     },
     variables: {
-      organization_name: input.organizationName,
+      organization_name: organizationDisplayName,
       recipient_first_name: firstName,
       recipient_name: input.recipientName,
       recipient_email: input.recipientEmail,

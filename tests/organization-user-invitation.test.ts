@@ -93,7 +93,7 @@ test("invitation reuses canonical Auth, profile, and membership infrastructure",
   assert.match(actions, /redirectTo: getInvitationRedirect\(\)/);
   assert.match(actions, /first_name: firstName/);
   assert.match(actions, /last_name: lastName/);
-  assert.match(actions, /organization_name: activeOrganization\.name/);
+  assert.match(actions, /organization_name: activeOrganization\.displayName/);
   assert.match(actions, /\.from\("organization_members"\)/);
   assert.match(actions, /deleteUser\(userId\)|deleteUser\(targetUserId\)/);
   assert.match(actions, /revalidatePath\("\/users"\)/);
@@ -171,7 +171,7 @@ test("organization name is server-derived for initial and reissued invitations",
   );
   assert.match(
     organizationFlow,
-    /organization_name: activeOrganization\.name/,
+    /organization_name: activeOrganization\.displayName/,
   );
   assert.match(
     organizationFlow,

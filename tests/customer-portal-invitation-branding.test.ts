@@ -198,7 +198,7 @@ test("success, resend, and duplicate-submit UI semantics are explicit", () => {
 
 test("internal and generic invitation contracts remain distinct", () => {
   assert.match(internalAction, /inviteUserByEmail/);
-  assert.match(internalAction, /organization_name: activeOrganization\.name/);
+  assert.match(internalAction, /organization_name: activeOrganization\.displayName/);
   assert.doesNotMatch(internalAction, /customer_portal/);
   assert.match(
     internalAction,

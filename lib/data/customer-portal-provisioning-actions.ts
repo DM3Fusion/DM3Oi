@@ -57,7 +57,7 @@ export async function manageCustomerPortalAccessAction(form: FormData) {
 
     const status = await provisionCustomerPortalAccess({
       organizationId: org.id,
-      organizationName: org.name,
+      organizationName: org.displayName,
       customerId,
       actorUserId: access.user.id,
       intent: intent === "resend" ? "RESEND" : "ENABLE",

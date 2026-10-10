@@ -415,7 +415,7 @@ export function AppShell({
           <div className="shell-context-label"><span>{platformContext ? "Platform" : "Organization"}</span></div>
           {!platformContext && org ? (
             <div>
-              <OrganizationAvatar name={org.name} src={org.avatarUrl} size="sm" />
+              <OrganizationAvatar name={org.displayName} src={org.avatarUrl} size="sm" />
               <div className="organization-details">
                 {access && access.organizations.length > 1 ? (
                   <form action={selectActiveOrganizationAction}>
@@ -430,13 +430,13 @@ export function AppShell({
                     >
                       {access.organizations.map((item) => (
                         <option key={item.id} value={item.id}>
-                          {item.name}
+                          {item.displayName}
                         </option>
                       ))}
                     </select>
                   </form>
                 ) : (
-                  <strong>{org.name}</strong>
+                  <strong>{org.displayName}</strong>
                 )}
                 <small className="sidebar-user-name">{access.displayName}</small>
               </div>

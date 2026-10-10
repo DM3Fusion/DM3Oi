@@ -36,7 +36,7 @@ test("valid selected access retains the existing organization-branded portal she
   assert.match(layout, /context\.organization\.avatar_path/);
   assert.match(layout, /context\.organization\.id/);
   assert.match(layout, /createSignedUrl\(ownedPath, 3600\)/);
-  assert.match(layout, /className="portal-org-name">\{context\.organization\.name\}/);
+  assert.match(layout, /className="portal-org-name">\{organizationDisplayName\}/);
   assert.match(
     layout,
     /<PortalHeader context=\{context\} hasMultipleAccounts=\{context\.links\.length > 1\}/,

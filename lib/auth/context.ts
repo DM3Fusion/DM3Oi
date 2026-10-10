@@ -67,6 +67,8 @@ type Role = Database["public"]["Enums"]["application_role"];
 export interface AuthorizedOrganization {
   id: string;
   name: string;
+  displayName: string;
+  isSandbox: boolean;
   slug: string;
   role: Role;
   avatarPath: string | null;
@@ -183,6 +185,8 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     type RpcOrganization = {
       id: string;
       name: string;
+      display_name?: string | null;
+      is_sandbox?: boolean;
       slug: string;
       avatar_path: string | null;
       avatar_updated_at: string | null;
@@ -230,6 +234,9 @@ async function resolveAccessContext(): Promise<AccessContext | null> {
     ).map((organization) => ({
       id: organization.id,
       name: organization.name,
+      displayName:
+        organization.display_name?.trim() || organization.name,
+      isSandbox: organization.is_sandbox === true,
       slug: organization.slug,
       role: organization.role,
       avatarPath: organization.avatar_path,

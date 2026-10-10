@@ -97,8 +97,8 @@ test("portal Case cards are non-navigational, responsive, and precede Service Re
 
 test("organization branding and the existing Service Request experience remain unchanged", () => {
   assert.match(layout, /context\.organization\.avatar_path/);
-  assert.match(layout, /OrganizationAvatar name=\{context\?\.organization\?\.name/);
-  assert.match(layout, /\{context\.organization\.name\}/);
+  assert.match(layout, /OrganizationAvatar name=\{organizationDisplayName \?\? "Organization"\}/);
+  assert.match(layout, /\{organizationDisplayName\}/);
   assert.doesNotMatch(layout + home, /Mimms['’] Tax Service|UserAvatar|avatarInitials/);
   assert.match(home, /<span>Open<\/span>/);
   assert.match(home, /<span>Closed<\/span>/);

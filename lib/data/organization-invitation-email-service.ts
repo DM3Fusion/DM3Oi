@@ -2,6 +2,7 @@ import "server-only";
 import { sendTrackedTemplateEmail } from "@/lib/email/tracked-delivery";
 import type { EmailTemplateKey } from "@/lib/email/templates";
 import type { TrackedEmailDeliveryResult } from "@/lib/email/tracked-delivery";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 
 const roleLabel = (role: string) =>
   role
@@ -10,7 +11,7 @@ const roleLabel = (role: string) =>
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ");
 
-export function sendOrganizationInvitationEmail(input: {
+export async function sendOrganizationInvitationEmail(input: {
   resend: boolean;
   organizationId: string;
   organizationName: string;
@@ -25,6 +26,13 @@ export function sendOrganizationInvitationEmail(input: {
   const templateKey: EmailTemplateKey = input.resend
     ? "ORGANIZATION_USER_INVITATION_RESEND"
     : "ORGANIZATION_USER_INVITATION";
+
+  const organizationDisplayName =
+    await resolveOrganizationDisplayName(
+      input.organizationId,
+      input.organizationName,
+    );
+
   return sendTrackedTemplateEmail({
     templateKey,
     recipientEmail: input.recipientEmail,
@@ -34,7 +42,7 @@ export function sendOrganizationInvitationEmail(input: {
       membershipId: input.membershipId,
     },
     variables: {
-      organization_name: input.organizationName,
+      organization_name: organizationDisplayName,
       recipient_first_name: input.recipientFirstName,
       recipient_name: input.recipientName,
       recipient_email: input.recipientEmail,

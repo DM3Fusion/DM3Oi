@@ -32,11 +32,11 @@ export function OrganizationTable({
               <NavigableRow
                 key={organization.id}
                 href={href}
-                label={`Open organization ${organization.name}`}
+                label={`Open organization ${organization.displayName}`}
               >
                 <td>
                   <Link className="entity-row-link" href={href}>
-                    {organization.name}
+                    {organization.displayName}
                   </Link>
                   <small className="table-secondary">
                     {organization.slug}

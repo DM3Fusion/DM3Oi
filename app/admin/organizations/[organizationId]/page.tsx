@@ -21,6 +21,9 @@ import { SuperAdminOrganizationReset } from "@/components/super-admin-organizati
 import { SuperAdminCaseDelete } from "@/components/super-admin-case-delete";
 import { SuperAdminOrganizationDelete } from "@/components/super-admin-organization-delete";
 import { isIncompleteCompatibilityCaseStatus } from "@/lib/case-lifecycle";
+import { getOrganizationLegalAuditAdmin } from "@/lib/data/organization-legal-repository";
+import { setOrganizationSandboxSuppressionAction } from "@/lib/data/organization-legal-actions";
+import { PendingSubmitButton } from "@/components/pending-submit-button";
 const roles = [
   "BUSINESS_OWNER",
   "BUSINESS_ADMIN",
@@ -41,8 +44,13 @@ export default async function Page({
   }>;
 }) {
   const [{ organizationId }, query] = await Promise.all([params, searchParams]);
-  const { organization, members, cases, customers, timezone } =
-    await getOrganizationAdministration(organizationId);
+  const [
+    { organization, members, cases, customers, timezone },
+    legalAudit,
+  ] = await Promise.all([
+    getOrganizationAdministration(organizationId),
+    getOrganizationLegalAuditAdmin(organizationId),
+  ]);
   const resetOwners = members
     .filter(
       (member) =>
@@ -78,7 +86,7 @@ export default async function Page({
     <>
       <PageHeader
         eyebrow="Platform Administration"
-        title={<span className="organization-header-title"><a href="#organization-avatar" className="organization-avatar-link" aria-label="Manage organization avatar"><OrganizationAvatar name={organization.name} src={organization.avatarUrl} size="lg" /></a><span>{organization.name}</span></span>}
+        title={<span className="organization-header-title"><a href="#organization-avatar" className="organization-avatar-link" aria-label="Manage organization avatar"><OrganizationAvatar name={organization.displayName} src={organization.avatarUrl} size="lg" /></a><span>{organization.displayName}</span></span>}
         description={`Organization administration · ${organization.slug}`}
         action={
           organization.status === "ACTIVE" ? (
@@ -161,6 +169,138 @@ export default async function Page({
         <div className="section-head"><div><h2>License / Subscription</h2><p>Platform-managed entitlement and commercial state.</p></div><Badge value={effective.status} /></div>
         <LicenseForm organizationId={organization.id} license={license} />
       </section>
+      <section className="panel detail-section">
+        <div className="section-head">
+          <div>
+            <h2>Legal / Sandbox</h2>
+            <p>
+              Organization legal authorization and the display-only
+              proof-of-concept exception.
+            </p>
+          </div>
+          <Badge
+            value={
+              legalAudit?.is_sandbox
+                ? "SANDBOX"
+                : legalAudit?.legal_state ?? "NOT_CONFIGURED"
+            }
+          />
+        </div>
+
+        {legalAudit ? (
+          <>
+            <dl className="detail-list">
+              <div>
+                <dt>Displayed organization</dt>
+                <dd>{legalAudit.display_name}</dd>
+              </div>
+              <div>
+                <dt>Legal state</dt>
+                <dd>{legalAudit.legal_state.replaceAll("_", " ")}</dd>
+              </div>
+              <div>
+                <dt>Sandbox</dt>
+                <dd>{legalAudit.is_sandbox ? "Yes" : "No"}</dd>
+              </div>
+              <div>
+                <dt>POC display exception</dt>
+                <dd>
+                  {legalAudit.sandbox_designation_suppressed
+                    ? "Sandbox designation suppressed"
+                    : "Automatic designation"}
+                </dd>
+              </div>
+            </dl>
+
+            <form
+              action={setOrganizationSandboxSuppressionAction}
+              className="entity-form"
+            >
+              <input
+                type="hidden"
+                name="organizationId"
+                value={organization.id}
+              />
+              <label>
+                <span>Sandbox designation</span>
+                <select
+                  name="sandboxSuppressed"
+                  defaultValue={
+                    legalAudit.sandbox_designation_suppressed
+                      ? "true"
+                      : "false"
+                  }
+                >
+                  <option value="false">
+                    Automatic
+                  </option>
+                  <option value="true">
+                    Suppress Sandbox designation for approved POC
+                  </option>
+                </select>
+              </label>
+              <p>
+                This changes display identity only. It does not
+                constitute Terms acceptance and does not change the
+                commercial state.
+              </p>
+              <div className="form-actions">
+                <PendingSubmitButton
+                  className="primary-button"
+                  pendingLabel="Saving…"
+                >
+                  Save Sandbox Setting
+                </PendingSubmitButton>
+              </div>
+            </form>
+
+            <div className="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Business Owner</th>
+                    <th>Terms</th>
+                    <th>Privacy</th>
+                    <th>When</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {legalAudit.events.length ? (
+                    legalAudit.events.map((event) => (
+                      <tr key={event.id}>
+                        <td>{event.event_type}</td>
+                        <td>
+                          {event.actor_display_name ||
+                            event.actor_email ||
+                            event.acted_by}
+                        </td>
+                        <td>v{event.terms_version}</td>
+                        <td>v{event.privacy_version}</td>
+                        <td>
+                          {formatOrganizationDateTime(
+                            event.acted_at,
+                            timezone,
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5}>
+                        No organization legal authorization events.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        ) : (
+          <p>Legal authorization state is unavailable.</p>
+        )}
+      </section>
+
       <section className="panel">
         <div className="section-head">
           <div>

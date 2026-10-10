@@ -8,10 +8,18 @@ import {
   resolveOwnedOrganizationAvatarUrl,
 } from "@/lib/profile/avatar";
 import { OrganizationAvatar } from "@/components/organization-avatar";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 
 export const viewport: Viewport = { viewportFit: "cover" };
 
 async function PortalHeader({ context, hasMultipleAccounts, enabled = true }: { context: Awaited<ReturnType<typeof getCustomerPortalContext>>; hasMultipleAccounts: boolean; enabled?: boolean }) {
+  const organizationDisplayName = context?.organization
+    ? await resolveOrganizationDisplayName(
+        context.organization.id,
+        context.organization.name,
+      )
+    : null;
+
   const organizationAvatarUrl = context?.organization
     ? await resolveOwnedOrganizationAvatarUrl(
         context.organization.avatar_path,
@@ -19,7 +27,7 @@ async function PortalHeader({ context, hasMultipleAccounts, enabled = true }: { 
         async (ownedPath) => (await createAdminClient().storage.from(ORGANIZATION_AVATAR_BUCKET).createSignedUrl(ownedPath, 3600)).data?.signedUrl ?? null,
       )
     : null;
-  return <header className="portal-header"><div className="portal-brand">{context?.organization ? <OrganizationAvatar name={context?.organization?.name ?? "Organization"} src={organizationAvatarUrl} size="md" /> : null}<span className="portal-brand-copy"><strong>DM3Oi™</strong><small>Customer Portal</small>{context?.organization?.name && <b className="portal-brand-organization portal-org-context"><span className="portal-org-prefix">for </span><span className="portal-org-name">{context.organization.name}</span></b>}</span></div><PortalNav hasMultipleAccounts={hasMultipleAccounts} enabled={enabled} /></header>;
+  return <header className="portal-header"><div className="portal-brand">{context?.organization ? <OrganizationAvatar name={organizationDisplayName ?? "Organization"} src={organizationAvatarUrl} size="md" /> : null}<span className="portal-brand-copy"><strong>DM3Oi™</strong><small>Customer Portal</small>{context?.organization?.name && <b className="portal-brand-organization portal-org-context"><span className="portal-org-prefix">for </span><span className="portal-org-name">{organizationDisplayName}</span></b>}</span></div><PortalNav hasMultipleAccounts={hasMultipleAccounts} enabled={enabled} /></header>;
 }
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {

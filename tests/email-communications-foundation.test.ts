@@ -116,7 +116,7 @@ test("initial and resent organization invitations include server-derived organiz
   assert.match(actions, /\.from\("organizations"\)\.select\("name"\)/);
   assert.match(service, /ORGANIZATION_USER_INVITATION_RESEND/);
   assert.match(service, /ORGANIZATION_USER_INVITATION/);
-  assert.match(service, /organization_name: input\.organizationName/);
+  assert.match(service, /organization_name: organizationDisplayName/);
   assert.doesNotMatch(actions, /value\(form, "organizationName"\)/);
 });
 

@@ -21,6 +21,7 @@ import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permission
 import { resolvePendingInviteIdentityRepair } from "@/lib/data/pending-invite-identity";
 import { sendOrganizationInvitationEmail } from "@/lib/data/organization-invitation-email-service";
 import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 type Role = Database["public"]["Enums"]["application_role"];
 const value = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const go = (path: string, key: string, message: string): never =>
@@ -113,6 +114,15 @@ export async function inviteUserAction(form: FormData) {
     organizationId,
     "/admin/users/new",
   );
+
+  const invitationOrganizationDisplayName =
+    invitationOrganization
+      ? await resolveOrganizationDisplayName(
+          invitationOrganization.id,
+          invitationOrganization.name,
+        )
+      : null;
+
   const { data: existing } = await session
     .from("profiles")
     .select("id")
@@ -200,7 +210,8 @@ export async function inviteUserAction(form: FormData) {
           display_name: displayName,
           title: title || null,
         },
-        invitationOrganization.name,
+        invitationOrganizationDisplayName ??
+          invitationOrganization.name,
       )
     : {
         first_name: firstName,
@@ -479,7 +490,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
             last_name: lastName,
             display_name: displayName,
             title: title || null,
-            organization_name: activeOrganization.name,
+            organization_name: activeOrganization.displayName,
           },
         },
       });
@@ -627,7 +638,7 @@ export async function inviteOrganizationUserAction(form: FormData) {
         data: {
           ...organizationInvitationMetadata(
             existingAuthUser.user_metadata,
-            activeOrganization.name,
+            activeOrganization.displayName,
           ),
           first_name: firstName,
           last_name: lastName,

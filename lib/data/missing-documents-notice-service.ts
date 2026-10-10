@@ -7,6 +7,7 @@ import {
   provisionCustomerPortalAccess,
 } from "@/lib/data/customer-portal-provisioning-service";
 import { sendTrackedTemplateEmail } from "@/lib/email/tracked-delivery";
+import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 
 export class MissingDocumentsNoticeError extends Error {
   constructor(public readonly safeMessage: string) {
@@ -27,12 +28,18 @@ export async function sendMissingDocumentsNotice(input: {
   additionalInformation?: string;
   actorUserId: string;
 }) {
+  const organizationDisplayName =
+    await resolveOrganizationDisplayName(
+      input.organizationId,
+      input.organizationName,
+    );
+
   let portalStatus;
 
   try {
     portalStatus = await provisionCustomerPortalAccess({
       organizationId: input.organizationId,
-      organizationName: input.organizationName,
+      organizationName: organizationDisplayName,
       customerId: input.customerId,
       actorUserId: input.actorUserId,
       intent: "SEND",
@@ -124,7 +131,7 @@ export async function sendMissingDocumentsNotice(input: {
       caseId: input.caseId,
     },
     variables: {
-      organization_name: input.organizationName,
+      organization_name: organizationDisplayName,
       recipient_first_name: firstName,
       recipient_name: input.customerName,
       recipient_email: recipientEmail,

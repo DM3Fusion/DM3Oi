@@ -59,7 +59,7 @@ test("legal content parser accepts fallbacks and rejects metadata, HTML, and bou
 test("code fallbacks retain the current legal publication metadata", () => {
   const terms = getFallbackLegalDocument("TERMS_OF_SERVICE");
   assert.equal(terms.version, "1.2");
-  assert.equal(terms.effectiveDate, "2026-10-10");
+  assert.equal(terms.effectiveDate, "2026-10-09");
 
   const privacy = getFallbackLegalDocument("PRIVACY_POLICY");
   assert.equal(privacy.version, "1.1");
