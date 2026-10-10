@@ -175,7 +175,7 @@ async function loadPlatformData() {
     error: { code?: string; message: string } | null;
   };
 
-  const sandboxRpc = supabase.rpc as unknown as (
+  const sandboxRpc = supabase.rpc.bind(supabase) as unknown as (
     fn: string,
   ) => Promise<SandboxRpcResult>;
 
@@ -576,7 +576,7 @@ export async function getOrganizationAdministration(id: string) {
   };
 
   const organizationSandboxAuditRpc =
-    supabase.rpc as unknown as (
+    supabase.rpc.bind(supabase) as unknown as (
       fn: string,
       args: Record<string, unknown>,
     ) => Promise<OrganizationSandboxAuditRpcResult>;

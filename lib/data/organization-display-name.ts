@@ -12,7 +12,7 @@ export async function resolveOrganizationDisplayName(
   fallbackName: string,
 ): Promise<string> {
   const admin = createAdminClient();
-  const rpc = admin.rpc as unknown as (
+  const rpc = admin.rpc.bind(admin) as unknown as (
     fn: string,
     args?: Record<string, unknown>,
   ) => Promise<RpcResult<string>>;

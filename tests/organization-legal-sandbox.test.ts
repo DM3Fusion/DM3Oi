@@ -198,6 +198,32 @@ test("customer-facing invitation and Portal identity consistently use the derive
   );
 });
 
+test("Supabase RPC methods retain their client binding on Sandbox server paths", () => {
+  const platformRepository = source(
+    "lib/data/platform-repository.ts",
+  );
+
+  assert.match(
+    platformRepository,
+    /supabase\.rpc\.bind\(supabase\)/,
+  );
+
+  assert.match(
+    displayName,
+    /admin\.rpc\.bind\(admin\)/,
+  );
+
+  assert.doesNotMatch(
+    platformRepository,
+    /const sandboxRpc = supabase\.rpc as unknown/,
+  );
+
+  assert.doesNotMatch(
+    displayName,
+    /const rpc = admin\.rpc as unknown/,
+  );
+});
+
 test("organization canonical names remain stored independently from Sandbox display identity", () => {
   assert.doesNotMatch(
     foundation,
