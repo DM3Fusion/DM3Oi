@@ -8,12 +8,15 @@ import {
 } from "react";
 
 type Summary = {
+  internalSignIns: number;
   internalVisits: number;
   internalUniquePages: number;
   internalPageViews: number;
+  customerPortalSignIns: number;
   customerPortalVisits: number;
   customerPortalUniquePages: number;
   customerPortalPageViews: number;
+  unclassifiedSignIns: number;
   unclassifiedAuthenticatedVisits: number;
   unclassifiedAuthenticatedUniquePages: number;
   unclassifiedAuthenticatedPageViews: number;
@@ -44,6 +47,8 @@ type AccessRow = {
   accessType: string;
   role: string | null;
   organization: string;
+  signIns: number;
+  lastSignIn: string | null;
   pageViews: number;
   sessions: number;
   uniquePages: number;
@@ -167,6 +172,10 @@ function parseAuthenticatedAccess(
             row.organization,
             "Not captured",
           ),
+          signIns: numberOf(row.signIns),
+          lastSignIn: nullableStringOf(
+            row.lastSignIn,
+          ),
           pageViews: numberOf(row.pageViews),
           sessions: numberOf(row.sessions),
           uniquePages: numberOf(
@@ -191,6 +200,9 @@ function parseAuthenticatedAccess(
 
   return {
     summary: {
+      internalSignIns: numberOf(
+        summary.internalSignIns,
+      ),
       internalVisits: numberOf(
         summary.internalVisits,
       ),
@@ -201,6 +213,9 @@ function parseAuthenticatedAccess(
         summary.internalPageViews,
       ),
 
+      customerPortalSignIns: numberOf(
+        summary.customerPortalSignIns,
+      ),
       customerPortalVisits: numberOf(
         summary.customerPortalVisits,
       ),
@@ -211,6 +226,9 @@ function parseAuthenticatedAccess(
         summary.customerPortalPageViews,
       ),
 
+      unclassifiedSignIns: numberOf(
+        summary.unclassifiedSignIns,
+      ),
       unclassifiedAuthenticatedVisits:
         numberOf(
           summary.unclassifiedAuthenticatedVisits,
@@ -384,6 +402,7 @@ export function AuthenticatedAccessAnalytics({
   const summaryCards = [
     {
       label: "Authenticated Internal",
+      signIns: parsed.summary.internalSignIns,
       visits: parsed.summary.internalVisits,
       pages: parsed.summary.internalUniquePages,
       pageViews:
@@ -391,6 +410,8 @@ export function AuthenticatedAccessAnalytics({
     },
     {
       label: "Customer Portal",
+      signIns:
+        parsed.summary.customerPortalSignIns,
       visits:
         parsed.summary.customerPortalVisits,
       pages:
@@ -400,6 +421,8 @@ export function AuthenticatedAccessAnalytics({
     },
     {
       label: "Authenticated / Unclassified",
+      signIns:
+        parsed.summary.unclassifiedSignIns,
       visits:
         parsed.summary
           .unclassifiedAuthenticatedVisits,
@@ -412,6 +435,7 @@ export function AuthenticatedAccessAnalytics({
     },
     {
       label: "Public / Anonymous",
+      signIns: null,
       visits: parsed.summary.publicVisits,
       pages:
         parsed.summary.publicUniquePages,
@@ -431,9 +455,9 @@ export function AuthenticatedAccessAnalytics({
             Authenticated Access
           </h3>
           <p>
-            First-party authenticated identities for this
-            reporting period. Network geography is supporting
-            context only.
+            Successful sign-ins are the forensic source of truth
+            for this reporting period. Visits, page activity, and
+            network geography are supporting context only.
           </p>
         </div>
 
@@ -461,6 +485,16 @@ export function AuthenticatedAccessAnalytics({
             </span>
 
             <div className="admin-authenticated-access-summary-metrics">
+              {card.signIns !== null ? (
+                <Metric
+                  label={
+                    card.signIns === 1
+                      ? "sign-in"
+                      : "sign-ins"
+                  }
+                  value={card.signIns}
+                />
+              ) : null}
               <Metric
                 label={
                   card.visits === 1
@@ -494,6 +528,8 @@ export function AuthenticatedAccessAnalytics({
               <th>Account</th>
               <th>Access Type / Role</th>
               <th>Organization</th>
+              <th>Sign-ins</th>
+              <th>Last Sign In</th>
             </tr>
           </thead>
 
@@ -538,6 +574,16 @@ export function AuthenticatedAccessAnalytics({
                   </small>
                 </td>
                 <td>{row.organization}</td>
+              <td>{row.signIns}</td>
+              <td>
+                {row.lastSignIn ? (
+                  <time dateTime={row.lastSignIn}>
+                    {formatActivityTime(row.lastSignIn)}
+                  </time>
+                ) : (
+                  "No audited sign-in"
+                )}
+              </td>
               </tr>
             ))}
           </tbody>

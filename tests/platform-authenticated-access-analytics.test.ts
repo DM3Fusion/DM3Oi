@@ -390,7 +390,7 @@ test("Platform Analytics keeps summary cards centered while the user register st
   );
   assert.match(
     component,
-    /Network geography is supporting[\s\S]*context only/,
+    /Successful sign-ins are the forensic source of truth[\s\S]*network geography are supporting context only/,
   );
 
   assert.doesNotMatch(

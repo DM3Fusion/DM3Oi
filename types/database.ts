@@ -238,6 +238,19 @@ type AnalyticsIdentityFunction = Omit<
 };
 
 type AnalyticsFunctionOverrides = {
+  get_platform_authentication_audit: {
+    Args: {
+      target_start: string | null;
+      target_end_exclusive: string | null;
+    };
+    Returns: Json;
+  };
+  record_authentication_event: {
+    Args: {
+      target_user_id: string;
+    };
+    Returns: string;
+  };
   get_my_analytics_identity_context: AnalyticsIdentityFunction;
   get_platform_analytics: WithNullableFunctionArgs<
     Functions["get_platform_analytics"],

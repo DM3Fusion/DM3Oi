@@ -34,24 +34,69 @@ export type PlatformAuthenticatedAccessRow = {
     | "AUTHENTICATED_HISTORICAL";
   role: string | null;
   organization: string;
+  signIns: number;
+  lastSignIn: string | null;
   pageViews: number;
   sessions: number;
-  lastActivity: string;
-  topRoute: string;
-  geography: string;
+  uniquePages: number;
+  lastActivity: string | null;
+  topRoute: string | null;
+  geography: string | null;
+  locations: {
+    location: string;
+    visits: number;
+    pageViews: number;
+    lastActivity: string | null;
+  }[];
+  activity: {
+    path: string;
+    visits: number;
+    pageViews: number;
+    lastActivity: string | null;
+  }[];
+};
+
+type PlatformAuthenticationAuditRow = {
+  identityKey: string;
+  user: string;
+  email: string | null;
+  accountIdentifier: string;
+  accessType:
+    | "INTERNAL"
+    | "CUSTOMER_PORTAL"
+    | "AUTHENTICATED_UNCLASSIFIED";
+  role: string | null;
+  organization: string;
+  signIns: number;
+  lastSignIn: string;
+};
+
+type PlatformAuthenticationAudit = {
+  summary: {
+    internalSignIns: number;
+    customerPortalSignIns: number;
+    unclassifiedSignIns: number;
+  };
+  rows: PlatformAuthenticationAuditRow[];
 };
 
 export type PlatformAuthenticatedAccess = {
   summary: {
+    internalSignIns: number;
     internalVisits: number;
     internalUniquePages: number;
     internalPageViews: number;
+
+    customerPortalSignIns: number;
     customerPortalVisits: number;
     customerPortalUniquePages: number;
     customerPortalPageViews: number;
+
+    unclassifiedSignIns: number;
     unclassifiedAuthenticatedVisits: number;
     unclassifiedAuthenticatedUniquePages: number;
     unclassifiedAuthenticatedPageViews: number;
+
     publicVisits: number;
     publicUniquePages: number;
     publicPageViews: number;
@@ -116,6 +161,32 @@ type PlatformAnalyticsAggregate = {
   }[];
 };
 
+function asAuthenticationAudit(
+  value: unknown,
+): PlatformAuthenticationAudit {
+  const aggregate = value as
+    | Partial<PlatformAuthenticationAudit>
+    | null;
+  const summary = aggregate?.summary;
+
+  return {
+    summary: {
+      internalSignIns: Number(
+        summary?.internalSignIns ?? 0,
+      ),
+      customerPortalSignIns: Number(
+        summary?.customerPortalSignIns ?? 0,
+      ),
+      unclassifiedSignIns: Number(
+        summary?.unclassifiedSignIns ?? 0,
+      ),
+    },
+    rows: Array.isArray(aggregate?.rows)
+      ? aggregate.rows
+      : [],
+  };
+}
+
 function asAuthenticatedAccess(
   value: unknown,
 ): PlatformAuthenticatedAccess {
@@ -126,6 +197,9 @@ function asAuthenticatedAccess(
 
   return {
     summary: {
+      internalSignIns: Number(
+        summary?.internalSignIns ?? 0,
+      ),
       internalVisits: Number(
         summary?.internalVisits ?? 0,
       ),
@@ -136,6 +210,9 @@ function asAuthenticatedAccess(
         summary?.internalPageViews ?? 0,
       ),
 
+      customerPortalSignIns: Number(
+        summary?.customerPortalSignIns ?? 0,
+      ),
       customerPortalVisits: Number(
         summary?.customerPortalVisits ?? 0,
       ),
@@ -146,6 +223,9 @@ function asAuthenticatedAccess(
         summary?.customerPortalPageViews ?? 0,
       ),
 
+      unclassifiedSignIns: Number(
+        summary?.unclassifiedSignIns ?? 0,
+      ),
       unclassifiedAuthenticatedVisits: Number(
         summary?.unclassifiedAuthenticatedVisits ?? 0,
       ),
@@ -167,7 +247,23 @@ function asAuthenticatedAccess(
       ),
     },
     rows: Array.isArray(aggregate?.rows)
-      ? aggregate.rows
+      ? aggregate.rows.map((row) => ({
+          ...row,
+          signIns: Number(row.signIns ?? 0),
+          lastSignIn: row.lastSignIn ?? null,
+          pageViews: Number(row.pageViews ?? 0),
+          sessions: Number(row.sessions ?? 0),
+          uniquePages: Number(row.uniquePages ?? 0),
+          lastActivity: row.lastActivity ?? null,
+          topRoute: row.topRoute ?? null,
+          geography: row.geography ?? null,
+          locations: Array.isArray(row.locations)
+            ? row.locations
+            : [],
+          activity: Array.isArray(row.activity)
+            ? row.activity
+            : [],
+        }))
       : [],
   };
 }
@@ -370,21 +466,29 @@ export async function getPlatformAnalytics(
     target_start: range.start?.toISOString() ?? null,
     target_end_exclusive: range.endExclusive.toISOString(),
   };
-  const [aggregateResult, authenticatedAccessResult] =
-    await Promise.all([
-      supabase.rpc(
-        "get_platform_analytics",
-        parameters,
-      ),
-      supabase.rpc(
-        "get_platform_authenticated_access_analytics",
-        parameters,
-      ),
-    ]);
+  const [
+    aggregateResult,
+    authenticatedAccessResult,
+    authenticationAuditResult,
+  ] = await Promise.all([
+    supabase.rpc(
+      "get_platform_analytics",
+      parameters,
+    ),
+    supabase.rpc(
+      "get_platform_authenticated_access_analytics",
+      parameters,
+    ),
+    supabase.rpc(
+      "get_platform_authentication_audit",
+      parameters,
+    ),
+  ]);
 
   const error =
     aggregateResult.error ??
-    authenticatedAccessResult.error;
+    authenticatedAccessResult.error ??
+    authenticationAuditResult.error;
 
   if (error) {
     console.error("Platform analytics query failed", {
@@ -399,6 +503,80 @@ export async function getPlatformAnalytics(
   const authenticatedAccess = asAuthenticatedAccess(
     authenticatedAccessResult.data,
   );
+  const authenticationAudit = asAuthenticationAudit(
+    authenticationAuditResult.data,
+  );
+
+  const authenticatedRowKey = (row: {
+    identityKey: string;
+    accessType: string;
+    role: string | null;
+    organization: string;
+  }) =>
+    [
+      row.identityKey,
+      row.accessType,
+      row.role ?? "",
+      row.organization,
+    ].join("|");
+
+  const mergedAuthenticatedRows = new Map<
+    string,
+    PlatformAuthenticatedAccessRow
+  >();
+
+  for (const row of authenticatedAccess.rows) {
+    mergedAuthenticatedRows.set(
+      authenticatedRowKey(row),
+      row,
+    );
+  }
+
+  for (const auditRow of authenticationAudit.rows) {
+    const key = authenticatedRowKey(auditRow);
+    const activityRow = mergedAuthenticatedRows.get(key);
+
+    mergedAuthenticatedRows.set(key, {
+      identityKey: auditRow.identityKey,
+      user: auditRow.user,
+      email: auditRow.email,
+      accountIdentifier: auditRow.accountIdentifier,
+      accessType: auditRow.accessType,
+      role: auditRow.role,
+      organization: auditRow.organization,
+      signIns: Number(auditRow.signIns ?? 0),
+      lastSignIn: auditRow.lastSignIn,
+      pageViews: Number(activityRow?.pageViews ?? 0),
+      sessions: Number(activityRow?.sessions ?? 0),
+      uniquePages: Number(activityRow?.uniquePages ?? 0),
+      lastActivity: activityRow?.lastActivity ?? null,
+      topRoute: activityRow?.topRoute ?? null,
+      geography: activityRow?.geography ?? null,
+      locations: activityRow?.locations ?? [],
+      activity: activityRow?.activity ?? [],
+    });
+  }
+
+  authenticatedAccess.summary.internalSignIns =
+    authenticationAudit.summary.internalSignIns;
+  authenticatedAccess.summary.customerPortalSignIns =
+    authenticationAudit.summary.customerPortalSignIns;
+  authenticatedAccess.summary.unclassifiedSignIns =
+    authenticationAudit.summary.unclassifiedSignIns;
+
+  authenticatedAccess.rows = Array.from(
+    mergedAuthenticatedRows.values(),
+  ).sort((left, right) => {
+    const leftTime = new Date(
+      left.lastSignIn ?? left.lastActivity ?? 0,
+    ).getTime();
+    const rightTime = new Date(
+      right.lastSignIn ?? right.lastActivity ?? 0,
+    ).getTime();
+
+    return rightTime - leftTime;
+  });
+
   const dailyTraffic = new Map(
     aggregate.trafficDays.map((day) => [day.key, Number(day.value)]),
   );
