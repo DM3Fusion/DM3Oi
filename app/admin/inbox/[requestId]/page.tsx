@@ -60,8 +60,8 @@ export default async function PlatformInboxDetailPage({
         </div>
       ) : null}
 
-      <section className="panel detail-section">
-        <div className="section-heading">
+      <section className="panel detail-section platform-support-detail-card">
+        <div className="section-heading platform-support-detail-heading">
           <div>
             <Badge
               value={
@@ -76,7 +76,7 @@ export default async function PlatformInboxDetailPage({
           </Link>
         </div>
 
-        <div className="detail-grid">
+        <div className="detail-grid platform-support-detail-facts">
           <div>
             <span>Organization</span>
             <strong>{request.organizationName}</strong>
@@ -106,8 +106,8 @@ export default async function PlatformInboxDetailPage({
         </div>
       </section>
 
-      <section className="panel detail-section">
-        <div className="section-heading">
+      <section className="panel detail-section platform-support-conversation">
+        <div className="section-heading platform-support-conversation-heading">
           <div>
             <h2>Conversation</h2>
             <p>
@@ -117,13 +117,17 @@ export default async function PlatformInboxDetailPage({
           </div>
         </div>
 
-        <div className="message-thread">
+        <div className="message-thread platform-support-thread">
           {request.messages.map((message) => (
             <article
               key={message.id}
-              className="message-card"
+              className={`message-card platform-support-message ${
+                message.senderType === "PLATFORM_ADMIN"
+                  ? "platform-support-message-admin"
+                  : "platform-support-message-organization"
+              }`}
             >
-              <div className="section-heading">
+              <div className="section-heading platform-support-message-heading">
                 <div>
                   <strong>{message.senderName}</strong>
                   <p>
@@ -191,7 +195,7 @@ export default async function PlatformInboxDetailPage({
       </section>
 
       {request.status !== "CLOSED" ? (
-        <section className="panel form-panel">
+        <section className="panel form-panel platform-support-response-panel">
           <h2>Respond</h2>
           <p>
             The response is recorded in DM3Oi before email
@@ -200,7 +204,7 @@ export default async function PlatformInboxDetailPage({
 
           <form
             action={respondToPlatformSupportRequestAction}
-            className="entity-form"
+            className="entity-form platform-support-response-form"
           >
             <input
               type="hidden"
