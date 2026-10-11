@@ -14958,3 +14958,85 @@ dialog.intake-save-progress-modal {
     gap:5px;
   }
 }
+
+/* Organization legal update review */
+.legal-review-return{
+  position:sticky;
+  z-index:30;
+  top:.75rem;
+  display:flex;
+  justify-content:flex-end;
+  margin:0 0 1rem;
+  pointer-events:none;
+}
+
+.legal-review-return .primary-button{
+  pointer-events:auto;
+  color:#fff!important;
+  box-shadow:0 .35rem 1rem rgb(15 23 42 / 18%);
+}
+
+.legal-review-return .primary-button:hover,
+.legal-review-return .primary-button:focus-visible{
+  background:#15803d!important;
+  border-color:#15803d!important;
+  color:#fff!important;
+}
+
+.legal-review-updated{
+  scroll-margin-top:6rem;
+  position:relative;
+}
+
+.legal-document-body>div.legal-review-updated{
+  margin:0 -.75rem 1rem;
+  padding:.75rem;
+  border-left:4px solid #0f8b8d;
+  background:#f0fdfa;
+}
+
+.legal-review-updated-label{
+  display:inline-flex;
+  align-items:center;
+  margin:0 0 .55rem .65rem;
+  padding:.18rem .5rem;
+  border:1px solid #99d5d4;
+  border-radius:5px;
+  background:#ecfdf5;
+  color:#0f766e;
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  vertical-align:middle;
+}
+
+.legal-document-body section.legal-review-updated{
+  margin-left:-.75rem;
+  margin-right:-.75rem;
+  padding:.75rem;
+  border-left:4px solid #0f8b8d;
+  background:#f0fdfa;
+}
+
+.legal-document-body section.legal-review-updated h2{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:.45rem;
+}
+
+.legal-document-body section.legal-review-updated h2 .legal-review-updated-label{
+  margin:0;
+}
+
+@media(max-width:600px){
+  .legal-review-return{
+    top:.5rem;
+  }
+
+  .legal-review-return .primary-button{
+    width:100%;
+    justify-content:center;
+  }
+}

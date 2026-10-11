@@ -83,7 +83,7 @@ export default async function Page() {
           {legalState.current_documents ? (
             <div className="detail-list organization-legal-documents">
               <Link
-                href="/terms"
+                href="/terms?review=acceptance"
                 className="organization-legal-document-link"
               >
                 <span>Terms of Service</span>
@@ -95,7 +95,7 @@ export default async function Page() {
               </Link>
 
               <Link
-                href="/privacy"
+                href="/privacy?review=acceptance"
                 className="organization-legal-document-link"
               >
                 <span>Privacy Policy</span>

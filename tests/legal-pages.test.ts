@@ -14,15 +14,15 @@ test("Terms and Privacy are public legal documents with DM3Oi identity", () => {
   assert.match(proxy, /"\/terms","\/privacy"/);
   assert.match(
     terms,
-    /getPublishedLegalDocumentForServer\("TERMS_OF_SERVICE"\)/,
+    /getPublishedLegalDocumentForServer\(\s*"TERMS_OF_SERVICE",?\s*\)/,
   );
   assert.match(
     privacy,
-    /getPublishedLegalDocumentForServer\("PRIVACY_POLICY"\)/,
+    /getPublishedLegalDocumentForServer\(\s*"PRIVACY_POLICY",?\s*\)/,
   );
   assert.match(terms, /index: false/);
   assert.match(privacy, /index: false/);
-  assert.match(documents, /DM3Oi Business Operations Intelligence/);
+  assert.match(documents, /DM3Oi™ Operational Intelligence/);
   assert.doesNotMatch(documents, /DM3SR/);
   assert.match(component, /DM3Oi™/);
   assert.match(component, /href="\/terms"/);

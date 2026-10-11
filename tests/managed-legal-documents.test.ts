@@ -327,11 +327,11 @@ test("repository uses strict parsing, code fallback, and no direct table access"
 test("public routes use the fail-safe managed server loader", () => {
   assert.match(
     termsRoute,
-    /getPublishedLegalDocumentForServer\("TERMS_OF_SERVICE"\)/,
+    /getPublishedLegalDocumentForServer\(\s*"TERMS_OF_SERVICE",?\s*\)/,
   );
   assert.match(
     privacyRoute,
-    /getPublishedLegalDocumentForServer\("PRIVACY_POLICY"\)/,
+    /getPublishedLegalDocumentForServer\(\s*"PRIVACY_POLICY",?\s*\)/,
   );
 });
 

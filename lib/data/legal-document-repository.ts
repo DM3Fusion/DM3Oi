@@ -254,3 +254,92 @@ export function isRequestedLegalDocumentKey(
 ): value is LegalDocumentKey {
   return isLegalDocumentKey(value);
 }
+
+export type LegalDocumentReview = {
+  current: LegalDocumentDefinition;
+  previous: LegalDocumentDefinition | null;
+};
+
+export async function getOrganizationLegalReviewForServer(
+  organizationId: string,
+  documentKey: LegalDocumentKey,
+): Promise<LegalDocumentReview | null> {
+  try {
+    const admin = createAdminClient();
+    const result = await admin.rpc(
+      "get_organization_legal_review_server" as never,
+      {
+        target_organization_id: organizationId,
+        target_document_key: documentKey,
+      } as never,
+    );
+
+    if (result.error) {
+      console.error("Organization legal review query failed", {
+        operation: "getOrganizationLegalReviewForServer",
+        organizationId,
+        documentKey,
+        code: result.error.code,
+        message: result.error.message,
+      });
+      return null;
+    }
+
+    const rawData: unknown = result.data;
+    if (!isRecord(rawData)) return null;
+
+    const data = rawData;
+
+    const parseDefinition = (
+      value: unknown,
+    ): LegalDocumentDefinition | null => {
+      if (!isRecord(value)) return null;
+
+      const content = parseLegalDocumentContent(
+        documentKey,
+        value.content,
+      );
+
+      if (
+        value.document_key !== documentKey ||
+        !content ||
+        typeof value.version !== "string" ||
+        !isLegalDocumentVersion(value.version) ||
+        typeof value.effective_date !== "string" ||
+        !isLegalDocumentEffectiveDate(value.effective_date)
+      ) {
+        return null;
+      }
+
+      return withLegalPublicationMetadata(
+        content,
+        value.version,
+        value.effective_date,
+      );
+    };
+
+    const current = parseDefinition(data.current);
+    if (!current) return null;
+
+    const previous =
+      data.previous === null
+        ? null
+        : parseDefinition(data.previous);
+
+    if (data.previous !== null && !previous) return null;
+
+    return {
+      current,
+      previous,
+    };
+  } catch (error) {
+    console.error("Organization legal review loading failed", {
+      operation: "getOrganizationLegalReviewForServer",
+      organizationId,
+      documentKey,
+      message:
+        error instanceof Error ? error.message : "Unknown error",
+    });
+    return null;
+  }
+}

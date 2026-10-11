@@ -28,7 +28,7 @@ export const termsOfService = {
   version: "1.2",
   effectiveDate: "2026-10-09",
   introduction: [
-    "These Terms of Service govern access to and use of DM3Oi Business Operations Intelligence by a customer organization and its authorized users.",
+    "These Terms of Service govern access to and use of DM3Oi™ Operational Intelligence by a customer organization and its authorized users.",
     "By accepting these Terms on behalf of an organization, the Business Owner represents that the Business Owner has authority to bind the organization to these Terms. The organization is responsible for use of DM3Oi by its authorized users.",
   ],
   // Dedicated or standalone deployments require separate written terms and
@@ -205,7 +205,7 @@ export const privacyPolicy = {
   version: "1.1",
   effectiveDate: "2026-10-04",
   introduction: [
-    "This Privacy Policy describes how information is processed in connection with DM3Oi Business Operations Intelligence.",
+    "This Privacy Policy describes how information is processed in connection with DM3Oi™ Operational Intelligence.",
     "DM3Oi is designed primarily for organizations that use the service to manage operational work, cases, customers, tasks, service requests, communications, reporting, and related business information. The customer organization determines much of the information entered into the service and is responsible for its collection and use.",
   ],
   sections: [
