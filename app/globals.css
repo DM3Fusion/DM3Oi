@@ -14929,3 +14929,32 @@ dialog.intake-save-progress-modal {
   border-color:#fca5a5!important;
   color:#991b1b!important;
 }
+
+.organization-legal-documents .organization-legal-document-link{
+  display:grid;
+  grid-template-columns:minmax(180px,.75fr) minmax(0,1.75fr);
+  align-items:center;
+  gap:18px;
+  padding:16px 18px;
+  color:inherit;
+  text-decoration:none;
+  transition:background-color .16s ease,border-color .16s ease;
+}
+
+.organization-legal-documents .organization-legal-document-link:hover,
+.organization-legal-documents .organization-legal-document-link:focus-visible{
+  background:#f1f5f9;
+  color:inherit;
+  outline:none;
+}
+
+.organization-legal-documents .organization-legal-document-link:focus-visible{
+  box-shadow:inset 0 0 0 2px #5b91c7;
+}
+
+@media(max-width:600px){
+  .organization-legal-documents .organization-legal-document-link{
+    grid-template-columns:1fr;
+    gap:5px;
+  }
+}

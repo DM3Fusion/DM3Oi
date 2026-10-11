@@ -82,22 +82,29 @@ export default async function Page() {
 
           {legalState.current_documents ? (
             <div className="detail-list organization-legal-documents">
-              <div>
+              <Link
+                href="/terms"
+                className="organization-legal-document-link"
+              >
                 <span>Terms of Service</span>
                 <strong>
                   Version {legalState.current_documents.terms_version}
                   {" · "}
                   {legalState.current_documents.terms_effective_date}
                 </strong>
-              </div>
-              <div>
+              </Link>
+
+              <Link
+                href="/privacy"
+                className="organization-legal-document-link"
+              >
                 <span>Privacy Policy</span>
                 <strong>
                   Version {legalState.current_documents.privacy_version}
                   {" · "}
                   {legalState.current_documents.privacy_effective_date}
                 </strong>
-              </div>
+              </Link>
             </div>
           ) : (
             <p>
