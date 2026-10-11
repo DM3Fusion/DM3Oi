@@ -237,6 +237,10 @@ export async function setPlatformSupportStatusAction(
   revalidatePath(`/admin/inbox/${requestId}`);
   revalidatePath("/", "layout");
 
+  if (status === "CLOSED") {
+    redirect("/admin/inbox");
+  }
+
   redirect(`/admin/inbox/${requestId}`);
 }
 
