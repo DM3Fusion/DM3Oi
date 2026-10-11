@@ -14922,3 +14922,10 @@ dialog.intake-save-progress-modal {
   border-color:#15803d!important;
   color:#fff!important;
 }
+
+.organization-legal-withdraw-button:hover,
+.organization-legal-withdraw-button:focus-visible{
+  background:#fee2e2!important;
+  border-color:#fca5a5!important;
+  color:#991b1b!important;
+}

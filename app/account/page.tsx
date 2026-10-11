@@ -167,7 +167,7 @@ export default async function Page() {
                 value={access.activeOrganization.id}
               />
               <PendingSubmitButton
-                className="secondary-button"
+                className="secondary-button organization-legal-withdraw-button"
                 pendingLabel="Withdrawing…"
               >
                 Withdraw Organization Acceptance
