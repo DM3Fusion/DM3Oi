@@ -71,8 +71,8 @@ export default async function PlatformInboxPage({
         description="Authenticated messages sent to DM3Oi by organization users."
       />
 
-      <section className="panel">
-        <div className="section-heading">
+      <section className="panel platform-inbox-panel">
+        <div className="section-heading platform-inbox-heading">
           <div>
             <h2>Platform Inbox</h2>
             <p>
@@ -96,7 +96,7 @@ export default async function PlatformInboxPage({
           ) : null}
         </div>
 
-        <form method="get" className="filter-bar">
+        <form method="get" className="filter-bar platform-inbox-filters">
           <label>
             <span>Status</span>
             <select
@@ -145,16 +145,16 @@ export default async function PlatformInboxPage({
         </form>
 
         {items.length ? (
-          <div className="communications-list">
+          <div className="communications-list platform-inbox-list">
             {items.map((item) => (
               <article
                 key={item.id}
-                className={`communication-row ${
+                className={`communication-row platform-inbox-row ${
                   item.read ? "" : "unread"
                 }`.trim()}
               >
-                <div className="communication-row-main">
-                  <div className="communication-row-heading">
+                <div className="communication-row-main platform-inbox-row-main">
+                  <div className="communication-row-heading platform-inbox-row-heading">
                     <Link href={`/admin/inbox/${item.id}`}>
                       <strong>{item.subject}</strong>
                     </Link>
@@ -165,7 +165,7 @@ export default async function PlatformInboxPage({
 
                   <p>{item.message}</p>
 
-                  <div className="communication-meta">
+                  <div className="communication-meta platform-inbox-meta">
                     <span>{item.organizationName}</span>
                     <span>{item.submitterName}</span>
                     <span>
@@ -203,7 +203,7 @@ export default async function PlatformInboxPage({
             ))}
           </div>
         ) : (
-          <div className="empty">
+          <div className="empty platform-inbox-empty">
             <h2>No Platform Inbox messages</h2>
             <p>
               No authenticated organization messages match the
