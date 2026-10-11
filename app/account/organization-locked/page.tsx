@@ -53,7 +53,10 @@ export default async function OrganizationLockedPage() {
 
       <div className="form-actions">
         {isBusinessOwner ? (
-          <Link className="primary-button" href="/account">
+          <Link
+            className="primary-button organization-lockout-return"
+            href="/account"
+          >
             Return to Accept
           </Link>
         ) : null}

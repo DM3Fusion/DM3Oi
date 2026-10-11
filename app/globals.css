@@ -14911,3 +14911,14 @@ dialog.intake-save-progress-modal {
     justify-content:center;
   }
 }
+
+/* Organization legal lockout recovery */
+.organization-lockout-return{
+  color:#fff!important;
+}
+.organization-lockout-return:hover,
+.organization-lockout-return:focus-visible{
+  background:#15803d!important;
+  border-color:#15803d!important;
+  color:#fff!important;
+}
