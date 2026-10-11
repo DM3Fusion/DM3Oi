@@ -124,6 +124,18 @@ export function AppShell({
         {children}
       </main>
     );
+
+  if (pathname === "/account/organization-locked")
+    return (
+      <main
+        className="public-main"
+        onPointerDownCapture={access ? markAuthenticatedActivity : undefined}
+        onKeyDownCapture={access ? markAuthenticatedActivity : undefined}
+      >
+        {children}
+      </main>
+    );
+
   const org = access?.activeOrganization;
   const platformContext = Boolean(
     access?.isSuperAdmin && (!org || pathname.startsWith("/admin")),

@@ -8,7 +8,7 @@ const publicRoutes=["/","/login","/terms","/privacy","/request-trial","/robots.t
 const publicAnalyticsRoutes=new Set(["/api/analytics/page-view","/api/analytics/interaction"]);
 const ACTIVE_ORGANIZATION_COOKIE="dm3iqcm-active-organization";
 const ACTIVE_PORTAL_ACCESS_COOKIE="dm3iqcm-active-portal-access";
-type RouteState={profile_active?:boolean;has_active_super_admin_access?:boolean;has_active_organization_access?:boolean;has_active_customer_portal_access?:boolean;has_pending_organization_membership?:boolean;session_policy_valid?:boolean;session_policy_scope?:"INTERNAL"|"CUSTOMER_PORTAL"};
+type RouteState={profile_active?:boolean;has_active_super_admin_access?:boolean;has_active_organization_access?:boolean;has_active_customer_portal_access?:boolean;has_pending_organization_membership?:boolean;session_policy_valid?:boolean;session_policy_scope?:"INTERNAL"|"CUSTOMER_PORTAL";route_organization_id?:string|null;route_organization_role?:string|null;route_organization_legal_state?:string|null};
 function responseWithCookies(target:URL,source:NextResponse){const redirect=NextResponse.redirect(target);source.cookies.getAll().forEach(cookie=>redirect.cookies.set(cookie));return redirect;}
 export async function proxy(request:NextRequest){
  const pathname=request.nextUrl.pathname; const forwardedHeaders=new Headers(request.headers); forwardedHeaders.set("x-dm3oi-route-pathname",pathname); const forwardedRequest={headers:forwardedHeaders}; let response=NextResponse.next({request:forwardedRequest});
@@ -25,7 +25,9 @@ export async function proxy(request:NextRequest){
  const enforceSession=authenticated&&(protectedRoute||pathname==="/"||pathname==="/login");
  if(enforceSession){
   const meaningfulActivity=isMeaningfulSessionActivity(request);
-  const sessionState=await supabase.rpc("get_my_route_access_state",{target_is_meaningful_activity:meaningfulActivity}).maybeSingle();
+  const activeOrganizationCookie=request.cookies.get(ACTIVE_ORGANIZATION_COOKIE)?.value??null;
+  const routeOrganizationId=activeOrganizationCookie&&/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(activeOrganizationCookie)?activeOrganizationCookie:null;
+  const sessionState=await supabase.rpc("get_my_route_access_state",{target_is_meaningful_activity:meaningfulActivity,target_organization_id:routeOrganizationId} as never).maybeSingle();
   routeState=sessionState.data as RouteState|null;
   if(meaningfulActivity)response.cookies.delete(SESSION_ACTIVITY_MARKER_COOKIE);
   if(sessionState.error||routeState?.session_policy_valid!==true){
@@ -42,6 +44,28 @@ export async function proxy(request:NextRequest){
  }
 
  if(authenticated&&pathname==="/login")return responseWithCookies(new URL("/",request.url),response);
+
+ if(authenticated&&routeState&&(protectedRoute||pathname==="/")&&!pathname.startsWith("/portal")){
+  const organizationLegalBlocked=Boolean(
+   routeState.route_organization_id&&
+   routeState.route_organization_legal_state&&
+   routeState.route_organization_legal_state!=="ACTIVE"&&
+   routeState.has_active_super_admin_access!==true
+  );
+
+  if(organizationLegalBlocked){
+   const owner=routeState.route_organization_role==="BUSINESS_OWNER";
+   const lockout="/account/organization-locked";
+
+   if(owner){
+    if(pathname==="/")return responseWithCookies(new URL("/account",request.url),response);
+    if(pathname!=="/account"&&pathname!==lockout)return responseWithCookies(new URL(lockout,request.url),response);
+   }else if(pathname!==lockout){
+    return responseWithCookies(new URL(lockout,request.url),response);
+   }
+  }
+ }
+
  if(authenticated&&protectedRoute){
   const profileActive=routeState?.profile_active===true;
   const hasActiveAccess=Boolean(routeState?.has_active_super_admin_access||routeState?.has_active_organization_access||routeState?.has_active_customer_portal_access);

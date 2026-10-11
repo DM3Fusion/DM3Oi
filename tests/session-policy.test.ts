@@ -380,7 +380,20 @@ test("zero-argument route state compatibility and boolean overload stay explicit
   assert.match(migration, /from public\.get_my_route_access_state\(\)/);
   assert.match(
     proxy,
-    /rpc\("get_my_route_access_state",\{target_is_meaningful_activity:meaningfulActivity\}\)/,
+    /rpc\("get_my_route_access_state",\{target_is_meaningful_activity:meaningfulActivity,target_organization_id:routeOrganizationId\}/,
+  );
+
+  const legalGateMigration = source(
+    "supabase/migrations/20261011100000_dm3oi_organization_legal_access_gate.sql",
+  );
+
+  assert.match(
+    legalGateMigration,
+    /create or replace function public\.get_my_route_access_state\(\s*target_is_meaningful_activity boolean,\s*target_organization_id uuid\s*\)/,
+  );
+  assert.match(
+    legalGateMigration,
+    /from public\.get_my_route_access_state\(\s*target_is_meaningful_activity\s*\)/,
   );
 });
 
