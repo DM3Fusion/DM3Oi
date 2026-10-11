@@ -2,6 +2,7 @@ import "server-only";
 
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getNewTrialRequestCount } from "@/lib/data/trial-request-repository";
+import { getPlatformSupportUnreadCount } from "@/lib/data/platform-support-repository";
 
 type NavigationAttentionBadgeProps = {
   mobile?: boolean;
@@ -57,6 +58,23 @@ export async function NewTrialRequestsNavigationBadge({
     <NavigationAttentionBadge
       mobile={mobile}
       accessibleLabel="new Trial Requests"
+      count={count}
+    />
+  );
+}
+
+
+export async function PlatformInboxNavigationBadge({
+  mobile = false,
+}: {
+  mobile?: boolean;
+}) {
+  const count = await getPlatformSupportUnreadCount();
+
+  return (
+    <NavigationAttentionBadge
+      mobile={mobile}
+      accessibleLabel="unread Platform Inbox messages"
       count={count}
     />
   );

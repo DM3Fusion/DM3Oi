@@ -56,11 +56,12 @@ export async function proxy(request:NextRequest){
   if(organizationLegalBlocked){
    const owner=routeState.route_organization_role==="BUSINESS_OWNER";
    const lockout="/account/organization-locked";
+   const authenticatedSupport=pathname==="/help/contact-dm3oi";
 
    if(owner){
     if(pathname==="/")return responseWithCookies(new URL("/account",request.url),response);
-    if(pathname!=="/account"&&pathname!==lockout)return responseWithCookies(new URL(lockout,request.url),response);
-   }else if(pathname!==lockout){
+    if(pathname!=="/account"&&pathname!==lockout&&!authenticatedSupport)return responseWithCookies(new URL(lockout,request.url),response);
+   }else if(pathname!==lockout&&!authenticatedSupport){
     return responseWithCookies(new URL(lockout,request.url),response);
    }
   }

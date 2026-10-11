@@ -15,6 +15,7 @@ import { MobileBottomNavigation } from "@/components/layout/mobile-bottom-naviga
 import { ApplicationIcon } from "@/components/application-icon";
 import {
   authorizedOrganizationAdministrationNavigation,
+  authorizedOrganizationHelpNavigation,
   authorizedOrganizationNavigation,
   authorizedOrganizationSettingsNavigation,
   mobilePrimaryDestinations,
@@ -89,6 +90,8 @@ export function AppShell({
   communicationsMobileBadge,
   trialRequestsDesktopBadge,
   trialRequestsMobileBadge,
+  platformInboxDesktopBadge,
+  platformInboxMobileBadge,
 }: {
   children: React.ReactNode;
   access: AccessContext | null;
@@ -97,6 +100,8 @@ export function AppShell({
   communicationsMobileBadge: React.ReactNode;
   trialRequestsDesktopBadge: React.ReactNode;
   trialRequestsMobileBadge: React.ReactNode;
+  platformInboxDesktopBadge: React.ReactNode;
+  platformInboxMobileBadge: React.ReactNode;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -104,6 +109,11 @@ export function AppShell({
     pathname.startsWith("/settings") ||
       pathname.startsWith("/questions") ||
       pathname.startsWith("/administration"),
+  );
+  const [helpOpen, setHelpOpen] = useState(
+    pathname === "/how-to-guide" ||
+      pathname === "/staff-how-to-guide" ||
+      pathname.startsWith("/help/"),
   );
   const [templatesOpen, setTemplatesOpen] = useState(
     platformTemplatesNavigation.some(
@@ -148,6 +158,11 @@ export function AppShell({
   const administrationNav = access?.internalAccess
     ? authorizedOrganizationAdministrationNavigation(access)
     : [];
+
+  const helpNavigation =
+    access?.internalAccess
+      ? authorizedOrganizationHelpNavigation(access)
+      : [];
 
   const settingsNavigation = access
     ? [
@@ -336,6 +351,7 @@ export function AppShell({
                 <ApplicationIcon name={icon} />
                 <span>{label}</span>
                 {href === "/communications" ? communicationsDesktopBadge : null}
+                {href === "/admin/inbox" ? platformInboxDesktopBadge : null}
                 {href === "/admin/trial-requests" ? trialRequestsDesktopBadge : null}
               </Link>
             );
@@ -345,6 +361,80 @@ export function AppShell({
           <nav className="administration-nav" aria-label="Administration navigation">
             <span className="sidebar-section-label">Administration</span>
             {administrationNav.map(({ href, label, icon }) => {
+              if (label === "Help") {
+                const helpRouteActive = helpNavigation.some(
+                  (item) =>
+                    pathname === item.href ||
+                    pathname.startsWith(`${item.href}/`),
+                );
+
+                return (
+                  <div className="settings-nav-group" key="help">
+                    <div
+                      className={`settings-nav-parent ${helpRouteActive ? "active" : ""}`.trim()}
+                    >
+                      <Link
+                        href={href}
+                        prefetch={true}
+                        onClick={() => {
+                          setOpen(false);
+                          setHelpOpen(true);
+                        }}
+                        className="settings-nav-parent-link"
+                      >
+                        <ApplicationIcon name={icon} />
+                        <span>{label}</span>
+                      </Link>
+
+                      <button
+                        type="button"
+                        className="settings-nav-toggle"
+                        aria-label={
+                          helpOpen
+                            ? "Collapse Help"
+                            : "Expand Help"
+                        }
+                        aria-expanded={helpOpen}
+                        onClick={() =>
+                          setHelpOpen((value) => !value)
+                        }
+                      >
+                        <ApplicationIcon
+                          name="forward"
+                          className={`settings-nav-chevron ${helpOpen ? "open" : ""}`.trim()}
+                        />
+                      </button>
+                    </div>
+
+                    {helpOpen && helpNavigation.length ? (
+                      <div className="settings-subnav">
+                        {helpNavigation.map((item) => {
+                          const childActive =
+                            pathname === item.href ||
+                            pathname.startsWith(`${item.href}/`);
+
+                          return (
+                            <Link
+                              key={item.href}
+                              href={item.href}
+                              prefetch={true}
+                              onClick={() => setOpen(false)}
+                              className={childActive ? "active" : ""}
+                              aria-current={
+                                childActive ? "page" : undefined
+                              }
+                            >
+                              <ApplicationIcon name={item.icon} />
+                              <span>{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
+
               if (href === "/settings") {
                 return (
                   <div className="settings-nav-group" key={href}>
@@ -507,6 +597,7 @@ export function AppShell({
           moreItems={secondaryNavigation}
           settingsItems={platformContext ? [] : settingsNavigation}
           applicationVersionLabel={applicationVersionLabel}
+          platformInboxMobileBadge={platformInboxMobileBadge}
         />
       </div>
     </div>

@@ -37,11 +37,13 @@ export function MobileBottomNavigation({
   moreItems,
   settingsItems,
   applicationVersionLabel,
+  platformInboxMobileBadge,
 }: {
   items: readonly MobileNavigationItem[];
   moreItems: readonly ApplicationNavigationItem[];
   settingsItems: readonly ApplicationNavigationItem[];
   applicationVersionLabel: string;
+  platformInboxMobileBadge: React.ReactNode;
 }) {
   const pathname = usePathname();
   const panelId = useId();
@@ -187,6 +189,9 @@ export function MobileBottomNavigation({
                   >
                     <ApplicationIcon name={item.icon} />
                     <span>{item.label}</span>
+                    {item.href === "/admin/inbox"
+                      ? platformInboxMobileBadge
+                      : null}
                     <ApplicationIcon name="forward" />
                   </Link>
                 );

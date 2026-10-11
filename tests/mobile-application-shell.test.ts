@@ -123,14 +123,31 @@ test("mobile Account omits permission-filtered destinations while retaining the 
     activeOrganization: { role: "STAFF_USER" },
     effectivePermissions: new Set<"VIEW_SERVICE_DESK" | "VIEW_TASKS">(["VIEW_SERVICE_DESK", "VIEW_TASKS"]),
   }, false);
-  assert.deepEqual(navigation.map((item) => item.href), ["/service-desk", "/tasks", "/account/profile", "/staff-how-to-guide"]);
+  assert.deepEqual(navigation.map((item) => item.href), [
+    "/service-desk",
+    "/tasks",
+    "/account/profile",
+    "/staff-how-to-guide",
+    "/help/contact-dm3oi",
+  ]);
   assert.ok(!navigation.some((item) => ["/customers", "/questions", "/reports", "/users", "/settings"].includes(item.href)));
   const platformNavigation = mobileSecondaryNavigation({
     isSuperAdmin: true,
     internalAccess: true,
     activeOrganization: null,
   }, true);
-  assert.deepEqual(platformNavigation.map((item) => item.href), ["/admin/organizations", "/admin/organizations/new", "/admin/case-cleanup", "/admin/customer-import", "/admin/customer-duplicates", "/admin/trial-requests", "/admin/email-templates", "/admin/users", "/account/profile"]);
+  assert.deepEqual(platformNavigation.map((item) => item.href), [
+    "/admin/inbox",
+    "/admin/organizations",
+    "/admin/organizations/new",
+    "/admin/case-cleanup",
+    "/admin/customer-import",
+    "/admin/customer-duplicates",
+    "/admin/trial-requests",
+    "/admin/email-templates",
+    "/admin/users",
+    "/account/profile",
+  ]);
 });
 
 test("mobile More orders authorized organization destinations without bypassing permissions", () => {
@@ -157,6 +174,7 @@ test("mobile More orders authorized organization destinations without bypassing 
     "/users",
     "/account/profile",
     "/how-to-guide",
+    "/help/contact-dm3oi",
     "/settings/case-configuration",
   ]);
   assert.deepEqual(navigation.at(-1), {

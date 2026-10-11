@@ -70,6 +70,10 @@ test("proxy sends one organization-aware access-state request and enforces the l
     proxy,
     /routeState\.has_active_super_admin_access!==true/,
   );
+  assert.doesNotMatch(
+    proxy,
+    /publicRoutes=\[[^\]]*"\/help\/contact-dm3oi"/,
+  );
 });
 
 test("Owner signs in to Account first and is denied elsewhere until organization acceptance", () => {
@@ -94,7 +98,11 @@ test("Owner signs in to Account first and is denied elsewhere until organization
 test("non-Owners are locked out while Customer Portal and SUPER_ADMIN platform access remain separate", () => {
   assert.match(
     proxy,
-    /else if\(pathname!==lockout\)\{\s*return responseWithCookies\(new URL\(lockout,request\.url\),response\)/,
+    /const authenticatedSupport=pathname==="\/help\/contact-dm3oi"/,
+  );
+  assert.match(
+    proxy,
+    /else if\(pathname!==lockout&&!authenticatedSupport\)\{\s*return responseWithCookies\(new URL\(lockout,request\.url\),response\)/,
   );
   assert.match(
     proxy,

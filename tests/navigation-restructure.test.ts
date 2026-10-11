@@ -94,11 +94,12 @@ test("desktop tablet and phone consume one Settings hierarchy with Questions act
   assert.match(mobile, /settingsItems\.some\(\(child\) => matchesPath\(pathname, child\.href\)\)/);
 });
 
-test("Platform Operations navigation remains unchanged", () => {
+test("Platform Operations navigation includes Platform Inbox", () => {
   assert.deepEqual(
     platformNavigation.map(({ label, href }) => ({ label, href })),
     [
       { label: "Platform Console", href: "/" },
+      { label: "Inbox", href: "/admin/inbox" },
       { label: "Organizations", href: "/admin/organizations" },
       { label: "New Organizations", href: "/admin/organizations/new" },
       { label: "Case Cleanup", href: "/admin/case-cleanup" },

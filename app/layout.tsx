@@ -8,6 +8,7 @@ import "./customer-portal-onboarding.css";
 import { AppShell } from "@/components/layout/app-shell";
 import {
   NewTrialRequestsNavigationBadge,
+  PlatformInboxNavigationBadge,
   UnreadCommunicationsNavigationBadge,
 } from "@/components/layout/navigation-attention-badges";
 import { getAccessContext } from "@/lib/auth/context";
@@ -48,6 +49,16 @@ export default async function RootLayout({children}:{children:React.ReactNode}){
     trialRequestsMobileBadge={trialRequestAttention ? (
       <Suspense fallback={null}>
         <NewTrialRequestsNavigationBadge mobile />
+      </Suspense>
+    ) : null}
+    platformInboxDesktopBadge={trialRequestAttention ? (
+      <Suspense fallback={null}>
+        <PlatformInboxNavigationBadge />
+      </Suspense>
+    ) : null}
+    platformInboxMobileBadge={trialRequestAttention ? (
+      <Suspense fallback={null}>
+        <PlatformInboxNavigationBadge mobile />
       </Suspense>
     ) : null}
   >{children}</AppShell></body></html>;

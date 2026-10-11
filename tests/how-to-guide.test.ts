@@ -149,7 +149,15 @@ test("organization How to Guide navigation remains adjacent to Settings while pl
 
   assert.match(
     organizationGroup,
-    /href: "\/how-to-guide", label: "How to Guide", icon: "questions"/,
+    /href: "\/how-to-guide", label: "Help", icon: "questions"/,
+  );
+  assert.match(
+    organizationGroup,
+    /label: "How to Guide"/,
+  );
+  assert.match(
+    organizationGroup,
+    /href: "\/help\/contact-dm3oi"/,
   );
   assert.ok(
     organizationGroup.indexOf('href: "/how-to-guide"') <
@@ -167,7 +175,7 @@ test("organization How to Guide navigation remains adjacent to Settings while pl
 
   assert.match(
     navigation,
-    /const guide = administration\.filter\(\(item\) => item\.label === "How to Guide"\)/,
+    /const help = authorizedOrganizationHelpNavigation\(context\)/,
   );
 });
 

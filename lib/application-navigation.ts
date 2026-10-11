@@ -27,9 +27,30 @@ export const organizationNavigation = [
 export const organizationAdministrationNavigation = [
   { href: "/users", label: "Users", icon: "users", permission: "VIEW_USERS" },
   { href: "/account", label: "Account", icon: "account", ownerOnly: true },
-  { href: "/how-to-guide", label: "How to Guide", icon: "questions" },
+  { href: "/how-to-guide", label: "Help", icon: "questions" },
   { href: "/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
+
+export const authorizedOrganizationHelpNavigation = (
+  context: PermissionContext,
+) => {
+  const guideHref = organizationGuideHref(context);
+
+  return [
+    ...(guideHref
+      ? [{
+          href: guideHref,
+          label: "How to Guide",
+          icon: "questions" as const,
+        }]
+      : []),
+    {
+      href: "/help/contact-dm3oi",
+      label: "Contact DM3Oi",
+      icon: "communications" as const,
+    },
+  ];
+};
 
 export const organizationSettingsNavigation = [
   { href: "/settings/customer-portal", label: "Customer Portal", icon: "customers", permission: "VIEW_ADMINISTRATION" },
@@ -50,6 +71,7 @@ export const platformTemplatesNavigation = [
 
 export const platformNavigation = [
   { href: "/", label: "Platform Console", icon: "platform" },
+  { href: "/admin/inbox", label: "Inbox", icon: "communications" },
   { href: "/admin/organizations", label: "Organizations", icon: "organization" },
   { href: "/admin/organizations/new", label: "New Organizations", icon: "add" },
   { href: "/admin/case-cleanup", label: "Case Cleanup", icon: "cases" },
@@ -67,16 +89,17 @@ export const authorizedOrganizationNavigation = (context: PermissionContext) =>
 
 export const authorizedOrganizationAdministrationNavigation = (context: PermissionContext) => {
   const guideHref = organizationGuideHref(context);
+
   return organizationAdministrationNavigation
     .filter((item) =>
       "ownerOnly" in item && item.ownerOnly
         ? context.activeOrganization?.role === "BUSINESS_OWNER"
-        : item.label === "How to Guide"
+        : item.label === "Help"
           ? Boolean(guideHref)
           : "permission" in item && hasPermission(context, item.permission),
     )
     .map((item) =>
-      item.label === "How to Guide" && guideHref
+      item.label === "Help" && guideHref
         ? { ...item, href: guideHref }
         : item,
     );
@@ -108,7 +131,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
   );
   const administration = authorizedOrganizationAdministrationNavigation(context);
   const users = administration.filter((item) => item.href === "/users");
-  const guide = administration.filter((item) => item.label === "How to Guide");
+  const help = authorizedOrganizationHelpNavigation(context);
   const settings = administration
     .filter((item) => item.href === "/settings")
     .map((item) => ({
@@ -120,7 +143,7 @@ export function mobileSecondaryNavigation(context: PermissionContext, platformCo
     ...organizationSecondary,
     ...users,
     profileNavigation,
-    ...guide,
+    ...help,
     ...settings,
   ];
 }

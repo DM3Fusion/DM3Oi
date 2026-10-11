@@ -111,16 +111,22 @@ test("desktop and mobile expose exactly one role-appropriate guide item", () => 
 
   for (const [role, href] of expectations) {
     const context = active(role);
-    for (const items of [
-      authorizedOrganizationAdministrationNavigation(context),
-      mobileSecondaryNavigation(context, false),
-    ]) {
-      assert.deepEqual(
-        items.filter((item) => item.label === "How to Guide").map((item) => item.href),
-        [href],
-        role,
-      );
-    }
+
+    assert.deepEqual(
+      authorizedOrganizationAdministrationNavigation(context)
+        .filter((item) => item.label === "Help")
+        .map((item) => item.href),
+      [href],
+      role,
+    );
+
+    assert.deepEqual(
+      mobileSecondaryNavigation(context, false)
+        .filter((item) => item.label === "How to Guide")
+        .map((item) => item.href),
+      [href],
+      role,
+    );
   }
 
   assert.equal(

@@ -134,7 +134,7 @@ test("each organization role receives exactly one role-appropriate guide link", 
 
     assert.deepEqual(
       items
-        .filter((item) => item.label === "How to Guide")
+        .filter((item) => item.label === "Help")
         .map((item) => item.href),
       ["/how-to-guide"],
     );
@@ -159,7 +159,7 @@ test("each organization role receives exactly one role-appropriate guide link", 
 
     assert.deepEqual(
       items
-        .filter((item) => item.label === "How to Guide")
+        .filter((item) => item.label === "Help")
         .map((item) => item.href),
       ["/staff-how-to-guide"],
     );
