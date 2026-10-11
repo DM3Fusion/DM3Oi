@@ -39,8 +39,8 @@ export default async function ContactDM3OiPage({
         </div>
       ) : null}
 
-      <section className="panel form-panel">
-        <div className="detail-grid">
+      <section className="panel form-panel contact-dm3oi-panel">
+        <div className="contact-dm3oi-identity">
           <div>
             <span>Organization</span>
             <strong>
@@ -56,7 +56,7 @@ export default async function ContactDM3OiPage({
 
         <form
           action={submitPlatformSupportRequestAction}
-          className="entity-form"
+          className="entity-form contact-dm3oi-form"
         >
           <label>
             <span>Category</span>

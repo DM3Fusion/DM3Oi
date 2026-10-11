@@ -15045,3 +15045,116 @@ dialog.intake-save-progress-modal {
     justify-content:center;
   }
 }
+
+
+/* Contact DM3Oi authenticated support form. */
+.contact-dm3oi-panel{
+  width:100%;
+  max-width:950px;
+  padding:28px;
+}
+.contact-dm3oi-identity{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px 32px;
+  margin-bottom:26px;
+  padding-bottom:22px;
+  border-bottom:1px solid var(--line);
+}
+.contact-dm3oi-identity>div{
+  display:grid;
+  min-width:0;
+  gap:5px;
+}
+.contact-dm3oi-identity span{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:750;
+  letter-spacing:.45px;
+  text-transform:uppercase;
+}
+.contact-dm3oi-identity strong{
+  min-width:0;
+  color:var(--ink);
+  font-size:18px;
+  line-height:1.35;
+  overflow-wrap:anywhere;
+}
+.contact-dm3oi-form{
+  gap:24px;
+}
+.contact-dm3oi-form>label{
+  display:grid;
+  min-width:0;
+  gap:8px;
+}
+.contact-dm3oi-form>label>span{
+  color:var(--ink);
+  font-size:16px;
+  font-weight:700;
+}
+.contact-dm3oi-form input,
+.contact-dm3oi-form select,
+.contact-dm3oi-form textarea{
+  box-sizing:border-box;
+  width:100%;
+  min-width:0;
+  border:1px solid #c7d1dd;
+  border-radius:7px;
+  background:#fff;
+  padding:11px 13px;
+  color:var(--ink);
+  outline:0;
+}
+.contact-dm3oi-form input,
+.contact-dm3oi-form select{
+  min-height:46px;
+}
+.contact-dm3oi-form textarea{
+  min-height:220px;
+  resize:vertical;
+  line-height:1.55;
+}
+.contact-dm3oi-form input:focus,
+.contact-dm3oi-form select:focus,
+.contact-dm3oi-form textarea:focus{
+  border-color:var(--dm3oi-cyan);
+  box-shadow:0 0 0 3px rgba(51,200,228,.14);
+}
+.contact-dm3oi-form .portal-privacy-settings-note{
+  margin:0;
+}
+.contact-dm3oi-form .form-actions{
+  margin-top:2px;
+}
+@media(max-width:600px){
+  .contact-dm3oi-panel{
+    padding:20px 16px;
+  }
+  .contact-dm3oi-identity{
+    grid-template-columns:1fr;
+    gap:16px;
+    margin-bottom:22px;
+    padding-bottom:20px;
+  }
+  .contact-dm3oi-identity strong{
+    font-size:17px;
+  }
+  .contact-dm3oi-form{
+    gap:20px;
+  }
+  .contact-dm3oi-form textarea{
+    min-height:190px;
+  }
+  .contact-dm3oi-form .form-actions{
+    align-items:stretch;
+    flex-direction:column-reverse;
+  }
+  .contact-dm3oi-form .form-actions>a{
+    text-align:center;
+  }
+  .contact-dm3oi-form .form-actions .primary-button{
+    width:100%;
+    justify-content:center;
+  }
+}
