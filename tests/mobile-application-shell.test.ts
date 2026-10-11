@@ -80,7 +80,7 @@ test("phone header removes the drawer control and preserves the 56px account ide
   assert.match(css, /\.sidebar,\.scrim,\.menu-button\{display:none!important\}/);
   assert.match(css, /\.topbar \.account-menu>summary,\.topbar \.account-menu \.user-avatar\{width:56px;height:56px\}/);
   assert.match(css, /\.topbar \.product-tagline\{flex:1 1 0;min-width:0/);
-  assert.match(shell, /className="organization-context-prefix">for<\/span><b className="organization-context-name">\{org\?\.name/);
+  assert.match(shell, /className="organization-context-prefix">for<\/span><b className="organization-context-name">\{org\?\.displayName/);
   assert.match(css, /\.topbar \.organization-context\{display:grid;grid-template-columns:auto minmax\(0,1fr\)/);
   assert.match(css, /\.topbar \.organization-context-name\{[^}]*color:var\(--dm3oi-cyan\)[^}]*font-size:clamp\(16px,5vw,20px\)[^}]*font-weight:750/);
 });
@@ -93,7 +93,7 @@ test("dynamic phone organization names wrap safely without tenant-specific sizin
     "Commonwealth Professional Business Services of Northern Virginia",
     "CommonwealthProfessionalBusinessServicesInternational",
   ]) assert.doesNotMatch(shell, new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.match(shell, /\{org\?\.name \?\? "No active organization"\}/);
+  assert.match(shell, /\{org\?\.displayName \?\? "No active organization"\}/);
   assert.doesNotMatch(shell, /organizationName\.length|org\?\.name\.length|window\.innerWidth/);
   assert.match(css, /\.topbar \.organization-context\{[^}]*max-width:100%[^}]*white-space:normal/);
   assert.match(css, /\.topbar \.organization-context-name\{[^}]*min-width:0[^}]*max-width:100%[^}]*overflow:hidden/);

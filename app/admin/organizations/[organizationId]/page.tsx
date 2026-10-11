@@ -214,7 +214,7 @@ export default async function Page({
 
             <form
               action={setOrganizationSandboxSuppressionAction}
-              className="entity-form"
+              className="entity-form sandbox-setting-form"
             >
               <input
                 type="hidden"

@@ -11,6 +11,7 @@ export type ApplicationNavigationItem = {
   label: string;
   icon: ApplicationIconName;
   permission?: Permission;
+  ownerOnly?: boolean;
 };
 
 export const organizationNavigation = [
@@ -25,6 +26,7 @@ export const organizationNavigation = [
 
 export const organizationAdministrationNavigation = [
   { href: "/users", label: "Users", icon: "users", permission: "VIEW_USERS" },
+  { href: "/account", label: "Account", icon: "account", ownerOnly: true },
   { href: "/how-to-guide", label: "How to Guide", icon: "questions" },
   { href: "/settings", label: "Settings", icon: "settings", permission: "VIEW_SETTINGS" },
 ] as const satisfies readonly ApplicationNavigationItem[];
@@ -67,9 +69,11 @@ export const authorizedOrganizationAdministrationNavigation = (context: Permissi
   const guideHref = organizationGuideHref(context);
   return organizationAdministrationNavigation
     .filter((item) =>
-      item.label === "How to Guide"
-        ? Boolean(guideHref)
-        : "permission" in item && hasPermission(context, item.permission),
+      "ownerOnly" in item && item.ownerOnly
+        ? context.activeOrganization?.role === "BUSINESS_OWNER"
+        : item.label === "How to Guide"
+          ? Boolean(guideHref)
+          : "permission" in item && hasPermission(context, item.permission),
     )
     .map((item) =>
       item.label === "How to Guide" && guideHref

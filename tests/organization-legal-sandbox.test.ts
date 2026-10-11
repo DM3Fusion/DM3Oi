@@ -224,6 +224,43 @@ test("Supabase RPC methods retain their client binding on Sandbox server paths",
   );
 });
 
+test("Business Owner receives centralized Account navigation and Sandbox display identity consistently", () => {
+  const navigation = source("lib/application-navigation.ts");
+  const shell = source("components/layout/app-shell.tsx");
+  const adminPage = source(
+    "app/admin/organizations/[organizationId]/page.tsx",
+  );
+  const css = source("app/globals.css");
+
+  assert.match(
+    navigation,
+    /href: "\/account", label: "Account", icon: "account", ownerOnly: true/,
+  );
+
+  assert.match(
+    navigation,
+    /"ownerOnly" in item && item\.ownerOnly[\s\S]*context\.activeOrganization\?\.role === "BUSINESS_OWNER"/,
+  );
+
+  assert.match(
+    shell,
+    /organization-context-name">\{org\?\.displayName \?\? "No active organization"\}/,
+  );
+
+  assert.doesNotMatch(
+    shell,
+    /org\?\.role === "BUSINESS_OWNER"[\s\S]*href: "\/account"/,
+  );
+
+  assert.match(
+    adminPage,
+    /className="entity-form sandbox-setting-form"/,
+  );
+
+  assert.match(css, /\.sandbox-setting-form\{/);
+  assert.match(css, /\.sandbox-setting-form select\{/);
+});
+
 test("organization canonical names remain stored independently from Sandbox display identity", () => {
   assert.doesNotMatch(
     foundation,

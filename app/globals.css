@@ -14639,3 +14639,77 @@ dialog.intake-save-progress-modal {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+/* Organization Legal / Sandbox control. */
+.sandbox-setting-form{
+  display:grid;
+  gap:14px;
+  margin-top:18px;
+  padding:18px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  background:#f8fafc;
+}
+
+.sandbox-setting-form>label{
+  display:grid;
+  width:min(100%,560px);
+  gap:7px;
+}
+
+.sandbox-setting-form>label>span{
+  color:#40506a;
+  font-size:12px;
+  font-weight:750;
+}
+
+.sandbox-setting-form select{
+  width:100%;
+  min-height:44px;
+  border:1px solid #cfd8e3;
+  border-radius:6px;
+  background:#fff;
+  padding:0 38px 0 12px;
+  color:var(--ink);
+  font:inherit;
+}
+
+.sandbox-setting-form select:focus-visible{
+  border-color:var(--dm3oi-cyan);
+  outline:0;
+  box-shadow:0 0 0 3px rgba(26,176,199,.14);
+}
+
+.sandbox-setting-form>p{
+  max-width:780px;
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.55;
+}
+
+.sandbox-setting-form .form-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin:0;
+  padding-top:2px;
+}
+
+@media(max-width:600px){
+  .sandbox-setting-form{
+    padding:14px;
+  }
+
+  .sandbox-setting-form>label{
+    width:100%;
+  }
+
+  .sandbox-setting-form .form-actions{
+    justify-content:stretch;
+  }
+
+  .sandbox-setting-form .primary-button{
+    width:100%;
+    justify-content:center;
+  }
+}
