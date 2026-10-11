@@ -258,3 +258,185 @@ export async function getPlatformSupportRequest(
     messages,
   };
 }
+
+
+export type MyPlatformSupportRequestItem = {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  category: PlatformSupportCategory;
+  subject: string;
+  message: string;
+  status: PlatformSupportStatus;
+  createdAt: string;
+  updatedAt: string;
+  respondedAt: string | null;
+  closedAt: string | null;
+};
+
+export type MyPlatformSupportMessage = {
+  id: string;
+  senderType: "ORGANIZATION_USER" | "PLATFORM_ADMIN";
+  senderName: string;
+  body: string;
+  createdAt: string;
+};
+
+export type MyPlatformSupportRequestDetail =
+  MyPlatformSupportRequestItem & {
+    messages: MyPlatformSupportMessage[];
+  };
+
+function parseMyPlatformSupportRequestItem(
+  value: unknown,
+): MyPlatformSupportRequestItem | null {
+  if (!isRecord(value)) return null;
+
+  const id = stringValue(value.id);
+  const organizationId = stringValue(value.organization_id);
+  const organizationName = stringValue(value.organization_name);
+  const category = stringValue(value.category);
+  const subject = stringValue(value.subject);
+  const message = stringValue(value.message);
+  const status = stringValue(value.status);
+  const createdAt = stringValue(value.created_at);
+  const updatedAt = stringValue(value.updated_at);
+
+  if (
+    !id ||
+    !organizationId ||
+    !organizationName ||
+    !category ||
+    !isPlatformSupportCategory(category) ||
+    !subject ||
+    !message ||
+    !status ||
+    !isPlatformSupportStatus(status) ||
+    !createdAt ||
+    !updatedAt
+  ) {
+    return null;
+  }
+
+  return {
+    id,
+    organizationId,
+    organizationName,
+    category,
+    subject,
+    message,
+    status,
+    createdAt,
+    updatedAt,
+    respondedAt: stringValue(value.responded_at),
+    closedAt: stringValue(value.closed_at),
+  };
+}
+
+export async function getMyPlatformSupportRequests(
+  organizationId: string,
+): Promise<MyPlatformSupportRequestItem[]> {
+  const supabase = await createClient();
+
+  const result = await supabase.rpc(
+    "get_my_platform_support_requests" as never,
+    {
+      target_organization_id: organizationId,
+    } as never,
+  );
+
+  const rawData: unknown = result.data;
+
+  if (result.error || !Array.isArray(rawData)) {
+    console.error("My DM3Oi support requests query failed", {
+      code: result.error?.code,
+      message: result.error?.message,
+    });
+
+    throw new Error(
+      "Your DM3Oi support requests are temporarily unavailable.",
+    );
+  }
+
+  return rawData
+    .map(parseMyPlatformSupportRequestItem)
+    .filter(
+      (
+        item,
+      ): item is MyPlatformSupportRequestItem =>
+        item !== null,
+    );
+}
+
+export async function getMyPlatformSupportRequest(
+  organizationId: string,
+  requestId: string,
+): Promise<MyPlatformSupportRequestDetail | null> {
+  const supabase = await createClient();
+
+  const result = await supabase.rpc(
+    "get_my_platform_support_request" as never,
+    {
+      target_organization_id: organizationId,
+      target_request_id: requestId,
+    } as never,
+  );
+
+  if (result.error) {
+    console.error("My DM3Oi support request query failed", {
+      requestId,
+      code: result.error.code,
+      message: result.error.message,
+    });
+
+    throw new Error(
+      "The DM3Oi support request could not be loaded.",
+    );
+  }
+
+  const rawData: unknown = result.data;
+
+  if (!isRecord(rawData)) return null;
+
+  const base = parseMyPlatformSupportRequestItem(rawData);
+
+  if (!base || !Array.isArray(rawData.messages)) {
+    return null;
+  }
+
+  const messages: MyPlatformSupportMessage[] = [];
+
+  for (const value of rawData.messages) {
+    if (!isRecord(value)) return null;
+
+    const id = stringValue(value.id);
+    const senderType = stringValue(value.sender_type);
+    const senderName = stringValue(value.sender_name);
+    const body = stringValue(value.body);
+    const createdAt = stringValue(value.created_at);
+
+    if (
+      !id ||
+      (senderType !== "ORGANIZATION_USER" &&
+        senderType !== "PLATFORM_ADMIN") ||
+      !senderName ||
+      !body ||
+      !createdAt
+    ) {
+      return null;
+    }
+
+    messages.push({
+      id,
+      senderType,
+      senderName,
+      body,
+      createdAt,
+    });
+  }
+
+  return {
+    ...base,
+    messages,
+  };
+}

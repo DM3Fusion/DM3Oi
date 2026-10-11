@@ -12,6 +12,11 @@ const repository = fs.readFileSync(
   "utf8",
 );
 
+const submitterTrackingMigration = fs.readFileSync(
+  "supabase/migrations/20261011130000_dm3oi_support_submitter_tracking.sql",
+  "utf8",
+);
+
 const emailService = fs.readFileSync(
   "lib/data/platform-support-email-service.ts",
   "utf8",
@@ -153,7 +158,7 @@ test(
 );
 
 test(
-  "Help navigation exposes How to Guide and Contact DM3Oi",
+  "Help navigation exposes How to Guide, Contact DM3Oi, and request tracking",
   () => {
     const navigation = fs.readFileSync(
       "lib/application-navigation.ts",
@@ -164,6 +169,8 @@ test(
     assert.match(navigation, /label: "How to Guide"/);
     assert.match(navigation, /label: "Contact DM3Oi"/);
     assert.match(navigation, /\/help\/contact-dm3oi/);
+    assert.match(navigation, /label: "My DM3Oi Requests"/);
+    assert.match(navigation, /\/help\/my-requests/);
   },
 );
 
@@ -276,5 +283,93 @@ test(
       proxy,
       /publicRoutes=.*contact-dm3oi/,
     );
+  },
+);
+
+
+test(
+  "organization users can track only support requests they personally submitted",
+  () => {
+    assert.match(
+      submitterTrackingMigration,
+      /get_my_platform_support_requests/,
+    );
+
+    assert.match(
+      submitterTrackingMigration,
+      /get_my_platform_support_request/,
+    );
+
+    assert.match(
+      submitterTrackingMigration,
+      /submitted_by_user_id = actor_id/,
+    );
+
+    assert.match(
+      submitterTrackingMigration,
+      /organization_id = target_organization_id/,
+    );
+
+    assert.match(
+      submitterTrackingMigration,
+      /BUSINESS_OWNER/,
+    );
+
+    assert.match(
+      submitterTrackingMigration,
+      /STAFF_USER/,
+    );
+
+    assert.doesNotMatch(
+      submitterTrackingMigration,
+      /is_super_admin/,
+    );
+  },
+);
+
+test(
+  "submitter support history is read-only and does not expose platform email transport metadata",
+  () => {
+    assert.doesNotMatch(
+      submitterTrackingMigration,
+      /email_status/,
+    );
+
+    assert.doesNotMatch(
+      submitterTrackingMigration,
+      /sender_email/,
+    );
+
+    assert.doesNotMatch(
+      submitterTrackingMigration,
+      /notification_email_status/,
+    );
+
+    assert.doesNotMatch(
+      submitterTrackingMigration,
+      /update public\.platform_support_requests/,
+    );
+  },
+);
+
+test(
+  "My DM3Oi Requests pages use authenticated internal context and submitter RPCs",
+  () => {
+    const listPage = fs.readFileSync(
+      "app/help/my-requests/page.tsx",
+      "utf8",
+    );
+
+    const detailPage = fs.readFileSync(
+      "app/help/my-requests/[requestId]/page.tsx",
+      "utf8",
+    );
+
+    assert.match(listPage, /requireInternalContext/);
+    assert.match(listPage, /getMyPlatformSupportRequests/);
+    assert.match(detailPage, /requireInternalContext/);
+    assert.match(detailPage, /getMyPlatformSupportRequest/);
+    assert.match(repository, /get_my_platform_support_requests/);
+    assert.match(repository, /get_my_platform_support_request/);
   },
 );

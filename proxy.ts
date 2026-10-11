@@ -56,7 +56,7 @@ export async function proxy(request:NextRequest){
   if(organizationLegalBlocked){
    const owner=routeState.route_organization_role==="BUSINESS_OWNER";
    const lockout="/account/organization-locked";
-   const authenticatedSupport=pathname==="/help/contact-dm3oi";
+   const authenticatedSupport=pathname==="/help/contact-dm3oi"||pathname==="/help/my-requests"||pathname.startsWith("/help/my-requests/");
 
    if(owner){
     if(pathname==="/")return responseWithCookies(new URL("/account",request.url),response);

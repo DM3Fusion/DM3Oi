@@ -29,7 +29,10 @@ export default async function ContactDM3OiPage({
 
       {query.sent === "1" ? (
         <div className="success-alert page-notice" role="status">
-          Your message was sent to DM3Oi.
+          Your message was sent to DM3Oi.{" "}
+          <Link href="/help/my-requests">
+            View My DM3Oi Requests
+          </Link>
         </div>
       ) : null}
 
@@ -91,7 +94,7 @@ export default async function ContactDM3OiPage({
             />
           </label>
 
-          <div className="portal-privacy-settings-note">
+          <div className="portal-privacy-settings-note contact-dm3oi-note">
             <strong>Authenticated support channel</strong>
             <span>
               Your organization and account identity are attached

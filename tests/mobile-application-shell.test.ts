@@ -129,6 +129,7 @@ test("mobile Account omits permission-filtered destinations while retaining the 
     "/account/profile",
     "/staff-how-to-guide",
     "/help/contact-dm3oi",
+    "/help/my-requests",
   ]);
   assert.ok(!navigation.some((item) => ["/customers", "/questions", "/reports", "/users", "/settings"].includes(item.href)));
   const platformNavigation = mobileSecondaryNavigation({
@@ -175,6 +176,7 @@ test("mobile More orders authorized organization destinations without bypassing 
     "/account/profile",
     "/how-to-guide",
     "/help/contact-dm3oi",
+    "/help/my-requests",
     "/settings/case-configuration",
   ]);
   assert.deepEqual(navigation.at(-1), {

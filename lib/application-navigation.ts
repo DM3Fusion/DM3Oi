@@ -49,6 +49,11 @@ export const authorizedOrganizationHelpNavigation = (
       label: "Contact DM3Oi",
       icon: "communications" as const,
     },
+    {
+      href: "/help/my-requests",
+      label: "My DM3Oi Requests",
+      icon: "communications" as const,
+    },
   ];
 };
 
