@@ -15756,3 +15756,47 @@ dialog.intake-save-progress-modal {
     justify-content:center;
   }
 }
+
+/* Platform Inbox rows — full-row navigation with independent read control. */
+.platform-inbox-row{
+  transition:
+    background-color .15s ease,
+    border-color .15s ease;
+}
+
+.platform-inbox-row-heading a::after{
+  position:absolute;
+  inset:0;
+  z-index:1;
+  content:"";
+}
+
+.platform-inbox-row>form{
+  position:relative;
+  z-index:2;
+}
+
+.platform-inbox-row-heading a:focus-visible{
+  outline:2px solid var(--dm3oi-cyan);
+  outline-offset:3px;
+  border-radius:3px;
+}
+
+@media(hover:hover) and (pointer:fine){
+  .platform-inbox-row{
+    cursor:pointer;
+  }
+
+  .platform-inbox-row:hover{
+    background:#edf2f6;
+    border-color:#cbd5df;
+  }
+
+  .platform-inbox-row.unread:hover{
+    background:#e5f4f7;
+  }
+
+  .platform-inbox-row:hover .platform-inbox-row-heading strong{
+    color:#102f4e;
+  }
+}
