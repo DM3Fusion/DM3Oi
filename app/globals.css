@@ -15447,3 +15447,46 @@ dialog.intake-save-progress-modal {
     display:none;
   }
 }
+
+
+/* Platform Inbox detail status controls. */
+.platform-inbox-status-form{
+  align-items:flex-end;
+}
+
+.platform-inbox-status-button{
+  min-width:165px;
+  justify-content:center;
+  border-color:#40506a;
+  background:#40506a;
+  color:#fff;
+}
+
+.platform-inbox-status-button:hover:not(:disabled){
+  border-color:#344258;
+  background:#344258;
+  color:#fff;
+}
+
+.platform-inbox-status-button:focus-visible{
+  outline:2px solid var(--dm3oi-cyan);
+  outline-offset:2px;
+}
+
+.platform-inbox-status-button:disabled,
+.platform-inbox-status-button.is-pending{
+  border-color:#8793a5;
+  background:#8793a5;
+  color:#fff;
+  opacity:1;
+}
+
+@media(max-width:700px){
+  .platform-inbox-status-form{
+    align-items:stretch;
+  }
+
+  .platform-inbox-status-button{
+    width:100%;
+  }
+}

@@ -236,6 +236,8 @@ export async function setPlatformSupportStatusAction(
   revalidatePath("/admin/inbox");
   revalidatePath(`/admin/inbox/${requestId}`);
   revalidatePath("/", "layout");
+
+  redirect(`/admin/inbox/${requestId}`);
 }
 
 export async function respondToPlatformSupportRequestAction(

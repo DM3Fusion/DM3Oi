@@ -151,12 +151,12 @@ export default async function PlatformInboxDetailPage({
         </div>
       </section>
 
-      <section className="panel form-panel">
+      <section className="panel form-panel platform-inbox-status-panel">
         <h2>Request Status</h2>
 
         <form
           action={setPlatformSupportStatusAction}
-          className="inline-control"
+          className="inline-control platform-inbox-status-form"
         >
           <input
             type="hidden"
@@ -182,7 +182,7 @@ export default async function PlatformInboxDetailPage({
           </label>
 
           <PendingSubmitButton
-            className="secondary-button"
+            className="secondary-button platform-inbox-status-button"
             pendingLabel="Updating…"
           >
             Update Status
