@@ -63,7 +63,7 @@ export default async function Page() {
 
       {access.activeOrganization && legalState ? (
         <section
-          className="panel detail-section"
+          className="panel detail-section organization-legal-card"
           aria-labelledby="organization-legal-heading"
         >
           <div className="section-head">
@@ -75,13 +75,13 @@ export default async function Page() {
                 {legalState.display_name}
               </p>
             </div>
-            <strong>
+            <strong className="organization-legal-status">
               {legalState.state.replaceAll("_", " ")}
             </strong>
           </div>
 
           {legalState.current_documents ? (
-            <div className="detail-list">
+            <div className="detail-list organization-legal-documents">
               <div>
                 <span>Terms of Service</span>
                 <strong>
@@ -107,7 +107,7 @@ export default async function Page() {
           )}
 
           {legalState.is_sandbox ? (
-            <p>
+            <p className="organization-legal-sandbox-note">
               This organization is currently designated as Sandbox.
             </p>
           ) : null}
@@ -117,27 +117,31 @@ export default async function Page() {
           legalState.state !== "ACTIVE" ? (
             <form
               action={acceptOrganizationLegalDocumentsAction}
-              className="entity-form"
+              className="entity-form organization-legal-consent-form"
             >
               <input
                 type="hidden"
                 name="organizationId"
                 value={access.activeOrganization.id}
               />
-              <label>
-                <span>Business Owner authorization</span>
-                <span>
+              <label className="organization-legal-consent-field">
+                <span className="organization-legal-consent-title">
+                  Business Owner authorization
+                </span>
+                <span className="organization-legal-consent-row">
                   <input
                     type="checkbox"
                     name="legalConsent"
                     value="accepted"
                     required
-                  />{" "}
-                  I have authority to bind this organization. I
-                  accept the current{" "}
-                  <Link href="/terms">Terms of Service</Link> and
-                  acknowledge the current{" "}
-                  <Link href="/privacy">Privacy Policy</Link>.
+                  />
+                  <span className="organization-legal-consent-copy">
+                    I have authority to bind this organization. I
+                    accept the current{" "}
+                    <Link href="/terms">Terms of Service</Link> and
+                    acknowledge the current{" "}
+                    <Link href="/privacy">Privacy Policy</Link>.
+                  </span>
                 </span>
               </label>
               <div className="form-actions">

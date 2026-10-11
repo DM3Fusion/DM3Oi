@@ -14713,3 +14713,201 @@ dialog.intake-save-progress-modal {
     justify-content:center;
   }
 }
+
+/* Organization Account legal authorization card. */
+.organization-legal-card{
+  display:grid;
+  gap:18px;
+}
+
+.organization-legal-card .section-head{
+  align-items:flex-start;
+  gap:18px;
+  margin-bottom:0;
+}
+
+.organization-legal-card .section-head>div{
+  min-width:0;
+}
+
+.organization-legal-card .section-head h2{
+  margin-bottom:4px;
+}
+
+.organization-legal-card .section-head p{
+  margin:0;
+  color:var(--muted);
+}
+
+.organization-legal-status{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  border:1px solid #d6dee8;
+  border-radius:6px;
+  background:#f5f7fa;
+  padding:5px 10px;
+  color:#26364b;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.025em;
+  line-height:1.2;
+  white-space:nowrap;
+}
+
+.organization-legal-documents{
+  display:grid;
+  gap:0;
+  margin:0;
+  overflow:hidden;
+  border:1px solid #dce3eb;
+  border-radius:8px;
+  background:#fff;
+}
+
+.organization-legal-documents>div{
+  display:grid;
+  grid-template-columns:minmax(150px,200px) minmax(0,1fr);
+  align-items:center;
+  gap:20px;
+  min-width:0;
+  padding:12px 14px;
+  border-bottom:1px solid #e6ebf1;
+}
+
+.organization-legal-documents>div:last-child{
+  border-bottom:0;
+}
+
+.organization-legal-documents>div>span{
+  color:#526174;
+  font-size:13px;
+  font-weight:700;
+  line-height:1.35;
+}
+
+.organization-legal-documents>div>strong{
+  min-width:0;
+  color:var(--ink);
+  font-size:14px;
+  font-weight:750;
+  line-height:1.4;
+}
+
+.organization-legal-sandbox-note{
+  margin:0;
+  border-left:3px solid #9aa8b8;
+  padding:2px 0 2px 11px;
+  color:#536275;
+  font-size:13px;
+  line-height:1.5;
+}
+
+.organization-legal-consent-form{
+  display:grid;
+  gap:18px;
+  margin-top:2px;
+  padding-top:18px;
+  border-top:1px solid #dce3eb;
+}
+
+.organization-legal-consent-field{
+  display:grid;
+  gap:9px;
+  max-width:900px;
+}
+
+.organization-legal-consent-title{
+  color:#40506a;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.01em;
+}
+
+.organization-legal-consent-row{
+  display:grid;
+  grid-template-columns:22px minmax(0,1fr);
+  align-items:start;
+  gap:10px;
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.55;
+}
+
+.organization-legal-consent-row input[type="checkbox"]{
+  width:18px;
+  height:18px;
+  margin:2px 0 0;
+  accent-color:var(--dm3oi-cyan);
+  cursor:pointer;
+}
+
+.organization-legal-consent-copy{
+  min-width:0;
+}
+
+.organization-legal-consent-copy a{
+  color:#176c82;
+  font-weight:750;
+  text-decoration:underline;
+  text-decoration-thickness:1px;
+  text-underline-offset:2px;
+}
+
+.organization-legal-consent-copy a:hover{
+  color:#0c5266;
+}
+
+.organization-legal-consent-copy a:focus-visible,
+.organization-legal-consent-row input[type="checkbox"]:focus-visible{
+  outline:2px solid var(--dm3oi-cyan);
+  outline-offset:3px;
+}
+
+.organization-legal-consent-form .form-actions{
+  display:flex;
+  justify-content:flex-end;
+  margin:0;
+  padding-top:2px;
+}
+
+@media(max-width:600px){
+  .organization-legal-card{
+    gap:15px;
+  }
+
+  .organization-legal-card .section-head{
+    display:grid;
+    gap:10px;
+  }
+
+  .organization-legal-status{
+    justify-self:start;
+  }
+
+  .organization-legal-documents>div{
+    grid-template-columns:1fr;
+    gap:4px;
+    padding:11px 12px;
+  }
+
+  .organization-legal-consent-form{
+    gap:15px;
+    padding-top:15px;
+  }
+
+  .organization-legal-consent-row{
+    grid-template-columns:22px minmax(0,1fr);
+    gap:9px;
+  }
+
+  .organization-legal-consent-form .form-actions{
+    justify-content:stretch;
+  }
+
+  .organization-legal-consent-form .primary-button{
+    width:100%;
+    justify-content:center;
+  }
+}
