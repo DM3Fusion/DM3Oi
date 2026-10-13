@@ -252,7 +252,12 @@ export async function POST(request: NextRequest) {
       180,
     );
 
+  const bypassGeographicExclusion =
+    accessType === "INTERNAL" &&
+    organizationId !== null;
+
   if (
+    !bypassGeographicExclusion &&
     isExcludedAnalyticsGeo(
       countryCode,
       regionCode,
