@@ -10,20 +10,21 @@ const organizationTable = source(
   "components/platform/organization-table.tsx",
 );
 const organizationsPage = source("app/admin/organizations/page.tsx");
-const repository = source("lib/data/platform-repository.ts");
+const repository = source("lib/data/platform-dashboard-repository.ts");
 const styles = source("app/globals.css");
 
 test("Platform Console loads the complete authorized organization collection", () => {
-  assert.match(rootPage, /getPlatformAdministration\(\)/);
+  assert.match(rootPage, /getPlatformDashboard\(\)/);
+  assert.doesNotMatch(rootPage, /getPlatformAdministration\(\)/);
   assert.match(
     rootPage,
-    /organizations=\{administration\.organizations\}/,
+    /organizations=\{dashboardData\.organizations\}/,
   );
   assert.doesNotMatch(
     rootPage,
-    /administration\.organizations\.(?:filter|slice)|organizations=\{[^}]*items/,
+    /dashboardData\.organizations\.(?:filter|slice)|organizations=\{[^}]*items/,
   );
-  assert.match(repository, /async function loadPlatformData\(\)[\s\S]*await requireSuperAdmin\(\)/);
+  assert.match(repository, /getPlatformDashboard\(\)[\s\S]*await requireSuperAdmin\(\)/);
 });
 
 test("Platform Console renders the shared organization directory table", () => {

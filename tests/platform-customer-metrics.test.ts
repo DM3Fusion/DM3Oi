@@ -5,15 +5,12 @@ import test from "node:test";
 const source = (path: string) => readFileSync(path, "utf8");
 const page = source("app/page.tsx");
 const dashboard = source("components/platform/platform-dashboard.tsx");
-const repository = source("lib/data/platform-repository.ts");
+const repository = source("lib/data/platform-dashboard-repository.ts");
+const model = source("lib/data/platform-dashboard-model.ts");
 const styles = source("app/globals.css");
 const loader =
   repository.match(
-    /async function loadPlatformData\(\)[\s\S]*?\n}\nexport async function getPlatformAdministration/,
-  )?.[0] ?? "";
-const administration =
-  repository.match(
-    /export async function getPlatformAdministration\(\)[\s\S]*?\n}\nexport async function getPlatformSummary/,
+    /export async function getPlatformDashboard\(\)[\s\S]*\n}/,
   )?.[0] ?? "";
 
 test("Platform Console uses the exact Platform Administrators label", () => {
@@ -38,7 +35,7 @@ test("Total Customers occupies the compact supporting KPI row", () => {
   );
 });
 
-test("customer totals reuse the aggregate-only organization query", () => {
+test("customer totals use the dedicated aggregate-only organization query", () => {
   assert.match(loader, /await requireSuperAdmin\(\)/);
   assert.ok(
     loader.indexOf("await requireSuperAdmin()") <
@@ -46,17 +43,18 @@ test("customer totals reuse the aggregate-only organization query", () => {
   );
   assert.match(
     loader,
-    /\.from\("organizations"\)[\s\S]*\.select\("\*,organization_customers\(count\)"\)[\s\S]*\.order\("name"\)/,
+    /\.from\("organizations"\)[\s\S]*organization_customers\(count\)[\s\S]*collection: "organizations"[\s\S]*column: "name"[\s\S]*column: "id"/,
   );
   const organizationQuery =
     loader.match(
-      /supabase[\s\S]*?\.from\("organizations"\)[\s\S]*?\.order\("name"\)/,
+      /\.from\("organizations"\)[\s\S]*?collection: "organizations"[\s\S]*?\n      },/,
     )?.[0] ?? "";
   assert.doesNotMatch(
     organizationQuery,
     /organization_customers\((?:email|phone|address|postal|notes|name)/,
   );
   assert.doesNotMatch(organizationQuery, /\.eq\("status"/);
+  assert.doesNotMatch(organizationQuery, /\.select\("\*/);
 });
 
 test("aggregate total is the sum of nonzero organization counts", () => {
@@ -65,11 +63,11 @@ test("aggregate total is the sum of nonzero organization counts", () => {
     /customerCount: customerCounts\[0\]\?\.count \?\? 0/,
   );
   assert.match(
-    administration,
+    model,
     /\.filter\(\(organization\) => organization\.customers > 0\)/,
   );
   assert.match(
-    administration,
+    model,
     /totalCustomers: byOrganization\.reduce\([\s\S]*total \+ organization\.customerCount[\s\S]*0,/,
   );
 });
@@ -94,10 +92,11 @@ test("customer aggregate stays inside the existing parallel platform load", () =
     page.match(/if \(experience === "PLATFORM"\)[\s\S]*?if \(experience === "PORTAL"\)/)?.[0] ?? "";
 
   assert.match(platformBranch, /Promise\.all\(\[/);
-  assert.match(platformBranch, /getPlatformAdministration\(\)/);
+  assert.match(platformBranch, /getPlatformDashboard\(\)/);
+  assert.doesNotMatch(platformBranch, /getPlatformAdministration\(\)/);
   assert.doesNotMatch(platformBranch, /getPlatformCustomerSummary\(\)/);
   assert.match(
     platformBranch,
-    /customerSummary=\{administration\.customerSummary\}/,
+    /customerSummary=\{dashboardData\.customerSummary\}/,
   );
 });
