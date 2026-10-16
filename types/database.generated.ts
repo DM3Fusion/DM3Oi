@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   graphql_public: {
     Tables: {
@@ -223,6 +223,45 @@ export type Database = {
         Update: {
           rollout_started_at?: string
           singleton?: boolean
+        }
+        Relationships: []
+      }
+      authentication_events: {
+        Row: {
+          access_type_snapshot: string
+          authenticated_at: string
+          authentication_method: string
+          display_name_snapshot: string | null
+          email_snapshot: string | null
+          id: string
+          organization_id_snapshot: string | null
+          organization_name_snapshot: string | null
+          role_snapshot: string | null
+          user_id: string
+        }
+        Insert: {
+          access_type_snapshot: string
+          authenticated_at?: string
+          authentication_method?: string
+          display_name_snapshot?: string | null
+          email_snapshot?: string | null
+          id?: string
+          organization_id_snapshot?: string | null
+          organization_name_snapshot?: string | null
+          role_snapshot?: string | null
+          user_id: string
+        }
+        Update: {
+          access_type_snapshot?: string
+          authenticated_at?: string
+          authentication_method?: string
+          display_name_snapshot?: string | null
+          email_snapshot?: string | null
+          id?: string
+          organization_id_snapshot?: string | null
+          organization_name_snapshot?: string | null
+          role_snapshot?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -658,6 +697,9 @@ export type Database = {
           due_at: string | null
           id: string
           intake_follow_up_id: string | null
+          intake_qualification_key: string | null
+          intake_qualification_notice_sent_at: string | null
+          intake_qualification_signature: string | null
           intake_question_definition_id: string | null
           intake_requirement_context: Json | null
           organization_id: string
@@ -686,6 +728,9 @@ export type Database = {
           due_at?: string | null
           id?: string
           intake_follow_up_id?: string | null
+          intake_qualification_key?: string | null
+          intake_qualification_notice_sent_at?: string | null
+          intake_qualification_signature?: string | null
           intake_question_definition_id?: string | null
           intake_requirement_context?: Json | null
           organization_id: string
@@ -714,6 +759,9 @@ export type Database = {
           due_at?: string | null
           id?: string
           intake_follow_up_id?: string | null
+          intake_qualification_key?: string | null
+          intake_qualification_notice_sent_at?: string | null
+          intake_qualification_signature?: string | null
           intake_question_definition_id?: string | null
           intake_requirement_context?: Json | null
           organization_id?: string
@@ -2675,6 +2723,60 @@ export type Database = {
           },
         ]
       }
+      organization_legal_authorization_events: {
+        Row: {
+          acted_at: string
+          acted_by: string
+          actor_display_name: string | null
+          actor_email: string | null
+          event_type: string
+          id: string
+          license_id: string
+          organization_id: string
+          organization_name: string
+          privacy_effective_date: string
+          privacy_version: string
+          privacy_version_id: string
+          terms_effective_date: string
+          terms_version: string
+          terms_version_id: string
+        }
+        Insert: {
+          acted_at?: string
+          acted_by: string
+          actor_display_name?: string | null
+          actor_email?: string | null
+          event_type: string
+          id?: string
+          license_id: string
+          organization_id: string
+          organization_name: string
+          privacy_effective_date: string
+          privacy_version: string
+          privacy_version_id: string
+          terms_effective_date: string
+          terms_version: string
+          terms_version_id: string
+        }
+        Update: {
+          acted_at?: string
+          acted_by?: string
+          actor_display_name?: string | null
+          actor_email?: string | null
+          event_type?: string
+          id?: string
+          license_id?: string
+          organization_id?: string
+          organization_name?: string
+          privacy_effective_date?: string
+          privacy_version?: string
+          privacy_version_id?: string
+          terms_effective_date?: string
+          terms_version?: string
+          terms_version_id?: string
+        }
+        Relationships: []
+      }
       organization_license_events: {
         Row: {
           actor_user_id: string | null
@@ -3201,6 +3303,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -3212,6 +3315,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          sandbox_designation_suppressed?: boolean
           slug: string
           status?: Database["public"]["Enums"]["organization_status"]
           updated_at?: string
@@ -3223,6 +3327,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          sandbox_designation_suppressed?: boolean
           slug?: string
           status?: Database["public"]["Enums"]["organization_status"]
           updated_at?: string
@@ -3429,6 +3534,150 @@ export type Database = {
           reset_type?: string
         }
         Relationships: []
+      }
+      platform_support_messages: {
+        Row: {
+          body: string
+          created_at: string
+          email_error: string | null
+          email_sent_at: string | null
+          email_status: string | null
+          id: string
+          request_id: string
+          sender_email: string
+          sender_name: string
+          sender_type: string
+          sender_user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string | null
+          id?: string
+          request_id: string
+          sender_email: string
+          sender_name: string
+          sender_type: string
+          sender_user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          email_error?: string | null
+          email_sent_at?: string | null
+          email_status?: string | null
+          id?: string
+          request_id?: string
+          sender_email?: string
+          sender_name?: string
+          sender_type?: string
+          sender_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_messages_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "platform_support_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_support_request_reads: {
+        Row: {
+          read_at: string | null
+          request_id: string
+          user_id: string
+        }
+        Insert: {
+          read_at?: string | null
+          request_id: string
+          user_id: string
+        }
+        Update: {
+          read_at?: string | null
+          request_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_request_reads_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "platform_support_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_support_requests: {
+        Row: {
+          category: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          message: string
+          notification_email_error: string | null
+          notification_email_sent_at: string | null
+          notification_email_status: string
+          organization_id: string
+          organization_name: string
+          responded_at: string | null
+          status: string
+          subject: string
+          submitted_by_user_id: string
+          submitter_email: string
+          submitter_name: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          message: string
+          notification_email_error?: string | null
+          notification_email_sent_at?: string | null
+          notification_email_status?: string
+          organization_id: string
+          organization_name: string
+          responded_at?: string | null
+          status?: string
+          subject: string
+          submitted_by_user_id: string
+          submitter_email: string
+          submitter_name: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          message?: string
+          notification_email_error?: string | null
+          notification_email_sent_at?: string | null
+          notification_email_status?: string
+          organization_id?: string
+          organization_name?: string
+          responded_at?: string | null
+          status?: string
+          subject?: string
+          submitted_by_user_id?: string
+          submitter_email?: string
+          submitter_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_support_requests_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_trial_request_deletion_audit: {
         Row: {
@@ -5606,6 +5855,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_current_organization_legal_documents: {
+        Args: { target_organization_id: string }
+        Returns: undefined
+      }
       admin_set_organization_license: {
         Args: {
           target_commercial_state: Database["public"]["Enums"]["commercial_state"]
@@ -5642,6 +5895,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_set_organization_sandbox_suppressed: {
+        Args: { target_organization_id: string; target_suppressed: boolean }
+        Returns: undefined
       }
       allocate_service_request_number: {
         Args: { target_organization_id: string }
@@ -5847,6 +6104,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -5875,6 +6133,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -5904,6 +6163,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -5940,6 +6200,9 @@ export type Database = {
               due_at: string | null
               id: string
               intake_follow_up_id: string | null
+              intake_qualification_key: string | null
+              intake_qualification_notice_sent_at: string | null
+              intake_qualification_signature: string | null
               intake_question_definition_id: string | null
               intake_requirement_context: Json | null
               organization_id: string
@@ -5986,6 +6249,9 @@ export type Database = {
               due_at: string | null
               id: string
               intake_follow_up_id: string | null
+              intake_qualification_key: string | null
+              intake_qualification_notice_sent_at: string | null
+              intake_qualification_signature: string | null
               intake_question_definition_id: string | null
               intake_requirement_context: Json | null
               organization_id: string
@@ -6435,6 +6701,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -6459,6 +6726,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -6469,6 +6737,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_platform_support_response: {
+        Args: { target_body: string; target_request_id: string }
+        Returns: Json
       }
       create_service_request: {
         Args: {
@@ -6591,6 +6863,22 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      finalize_platform_support_notification_server: {
+        Args: {
+          target_error?: string
+          target_request_id: string
+          target_sent: boolean
+        }
+        Returns: undefined
+      }
+      finalize_platform_support_response: {
+        Args: {
+          target_error?: string
+          target_message_id: string
+          target_sent: boolean
+        }
+        Returns: undefined
+      }
       get_business_reach: {
         Args: { target_organization_id: string }
         Returns: Json
@@ -6629,6 +6917,7 @@ export type Database = {
           version: number
         }[]
       }
+      get_current_organization_legal_pair: { Args: never; Returns: Json }
       get_customer_portal_case_requirements: {
         Args: { target_portal_access_id: string }
         Returns: {
@@ -6659,6 +6948,10 @@ export type Database = {
       }
       get_goals: {
         Args: { target_goal_id?: string; target_organization_id: string }
+        Returns: Json
+      }
+      get_guided_intake_qualification_notice_state: {
+        Args: { target_case_id: string; target_organization_id: string }
         Returns: Json
       }
       get_how_to_guide_template_for_admin: {
@@ -6713,6 +7006,10 @@ export type Database = {
           organization_id: string
         }[]
       }
+      get_my_organization_legal_state: {
+        Args: { target_organization_id: string }
+        Returns: Json
+      }
       get_my_pending_organization_membership: {
         Args: never
         Returns: {
@@ -6721,6 +7018,14 @@ export type Database = {
           organization_name: string
           status: Database["public"]["Enums"]["organization_membership_status"]
         }[]
+      }
+      get_my_platform_support_request: {
+        Args: { target_organization_id: string; target_request_id: string }
+        Returns: Json
+      }
+      get_my_platform_support_requests: {
+        Args: { target_organization_id: string }
+        Returns: Json
       }
       get_my_route_access_state:
         | {
@@ -6745,6 +7050,24 @@ export type Database = {
               session_policy_valid: boolean
             }[]
           }
+        | {
+            Args: {
+              target_is_meaningful_activity: boolean
+              target_organization_id: string
+            }
+            Returns: {
+              has_active_customer_portal_access: boolean
+              has_active_organization_access: boolean
+              has_active_super_admin_access: boolean
+              has_pending_organization_membership: boolean
+              profile_active: boolean
+              route_organization_id: string
+              route_organization_legal_state: string
+              route_organization_role: string
+              session_policy_scope: string
+              session_policy_valid: boolean
+            }[]
+          }
       get_my_unread_notification_count: {
         Args: { target_organization_id: string }
         Returns: number
@@ -6761,6 +7084,14 @@ export type Database = {
           target_timezone: string
         }
         Returns: Json
+      }
+      get_organization_display_name: {
+        Args: { target_organization_id: string }
+        Returns: string
+      }
+      get_organization_display_name_server: {
+        Args: { target_organization_id: string }
+        Returns: string
       }
       get_organization_email_delivery_audit: {
         Args: {
@@ -6786,6 +7117,18 @@ export type Database = {
           subject: string
           template_key: string
         }[]
+      }
+      get_organization_legal_audit_admin: {
+        Args: { target_organization_id: string }
+        Returns: Json
+      }
+      get_organization_legal_review_server: {
+        Args: { target_document_key: string; target_organization_id: string }
+        Returns: Json
+      }
+      get_organization_legal_state: {
+        Args: { target_organization_id: string }
+        Returns: string
       }
       get_organization_user_role_history: {
         Args: { target_organization_id: string; target_user_id: string }
@@ -6814,6 +7157,10 @@ export type Database = {
         Args: { target_end_exclusive: string; target_start: string }
         Returns: Json
       }
+      get_platform_authentication_audit: {
+        Args: { target_end_exclusive: string; target_start: string }
+        Returns: Json
+      }
       get_platform_operational_actor_audit: {
         Args: { target_organization_id: string }
         Returns: {
@@ -6823,6 +7170,20 @@ export type Database = {
           source_table: string
         }[]
       }
+      get_platform_organization_sandbox_states: { Args: never; Returns: Json }
+      get_platform_support_inbox: {
+        Args: {
+          target_category?: string
+          target_query?: string
+          target_status?: string
+        }
+        Returns: Json
+      }
+      get_platform_support_request: {
+        Args: { target_request_id: string }
+        Returns: Json
+      }
+      get_platform_support_unread_count: { Args: never; Returns: number }
       get_platform_user_role_history: {
         Args: { target_user_id: string }
         Returns: {
@@ -6942,6 +7303,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_business_owner: {
+        Args: { target_organization_id: string; target_user_id: string }
+        Returns: boolean
+      }
       is_customer_portal_user: {
         Args: {
           check_customer_id: string
@@ -6956,6 +7321,10 @@ export type Database = {
       }
       is_known_customer_foreign_key: {
         Args: { target_constraint_oid: unknown }
+        Returns: boolean
+      }
+      is_organization_sandbox: {
+        Args: { target_organization_id: string }
         Returns: boolean
       }
       is_super_admin: { Args: { check_user_id?: string }; Returns: boolean }
@@ -6979,6 +7348,11 @@ export type Database = {
         Args: { target_organization_id: string }
         Returns: number
       }
+      mark_all_platform_support_requests_read: { Args: never; Returns: number }
+      mark_guided_intake_qualification_notice_sent: {
+        Args: { target_case_id: string; target_organization_id: string }
+        Returns: boolean
+      }
       mark_intake_requirement_notice_sent: {
         Args: { target_task_id: string }
         Returns: {
@@ -6993,6 +7367,9 @@ export type Database = {
           due_at: string | null
           id: string
           intake_follow_up_id: string | null
+          intake_qualification_key: string | null
+          intake_qualification_notice_sent_at: string | null
+          intake_qualification_signature: string | null
           intake_question_definition_id: string | null
           intake_requirement_context: Json | null
           organization_id: string
@@ -7121,6 +7498,35 @@ export type Database = {
       permanently_delete_trial_request: {
         Args: { confirmation_text: string; target_trial_request_id: string }
         Returns: Json
+      }
+      prepare_organization_membership_invitation: {
+        Args: {
+          organization_id: string
+          role: Database["public"]["Enums"]["application_role"]
+          user_id: string
+        }
+        Returns: {
+          activated_at: string | null
+          created_at: string
+          id: string
+          invited_at: string | null
+          is_active: boolean
+          joined_at: string
+          organization_id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["application_role"]
+          status: Database["public"]["Enums"]["organization_membership_status"]
+          suspended_at: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "organization_members"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       preview_organization_case_deletion: {
         Args: { target_case_ids: string[]; target_organization_id: string }
@@ -7363,6 +7769,10 @@ export type Database = {
             }
             Returns: boolean
           }
+      record_authentication_event: {
+        Args: { target_user_id: string }
+        Returns: string
+      }
       record_goal_progress: {
         Args: {
           expected_revision?: number
@@ -7769,6 +8179,9 @@ export type Database = {
           due_at: string | null
           id: string
           intake_follow_up_id: string | null
+          intake_qualification_key: string | null
+          intake_qualification_notice_sent_at: string | null
+          intake_qualification_signature: string | null
           intake_question_definition_id: string | null
           intake_requirement_context: Json | null
           organization_id: string
@@ -7839,6 +8252,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_platform_support_request_read_state: {
+        Args: { target_read: boolean; target_request_id: string }
+        Returns: undefined
+      }
+      set_platform_support_request_status: {
+        Args: { target_request_id: string; target_status: string }
+        Returns: undefined
       }
       set_service_request_assignment: {
         Args: {
@@ -7912,6 +8333,15 @@ export type Database = {
           email: string
         }[]
       }
+      submit_platform_support_request: {
+        Args: {
+          target_category: string
+          target_message: string
+          target_organization_id: string
+          target_subject: string
+        }
+        Returns: Json
+      }
       submit_trial_request: {
         Args: {
           p_business_email: string
@@ -7925,6 +8355,10 @@ export type Database = {
           p_workflow_notes: string
         }
         Returns: string
+      }
+      super_admin_cleanup_orphaned_test_identity: {
+        Args: { target_user_id: string }
+        Returns: Json
       }
       super_admin_create_administrative_import: {
         Args: {
@@ -7978,6 +8412,17 @@ export type Database = {
         Args: { target_submission_id: string }
         Returns: undefined
       }
+      sync_guided_intake_qualification_task: {
+        Args: {
+          target_actor_user_id: string
+          target_assigned_user_id?: string
+          target_case_id: string
+          target_due_date?: string
+          target_findings: Json
+          target_organization_id: string
+        }
+        Returns: Json
+      }
       sync_guided_intake_requirement_task_status: {
         Args: { target_completed: boolean; target_task_id: string }
         Returns: {
@@ -7992,6 +8437,9 @@ export type Database = {
           due_at: string | null
           id: string
           intake_follow_up_id: string | null
+          intake_qualification_key: string | null
+          intake_qualification_notice_sent_at: string | null
+          intake_qualification_signature: string | null
           intake_question_definition_id: string | null
           intake_requirement_context: Json | null
           organization_id: string
@@ -8175,6 +8623,9 @@ export type Database = {
               due_at: string | null
               id: string
               intake_follow_up_id: string | null
+              intake_qualification_key: string | null
+              intake_qualification_notice_sent_at: string | null
+              intake_qualification_signature: string | null
               intake_question_definition_id: string | null
               intake_requirement_context: Json | null
               organization_id: string
@@ -8220,6 +8671,9 @@ export type Database = {
               due_at: string | null
               id: string
               intake_follow_up_id: string | null
+              intake_qualification_key: string | null
+              intake_qualification_notice_sent_at: string | null
+              intake_qualification_signature: string | null
               intake_question_definition_id: string | null
               intake_requirement_context: Json | null
               organization_id: string
@@ -8257,6 +8711,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          sandbox_designation_suppressed: boolean
           slug: string
           status: Database["public"]["Enums"]["organization_status"]
           updated_at: string
@@ -8388,6 +8843,9 @@ export type Database = {
           due_at: string | null
           id: string
           intake_follow_up_id: string | null
+          intake_qualification_key: string | null
+          intake_qualification_notice_sent_at: string | null
+          intake_qualification_signature: string | null
           intake_question_definition_id: string | null
           intake_requirement_context: Json | null
           organization_id: string
@@ -8426,6 +8884,10 @@ export type Database = {
           organization_id: string
           status: Database["public"]["Enums"]["organization_membership_status"]
         }[]
+      }
+      withdraw_organization_legal_acceptance: {
+        Args: { target_organization_id: string }
+        Returns: undefined
       }
       write_case_event: {
         Args: {

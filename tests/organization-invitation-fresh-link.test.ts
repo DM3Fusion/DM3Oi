@@ -250,9 +250,33 @@ test("organization invitations always require explicit membership acceptance eve
     organizationInvite,
     /const existingIdentityConfirmed = Boolean\([\s\S]*email_confirmed_at[\s\S]*last_sign_in_at/,
   );
+  const membershipRpcMigration = source(
+    "supabase/migrations/20261015220000_dm3oi_membership_rpc_authorization_boundary.sql",
+  );
+  const invitationRpc = membershipRpcMigration.slice(
+    membershipRpcMigration.indexOf(
+      "create or replace function public.prepare_organization_membership_invitation",
+    ),
+    membershipRpcMigration.indexOf(
+      "alter function public.prepare_organization_membership_invitation",
+    ),
+  );
+
   assert.match(
     organizationInvite,
-    /status: "INVITED"[\s\S]*is_active: false[\s\S]*verified_at: null/,
+    /session\.rpc\(\s*"prepare_organization_membership_invitation"/,
+  );
+  assert.match(
+    invitationRpc,
+    /status = 'INVITED',[\s\S]*is_active = false,[\s\S]*verified_at = null/,
+  );
+  assert.match(
+    invitationRpc,
+    /values \(\$1, \$2, \$3, 'INVITED', false, null\)/,
+  );
+  assert.doesNotMatch(
+    organizationInvite,
+    /\.insert\(\{[\s\S]*?status: "INVITED"/,
   );
   assert.doesNotMatch(
     organizationInvite,

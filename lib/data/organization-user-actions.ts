@@ -30,7 +30,7 @@ export async function updateOrganizationMembershipAction(form: FormData) {
   const supabase = await createClient();
   const { data: membership } = await supabase
     .from("organization_members")
-    .select("id,role")
+    .select("id,role,is_active")
     .eq("id", membershipId)
     .eq("organization_id", organizationId)
     .maybeSingle();
@@ -89,13 +89,14 @@ export async function updateOrganizationMembershipAction(form: FormData) {
       );
   }
 
-  const { data: updated, error } = await supabase
-    .from("organization_members")
-    .update({ role })
-    .eq("id", membershipId)
-    .eq("organization_id", organizationId)
-    .select("id")
-    .maybeSingle();
+  const { data: updated, error } = await supabase.rpc(
+    "update_organization_membership",
+    {
+      target_membership_id: membershipId,
+      target_role: role,
+      target_active: membership.is_active,
+    },
+  );
   if (error || !updated)
     return go(membershipId, "error", "Organization access could not be updated.");
   revalidatePath("/users");

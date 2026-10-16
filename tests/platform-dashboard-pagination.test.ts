@@ -109,6 +109,7 @@ const organization = (
   avatar_path: null,
   avatar_updated_at: null,
   business_postal_code: null,
+  sandbox_designation_suppressed: false,
   avatarUrl: null,
   customerCount,
   displayName: `Organization ${id}`,

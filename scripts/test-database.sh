@@ -13,3 +13,4 @@ docker exec -i supabase_db_DM3iQCM psql -U postgres -d postgres -v ON_ERROR_STOP
 docker exec -i supabase_db_DM3iQCM psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/rule_generated_tasks.sql
 docker exec -i supabase_db_DM3iQCM psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/customer_import.sql
 docker exec -i supabase_db_DM3iQCM psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/customer_portal_identity_hardening.sql
+docker exec -i supabase_db_DM3iQCM psql -U postgres -d postgres -v ON_ERROR_STOP=1 < supabase/tests/membership_rpc_authorization_boundary.sql

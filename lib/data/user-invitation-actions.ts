@@ -593,33 +593,14 @@ export async function inviteOrganizationUserAction(form: FormData) {
     existingAuthUser?.email_confirmed_at || existingAuthUser?.last_sign_in_at,
   );
 
-  const membershipResult = priorMembership
-    ? await session
-        .from("organization_members")
-        .update({
-          role,
-          status: "INVITED",
-          is_active: false,
-          verified_at: null,
-          suspended_at: null,
-          revoked_at: null,
-        })
-        .eq("id", priorMembership.id)
-        .eq("organization_id", activeOrganization.id)
-        .select("id")
-        .maybeSingle()
-    : await session
-        .from("organization_members")
-        .insert({
-          organization_id: activeOrganization.id,
-          user_id: targetUserId,
-          role,
-          status: "INVITED",
-          is_active: false,
-          verified_at: null,
-        })
-        .select("id")
-        .maybeSingle();
+  const membershipResult = await session.rpc(
+    "prepare_organization_membership_invitation",
+    {
+      organization_id: activeOrganization.id,
+      user_id: targetUserId,
+      role,
+    },
+  );
   if (membershipResult.error || !membershipResult.data) {
     if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(path, "error", roleError(membershipResult.error?.message ?? ""));

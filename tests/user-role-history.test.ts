@@ -84,7 +84,12 @@ test("organization role history records assignment change and removal at the tab
 test("role tracking covers both current organization mutation paths", () => {
   assert.match(
     organizationActions,
-    /\.from\("organization_members"\)[\s\S]*\.update\(\{ role \}\)/,
+    /rpc\(\s*"update_organization_membership"[\s\S]*target_role: role/,
+  );
+
+  assert.doesNotMatch(
+    organizationActions,
+    /\.update\(\{ role \}\)/,
   );
 
   assert.match(
