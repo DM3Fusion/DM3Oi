@@ -208,7 +208,7 @@ test("Geography explains unique visit and page semantics without exposing PII", 
   );
   assert.deepEqual(
     geography.match(/type GeographyRow = \{[\s\S]*?\};/)?.[0]
-      .match(/\b(?:label|postalCode|latitude|longitude|visits|uniquePages):/g),
+      .match(/\b(?:label|postalCode|latitude|longitude|visits|uniquePages|lastAccessedAt):/g),
     [
       "label:",
       "postalCode:",
@@ -216,6 +216,7 @@ test("Geography explains unique visit and page semantics without exposing PII", 
       "longitude:",
       "visits:",
       "uniquePages:",
+      "lastAccessedAt:",
     ],
   );
   assert.match(
@@ -237,7 +238,10 @@ test("Geography explains unique visit and page semantics without exposing PII", 
     geography,
     /className="admin-geography-value"/,
   );
-  assert.match(geography, /Approx\. network: \{coordinateLabel\(row\)\}/);
+  assert.match(
+    geography,
+    /coordinates \? `Approx\. network: \$\{coordinates\}` : null/,
+  );
   assert.match(geography, /row\.latitude\.toFixed\(2\)/);
   assert.match(geography, /row\.longitude\.toFixed\(2\)/);
   assert.doesNotMatch(

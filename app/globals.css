@@ -13007,6 +13007,8 @@ dialog.task-modal.intake-document-availability-modal {
 
 .admin-geography-coordinate{
   display:block;
+  min-width:0;
+  overflow-wrap:anywhere;
 }
 
 .admin-geography-value{

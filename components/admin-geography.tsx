@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { formatGeographyLastAccessed } from "@/lib/platform-analytics-geography";
 
 type GeographyRow = {
   label: string;
@@ -9,6 +10,7 @@ type GeographyRow = {
   longitude: number | null;
   visits: number;
   uniquePages: number;
+  lastAccessedAt: string | null;
 };
 
 function coordinateLabel(row: GeographyRow) {
@@ -22,6 +24,20 @@ function coordinateLabel(row: GeographyRow) {
   }
 
   return `${row.latitude.toFixed(2)}, ${row.longitude.toFixed(2)}`;
+}
+
+function secondaryLocationLabel(row: GeographyRow) {
+  const coordinates = coordinateLabel(row);
+  const lastAccessed = formatGeographyLastAccessed(
+    row.lastAccessedAt,
+  );
+
+  return [
+    coordinates ? `Approx. network: ${coordinates}` : null,
+    lastAccessed ? `Last accessed: ${lastAccessed}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 export function AdminGeography({
@@ -116,44 +132,48 @@ export function AdminGeography({
             No locations match this filter.
           </p>
         ) : (
-          visibleRows.map((row) => (
-            <div
-              className="admin-geography-row"
-              key={[
-                row.label,
-                row.postalCode,
-                row.latitude,
-                row.longitude,
-              ].join(":")}
-            >
-              <span className="admin-geography-location">
-                {row.label}
-                {coordinateLabel(row) ? (
-                  <small className="admin-geography-coordinate">
-                    Approx. network: {coordinateLabel(row)}
-                  </small>
-                ) : null}
-              </span>
+          visibleRows.map((row) => {
+            const secondaryLabel = secondaryLocationLabel(row);
 
-              <strong
-                className="admin-geography-value"
-                aria-label={`${row.visits} ${
-                  row.visits === 1 ? "visit" : "visits"
-                }`}
+            return (
+              <div
+                className="admin-geography-row"
+                key={[
+                  row.label,
+                  row.postalCode,
+                  row.latitude,
+                  row.longitude,
+                ].join(":")}
               >
-                {row.visits}
-              </strong>
+                <span className="admin-geography-location">
+                  {row.label}
+                  {secondaryLabel ? (
+                    <small className="admin-geography-coordinate">
+                      {secondaryLabel}
+                    </small>
+                  ) : null}
+                </span>
 
-              <strong
-                className="admin-geography-value"
-                aria-label={`${row.uniquePages} unique ${
-                  row.uniquePages === 1 ? "page" : "pages"
-                }`}
-              >
-                {row.uniquePages}
-              </strong>
-            </div>
-          ))
+                <strong
+                  className="admin-geography-value"
+                  aria-label={`${row.visits} ${
+                    row.visits === 1 ? "visit" : "visits"
+                  }`}
+                >
+                  {row.visits}
+                </strong>
+
+                <strong
+                  className="admin-geography-value"
+                  aria-label={`${row.uniquePages} unique ${
+                    row.uniquePages === 1 ? "page" : "pages"
+                  }`}
+                >
+                  {row.uniquePages}
+                </strong>
+              </div>
+            );
+          })
         )}
       </div>
 

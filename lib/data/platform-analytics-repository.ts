@@ -135,6 +135,7 @@ export type PlatformAnalytics = {
     longitude: number | null;
     visits: number;
     uniquePages: number;
+    lastAccessedAt: string | null;
   }[];
   authenticatedAccess: PlatformAuthenticatedAccess;
 };
@@ -158,6 +159,7 @@ type PlatformAnalyticsAggregate = {
     longitude: number | null;
     visits: number;
     uniquePages: number;
+    lastAccessedAt: string | null;
   }[];
 };
 
