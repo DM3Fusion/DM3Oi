@@ -66,10 +66,9 @@ test("Events page labels network geography as approximate", () => {
   assert.match(page, /not GPS locations/);
 });
 
-test("Events page displays device and browser information", () => {
-  assert.match(page, /event\.device_category/);
-  assert.match(page, /event\.browser/);
-  assert.match(page, /event\.operating_system/);
+test("Events page delegates details to its interactive table", () => {
+  assert.match(page, /AuthenticationSecurityEventsTable/);
+  assert.match(page, /events=\{result\.events\}/);
 });
 
 test("Events page supports cursor pagination", () => {
@@ -87,4 +86,23 @@ test("Events page does not use service-role database access", () => {
 test("Events page remains separate from Platform Analytics", () => {
   assert.doesNotMatch(page, /getPlatformAnalytics/);
   assert.doesNotMatch(page, /platform-analytics-repository/);
+});
+
+
+test("interactive event table provides four columns and a details modal", () => {
+  const component = readFileSync(
+    "components/platform/authentication-security-events-table.tsx",
+    "utf8",
+  );
+
+  assert.match(component, /Timestamp \(ET\)/);
+  assert.match(component, /Network Location/);
+  assert.match(component, /authentication-security-event-dialog/);
+  assert.match(component, /showModal\(\)/);
+  assert.match(component, /selected\.device_category/);
+  assert.match(component, /selected\.browser/);
+  assert.match(component, /selected\.operating_system/);
+  assert.doesNotMatch(component, /<th>User<\/th>/);
+  assert.doesNotMatch(component, /<th>Device<\/th>/);
+  assert.doesNotMatch(component, /<th>Browser \/ OS<\/th>/);
 });

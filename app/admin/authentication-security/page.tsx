@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireSuperAdmin } from "@/lib/auth/context";
 import { PageHeader } from "@/components/ui";
+import { AuthenticationSecurityEventsTable } from "@/components/platform/authentication-security-events-table";
 import {
   AUTHENTICATION_SECURITY_EVENT_TYPES,
   getPlatformAuthenticationSecurityEvents,
@@ -433,58 +434,7 @@ export default async function AuthenticationSecurityPage({
           </>
         ) : result?.events.length ? (
           <>
-            <div className="table-scroll authentication-security-table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Timestamp (ET)</th>
-                    <th>Event</th>
-                    <th>Outcome</th>
-                    <th>User</th>
-                    <th>Network Location</th>
-                    <th>Device</th>
-                    <th>Browser / OS</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {result.events.map((event) => (
-                    <tr key={event.event_id}>
-                      <td>
-                        <time dateTime={event.event_timestamp}>
-                          {formatDate(event.event_timestamp)}
-                        </time>
-                      </td>
-
-                      <td>
-                        <b>{formatEventType(event.event_type)}</b>
-                        <small className="table-secondary">
-                          {event.authentication_method}
-                        </small>
-                      </td>
-
-                      <td>{event.authentication_outcome}</td>
-
-                      <td>
-                        <span className="table-secondary">
-                          {event.user_id}
-                        </span>
-                      </td>
-
-                      <td>{locationLabel(event)}</td>
-
-                      <td>{event.device_category ?? "Unavailable"}</td>
-
-                      <td>
-                        {[event.browser, event.operating_system]
-                          .filter(Boolean)
-                          .join(" / ") || "Unavailable"}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <AuthenticationSecurityEventsTable events={result.events} />
 
             {result.hasMore && result.nextCursor ? (
               <div className="panel-actions">

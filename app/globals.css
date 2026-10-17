@@ -16380,3 +16380,143 @@ dialog.intake-save-progress-modal {
     padding:14px 16px;
   }
 }
+
+
+/* Authentication Security interactive event records */
+
+.authentication-security-events-table-wrap{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+
+.authentication-security-events-table{
+  width:100%;
+  min-width:0;
+  table-layout:fixed;
+  border-collapse:collapse;
+}
+
+.authentication-security-events-table th,
+.authentication-security-events-table td{
+  width:25%;
+  padding:15px 16px;
+  text-align:left;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  vertical-align:middle;
+}
+
+.authentication-security-events-table tbody tr{
+  cursor:pointer;
+  transition:background-color .15s ease;
+}
+
+.authentication-security-events-table tbody tr:hover{
+  background:#eef8fb;
+}
+
+.authentication-security-events-table tbody tr:focus-visible{
+  outline:2px solid #1688c7;
+  outline-offset:-2px;
+  background:#eef8fb;
+}
+
+.authentication-security-event-dialog{
+  width:min(760px,calc(100vw - 32px));
+  max-width:calc(100vw - 32px);
+  max-height:calc(100dvh - 32px);
+  padding:0;
+  border:1px solid var(--line);
+  border-radius:9px;
+  color:var(--ink);
+  box-shadow:0 20px 55px rgba(16,24,40,.22);
+  overflow:hidden;
+}
+
+.authentication-security-event-dialog::backdrop{
+  background:rgba(12,27,46,.58);
+}
+
+.authentication-security-event-dialog-frame{
+  display:flex;
+  flex-direction:column;
+  max-height:calc(100dvh - 32px);
+  min-width:0;
+}
+
+.authentication-security-event-dialog-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:22px 24px;
+  border-bottom:1px solid var(--line);
+}
+
+.authentication-security-event-dialog-header h2{
+  margin:4px 0;
+  font-size:22px;
+}
+
+.authentication-security-event-dialog-header p{
+  margin:0;
+  color:var(--muted);
+}
+
+.authentication-security-event-dialog-body{
+  min-width:0;
+  overflow-y:auto;
+  padding:20px 24px 26px;
+}
+
+.authentication-security-event-details{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:16px 22px;
+  margin:0;
+}
+
+.authentication-security-event-details>div{
+  min-width:0;
+  padding-bottom:12px;
+  border-bottom:1px solid #e8edf2;
+}
+
+.authentication-security-event-details dt{
+  margin-bottom:5px;
+  color:#62748b;
+  font-size:11px;
+  font-weight:800;
+}
+
+.authentication-security-event-details dd{
+  margin:0;
+  color:var(--ink);
+  font-size:13px;
+  line-height:1.5;
+  overflow-wrap:anywhere;
+  white-space:normal;
+}
+
+@media(max-width:600px){
+  .authentication-security-events-table th,
+  .authentication-security-events-table td{
+    padding:12px 8px;
+    font-size:11px;
+  }
+
+  .authentication-security-event-dialog-header{
+    padding:18px 16px;
+  }
+
+  .authentication-security-event-dialog-body{
+    padding:16px;
+  }
+
+  .authentication-security-event-details{
+    grid-template-columns:minmax(0,1fr);
+    gap:12px;
+  }
+}
