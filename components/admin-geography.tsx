@@ -13,6 +13,66 @@ type GeographyRow = {
   lastAccessedAt: string | null;
 };
 
+type GeographySort =
+  | "latest"
+  | "oldest"
+  | "most-visits"
+  | "fewest-visits"
+  | "most-pages"
+  | "fewest-pages"
+  | "location-asc"
+  | "location-desc";
+
+function geographyTimestamp(value: string | null): number | null {
+  if (!value) return null;
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function compareGeographyRows(
+  left: GeographyRow,
+  right: GeographyRow,
+  sort: GeographySort,
+): number {
+  const alphabetical = left.label.localeCompare(right.label);
+
+  if (sort === "location-asc") return alphabetical;
+  if (sort === "location-desc") return -alphabetical;
+
+  if (sort === "most-visits") {
+    return right.visits - left.visits || alphabetical;
+  }
+
+  if (sort === "fewest-visits") {
+    return left.visits - right.visits || alphabetical;
+  }
+
+  if (sort === "most-pages") {
+    return right.uniquePages - left.uniquePages || alphabetical;
+  }
+
+  if (sort === "fewest-pages") {
+    return left.uniquePages - right.uniquePages || alphabetical;
+  }
+
+  const leftTimestamp = geographyTimestamp(left.lastAccessedAt);
+  const rightTimestamp = geographyTimestamp(right.lastAccessedAt);
+
+  // Missing or invalid timestamps always appear last.
+  if (leftTimestamp === null && rightTimestamp !== null) return 1;
+  if (rightTimestamp === null && leftTimestamp !== null) return -1;
+  if (leftTimestamp === null && rightTimestamp === null) {
+    return alphabetical;
+  }
+
+  return (
+    sort === "latest"
+      ? rightTimestamp! - leftTimestamp!
+      : leftTimestamp! - rightTimestamp!
+  ) || alphabetical;
+}
+
 function coordinateLabel(row: GeographyRow) {
   if (
     typeof row.latitude !== "number" ||
@@ -47,6 +107,7 @@ export function AdminGeography({
 }) {
   const [query, setQuery] = useState("");
   const [showAll, setShowAll] = useState(false);
+  const [sortBy, setSortBy] = useState<GeographySort>("latest");
 
   const normalizedQuery = query
     .trim()
@@ -64,10 +125,18 @@ export function AdminGeography({
     );
   }, [normalizedQuery, rows]);
 
+  const sortedRows = useMemo(
+    () =>
+      [...filteredRows].sort((left, right) =>
+        compareGeographyRows(left, right, sortBy),
+      ),
+    [filteredRows, sortBy],
+  );
+
   const visibleRows =
     showAll || normalizedQuery
-      ? filteredRows
-      : filteredRows.slice(0, 6);
+      ? sortedRows
+      : sortedRows.slice(0, 6);
 
   const canToggle =
     !normalizedQuery && rows.length > 6;
@@ -99,6 +168,26 @@ export function AdminGeography({
               type="search"
               value={query}
             />
+          </label>
+
+          <label className="admin-geography-sort">
+            <span className="sr-only">Sort geography by</span>
+            <select
+              aria-label="Sort geography by"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value as GeographySort)
+              }
+            >
+              <option value="latest">Latest Activity</option>
+              <option value="oldest">Oldest Activity</option>
+              <option value="most-visits">Most Visits</option>
+              <option value="fewest-visits">Fewest Visits</option>
+              <option value="most-pages">Most Pages</option>
+              <option value="fewest-pages">Fewest Pages</option>
+              <option value="location-asc">Location A–Z</option>
+              <option value="location-desc">Location Z–A</option>
+            </select>
           </label>
 
           {canToggle ? (

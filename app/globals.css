@@ -12962,6 +12962,53 @@ dialog.task-modal.intake-document-availability-modal {
 @media(max-width:800px){.admin-authenticated-access-heading{display:grid}.admin-authenticated-access-search{width:100%;max-width:none}.admin-authenticated-access-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.admin-authenticated-access-heading,.admin-authenticated-access-summary{padding-inline:16px}.admin-authenticated-access-summary{grid-template-columns:1fr 1fr;gap:8px}.admin-authenticated-access-summary article{padding:11px}.admin-authenticated-access-summary strong{font-size:21px}}
 
+/* Geography sorting control. */
+.admin-geography-sort {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.admin-geography-sort select {
+  width: 158px;
+  max-width: 100%;
+  height: 36px;
+  border: 1px solid #d7dee7;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 8px;
+  color: var(--ink);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.admin-geography-sort select:focus-visible {
+  border-color: var(--teal);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(51, 200, 228, .14);
+}
+
+@media (max-width: 520px) {
+  .admin-geography-panel .admin-top-pages-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-geography-panel .admin-top-pages-search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .admin-geography-sort {
+    flex: 1 1 150px;
+  }
+
+  .admin-geography-sort select {
+    width: 100%;
+  }
+}
+
 /* Platform Analytics geography columns */
 .admin-geography-table{
   width:100%;
