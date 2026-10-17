@@ -10,6 +10,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: siteUrl,
       changeFrequency: "weekly",
       priority: 1,
+      images: [
+        `${siteUrl}/brand/DM3Oi_landing_page_top_left.webp`,
+        `${siteUrl}/brand/DM3Oi_Land_Page_TopLeft2.webp`,
+      ],
     },
   ];
 }

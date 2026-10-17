@@ -14,7 +14,38 @@ import {
 import { getAccessContext } from "@/lib/auth/context";
 import { getApplicationVersionLabel } from "@/lib/app-version";
 export const dynamic="force-dynamic";
-export const metadata:Metadata={title:{default:"DM3Oi — Operational Intelligence",template:"%s | DM3Oi™"},description:"Business Operations Intelligence for organizations managing customers, cases, tasks, service requests, communications, workflows, and operational performance."};
+export const metadata: Metadata = {
+  metadataBase: new URL("https://dm3oi.com"),
+  title: {
+    default: "DM3Oi — Operational Intelligence",
+    template: "%s | DM3Oi™",
+  },
+  description:
+    "Business Operations Intelligence for organizations managing customers, cases, tasks, service requests, communications, workflows, and operational performance.",
+  openGraph: {
+    type: "website",
+    url: "https://dm3oi.com",
+    siteName: "DM3Oi",
+    title: "DM3Oi — Operational Intelligence",
+    description:
+      "Business Operations Intelligence for customers, cases, tasks, service requests, communications, and workflows.",
+    images: [
+      {
+        url: "/brand/DM3Oi_landing_page_top_left.webp",
+        width: 602,
+        height: 198,
+        alt: "DM3Oi Business Operations Intelligence",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "DM3Oi — Operational Intelligence",
+    description:
+      "Business Operations Intelligence for organizations.",
+    images: ["/brand/DM3Oi_landing_page_top_left.webp"],
+  },
+};
 export default async function RootLayout({children}:{children:React.ReactNode}){
   const [access, requestHeaders]=await Promise.all([getAccessContext(), headers()]);
   const requestPathname=requestHeaders.get("x-dm3oi-route-pathname");
