@@ -17,6 +17,7 @@ import {
   Headphones,
   LayoutDashboard,
   ListFilter,
+  LockKeyhole,
   LogOut,
   Menu,
   Plus,
@@ -67,6 +68,7 @@ export const applicationIcons = {
   menu: Menu,
   check: Check,
   status: Circle,
+  security: LockKeyhole,
 } as const;
 
 export type ApplicationIconName = keyof typeof applicationIcons;

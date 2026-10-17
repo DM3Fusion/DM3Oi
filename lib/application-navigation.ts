@@ -84,7 +84,7 @@ export const platformNavigation = [
   { href: "/admin/customer-duplicates", label: "Duplicate Customers", icon: "customers" },
   { href: "/admin/trial-requests", label: "Trial Requests", icon: "reports" },
   { href: "/admin/email-templates", label: "Templates", icon: "questions" },
-  { href: "/admin/authentication-security", label: "Authentication Security", icon: "status" },
+  { href: "/admin/authentication-security", label: "Authentication Security", icon: "security" },
   { href: "/admin/users", label: "Users / Access", icon: "users" },
 ] as const satisfies readonly ApplicationNavigationItem[];
 

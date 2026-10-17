@@ -16195,3 +16195,188 @@ dialog.intake-save-progress-modal {
     white-space:normal;
   }
 }
+
+
+/* Authentication Security dashboard layout */
+
+.authentication-security-tabs{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:8px;
+  margin:0 0 18px;
+  padding:0;
+  border-bottom:1px solid var(--line);
+}
+
+.authentication-security-tabs a{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:9px 16px;
+  border:1px solid transparent;
+  border-bottom:3px solid transparent;
+  border-radius:5px 5px 0 0;
+  color:#52677d;
+  font-size:13px;
+  font-weight:700;
+}
+
+.authentication-security-tabs a:hover{
+  background:#eef4f8;
+  color:#10233f;
+}
+
+.authentication-security-tabs a[aria-current="page"]{
+  border-bottom-color:var(--dm3oi-cyan,#20a9a0);
+  background:#eef9fb;
+  color:#10233f;
+}
+
+.authentication-security-tabs a:focus-visible{
+  outline:2px solid #1688c7;
+  outline-offset:2px;
+}
+
+.authentication-security-panel{
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow:hidden;
+}
+
+.authentication-security-panel .section-heading{
+  padding:20px 20px 12px;
+}
+
+.authentication-security-panel .section-heading h2{
+  margin:0 0 6px;
+  color:#10233f;
+  font-size:18px;
+}
+
+.authentication-security-panel .section-heading p{
+  margin:0;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.authentication-security-filters{
+  display:grid;
+  grid-template-columns:
+    minmax(150px,1.2fr)
+    minmax(170px,1.2fr)
+    minmax(145px,1fr)
+    minmax(145px,1fr);
+  gap:12px;
+  align-items:end;
+  width:100%;
+  min-width:0;
+  padding:16px 20px 20px;
+  border-bottom:1px solid var(--line);
+}
+
+.authentication-security-filters label{
+  display:grid;
+  gap:6px;
+  min-width:0;
+}
+
+.authentication-security-filters label>span{
+  color:#52677d;
+  font-size:11px;
+  font-weight:750;
+}
+
+.authentication-security-filters input,
+.authentication-security-filters select{
+  width:100%;
+  min-width:0;
+  height:40px;
+  padding:0 10px;
+  border:1px solid #d7dee7;
+  border-radius:6px;
+  background:#fff;
+  color:var(--ink);
+}
+
+.authentication-security-filters .primary-button,
+.authentication-security-filters .secondary-button{
+  min-height:40px;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+
+.authentication-security-session-filters{
+  grid-template-columns:minmax(220px,1fr) auto;
+}
+
+.authentication-security-panel>p{
+  margin:0;
+  padding:14px 20px;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.authentication-security-table-scroll{
+  display:block;
+  width:100%;
+  max-width:100%;
+  min-width:0;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+}
+
+.authentication-security-table-scroll table{
+  width:max-content;
+  min-width:100%;
+}
+
+.authentication-security-panel .panel-actions{
+  padding:16px 20px;
+}
+
+@media(max-width:1100px){
+  .authentication-security-filters{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media(max-width:600px){
+  .authentication-security-tabs{
+    gap:3px;
+  }
+
+  .authentication-security-tabs a{
+    flex:1;
+    padding:10px 8px;
+    font-size:12px;
+  }
+
+  .authentication-security-panel .section-heading{
+    padding:16px;
+  }
+
+  .authentication-security-filters,
+  .authentication-security-session-filters{
+    grid-template-columns:minmax(0,1fr);
+    padding:14px 16px;
+  }
+
+  .authentication-security-filters .primary-button,
+  .authentication-security-filters .secondary-button{
+    width:100%;
+  }
+
+  .authentication-security-panel>p{
+    padding:12px 16px;
+  }
+
+  .authentication-security-panel .panel-actions{
+    padding:14px 16px;
+  }
+}

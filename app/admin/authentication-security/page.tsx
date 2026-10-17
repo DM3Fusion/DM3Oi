@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireSuperAdmin } from "@/lib/auth/context";
 import { PageHeader } from "@/components/ui";
 import {
   AUTHENTICATION_SECURITY_EVENT_TYPES,
@@ -142,6 +143,7 @@ export default async function AuthenticationSecurityPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireSuperAdmin();
   const query = await searchParams;
 
   const view =
@@ -183,7 +185,7 @@ export default async function AuthenticationSecurityPage({
       />
 
       <nav
-        className="settings-tabs"
+        className="authentication-security-tabs"
         aria-label="Authentication security views"
       >
         <Link
@@ -209,7 +211,7 @@ export default async function AuthenticationSecurityPage({
       </nav>
 
       {view === "sessions" ? (
-        <section className="panel">
+        <section className="panel authentication-security-panel">
           <div className="section-heading">
             <div>
               <h2>Authentication Session History</h2>
@@ -220,7 +222,7 @@ export default async function AuthenticationSecurityPage({
             </div>
           </div>
 
-          <form method="get" className="filter-bar">
+          <form method="get" className="authentication-security-filters authentication-security-session-filters">
             <input type="hidden" name="view" value="sessions" />
 
             <label>
@@ -247,7 +249,7 @@ export default async function AuthenticationSecurityPage({
                   for the selected session.
                 </p>
 
-                <div className="table-scroll">
+                <div className="table-scroll authentication-security-table-scroll">
                   <table>
                     <thead>
                       <tr>
@@ -313,7 +315,7 @@ export default async function AuthenticationSecurityPage({
           )}
         </section>
       ) : (
-      <section className="panel">
+      <section className="panel authentication-security-panel">
         <div className="section-heading">
           <div>
             <h2>{view === "geography"
@@ -326,7 +328,7 @@ export default async function AuthenticationSecurityPage({
           </div>
         </div>
 
-        <form method="get" className="filter-bar">
+        <form method="get" className="authentication-security-filters">
           {view === "geography" ? (
             <input type="hidden" name="view" value="geography" />
           ) : null}
@@ -396,7 +398,7 @@ export default async function AuthenticationSecurityPage({
             </p>
 
             {geography.length ? (
-              <div className="table-scroll">
+              <div className="table-scroll authentication-security-table-scroll">
                 <table>
                   <thead>
                     <tr>
@@ -431,7 +433,7 @@ export default async function AuthenticationSecurityPage({
           </>
         ) : result?.events.length ? (
           <>
-            <div className="table-scroll">
+            <div className="table-scroll authentication-security-table-scroll">
               <table>
                 <thead>
                   <tr>
