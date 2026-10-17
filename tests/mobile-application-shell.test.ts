@@ -146,6 +146,7 @@ test("mobile Account omits permission-filtered destinations while retaining the 
     "/admin/customer-duplicates",
     "/admin/trial-requests",
     "/admin/email-templates",
+    "/admin/authentication-security",
     "/admin/users",
     "/account/profile",
   ]);

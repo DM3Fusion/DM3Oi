@@ -107,6 +107,7 @@ test("Platform Operations navigation includes Platform Inbox", () => {
       { label: "Duplicate Customers", href: "/admin/customer-duplicates" },
       { label: "Trial Requests", href: "/admin/trial-requests" },
       { label: "Templates", href: "/admin/email-templates" },
+      { label: "Authentication Security", href: "/admin/authentication-security" },
       { label: "Users / Access", href: "/admin/users" },
     ],
   );
