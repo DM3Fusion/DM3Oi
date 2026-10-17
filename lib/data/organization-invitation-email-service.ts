@@ -16,6 +16,7 @@ export async function sendOrganizationInvitationEmail(input: {
   organizationId: string;
   organizationName: string;
   membershipId: string;
+  invitationOperationId?: string;
   recipientUserId: string;
   recipientEmail: string;
   recipientFirstName: string;
@@ -40,6 +41,7 @@ export async function sendOrganizationInvitationEmail(input: {
       organizationId: input.organizationId,
       recipientUserId: input.recipientUserId,
       membershipId: input.membershipId,
+      invitationOperationId: input.invitationOperationId,
     },
     variables: {
       organization_name: organizationDisplayName,

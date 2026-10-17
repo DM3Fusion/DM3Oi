@@ -27,6 +27,7 @@ export type TrackedDeliveryReferences = {
   organizationId?: string | null;
   recipientUserId?: string | null;
   membershipId?: string | null;
+  invitationOperationId?: string | null;
   customerId?: string | null;
   caseId?: string | null;
   serviceRequestId?: string | null;
@@ -88,6 +89,7 @@ export async function sendTrackedTemplateEmail(input: {
       recipient_email: recipientEmail,
       recipient_user_id: references.recipientUserId ?? null,
       membership_id: references.membershipId ?? null,
+      invitation_operation_id: references.invitationOperationId ?? null,
       customer_id: references.customerId ?? null,
       case_id: references.caseId ?? null,
       service_request_id: references.serviceRequestId ?? null,

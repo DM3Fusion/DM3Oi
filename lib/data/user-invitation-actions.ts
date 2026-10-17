@@ -20,6 +20,12 @@ import type { User } from "@supabase/supabase-js";
 import { canInviteOrganizationUsers, hasPermission } from "@/lib/auth/permissions";
 import { resolvePendingInviteIdentityRepair } from "@/lib/data/pending-invite-identity";
 import { sendOrganizationInvitationEmail } from "@/lib/data/organization-invitation-email-service";
+import {
+  completeOrganizationInvitation,
+  recoverOrganizationInvitation,
+} from "@/lib/data/organization-invitation-recovery";
+import { classifyInvitationDelivery } from "@/lib/email/invitation-delivery-classification";
+import type { TrackedEmailDeliveryResult } from "@/lib/email/tracked-delivery";
 import { evaluateInvitationEligibility } from "@/lib/data/invitation-eligibility";
 import { resolveOrganizationDisplayName } from "@/lib/data/organization-display-name";
 type Role = Database["public"]["Enums"]["application_role"];
@@ -433,7 +439,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
   const admin = adminClient(path);
   const existingAuthUser = await findAuthUserByEmail(admin, email);
   let userId = existingAuthUser?.id;
-  let createdUser = false;
   let invitationUrl: string | null = null;
 
   if (existingAuthUser) {
@@ -508,7 +513,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
     }
     userId = invited.user!.id;
     invitationUrl = getInvitationVerificationUrl(invited.properties!);
-    createdUser = true;
     const { error: profileError } = await admin.from("profiles").upsert({
       id: userId,
       email,
@@ -519,11 +523,10 @@ export async function inviteOrganizationUserAction(form: FormData) {
       is_active: true,
     });
     if (profileError) {
-      await admin.auth.admin.deleteUser(userId);
       go(
         path,
         "error",
-        "The user profile could not be prepared; the invitation was rolled back.",
+        "The user profile could not be prepared. The authentication identity was retained for administrative review.",
       );
     }
   }
@@ -536,7 +539,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
     .eq("user_id", targetUserId);
 
   if (membershipLookupError) {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(path, "error", "The user's existing organization access could not be checked.");
   }
 
@@ -545,7 +547,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
   );
 
   if (crossOrganizationMembership) {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(
       path,
       "error",
@@ -558,12 +559,10 @@ export async function inviteOrganizationUserAction(form: FormData) {
       (membership) => membership.organization_id === activeOrganization.id,
     ) ?? null;
   if (priorMembership?.status === "ACTIVE") {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(path, "error", "A user with this email already belongs to this organization.");
   }
 
   if (priorMembership?.status === "SUSPENDED") {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(
       path,
       "error",
@@ -572,7 +571,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
   }
 
   if (priorMembership?.status === "REVOKED") {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(
       path,
       "error",
@@ -581,7 +579,6 @@ export async function inviteOrganizationUserAction(form: FormData) {
   }
 
   if (priorMembership?.status === "VERIFIED") {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
     go(
       path,
       "error",
@@ -594,18 +591,23 @@ export async function inviteOrganizationUserAction(form: FormData) {
   );
 
   const membershipResult = await session.rpc(
-    "prepare_organization_membership_invitation",
+    "prepare_organization_membership_invitation_v2",
     {
       organization_id: activeOrganization.id,
       user_id: targetUserId,
       role,
     },
   );
-  if (membershipResult.error || !membershipResult.data) {
-    if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
+  const preparedMembership = membershipResult.data?.[0];
+  if (
+    membershipResult.error ||
+    !preparedMembership?.membership_id ||
+    !preparedMembership.operation_id
+  ) {
     go(path, "error", roleError(membershipResult.error?.message ?? ""));
   }
-  const membershipId = membershipResult.data!.id;
+  const membershipId = preparedMembership!.membership_id;
+  const invitationOperationId = preparedMembership!.operation_id;
 
   if (existingAuthUser) {
     const organizationLinkType = existingIdentityConfirmed
@@ -633,23 +635,16 @@ export async function inviteOrganizationUserAction(form: FormData) {
       !generated.data.properties?.hashed_token ||
       generated.data.properties.verification_type !== organizationLinkType
     ) {
-      if (priorMembership)
-        await admin
-          .from("organization_members")
-          .update({
-            role: priorMembership.role,
-            status: priorMembership.status,
-            is_active: priorMembership.is_active,
-            verified_at: priorMembership.verified_at,
-          })
-          .eq("id", priorMembership.id)
-          .eq("organization_id", activeOrganization.id);
-      else
-        await admin
-          .from("organization_members")
-          .delete()
-          .eq("id", membershipId)
-          .eq("organization_id", activeOrganization.id);
+      const recovery = await recoverOrganizationInvitation({
+        operationId: invitationOperationId,
+        initiatorId: actorUser.id,
+      });
+      if (!recovery) {
+        console.error("Invitation link failure requires recovery review", {
+          invitationOperationId,
+          membershipId,
+        });
+      }
       console.error("Existing organization user invitation link generation failed", {
         code: generated.error?.code,
         message: generated.error?.message,
@@ -659,13 +654,29 @@ export async function inviteOrganizationUserAction(form: FormData) {
     invitationUrl = getInvitationVerificationUrl(generated.data.properties!);
   }
 
-  let invitationTransportSent = false;
-  if (invitationUrl) {
-    const delivery = await sendOrganizationInvitationEmail({
+  if (!invitationUrl) {
+    const recovery = await recoverOrganizationInvitation({
+      operationId: invitationOperationId,
+      initiatorId: actorUser.id,
+    });
+
+    console.error("Organization invitation URL is unavailable", {
+      invitationOperationId,
+      membershipId,
+      recovery,
+    });
+
+    return go(path, "error", "The invitation could not be prepared.");
+  }
+
+  let delivery: TrackedEmailDeliveryResult | null = null;
+  try {
+    delivery = await sendOrganizationInvitationEmail({
       resend: Boolean(priorMembership),
       organizationId: activeOrganization.id,
       organizationName: activeOrganization.name,
       membershipId,
+      invitationOperationId,
       recipientUserId: targetUserId,
       recipientEmail: email,
       recipientFirstName: firstName,
@@ -673,71 +684,106 @@ export async function inviteOrganizationUserAction(form: FormData) {
       role,
       invitationUrl,
     });
-    if (!delivery.ok) {
-      console.error("Organization user invitation delivery failed", {
-        operation: priorMembership ? "resendInvitation" : "sendInvitation",
-        organizationId: activeOrganization.id,
-        membershipId,
-        code: delivery.errorCode,
-      });
-      if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
-      else if (priorMembership)
-        await admin
-          .from("organization_members")
-          .update({
-            role: priorMembership.role,
-            status: priorMembership.status,
-            is_active: priorMembership.is_active,
-            verified_at: priorMembership.verified_at,
-          })
-          .eq("id", membershipId);
-      else
-        await admin
-          .from("organization_members")
-          .delete()
-          .eq("id", membershipId)
-          .eq("organization_id", activeOrganization.id);
-      go(path, "error", "The invitation could not be sent.");
-    }
-    invitationTransportSent = delivery.transport === "SENT";
+  } catch (error) {
+    console.error("Organization invitation delivery threw", {
+      invitationOperationId,
+      membershipId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+
+    // An exception does not prove SMTP non-delivery. Preserve the operation,
+    // membership, and authentication identity for administrative review.
+    go(
+      path,
+      "error",
+      "Invitation delivery could not be confirmed. Contact support before retrying.",
+    );
   }
 
-  const { error: membershipEventError } = await session.rpc(
-    "record_organization_membership_invitation_event",
-    {
-      target_membership_id: membershipId,
-      target_event_type: "INVITED",
-    },
-  );
-  if (membershipEventError) {
-    console.error("Organization membership invitation audit failed", {
-      code: membershipEventError.code,
-      message: membershipEventError.message,
+  if (!delivery) {
+    return go(
+      path,
+      "error",
+      "Invitation delivery could not be confirmed. Contact support before retrying.",
+    );
+  }
+
+  const deliveryClassification = classifyInvitationDelivery(delivery);
+
+  if (deliveryClassification === "CONFIRMED_NOT_SENT") {
+    const recovery = await recoverOrganizationInvitation({
+      operationId: invitationOperationId,
+      initiatorId: actorUser.id,
+    });
+
+    console.error("Organization invitation was not delivered", {
+      invitationOperationId,
+      membershipId,
+      deliveryCode: "errorCode" in delivery ? delivery.errorCode : null,
+      recovery,
+    });
+
+    go(path, "error", "The invitation could not be sent.");
+  }
+
+  if (deliveryClassification === "UNKNOWN") {
+    console.error("Organization invitation delivery requires review", {
+      invitationOperationId,
+      membershipId,
+      deliveryCode: "errorCode" in delivery ? delivery.errorCode : null,
+    });
+
+    // SMTP acceptance is uncertain. Never roll back membership or
+    // delete an authentication identity in this state.
+    go(
+      path,
+      "error",
+      "Invitation delivery could not be confirmed. Contact support before retrying.",
+    );
+  }
+
+  // SMTP acceptance is authoritative. Complete the operation before
+  // attempting the separate membership invitation audit.
+  const invitationCompleted = await completeOrganizationInvitation({
+    operationId: invitationOperationId,
+    initiatorId: actorUser.id,
+  });
+
+  if (!invitationCompleted) {
+    console.error("Delivered invitation requires completion review", {
+      invitationOperationId,
       membershipId,
     });
-    if (!invitationTransportSent) {
-      if (createdUser) await admin.auth.admin.deleteUser(targetUserId);
-      else if (priorMembership)
-        await admin
-          .from("organization_members")
-          .update({
-            role: priorMembership.role,
-            status: priorMembership.status,
-            is_active: priorMembership.is_active,
-            verified_at: priorMembership.verified_at,
-          })
-          .eq("id", membershipId);
-      else
-        await admin
-          .from("organization_members")
-          .delete()
-          .eq("id", membershipId)
-          .eq("organization_id", activeOrganization.id);
-      go(path, "error", "The invitation could not be recorded.");
-    }
-    // SMTP acceptance is authoritative. Never invalidate an emailed link or
-    // roll back its membership because a later audit write failed.
+    // Do not roll back a membership after SMTP acceptance.
   }
+
+  try {
+    const { error: membershipEventError } = await session.rpc(
+      "record_organization_membership_invitation_event",
+      {
+        target_membership_id: membershipId,
+        target_event_type: "INVITED",
+      },
+    );
+
+    if (membershipEventError) {
+      console.error("Organization membership invitation audit failed", {
+        code: membershipEventError.code,
+        message: membershipEventError.message,
+        invitationOperationId,
+        membershipId,
+      });
+    }
+  } catch (error) {
+    console.error("Organization membership invitation audit threw", {
+      invitationOperationId,
+      membershipId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+
+  // SMTP acceptance is authoritative. Never invalidate an emailed
+  // invitation because a later audit write failed.
 
   revalidatePath("/users");
   redirect(

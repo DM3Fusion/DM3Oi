@@ -179,7 +179,19 @@ test("stage 02A.2 uses membership RPCs while preserving staged cutover", () => {
   // Invitations must use the authorized RPC.
   assert.match(
     invitation,
-    /session\.rpc\(\s*"prepare_organization_membership_invitation"/,
+    /session\.rpc\(\s*"prepare_organization_membership_invitation_v2"/,
+  );
+  assert.match(
+    invitation,
+    /completeOrganizationInvitation\(/,
+  );
+  assert.match(
+    invitation,
+    /recoverOrganizationInvitation\(/,
+  );
+  assert.match(
+    invitation,
+    /classifyInvitationDelivery\(/,
   );
 
   // No authenticated direct membership INSERT or UPDATE.
@@ -208,10 +220,32 @@ test("stage 02A.2 uses membership RPCs while preserving staged cutover", () => {
     /rpc\("update_organization_membership"/,
   );
 
-  // Service-role rollback remains available after invitation failure.
+  // Recovery must use the restricted service-role RPC, not table writes.
+  const recovery = source(
+    "lib/data/organization-invitation-recovery.ts",
+  );
+
   assert.match(
-    invitation,
-    /await admin\s*\.from\("organization_members"\)/,
+    recovery,
+    /admin\.rpc\(\s*"rollback_organization_membership_invitation"/,
+  );
+  assert.match(
+    recovery,
+    /admin\.rpc\(\s*"complete_organization_membership_invitation"/,
+  );
+
+  const organizationInvitation = invitation.slice(
+    invitation.indexOf("export async function inviteOrganizationUserAction"),
+    invitation.indexOf("export async function resendUserInviteAction"),
+  );
+
+  assert.doesNotMatch(
+    organizationInvitation,
+    /\.from\("organization_members"\)\s*\.(?:insert|update|delete)\s*\(/,
+  );
+  assert.doesNotMatch(
+    organizationInvitation,
+    /admin\.auth\.admin\.deleteUser\(/,
   );
 
   assert.match(

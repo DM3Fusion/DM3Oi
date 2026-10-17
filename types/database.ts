@@ -238,6 +238,33 @@ type AnalyticsIdentityFunction = Omit<
 };
 
 type AnalyticsFunctionOverrides = {
+  // TEMPORARY: Phase 02A.4A invitation recovery RPCs.
+  // Remove after applying the migration and regenerating remote types.
+  prepare_organization_membership_invitation_v2: {
+    Args: {
+      organization_id: string;
+      user_id: string;
+      role: PublicSchema["Enums"]["application_role"];
+    };
+    Returns: {
+      membership_id: string;
+      operation_id: string;
+    }[];
+  };
+  complete_organization_membership_invitation: {
+    Args: {
+      target_operation_id: string;
+      target_initiator_id: string;
+    };
+    Returns: undefined;
+  };
+  rollback_organization_membership_invitation: {
+    Args: {
+      target_operation_id: string;
+      target_initiator_id: string;
+    };
+    Returns: string;
+  };
   get_platform_authentication_audit: {
     Args: {
       target_start: string | null;
@@ -276,10 +303,38 @@ type AnalyticsFunctionOverrides = {
   >;
 };
 
+// TEMPORARY: Phase 02A.4A pending migration.
+// Remove this override after applying the invitation recovery migration
+// and regenerating types/database.generated.ts from remote Supabase.
+type PendingInvitationDelivery = PublicSchema["Tables"]["email_deliveries"];
+
+type InvitationDeliveryOverride = Omit<
+  PendingInvitationDelivery,
+  "Row" | "Insert" | "Update"
+> & {
+  Row: PendingInvitationDelivery["Row"] & {
+    invitation_operation_id: string | null;
+  };
+  Insert: PendingInvitationDelivery["Insert"] & {
+    invitation_operation_id?: string | null;
+  };
+  Update: PendingInvitationDelivery["Update"] & {
+    invitation_operation_id?: string | null;
+  };
+};
+
+type ApplicationTables = Omit<
+  PublicSchema["Tables"],
+  "email_deliveries"
+> & {
+  email_deliveries: InvitationDeliveryOverride;
+};
+
 type ApplicationPublicSchema = Omit<
   PublicSchema,
-  "Views" | "Functions"
+  "Tables" | "Views" | "Functions"
 > & {
+  Tables: ApplicationTables;
   Views: Omit<
     Views,
     keyof ProjectionViewOverrides

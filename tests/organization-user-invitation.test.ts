@@ -194,15 +194,11 @@ test("first organization invitation is not labeled as resend merely because Auth
   );
   assert.match(
     organizationFlow,
-    /operation: priorMembership \? "resendInvitation" : "sendInvitation"/,
+    /classifyInvitationDelivery\(delivery\)/,
   );
   assert.doesNotMatch(
     organizationFlow,
     /resend: Boolean\(existingAuthUser\)/,
-  );
-  assert.doesNotMatch(
-    organizationFlow,
-    /operation: existingAuthUser \? "resendInvitation" : "sendInvitation"/,
   );
 });
 

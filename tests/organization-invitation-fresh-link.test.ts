@@ -264,7 +264,7 @@ test("organization invitations always require explicit membership acceptance eve
 
   assert.match(
     organizationInvite,
-    /session\.rpc\(\s*"prepare_organization_membership_invitation"/,
+    /session\.rpc\(\s*"prepare_organization_membership_invitation_v2"/,
   );
   assert.match(
     invitationRpc,

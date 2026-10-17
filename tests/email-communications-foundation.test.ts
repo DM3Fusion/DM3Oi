@@ -122,10 +122,27 @@ test("initial and resent organization invitations include server-derived organiz
 
 test("confirmed SMTP transport prevents destructive invitation rollback", () => {
   const actions = source("lib/data/user-invitation-actions.ts");
-  assert.match(actions, /invitationTransportSent = delivery\.transport === "SENT"/);
-  assert.match(actions, /if \(!invitationTransportSent\) \{[\s\S]*Never invalidate an emailed link/);
-  assert.match(actions, /if \(!delivery\.ok\) \{[\s\S]*deleteUser\(targetUserId\)/);
-  assert.match(actions, /if \(!delivery\.ok\) \{[\s\S]*\.delete\(\)[\s\S]*The invitation could not be sent/);
+  const organizationInvite = actions.slice(
+    actions.indexOf("export async function inviteOrganizationUserAction"),
+    actions.indexOf("export async function resendUserInviteAction"),
+  );
+  assert.match(
+    organizationInvite,
+    /deliveryClassification === "CONFIRMED_NOT_SENT"[\s\S]*recoverOrganizationInvitation/,
+  );
+  assert.match(
+    organizationInvite,
+    /deliveryClassification === "UNKNOWN"[\s\S]*Invitation delivery could not be confirmed/,
+  );
+  assert.match(
+    organizationInvite,
+    /completeOrganizationInvitation\([\s\S]*record_organization_membership_invitation_event/,
+  );
+  assert.doesNotMatch(organizationInvite, /deleteUser\(targetUserId\)/);
+  assert.doesNotMatch(
+    organizationInvite,
+    /\.from\("organization_members"\)\s*\.(?:insert|update|delete)\s*\(/,
+  );
   const portal = source("lib/data/customer-portal-provisioning-service.ts");
   assert.match(portal, /const lifecycle = delivery\.ok[\s\S]*status: "SENT"/);
   assert.doesNotMatch(portal, /delivery\.ok[\s\S]{0,500}deleteUser/);

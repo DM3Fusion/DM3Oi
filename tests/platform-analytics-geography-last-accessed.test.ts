@@ -83,7 +83,7 @@ test("Geography renders timestamp on the existing wrapping secondary line", () =
 });
 
 test("Geography keeps search and Top 6 behavior without per-location reads", () => {
-  assert.match(component, /filteredRows\.slice\(0, 6\)/);
+  assert.match(component, /sortedRows\.slice\(0, 6\)/);
   assert.match(component, /placeholder="Filter geography\.\.\."/);
   assert.match(component, /"View All"/);
   assert.equal(
