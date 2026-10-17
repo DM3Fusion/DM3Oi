@@ -7,6 +7,9 @@ import {
   getPlatformAuthenticationSecurityEvents,
   getPlatformAuthenticationSessionHistory,
 } from "@/lib/data/platform-authentication-security-repository";
+import {
+  getAuthenticationSecurityAccounts,
+} from "@/lib/data/platform-authentication-security-accounts";
 
 type SearchParams = {
   view?: string;
@@ -176,6 +179,11 @@ export default async function AuthenticationSecurityPage({
     view === "geography" && result
       ? summarizeGeography(result.events)
       : [];
+
+  const eventAccounts =
+    view === "events" && result
+      ? await getAuthenticationSecurityAccounts(result.events)
+      : {};
 
   return (
     <>
@@ -434,7 +442,10 @@ export default async function AuthenticationSecurityPage({
           </>
         ) : result?.events.length ? (
           <>
-            <AuthenticationSecurityEventsTable events={result.events} />
+            <AuthenticationSecurityEventsTable
+              events={result.events}
+              accounts={eventAccounts}
+            />
 
             {result.hasMore && result.nextCursor ? (
               <div className="panel-actions">

@@ -3,7 +3,12 @@
 import { useId, useRef, useState } from "react";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { ApplicationIcon } from "@/components/application-icon";
-import type { AuthenticationSecurityEvent } from "@/lib/data/platform-authentication-security-repository";
+import type {
+  AuthenticationSecurityEvent,
+} from "@/lib/data/platform-authentication-security-repository";
+import type {
+  AuthenticationSecurityAccountMap,
+} from "@/lib/data/platform-authentication-security-accounts";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
@@ -45,8 +50,10 @@ function display(value: string | number | null) {
 
 export function AuthenticationSecurityEventsTable({
   events,
+  accounts,
 }: {
   events: AuthenticationSecurityEvent[];
+  accounts: AuthenticationSecurityAccountMap;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -77,6 +84,20 @@ export function AuthenticationSecurityEventsTable({
     if (event.target === event.currentTarget) close();
   }
 
+  const account = selected ? accounts[selected.event_id] : null;
+
+  const accountDetails: Array<[string, string]> = selected
+    ? [
+        ["User", display(account?.name ?? null)],
+        ["Email Address", display(account?.email ?? null)],
+        ["Organization", display(account?.organizationName ?? null)],
+        ["Current Membership Role", display(account?.currentMembershipRole ?? null)],
+        ["Current Membership Status", display(account?.currentMembershipStatus ?? null)],
+        ["User UUID", display(selected.user_id)],
+        ["Organization UUID", display(selected.organization_id)],
+      ]
+    : [];
+
   const details: Array<[string, string]> = selected
     ? [
         ["Event ID", display(selected.event_id)],
@@ -84,10 +105,8 @@ export function AuthenticationSecurityEventsTable({
         ["Event Type", formatEventType(selected.event_type)],
         ["Authentication Outcome", display(selected.authentication_outcome)],
         ["Authentication Method", display(selected.authentication_method)],
-        ["User UUID", display(selected.user_id)],
         ["Access Category", display(selected.access_category)],
-        ["Organization UUID", display(selected.organization_id)],
-        ["Application Role", display(selected.application_role)],
+        ["Application Role at Event", display(selected.application_role)],
         ["Network Location", locationLabel(selected)],
         ["Country", display(selected.country_code)],
         ["Region", display(selected.region_code)],
@@ -171,6 +190,21 @@ export function AuthenticationSecurityEventsTable({
             </header>
 
             <div className="authentication-security-event-dialog-body">
+              <h3>Account Information</h3>
+              <p>
+                Account and membership information reflects the current
+                records. The event role below reflects the recorded event.
+              </p>
+              <dl className="authentication-security-event-details">
+                {accountDetails.map(([label, value]) => (
+                  <div key={label}>
+                    <dt>{label}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
+
+              <h3>Authentication Event Information</h3>
               <dl className="authentication-security-event-details">
                 {details.map(([label, value]) => (
                   <div key={label}>
