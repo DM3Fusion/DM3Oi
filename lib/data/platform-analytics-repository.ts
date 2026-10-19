@@ -656,6 +656,86 @@ export type PlatformGeographicLocationHistory = {
   rows: PlatformGeographicHistoryRow[];
 };
 
+function parsePlatformGeographicLocationHistory(
+  data: unknown,
+  limit: number,
+  offset: number,
+): PlatformGeographicLocationHistory {
+  const payload = data && typeof data === "object"
+    ? data as Record<string, unknown>
+    : null;
+  const rows = Array.isArray(payload?.rows)
+    ? payload.rows.flatMap((value: unknown) => {
+        if (!value || typeof value !== "object") return [];
+
+        const row = value as Record<string, unknown>;
+
+        if (
+          typeof row.timestamp !== "string" ||
+          Number.isNaN(Date.parse(row.timestamp))
+        ) {
+          return [];
+        }
+
+        return [{
+          timestamp: row.timestamp,
+          path:
+            typeof row.path === "string"
+              ? row.path
+              : "/",
+          deviceType:
+            typeof row.deviceType === "string"
+              ? row.deviceType
+              : "OTHER",
+          city:
+            typeof row.city === "string" ? row.city : null,
+          region:
+            typeof row.region === "string" ? row.region : null,
+          country:
+            typeof row.country === "string" ? row.country : null,
+        }];
+      })
+    : [];
+  const total = Number(payload?.total ?? 0);
+
+  return {
+    total: Number.isFinite(total) ? Math.max(0, Math.trunc(total)) : 0,
+    limit,
+    offset,
+    rows,
+  };
+}
+
+function normalizedGeographicHistoryLabel(
+  value: string,
+  maximumLength: number,
+) {
+  const normalized = value.replace(/\s+/g, " ").trim();
+
+  if (
+    !normalized ||
+    normalized.length > maximumLength ||
+    /[\u0000-\u001f\u007f]/.test(normalized)
+  ) {
+    throw new Error("Invalid geographic location label.");
+  }
+
+  return normalized;
+}
+
+function validateGeographicHistoryPagination(limit: number, offset: number) {
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100 ||
+    !Number.isInteger(offset) ||
+    offset < 0 ||
+    offset > 100000
+  ) {
+    throw new Error("Invalid Location History pagination.");
+  }
+}
+
 export type PlatformPageViewHistoryRow = {
   timestamp: string;
   path: string;
@@ -814,16 +894,7 @@ export async function getPlatformGeographicLocationHistory(
     throw new Error("Invalid geographic coordinates.");
   }
 
-  if (
-    !Number.isInteger(limit) ||
-    limit < 1 ||
-    limit > 100 ||
-    !Number.isInteger(offset) ||
-    offset < 0 ||
-    offset > 100000
-  ) {
-    throw new Error("Invalid Location History pagination.");
-  }
+  validateGeographicHistoryPagination(limit, offset);
 
   const supabase = await createClient();
   const range = resolveRange(query);
@@ -852,52 +923,60 @@ export async function getPlatformGeographicLocationHistory(
     );
   }
 
-  const data = result.data as {
-    total?: unknown;
-    limit?: unknown;
-    offset?: unknown;
-    rows?: unknown;
-  } | null;
-
-  const rows = Array.isArray(data?.rows)
-    ? data.rows.flatMap((value: unknown) => {
-        if (!value || typeof value !== "object") return [];
-
-        const row = value as Record<string, unknown>;
-
-        if (
-          typeof row.timestamp !== "string" ||
-          Number.isNaN(Date.parse(row.timestamp))
-        ) {
-          return [];
-        }
-
-        return [{
-          timestamp: row.timestamp,
-          path:
-            typeof row.path === "string"
-              ? row.path
-              : "/",
-          deviceType:
-            typeof row.deviceType === "string"
-              ? row.deviceType
-              : "OTHER",
-          city:
-            typeof row.city === "string" ? row.city : null,
-          region:
-            typeof row.region === "string" ? row.region : null,
-          country:
-            typeof row.country === "string" ? row.country : null,
-        }];
-      })
-    : [];
-
-  return {
-    total: Math.max(0, Number(data?.total ?? 0)),
+  return parsePlatformGeographicLocationHistory(
+    result.data,
     limit,
     offset,
-    rows,
-  };
+  );
+}
+
+export async function getPlatformGeographicLocationGroupHistory(
+  query: PlatformAnalyticsQuery,
+  city: string,
+  region: string,
+  country: string,
+  limit = 50,
+  offset = 0,
+): Promise<PlatformGeographicLocationHistory> {
+  await requireSuperAdmin();
+
+  const normalizedCity = normalizedGeographicHistoryLabel(city, 120);
+  const normalizedRegion = normalizedGeographicHistoryLabel(region, 100);
+  const normalizedCountry = normalizedGeographicHistoryLabel(country, 8);
+  validateGeographicHistoryPagination(limit, offset);
+
+  const supabase = await createClient();
+  const range = resolveRange(query);
+  const result = await supabase.rpc(
+    "get_platform_geographic_location_group_history" as
+      Parameters<typeof supabase.rpc>[0],
+    {
+      target_start: range.start?.toISOString() ?? null,
+      target_end_exclusive: range.endExclusive.toISOString(),
+      target_city: normalizedCity,
+      target_region: normalizedRegion,
+      target_country: normalizedCountry,
+      target_limit: limit,
+      target_offset: offset,
+    },
+  );
+
+  if (result.error) {
+    console.error("Geographic location-group history query failed", {
+      code: result.error.code,
+      message: result.error.message,
+    });
+
+    throw new Error(
+      "Geographic Location History is temporarily unavailable.",
+    );
+  }
+
+  return parsePlatformGeographicLocationHistory(
+    result.data,
+    limit,
+    offset,
+  );
 }
 
 export async function getPlatformAnalytics(

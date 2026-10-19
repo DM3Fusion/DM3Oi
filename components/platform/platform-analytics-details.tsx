@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  type CSSProperties,
   type FormEvent,
   type ReactNode,
   useEffect,
@@ -17,6 +18,14 @@ import type {
   PlatformGeographicDevicePoint,
   PlatformPageViewHistory,
 } from "@/lib/data/platform-analytics-repository";
+import {
+  aggregateGeographicLocations,
+  filterGeographicLocations,
+  GEOGRAPHIC_DEVICE_COLORS,
+  geographicDevicePercentage,
+  geographicLocationGroupKey,
+  geographicLocationLabel,
+} from "@/lib/platform-geographic-map";
 
 type Props = {
   analytics: PlatformAnalytics;
@@ -36,20 +45,19 @@ const DEVICE_TYPES = [
 ] as const;
 const HISTORY_PAGE_SIZES = [10, 25, 50, 100] as const;
 
-function locationLabel(point: PlatformGeographicDevicePoint) {
-  return [point.city, point.region, point.country]
-    .filter((value) => value && value !== "Unknown")
-    .join(", ") || "Unknown location";
-}
+const LOCATION_DEVICES = [
+  { key: "desktop", label: "Desktop", color: GEOGRAPHIC_DEVICE_COLORS.desktop },
+  { key: "mobile", label: "Mobile", color: GEOGRAPHIC_DEVICE_COLORS.mobile },
+  { key: "tablet", label: "Tablet", color: GEOGRAPHIC_DEVICE_COLORS.tablet },
+  { key: "other", label: "Other", color: GEOGRAPHIC_DEVICE_COLORS.other },
+  { key: "unknown", label: "Unknown", color: GEOGRAPHIC_DEVICE_COLORS.unknown },
+] as const;
 
-function locationKey(point: PlatformGeographicDevicePoint) {
-  return [
-    point.latitude,
-    point.longitude,
-    point.city,
-    point.region,
-    point.country,
-  ].join(":");
+function locationDeviceUsage(point: PlatformGeographicDevicePoint) {
+  return LOCATION_DEVICES.map((device) => ({
+    ...device,
+    count: point[device.key],
+  }));
 }
 
 function formatTimestamp(value: string) {
@@ -108,20 +116,17 @@ export function PlatformAnalyticsDetails({
   const [historyError, setHistoryError] = useState<string | null>(null);
   const historyRequestId = useRef(0);
 
-  const sortedLocations = useMemo(
-    () => [...points].sort((left, right) =>
-      right.pageViews - left.pageViews ||
-      locationLabel(left).localeCompare(locationLabel(right))),
+  const groupedLocations = useMemo(
+    () => aggregateGeographicLocations(points),
     [points],
   );
   const filteredLocations = useMemo(() => {
-    const query = locationSearch.trim().toLowerCase();
-
-    return query
-      ? sortedLocations.filter((point) =>
-          locationLabel(point).toLowerCase().includes(query))
-      : sortedLocations;
-  }, [locationSearch, sortedLocations]);
+    return filterGeographicLocations(groupedLocations, locationSearch);
+  }, [groupedLocations, locationSearch]);
+  const maximumLocationPageViews = Math.max(
+    ...filteredLocations.map((point) => point.pageViews),
+    1,
+  );
   const deviceTypeData = DEVICE_TYPES.map((label) => ({
     label,
     value:
@@ -237,7 +242,7 @@ export function PlatformAnalyticsDetails({
         <section className="platform-analytics-detail-card">
           <div className="platform-detail-card-heading">
             <h4>Location</h4>
-            {locationDataAvailable && sortedLocations.length > 0 ? (
+            {locationDataAvailable && groupedLocations.length > 0 ? (
               <button onClick={() => setShowLocations(true)} type="button">
                 View All
               </button>
@@ -248,11 +253,11 @@ export function PlatformAnalyticsDetails({
               Location detail becomes available after its geographic migration is deployed.
             </Unavailable>
           ) : (
-            sortedLocations.length > 0 ? (
+            groupedLocations.length > 0 ? (
               <ol className="platform-detail-ranked-list">
-                {sortedLocations.slice(0, 5).map((point) => (
-                  <li key={locationKey(point)}>
-                    <span>{locationLabel(point)}</span>
+                {groupedLocations.slice(0, 5).map((point) => (
+                  <li key={geographicLocationGroupKey(point)}>
+                    <span>{geographicLocationLabel(point)}</span>
                     <strong>{point.pageViews.toLocaleString("en-US")}</strong>
                   </li>
                 ))}
@@ -448,26 +453,99 @@ export function PlatformAnalyticsDetails({
                 />
               </label>
 
-              <div className="platform-all-locations-table">
-                <div className="platform-all-locations-columns" aria-hidden="true">
-                  <span>City</span>
-                  <span>Region / State</span>
-                  <span>Country</span>
-                  <span>Page Views</span>
+              <div className="platform-all-locations-chart">
+                <div className="platform-all-locations-chart-heading">
+                  <div>
+                    <h4>Device Usage by Location</h4>
+                    <p>Activity count and device share by captured location.</p>
+                  </div>
+                  <div
+                    aria-label="Device colors"
+                    className="platform-all-locations-legend"
+                  >
+                    {LOCATION_DEVICES.map((device) => (
+                      <span key={device.key}>
+                        <i style={{ backgroundColor: device.color }} />
+                        {device.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
+
                 <div className="platform-all-locations-results">
-                  {filteredLocations.length ? filteredLocations.map((point) => (
-                    <button
-                      key={locationKey(point)}
-                      onClick={() => setSelectedLocation(point)}
-                      type="button"
-                    >
-                      <span>{point.city}</span>
-                      <span>{point.region}</span>
-                      <span>{point.country}</span>
-                      <strong>{point.pageViews.toLocaleString("en-US")}</strong>
-                    </button>
-                  )) : (
+                  {filteredLocations.length ? filteredLocations.map((point) => {
+                    const devices = locationDeviceUsage(point);
+                    const deviceTotal = devices.reduce(
+                      (total, device) => total + device.count,
+                      0,
+                    );
+                    const label = geographicLocationLabel(point);
+                    const proportionalWidth =
+                      (point.pageViews / maximumLocationPageViews) * 100;
+
+                    return (
+                      <div
+                        className="platform-all-locations-row"
+                        key={geographicLocationGroupKey(point)}
+                      >
+                        <button
+                          className="platform-all-locations-label"
+                          onClick={() => setSelectedLocation(point)}
+                          title={`Open Location History for ${label}`}
+                          type="button"
+                        >
+                          {label}
+                        </button>
+
+                        <div
+                          aria-label={`${label} device distribution: ${devices
+                            .map((device) =>
+                              `${device.label} ${device.count.toLocaleString("en-US")} (${geographicDevicePercentage(device.count, deviceTotal)}%)`)
+                            .join(", ")}`}
+                          className="platform-all-locations-track"
+                          role="img"
+                        >
+                          <div
+                            className="platform-all-locations-stack"
+                            style={{
+                              "--platform-location-proportional-width":
+                                `${proportionalWidth.toFixed(3)}%`,
+                            } as CSSProperties}
+                          >
+                            {devices.map((device) => {
+                              if (device.count === 0) return null;
+
+                              const percentage = geographicDevicePercentage(
+                                device.count,
+                                deviceTotal,
+                              );
+
+                              return (
+                                <span
+                                  className="platform-all-locations-segment"
+                                  key={device.key}
+                                  style={{
+                                    backgroundColor: device.color,
+                                    flexGrow: device.count,
+                                  }}
+                                  title={`${device.label}: ${device.count.toLocaleString("en-US")} (${percentage}%)`}
+                                >
+                                  <span>
+                                    {device.count.toLocaleString("en-US")} ({percentage}%)
+                                  </span>
+                                </span>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <strong title="Total page views">
+                          <span className="sr-only">Total page views: </span>
+                          {point.pageViews.toLocaleString("en-US")}
+                        </strong>
+                      </div>
+                    );
+                  }) : (
                     <p>No locations match this search.</p>
                   )}
                 </div>
@@ -483,7 +561,8 @@ export function PlatformAnalyticsDetails({
               onClose={() => setSelectedLocation(null)}
               onSelectLocation={setSelectedLocation}
               point={selectedLocation}
-              points={points}
+              points={groupedLocations}
+              historyScope="location"
             />
           ) : null}
         </div>

@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { loadGeographicLocationHistory } from "@/components/platform/geographic-location-history-actions";
+import {
+  loadGeographicLocationGroupHistory,
+  loadGeographicLocationHistory,
+} from "@/components/platform/geographic-location-history-actions";
 import type {
   PlatformGeographicDevicePoint,
   PlatformGeographicLocationHistory,
@@ -16,6 +19,7 @@ type Props = {
   analyticsRange: string;
   analyticsFrom: string;
   analyticsThrough: string;
+  historyScope?: "coordinate" | "location";
 };
 
 const PAGE_SIZE = 25;
@@ -82,6 +86,7 @@ export function GeographicLocationHistoryModal({
   analyticsRange,
   analyticsFrom,
   analyticsThrough,
+  historyScope = "coordinate",
 }: Props) {
   const [offset, setOffset] = useState(0);
   const [history, setHistory] =
@@ -92,6 +97,9 @@ export function GeographicLocationHistoryModal({
 
   const latitude = point?.latitude;
   const longitude = point?.longitude;
+  const city = point?.city;
+  const region = point?.region;
+  const country = point?.country;
   const selectedLocationKey = point ? locationKey(point) : null;
 
   useEffect(() => {
@@ -106,15 +114,26 @@ export function GeographicLocationHistoryModal({
       setHistory(null);
 
       try {
-        const result = await loadGeographicLocationHistory({
-          analyticsRange,
-          analyticsFrom,
-          analyticsThrough,
-          latitude: latitude!,
-          longitude: longitude!,
-          limit: PAGE_SIZE,
-          offset,
-        });
+        const result = historyScope === "location"
+          ? await loadGeographicLocationGroupHistory({
+              analyticsRange,
+              analyticsFrom,
+              analyticsThrough,
+              city: city!,
+              region: region!,
+              country: country!,
+              limit: PAGE_SIZE,
+              offset,
+            })
+          : await loadGeographicLocationHistory({
+              analyticsRange,
+              analyticsFrom,
+              analyticsThrough,
+              latitude: latitude!,
+              longitude: longitude!,
+              limit: PAGE_SIZE,
+              offset,
+            });
 
         if (!cancelled && requestId === requestIdRef.current) {
           setHistory(result);
@@ -139,6 +158,10 @@ export function GeographicLocationHistoryModal({
   }, [
     latitude,
     longitude,
+    city,
+    region,
+    country,
+    historyScope,
     selectedLocationKey,
     analyticsRange,
     analyticsFrom,
@@ -194,11 +217,18 @@ export function GeographicLocationHistoryModal({
             <span className="eyebrow">Geographic Analytics</span>
             <h3>Location History</h3>
             <p>{locationLabel(point)}</p>
-            <small>
-              Approximate network coordinates:{" "}
-              {point.latitude.toFixed(2)},{" "}
-              {point.longitude.toFixed(2)}
-            </small>
+            {historyScope === "location" ? (
+              <small>
+                Combined history for every mapped coordinate group with this
+                captured city, region, and country.
+              </small>
+            ) : (
+              <small>
+                Approximate network coordinates:{" "}
+                {point.latitude.toFixed(2)},{" "}
+                {point.longitude.toFixed(2)}
+              </small>
+            )}
           </div>
 
           <button

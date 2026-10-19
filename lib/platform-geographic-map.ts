@@ -145,3 +145,108 @@ export function summarizeGeographicPoints(
     { pageViews: 0, desktop: 0, mobile: 0, tablet: 0, other: 0 },
   );
 }
+
+export type GeographicLocationActivity = {
+  city: string;
+  region: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  pageViews: number;
+  desktop: number;
+  mobile: number;
+  tablet: number;
+  other: number;
+  unknown: number;
+  lastAccessedAt: string | null;
+};
+
+function normalizedLocationPart(value: string) {
+  return value.replace(/\s+/g, " ").trim() || "Unknown";
+}
+
+export function geographicLocationLabel(
+  location: Pick<GeographicLocationActivity, "city" | "region" | "country">,
+) {
+  return [location.city, location.region, location.country]
+    .map(normalizedLocationPart)
+    .filter((value) => value.toLowerCase() !== "unknown")
+    .join(", ") || "Unknown location";
+}
+
+export function geographicLocationGroupKey(
+  location: Pick<GeographicLocationActivity, "city" | "region" | "country">,
+) {
+  return JSON.stringify(
+    [location.city, location.region, location.country]
+      .map(normalizedLocationPart)
+      .map((value) => value.toLocaleLowerCase("en-US")),
+  );
+}
+
+export function aggregateGeographicLocations(
+  points: readonly GeographicLocationActivity[],
+): GeographicLocationActivity[] {
+  const groups = new Map<string, GeographicLocationActivity>();
+
+  for (const point of points) {
+    const normalizedPoint = {
+      ...point,
+      city: normalizedLocationPart(point.city),
+      region: normalizedLocationPart(point.region),
+      country: normalizedLocationPart(point.country),
+    };
+    const key = geographicLocationGroupKey(normalizedPoint);
+    const current = groups.get(key);
+
+    if (!current) {
+      groups.set(key, normalizedPoint);
+      continue;
+    }
+
+    current.pageViews += normalizedPoint.pageViews;
+    current.desktop += normalizedPoint.desktop;
+    current.mobile += normalizedPoint.mobile;
+    current.tablet += normalizedPoint.tablet;
+    current.other += normalizedPoint.other;
+    current.unknown += normalizedPoint.unknown;
+
+    if (
+      normalizedPoint.lastAccessedAt &&
+      (!current.lastAccessedAt ||
+        normalizedPoint.lastAccessedAt > current.lastAccessedAt)
+    ) {
+      current.lastAccessedAt = normalizedPoint.lastAccessedAt;
+    }
+  }
+
+  return [...groups.values()].sort(
+    (left, right) =>
+      right.pageViews - left.pageViews ||
+      geographicLocationLabel(left).localeCompare(
+        geographicLocationLabel(right),
+      ),
+  );
+}
+
+export function filterGeographicLocations(
+  locations: readonly GeographicLocationActivity[],
+  search: string,
+) {
+  const query = search.replace(/\s+/g, " ").trim().toLocaleLowerCase("en-US");
+
+  return query
+    ? locations.filter((location) =>
+        geographicLocationLabel(location)
+          .toLocaleLowerCase("en-US")
+          .includes(query))
+    : [...locations];
+}
+
+export function geographicDevicePercentage(count: number, total: number) {
+  if (!Number.isFinite(count) || !Number.isFinite(total) || total <= 0) {
+    return 0;
+  }
+
+  return Math.round((Math.max(0, count) / total) * 100);
+}
