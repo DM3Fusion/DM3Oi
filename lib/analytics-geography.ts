@@ -27,6 +27,29 @@ export type AnalyticsProviderGeography = Pick<
 
 type HeaderReader = Pick<Headers, "get">;
 
+type DiagnosticGeography = Pick<
+  AnalyticsGeography,
+  "city" | "region" | "country" | "latitude" | "longitude"
+>;
+
+export type AnalyticsGeographySource =
+  | "vercel_adapter"
+  | "vercel_header"
+  | "cloudflare_header_unverified"
+  | "none";
+
+export type AnalyticsGeographyEvaluation = {
+  geography: AnalyticsGeography;
+  diagnostic: {
+    candidates: {
+      vercelAdapter: DiagnosticGeography;
+      vercelHeaders: DiagnosticGeography;
+      cloudflareHeadersUnverified: DiagnosticGeography;
+    };
+    selectedSources: Record<keyof DiagnosticGeography, AnalyticsGeographySource>;
+  };
+};
+
 function decodeHeader(value: string | null) {
   if (!value) return null;
 
@@ -98,6 +121,86 @@ function decodedHeader(
   return null;
 }
 
+function diagnosticGeography(values: {
+  city?: unknown;
+  region?: unknown;
+  country?: unknown;
+  latitude?: unknown;
+  longitude?: unknown;
+}): DiagnosticGeography {
+  return {
+    city: normalizedText(values.city, 120),
+    region: normalizedText(values.region, 100),
+    country: normalizedText(values.country, 8),
+    latitude: normalizedCoordinate(values.latitude, -90, 90),
+    longitude: normalizedCoordinate(values.longitude, -180, 180),
+  };
+}
+
+function rawGeographyCandidates(
+  headers: HeaderReader,
+  provider: AnalyticsProviderGeography,
+) {
+  return {
+    vercelAdapter: {
+      city: provider.city,
+      region: provider.countryRegion,
+      country: provider.country,
+      latitude: provider.latitude,
+      longitude: provider.longitude,
+    },
+    vercelHeaders: {
+      city: decodedHeader(headers, "x-vercel-ip-city"),
+      region: decodedHeader(
+        headers,
+        "x-vercel-ip-country-region",
+        "x-vercel-ip-region",
+      ),
+      country: decodedHeader(headers, "x-vercel-ip-country"),
+      latitude: decodedHeader(headers, "x-vercel-ip-latitude"),
+      longitude: decodedHeader(headers, "x-vercel-ip-longitude"),
+    },
+    cloudflareHeadersUnverified: {
+      city: decodedHeader(headers, "cf-ipcity"),
+      region: decodedHeader(headers, "cf-region"),
+      country: decodedHeader(headers, "cf-ipcountry"),
+      latitude: decodedHeader(headers, "cf-iplatitude"),
+      longitude: decodedHeader(headers, "cf-iplongitude"),
+    },
+  };
+}
+
+function selectedDiagnosticSources(
+  geography: AnalyticsGeography,
+  candidates: ReturnType<typeof rawGeographyCandidates>,
+): Record<keyof DiagnosticGeography, AnalyticsGeographySource> {
+  const fields = [
+    "city",
+    "region",
+    "country",
+    "latitude",
+    "longitude",
+  ] as const;
+
+  return Object.fromEntries(fields.map((field) => {
+    if (geography[field] === null) return [field, "none"];
+
+    if (String(candidates.vercelAdapter[field] ?? "").trim()) {
+      return [field, "vercel_adapter"];
+    }
+
+    if (String(candidates.vercelHeaders[field] ?? "").trim()) {
+      return [field, "vercel_header"];
+    }
+
+    if (String(candidates.cloudflareHeadersUnverified[field] ?? "").trim()) {
+      return [field, "cloudflare_header_unverified"];
+    }
+
+    return [field, "none"];
+  })) as Record<keyof DiagnosticGeography, AnalyticsGeographySource>;
+}
+
 export function normalizeAnalyticsGeography(
   headers: HeaderReader,
   provider: AnalyticsProviderGeography = {},
@@ -162,6 +265,12 @@ export function analyticsGeographyFromHeaders(
 export function analyticsGeographyFromRequest(
   request: { headers: HeaderReader },
 ): AnalyticsGeography {
+  return evaluateAnalyticsGeographyRequest(request).geography;
+}
+
+export function evaluateAnalyticsGeographyRequest(
+  request: { headers: HeaderReader },
+): AnalyticsGeographyEvaluation {
   let provider: AnalyticsProviderGeography = {};
 
   try {
@@ -170,5 +279,20 @@ export function analyticsGeographyFromRequest(
     // Malformed provider metadata must not prevent safe header fallbacks.
   }
 
-  return normalizeAnalyticsGeography(request.headers, provider);
+  const geography = normalizeAnalyticsGeography(request.headers, provider);
+  const rawCandidates = rawGeographyCandidates(request.headers, provider);
+
+  return {
+    geography,
+    diagnostic: {
+      candidates: {
+        vercelAdapter: diagnosticGeography(rawCandidates.vercelAdapter),
+        vercelHeaders: diagnosticGeography(rawCandidates.vercelHeaders),
+        cloudflareHeadersUnverified: diagnosticGeography(
+          rawCandidates.cloudflareHeadersUnverified,
+        ),
+      },
+      selectedSources: selectedDiagnosticSources(geography, rawCandidates),
+    },
+  };
 }

@@ -9,7 +9,8 @@ import {
   isExcludedAnalyticsGeo,
   normalizeAnalyticsPath,
 } from "@/lib/analytics";
-import { analyticsGeographyFromRequest } from "@/lib/analytics-geography";
+import { evaluateAnalyticsGeographyRequest } from "@/lib/analytics-geography";
+import { logAnalyticsGeographyDiagnostic } from "@/lib/analytics-geography-diagnostics";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateAnalyticsSessionId } from "@/lib/analytics-session";
@@ -225,7 +226,9 @@ export async function POST(request: NextRequest) {
     webdriver,
   );
 
-  const geography = analyticsGeographyFromRequest(request);
+  const geographyEvaluation = evaluateAnalyticsGeographyRequest(request);
+  const geography = geographyEvaluation.geography;
+  logAnalyticsGeographyDiagnostic(request.headers, geographyEvaluation);
 
   const bypassGeographicExclusion =
     accessType === "INTERNAL" &&

@@ -5,8 +5,10 @@ import test from "node:test";
 import {
   analyticsGeographyFromHeaders,
   analyticsGeographyFromRequest,
+  evaluateAnalyticsGeographyRequest,
   normalizeAnalyticsGeography,
 } from "../lib/analytics-geography.ts";
+import { logAnalyticsGeographyDiagnostic } from "../lib/analytics-geography-diagnostics.ts";
 
 const source = (path: string) => readFileSync(path, "utf8");
 
@@ -174,7 +176,7 @@ test("coordinates use field-specific validation and coarse precision", () => {
 });
 
 test("page views persist normalized metadata through the guarded RPC", () => {
-  assert.match(pageView, /analyticsGeographyFromRequest\(request\)/);
+  assert.match(pageView, /evaluateAnalyticsGeographyRequest\(request\)/);
 
   for (const mapping of [
     "target_country_code: geography.country",
@@ -187,6 +189,91 @@ test("page views persist normalized metadata through the guarded RPC", () => {
   ]) {
     assert.ok(pageView.includes(mapping));
   }
+});
+
+test("authorized diagnostics log sanitized candidates and per-field sources", () => {
+  const token = "a".repeat(43);
+  const request = new Request("https://example.test", {
+    headers: {
+      "x-analytics-geography-diagnostic-token": token,
+      "x-vercel-id": "iad1::secret-request-suffix",
+      "x-vercel-ip-city": "Arlington",
+      "x-vercel-ip-country-region": "VA",
+      "x-vercel-ip-country": "US",
+      "x-vercel-ip-latitude": "38.8816",
+      "x-vercel-ip-longitude": "-77.0910",
+      "cf-ipcity": "Reston",
+      "cf-region": "Virginia",
+      "cf-ipcountry": "US",
+      "cf-iplatitude": "38.9586",
+      "cf-iplongitude": "-77.3570",
+      cookie: "session=must-not-appear",
+      authorization: "Bearer must-not-appear",
+    },
+  });
+  const evaluation = evaluateAnalyticsGeographyRequest(request);
+  const messages: Array<[string, string]> = [];
+
+  const logged = logAnalyticsGeographyDiagnostic(
+    request.headers,
+    evaluation,
+    {
+      environment: {
+        ANALYTICS_GEOGRAPHY_DIAGNOSTIC_TOKEN: token,
+        ANALYTICS_GEOGRAPHY_DIAGNOSTIC_NOT_BEFORE: "2026-10-19T15:00:00.000Z",
+        ANALYTICS_GEOGRAPHY_DIAGNOSTIC_EXPIRES_AT: "2026-10-19T17:00:00.000Z",
+      },
+      now: new Date("2026-10-19T16:00:00.000Z"),
+      logger: (label, payload) => messages.push([label, payload]),
+    },
+  );
+
+  assert.equal(logged, true);
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0][0], "ANALYTICS_GEOGRAPHY_DIAGNOSTIC");
+
+  const payload = JSON.parse(messages[0][1]);
+  assert.deepEqual(payload.selected, {
+    city: "Arlington",
+    region: "VA",
+    country: "US",
+    latitude: 38.88,
+    longitude: -77.09,
+  });
+  assert.equal(payload.candidates.cloudflareHeadersUnverified.city, "Reston");
+  assert.equal(payload.selectedSources.city, "vercel_adapter");
+  assert.equal(payload.vercelIngressRegion, "iad1");
+
+  const serialized = messages[0][1];
+  assert.doesNotMatch(serialized, new RegExp(token));
+  assert.doesNotMatch(serialized, /secret-request-suffix/);
+  assert.doesNotMatch(serialized, /must-not-appear/);
+});
+
+test("diagnostics fail closed for invalid authorization and time windows", () => {
+  const token = "b".repeat(43);
+  const evaluation = evaluateAnalyticsGeographyRequest(new Request(
+    "https://example.test",
+    { headers: { "x-vercel-ip-city": "Clinton" } },
+  ));
+  const messages: Array<[string, string]> = [];
+  const options = {
+    environment: {
+      ANALYTICS_GEOGRAPHY_DIAGNOSTIC_TOKEN: token,
+      ANALYTICS_GEOGRAPHY_DIAGNOSTIC_NOT_BEFORE: "2026-10-19T15:00:00.000Z",
+      ANALYTICS_GEOGRAPHY_DIAGNOSTIC_EXPIRES_AT: "2026-10-19T17:00:00.000Z",
+    },
+    now: new Date("2026-10-19T17:00:00.000Z"),
+    logger: (label: string, payload: string) => messages.push([label, payload]),
+  };
+
+  assert.equal(logAnalyticsGeographyDiagnostic(new Headers({
+    "x-analytics-geography-diagnostic-token": token,
+  }), evaluation, options), false);
+  assert.equal(logAnalyticsGeographyDiagnostic(new Headers({
+    "x-analytics-geography-diagnostic-token": "wrong".repeat(11),
+  }), evaluation, { ...options, now: new Date("2026-10-19T16:00:00.000Z") }), false);
+  assert.equal(messages.length, 0);
 });
 
 test("the additive migration preserves old RPCs and stores timezone once", () => {
