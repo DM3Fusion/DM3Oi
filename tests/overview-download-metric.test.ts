@@ -197,7 +197,7 @@ test("Overview Downloads renders within Organizations after Platform Analytics",
   );
   assert.match(
     styles,
-    /\.platform-overview-download-metric\{[^}]*width:min\(100%,292px\)[^}]*margin:0 auto[^}]*flex-direction:column[^}]*text-align:center/,
+    /\.platform-overview-download-metric\{[^}]*min-width:0[^}]*min-height:96px[^}]*flex-direction:column[^}]*text-align:center/,
   );
   assert.doesNotMatch(
     styles.match(/\.platform-overview-download-metric\{[^}]*\}/)?.[0] ?? "",

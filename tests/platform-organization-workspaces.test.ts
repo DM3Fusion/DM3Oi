@@ -28,7 +28,7 @@ test("Platform Console loads the complete authorized organization collection", (
 });
 
 test("Platform Console renders the shared organization directory table", () => {
-  assert.match(dashboard, /Organization workspaces/);
+  assert.match(dashboard, /Organization Workspaces/);
   assert.doesNotMatch(dashboard, /View organizations/);
   assert.match(
     dashboard,

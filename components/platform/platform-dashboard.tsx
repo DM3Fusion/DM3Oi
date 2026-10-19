@@ -266,6 +266,13 @@ export function PlatformDashboard({
             </div>
           </article>
 
+          <PlatformGeography
+            activity={geographicDeviceActivity}
+            analyticsRange={analytics.range}
+            analyticsFrom={analytics.from}
+            analyticsThrough={analytics.through}
+          />
+
           <article className="admin-analytics-panel admin-analytics-composition">
             <div className="admin-analytics-panel-heading">
               <div>
@@ -308,13 +315,6 @@ export function PlatformDashboard({
 
           <AdminTopPages
             pages={analytics.topPages}
-          />
-
-          <PlatformGeography
-            activity={geographicDeviceActivity}
-            analyticsRange={analytics.range}
-            analyticsFrom={analytics.from}
-            analyticsThrough={analytics.through}
           />
         </div>
       </section>
@@ -412,7 +412,7 @@ export function PlatformDashboard({
       ) : (
         <section className="panel platform-ready">
           <div className="section-head">
-            <h2>Organization workspaces</h2>
+            <h2>Organization Workspaces</h2>
           </div>
           <OrganizationTable organizations={organizations} />
         </section>

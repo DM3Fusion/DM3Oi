@@ -18,7 +18,7 @@ test("Platform Console uses the exact Platform Administrators label", () => {
   assert.doesNotMatch(dashboard, /Platform Operationsistrators/);
 });
 
-test("Total Customers occupies the compact supporting KPI row", () => {
+test("organization supporting metrics use the available panel width", () => {
   assert.match(dashboard, /className="platform-supporting-metrics"/);
   assert.match(dashboard, /<span>Total Customers<\/span>/);
   assert.match(
@@ -27,7 +27,7 @@ test("Total Customers occupies the compact supporting KPI row", () => {
   );
   assert.match(
     styles,
-    /\.platform-supporting-metrics\{[^}]*grid-template-columns:repeat\(2,minmax\(0,292px\)\)/,
+    /\.platform-supporting-metrics\{[^}]*width:100%[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/,
   );
   assert.match(
     styles,

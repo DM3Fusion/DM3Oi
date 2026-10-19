@@ -1,12 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { PlatformGeographicDevicePoint } from "@/lib/data/platform-analytics-repository";
 import {
-  GEOGRAPHIC_DEFAULT_RADIUS,
   GEOGRAPHIC_DEVICE_COLORS,
   GEOGRAPHIC_RADIUS_CENTER,
-  GEOGRAPHIC_RADIUS_OPTIONS,
   geographicDominantDevice,
   geographicMarkerRadius,
   geographicWithinRadius,
@@ -15,6 +13,7 @@ import {
 
 type Props = {
   points: PlatformGeographicDevicePoint[];
+  radius: GeographicRadius;
   onSelectLocation: (point: PlatformGeographicDevicePoint) => void;
 };
 
@@ -26,34 +25,15 @@ function locationLabel(point: PlatformGeographicDevicePoint) {
 
 export function GeographicDeviceMap({
   points,
+  radius,
   onSelectLocation,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const selectLocationRef = useRef(onSelectLocation);
-  const [radius, setRadius] = useState<GeographicRadius>(
-    GEOGRAPHIC_DEFAULT_RADIUS,
-  );
 
   useEffect(() => {
     selectLocationRef.current = onSelectLocation;
   }, [onSelectLocation]);
-
-  const nearbyPoints = useMemo(
-    () =>
-      points.filter((point) =>
-        geographicWithinRadius(
-          point.latitude,
-          point.longitude,
-          radius,
-        ),
-      ),
-    [points, radius],
-  );
-
-  const nearbyPageViews = nearbyPoints.reduce(
-    (total, point) => total + point.pageViews,
-    0,
-  );
 
   useEffect(() => {
     const container = containerRef.current;
@@ -181,38 +161,9 @@ export function GeographicDeviceMap({
 
   return (
     <div className="platform-geographic-map-shell">
-      <div className="platform-geographic-map-toolbar">
-        <label>
-          Radius around ZIP 20613
-          <select
-            aria-label="Geographic radius"
-            onChange={(event) =>
-              setRadius(
-                Number(event.target.value) as GeographicRadius,
-              )
-            }
-            value={radius}
-          >
-            {GEOGRAPHIC_RADIUS_OPTIONS.map((option) => (
-              <option key={option} value={option}>
-                {option} miles
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="platform-geographic-map-summary">
-          <strong>{nearbyPageViews.toLocaleString("en-US")}</strong>
-          <span>Page Views within {radius} miles</span>
-          <small>
-            {nearbyPoints.length} mapped{" "}
-            {nearbyPoints.length === 1 ? "location" : "locations"}
-          </small>
-        </div>
-      </div>
-
       <div
         ref={containerRef}
+        id="platform-geographic-device-map"
         className="platform-geographic-map"
         aria-label="Interactive map of approximate network locations"
       />

@@ -10,6 +10,10 @@ const geography = readFileSync(
   "components/platform/platform-geography.tsx",
   "utf8",
 );
+const dashboard = readFileSync(
+  "components/platform/platform-dashboard.tsx",
+  "utf8",
+);
 const historyModal = readFileSync(
   "components/platform/geographic-location-history-modal.tsx",
   "utf8",
@@ -128,4 +132,24 @@ test("Location History ignores stale location responses", () => {
     /requestId === requestIdRef\.current/,
   );
   assert.match(historyModal, /setHistory\(null\)/);
+});
+
+test("Platform Analytics follows the approved compact section order", () => {
+  const sections = [
+    'admin-analytics-panel admin-analytics-traffic',
+    "<PlatformGeography",
+    'admin-analytics-panel admin-analytics-composition',
+    "<DeviceSummary",
+    "<AdminTopPages",
+  ].map((marker) => dashboard.indexOf(marker));
+
+  assert.ok(sections.every((index) => index >= 0));
+  assert.deepEqual(sections, [...sections].sort((left, right) => left - right));
+});
+
+test("geography uses a heading radius control and compact radius summary", () => {
+  assert.match(geography, /platform-geography-radius-control/);
+  assert.match(geography, /GEOGRAPHIC_RADIUS_OPTIONS\.map/);
+  assert.match(geography, /Views inside radius/);
+  assert.match(geography, /radius=\{radius\}/);
 });

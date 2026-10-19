@@ -45,7 +45,7 @@ export function AdminTopPages({
   );
 
   return (
-    <article className="admin-analytics-panel">
+    <article className="admin-analytics-panel admin-top-pages-panel">
       <div className="admin-analytics-panel-heading admin-top-pages-heading">
         <div>
           <h3>Top Pages</h3>
