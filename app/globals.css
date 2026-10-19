@@ -16982,6 +16982,76 @@ dialog.intake-save-progress-modal {
   background: #edf2f5;
 }
 
+.platform-geographic-map:focus-visible {
+  outline: 3px solid rgb(47 74 111 / 35%);
+  outline-offset: -3px;
+}
+
+.platform-geographic-marker-shell {
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+
+.platform-geographic-marker-dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--platform-geographic-marker-size);
+  height: var(--platform-geographic-marker-size);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgb(20 31 46 / 42%);
+  transform: translate(
+    calc(-50% + var(--platform-geographic-marker-offset-x, 0px)),
+    calc(-50% + var(--platform-geographic-marker-offset-y, 0px))
+  );
+  pointer-events: auto;
+}
+
+.platform-geographic-marker-desktop .platform-geographic-marker-dot {
+  background: #2f4a6f;
+}
+
+.platform-geographic-marker-mobile .platform-geographic-marker-dot {
+  background: #c99a4e;
+}
+
+.platform-geographic-marker-tablet .platform-geographic-marker-dot {
+  background: #2f7d5b;
+}
+
+.platform-geographic-marker-other .platform-geographic-marker-dot {
+  background: #8a4f7d;
+}
+
+.platform-geographic-marker-unknown .platform-geographic-marker-dot {
+  background: #7b8794;
+}
+
+.platform-geographic-marker-shell:focus {
+  outline: none;
+}
+
+.platform-geographic-marker-shell:focus .platform-geographic-marker-dot,
+.platform-geographic-marker-shell:focus-visible .platform-geographic-marker-dot {
+  outline: 3px solid #fff;
+  box-shadow: 0 0 0 5px #21324b, 0 2px 5px rgb(20 31 46 / 40%);
+}
+
+.platform-geographic-map .leaflet-tooltip {
+  border: 1px solid #cbd6e4;
+  border-radius: 6px;
+  color: #21324b;
+  box-shadow: 0 4px 14px rgb(31 38 49 / 16%);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.platform-geographic-map .leaflet-control-attribution {
+  font-size: 10px;
+}
+
 .platform-geographic-map-legend,
 .platform-location-history-device-legend {
   display: flex;
@@ -17003,7 +17073,8 @@ dialog.intake-save-progress-modal {
   display: inline-block;
   width: 11px;
   height: 11px;
-  border-radius: 3px;
+  border: 1px solid rgb(31 38 49 / 15%);
+  border-radius: 50%;
 }
 
 .platform-geographic-map-note {

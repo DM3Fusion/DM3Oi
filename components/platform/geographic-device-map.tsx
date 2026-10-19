@@ -5,9 +5,10 @@ import type { PlatformGeographicDevicePoint } from "@/lib/data/platform-analytic
 import {
   GEOGRAPHIC_DEVICE_COLORS,
   GEOGRAPHIC_RADIUS_CENTER,
-  geographicDominantDevice,
-  geographicMarkerRadius,
+  geographicDistanceMiles,
+  geographicMarkerDiameter,
   geographicWithinRadius,
+  type GeographicDevice,
   type GeographicRadius,
 } from "@/lib/platform-geographic-map";
 
@@ -21,6 +22,35 @@ function locationLabel(point: PlatformGeographicDevicePoint) {
   return [point.city, point.region, point.country]
     .filter((part) => part && part !== "Unknown")
     .join(", ") || "Unknown location";
+}
+
+const GEOGRAPHIC_DEVICES: GeographicDevice[] = [
+  "desktop",
+  "mobile",
+  "tablet",
+  "other",
+  "unknown",
+];
+
+function deviceLabel(device: GeographicDevice) {
+  return device.charAt(0).toUpperCase() + device.slice(1);
+}
+
+function markerOffset(
+  device: GeographicDevice,
+  hasMultipleDevices: boolean,
+) {
+  if (!hasMultipleDevices) return { x: 0, y: 0 };
+
+  const offsets: Record<GeographicDevice, { x: number; y: number }> = {
+    desktop: { x: -9, y: -9 },
+    mobile: { x: 9, y: -9 },
+    tablet: { x: -9, y: 9 },
+    other: { x: 9, y: 9 },
+    unknown: { x: 0, y: 0 },
+  };
+
+  return offsets[device];
 }
 
 export function GeographicDeviceMap({
@@ -52,87 +82,115 @@ export function GeographicDeviceMap({
       ];
 
       const leafletMap = leaflet.map(container, {
+        center,
+        zoom: 8,
+        minZoom: 3,
+        maxZoom: 19,
         scrollWheelZoom: false,
-        zoomControl: true,
+        keyboard: true,
       });
 
       map = leafletMap;
 
       leaflet.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
         {
           attribution:
             '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-          maxZoom: 18,
+          maxZoom: 19,
         },
       ).addTo(leafletMap);
 
-      leaflet.circle(center, {
+      leaflet.control.scale({ imperial: true, metric: false }).addTo(leafletMap);
+
+      const boundary = leaflet.circle(center, {
         radius: radius * 1609.344,
-        color: "#537b94",
+        color: GEOGRAPHIC_DEVICE_COLORS.desktop,
         weight: 2,
-        opacity: 0.75,
-        fillColor: "#537b94",
-        fillOpacity: 0.06,
+        opacity: 0.78,
+        fillColor: GEOGRAPHIC_DEVICE_COLORS.desktop,
+        fillOpacity: 0.045,
+        dashArray: "7 6",
         interactive: false,
       }).addTo(leafletMap);
 
       leaflet.circleMarker(center, {
-        radius: 5,
-        color: "#294d63",
-        fillColor: "#ffffff",
+        radius: 4,
+        color: "#ffffff",
+        fillColor: GEOGRAPHIC_DEVICE_COLORS.desktop,
         fillOpacity: 1,
         weight: 2,
       })
-        .bindTooltip("ZIP 20613 radius center")
+        .bindTooltip("ZIP 20613 center", { direction: "top" })
         .addTo(leafletMap);
 
-      for (const point of points) {
-        const device = geographicDominantDevice(point);
-        const inRadius = geographicWithinRadius(
+      const visiblePoints = points.filter((point) =>
+        geographicWithinRadius(
           point.latitude,
           point.longitude,
           radius,
-        );
-
-        const marker = leaflet.circleMarker(
-          [point.latitude, point.longitude],
-          {
-            radius: geographicMarkerRadius(point.pageViews),
-            color: GEOGRAPHIC_DEVICE_COLORS[device],
-            fillColor: GEOGRAPHIC_DEVICE_COLORS[device],
-            weight: 2,
-            opacity: inRadius ? 1 : 0.45,
-            fillOpacity: inRadius ? 0.7 : 0.2,
-          },
-        );
-
-        marker.bindTooltip(
-          `${locationLabel(point)} · ${point.pageViews.toLocaleString("en-US")} page views · ${device}`,
-        );
-
-        marker.on("click", () => {
-          selectLocationRef.current(point);
-        });
-
-        marker.addTo(leafletMap);
-      }
-
-      const bounds = leaflet.latLngBounds(
-        [
-          leaflet.latLng(
-            center[0] - radius / 69,
-            center[1] - radius / 54,
-          ),
-          leaflet.latLng(
-            center[0] + radius / 69,
-            center[1] + radius / 54,
-          ),
-        ],
+        ),
       );
 
-      leafletMap.fitBounds(bounds, {
-        padding: [28, 28],
+      for (const point of visiblePoints) {
+        const activeDevices = GEOGRAPHIC_DEVICES.filter(
+          (device) => point[device] > 0,
+        );
+
+        for (const device of activeDevices) {
+          const pageViews = point[device];
+          const diameter = geographicMarkerDiameter(pageViews);
+          const offset = markerOffset(device, activeDevices.length > 1);
+          const iconBoxSize = diameter + 24;
+          const label = locationLabel(point);
+          const distance = geographicDistanceMiles(
+            GEOGRAPHIC_RADIUS_CENTER.latitude,
+            GEOGRAPHIC_RADIUS_CENTER.longitude,
+            point.latitude,
+            point.longitude,
+          ).toFixed(1);
+          const accessibleLabel = `${label}; ${deviceLabel(device)}; ${pageViews.toLocaleString("en-US")} page view${pageViews === 1 ? "" : "s"}; approximately ${distance} miles from ZIP 20613`;
+          const icon = leaflet.divIcon({
+            className: `platform-geographic-marker-shell platform-geographic-marker-${device}`,
+            iconSize: [iconBoxSize, iconBoxSize],
+            iconAnchor: [iconBoxSize / 2, iconBoxSize / 2],
+            html: `<span class="platform-geographic-marker-dot" aria-hidden="true" style="--platform-geographic-marker-size:${diameter}px;--platform-geographic-marker-offset-x:${offset.x}px;--platform-geographic-marker-offset-y:${offset.y}px"></span>`,
+          });
+          const marker = leaflet.marker(
+            [point.latitude, point.longitude],
+            {
+              alt: accessibleLabel,
+              icon,
+              keyboard: true,
+              riseOnHover: true,
+              title: accessibleLabel,
+            },
+          );
+
+          marker.bindTooltip(
+            `${label} · ${pageViews.toLocaleString("en-US")} ${deviceLabel(device)} page view${pageViews === 1 ? "" : "s"} · ${distance} miles from ZIP 20613`,
+            { direction: "top", offset: [offset.x, offset.y - 6] },
+          );
+          marker.on("click", () => selectLocationRef.current(point));
+          marker.addTo(leafletMap);
+
+          const markerElement = marker.getElement();
+          if (markerElement) {
+            markerElement.setAttribute("role", "button");
+            markerElement.setAttribute("aria-label", accessibleLabel);
+            markerElement.addEventListener("focus", () => marker.openTooltip());
+            markerElement.addEventListener("blur", () => marker.closeTooltip());
+            markerElement.addEventListener("keydown", (event) => {
+              if (event.key !== "Enter" && event.key !== " ") return;
+              event.preventDefault();
+              selectLocationRef.current(point);
+            });
+          }
+        }
+      }
+
+      leafletMap.fitBounds(boundary.getBounds(), {
+        padding: [18, 18],
         animate: false,
       });
 
@@ -165,7 +223,7 @@ export function GeographicDeviceMap({
         ref={containerRef}
         id="platform-geographic-device-map"
         className="platform-geographic-map"
-        aria-label="Interactive map of approximate network locations"
+        aria-label={`Interactive map of geographic device activity within ${radius} miles of ZIP 20613`}
       />
 
       <div className="platform-geographic-map-legend">
@@ -177,15 +235,15 @@ export function GeographicDeviceMap({
         ).map(([device, color]) => (
           <span key={device}>
             <i style={{ backgroundColor: color }} />
-            {device.charAt(0).toUpperCase() + device.slice(1)}
+            {deviceLabel(device)}
           </span>
         ))}
       </div>
 
       <p className="muted platform-geographic-map-note">
         Locations are approximate network estimates, not GPS
-        positions. Marker colors indicate the most common device
-        type at each location. Select a marker to view activity.
+        positions. Marker colors indicate device types, and marker
+        sizes reflect page-view counts. Select a marker to view activity.
       </p>
     </div>
   );

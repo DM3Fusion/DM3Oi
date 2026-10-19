@@ -58,7 +58,7 @@ export function geographicDistanceMiles(
   return 3958.7613 * 2 * Math.asin(Math.sqrt(bounded));
 }
 
-export function geographicMarkerRadius(pageViews: number): number {
+export function geographicMarkerDiameter(pageViews: number): number {
   const count = Math.max(0, pageViews);
 
   return Math.min(
@@ -67,28 +67,6 @@ export function geographicMarkerRadius(pageViews: number): number {
       14,
       Math.round(12 + 4 * Math.log2(count + 1)),
     ),
-  );
-}
-
-export function geographicDominantDevice(point: {
-  desktop: number;
-  mobile: number;
-  tablet: number;
-  other: number;
-  unknown: number;
-}): GeographicDevice {
-  const devices: GeographicDevice[] = [
-    "desktop",
-    "mobile",
-    "tablet",
-    "other",
-    "unknown",
-  ];
-
-  return devices.reduce((dominant, device) =>
-    point[device] > point[dominant]
-      ? device
-      : dominant,
   );
 }
 

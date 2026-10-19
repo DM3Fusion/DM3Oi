@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import {
+  GEOGRAPHIC_DEVICE_COLORS,
+  geographicMarkerDiameter,
+} from "../lib/platform-geographic-map.ts";
 
 const migration = readFileSync(
   "supabase/migrations/20261019120000_dm3oi_platform_geographic_device_activity.sql",
@@ -18,6 +22,11 @@ const historyModal = readFileSync(
   "components/platform/geographic-location-history-modal.tsx",
   "utf8",
 );
+const geographicMap = readFileSync(
+  "components/platform/geographic-device-map.tsx",
+  "utf8",
+);
+const globalStyles = readFileSync("app/globals.css", "utf8");
 
 function functionBody(name: string): string {
   const start = migration.indexOf(`create function public.${name}(`);
@@ -153,4 +162,66 @@ test("geography uses a heading radius control and compact radius summary", () =>
   assert.match(geography, /GEOGRAPHIC_RADIUS_OPTIONS\.map/);
   assert.match(geography, /Views inside radius/);
   assert.match(geography, /radius=\{radius\}/);
+});
+
+test("map uses the 3DCM dashed radius boundary and boundary framing", () => {
+  assert.match(geographicMap, /dashArray: "7 6"/);
+  assert.match(geographicMap, /weight: 2/);
+  assert.match(geographicMap, /opacity: 0\.78/);
+  assert.match(geographicMap, /fillOpacity: 0\.045/);
+  assert.match(
+    geographicMap,
+    /fitBounds\(boundary\.getBounds\(\), \{[\s\S]*padding: \[18, 18\]/,
+  );
+});
+
+test("map renders individual offset device markers without clusters", () => {
+  assert.match(geographicMap, /const activeDevices = GEOGRAPHIC_DEVICES\.filter/);
+  assert.match(geographicMap, /for \(const device of activeDevices\)/);
+  assert.match(geographicMap, /leaflet\.divIcon\(/);
+  assert.match(geographicMap, /leaflet\.marker\(/);
+  assert.match(geographicMap, /markerOffset\(device, activeDevices\.length > 1\)/);
+  assert.doesNotMatch(geographicMap, /markerCluster|clusterGroup|cluster bubble/i);
+  assert.doesNotMatch(
+    geographicMap,
+    /html:.*(?:pageViews|toLocaleString)/,
+  );
+});
+
+test("map matches 3DCM marker sizing, borders, and device colors", () => {
+  assert.equal(geographicMarkerDiameter(1), 16);
+  assert.equal(geographicMarkerDiameter(4), 21);
+  assert.equal(geographicMarkerDiameter(1_000_000), 34);
+
+  assert.deepEqual(GEOGRAPHIC_DEVICE_COLORS, {
+    desktop: "#2f4a6f",
+    mobile: "#c99a4e",
+    tablet: "#2f7d5b",
+    other: "#8a4f7d",
+    unknown: "#7b8794",
+  });
+
+  assert.match(globalStyles, /\.platform-geographic-marker-dot \{[\s\S]*border: 2px solid #fff;[\s\S]*border-radius: 50%;/);
+  assert.match(globalStyles, /\.platform-geographic-marker-desktop[\s\S]*background: #2f4a6f;/);
+  assert.match(globalStyles, /\.platform-geographic-marker-mobile[\s\S]*background: #c99a4e;/);
+  assert.match(globalStyles, /\.platform-geographic-marker-tablet[\s\S]*background: #2f7d5b;/);
+  assert.match(globalStyles, /\.platform-geographic-marker-other[\s\S]*background: #8a4f7d;/);
+  assert.match(globalStyles, /\.platform-geographic-marker-unknown[\s\S]*background: #7b8794;/);
+});
+
+test("radius selection filters markers and preserves location history clicks", () => {
+  assert.match(
+    geographicMap,
+    /const visiblePoints = points\.filter\(\(point\) =>[\s\S]*geographicWithinRadius\(/,
+  );
+  assert.match(
+    geographicMap,
+    /marker\.on\("click", \(\) => selectLocationRef\.current\(point\)\)/,
+  );
+  assert.match(
+    geographicMap,
+    /event\.key !== "Enter" && event\.key !== " "/,
+  );
+  assert.match(geography, /onSelectLocation=\{setSelectedLocation\}/);
+  assert.match(geography, /<GeographicLocationHistoryModal/);
 });
