@@ -456,6 +456,269 @@ function asAggregate(value: unknown): PlatformAnalyticsAggregate {
   };
 }
 
+export type PlatformGeographicDevicePoint = {
+  city: string;
+  region: string;
+  country: string;
+  latitude: number;
+  longitude: number;
+  pageViews: number;
+  desktop: number;
+  mobile: number;
+  tablet: number;
+  other: number;
+  unknown: number;
+  lastAccessedAt: string | null;
+};
+
+export type PlatformGeographicDeviceActivity =
+  | {
+      available: true;
+      totalPageViews: number;
+      geolocatedPageViews: number;
+      unknownCoordinatePageViews: number;
+      points: PlatformGeographicDevicePoint[];
+    }
+  | {
+      available: false;
+      totalPageViews: 0;
+      geolocatedPageViews: 0;
+      unknownCoordinatePageViews: 0;
+      points: [];
+    };
+
+export async function getPlatformGeographicDeviceActivity(
+  query: PlatformAnalyticsQuery = {},
+): Promise<PlatformGeographicDeviceActivity> {
+  await requireSuperAdmin();
+
+  const supabase = await createClient();
+  const range = resolveRange(query);
+
+  const parameters = {
+    target_start: range.start?.toISOString() ?? null,
+    target_end_exclusive: range.endExclusive.toISOString(),
+  };
+
+  // The migration is deployed separately. Keep the existing
+  // Platform Console functional while this RPC is unavailable.
+  const result = await supabase.rpc(
+    "get_platform_geographic_device_activity" as
+      Parameters<typeof supabase.rpc>[0],
+    parameters,
+  );
+
+  if (result.error) {
+    if (
+      result.error.code === "PGRST202" ||
+      result.error.code === "42883"
+    ) {
+      return {
+        available: false,
+        totalPageViews: 0,
+        geolocatedPageViews: 0,
+        unknownCoordinatePageViews: 0,
+        points: [],
+      };
+    }
+
+    console.error("Geographic analytics query failed", {
+      code: result.error.code,
+      message: result.error.message,
+    });
+
+    throw new Error(
+      "Geographic analytics data is temporarily unavailable.",
+    );
+  }
+
+  const data = result.data as {
+    totalPageViews?: unknown;
+    geolocatedPageViews?: unknown;
+    unknownCoordinatePageViews?: unknown;
+    points?: unknown;
+  } | null;
+
+  const asCount = (value: unknown) => {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0
+      ? Math.trunc(number)
+      : 0;
+  };
+
+  const points = Array.isArray(data?.points)
+    ? data.points.flatMap((value: unknown) => {
+        if (!value || typeof value !== "object") return [];
+
+        const point = value as Record<string, unknown>;
+        const latitude = Number(point.latitude);
+        const longitude = Number(point.longitude);
+
+        if (
+          !Number.isFinite(latitude) ||
+          !Number.isFinite(longitude) ||
+          latitude < -90 ||
+          latitude > 90 ||
+          longitude < -180 ||
+          longitude > 180
+        ) {
+          return [];
+        }
+
+        return [{
+          city: String(point.city ?? "Unknown"),
+          region: String(point.region ?? "Unknown"),
+          country: String(point.country ?? "Unknown"),
+          latitude,
+          longitude,
+          pageViews: asCount(point.pageViews),
+          desktop: asCount(point.desktop),
+          mobile: asCount(point.mobile),
+          tablet: asCount(point.tablet),
+          other: asCount(point.other),
+          unknown: asCount(point.unknown),
+          lastAccessedAt:
+            typeof point.lastAccessedAt === "string"
+              ? point.lastAccessedAt
+              : null,
+        }];
+      })
+    : [];
+
+  return {
+    available: true,
+    totalPageViews: asCount(data?.totalPageViews),
+    geolocatedPageViews: asCount(data?.geolocatedPageViews),
+    unknownCoordinatePageViews: asCount(
+      data?.unknownCoordinatePageViews,
+    ),
+    points,
+  };
+}
+
+export type PlatformGeographicHistoryRow = {
+  timestamp: string;
+  path: string;
+  deviceType: string;
+  city: string | null;
+  region: string | null;
+  country: string | null;
+};
+
+export type PlatformGeographicLocationHistory = {
+  total: number;
+  limit: number;
+  offset: number;
+  rows: PlatformGeographicHistoryRow[];
+};
+
+export async function getPlatformGeographicLocationHistory(
+  query: PlatformAnalyticsQuery,
+  latitude: number,
+  longitude: number,
+  limit = 50,
+  offset = 0,
+): Promise<PlatformGeographicLocationHistory> {
+  await requireSuperAdmin();
+
+  if (
+    !Number.isFinite(latitude) ||
+    !Number.isFinite(longitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    longitude < -180 ||
+    longitude > 180 ||
+    (latitude === 0 && longitude === 0)
+  ) {
+    throw new Error("Invalid geographic coordinates.");
+  }
+
+  if (
+    !Number.isInteger(limit) ||
+    limit < 1 ||
+    limit > 100 ||
+    !Number.isInteger(offset) ||
+    offset < 0 ||
+    offset > 100000
+  ) {
+    throw new Error("Invalid Location History pagination.");
+  }
+
+  const supabase = await createClient();
+  const range = resolveRange(query);
+
+  const result = await supabase.rpc(
+    "get_platform_geographic_location_history" as
+      Parameters<typeof supabase.rpc>[0],
+    {
+      target_start: range.start?.toISOString() ?? null,
+      target_end_exclusive: range.endExclusive.toISOString(),
+      target_latitude: latitude,
+      target_longitude: longitude,
+      target_limit: limit,
+      target_offset: offset,
+    },
+  );
+
+  if (result.error) {
+    console.error("Geographic Location History query failed", {
+      code: result.error.code,
+      message: result.error.message,
+    });
+
+    throw new Error(
+      "Geographic Location History is temporarily unavailable.",
+    );
+  }
+
+  const data = result.data as {
+    total?: unknown;
+    limit?: unknown;
+    offset?: unknown;
+    rows?: unknown;
+  } | null;
+
+  const rows = Array.isArray(data?.rows)
+    ? data.rows.flatMap((value: unknown) => {
+        if (!value || typeof value !== "object") return [];
+
+        const row = value as Record<string, unknown>;
+
+        if (
+          typeof row.timestamp !== "string" ||
+          Number.isNaN(Date.parse(row.timestamp))
+        ) {
+          return [];
+        }
+
+        return [{
+          timestamp: row.timestamp,
+          path:
+            typeof row.path === "string"
+              ? row.path
+              : "/",
+          deviceType:
+            typeof row.deviceType === "string"
+              ? row.deviceType
+              : "OTHER",
+          city:
+            typeof row.city === "string" ? row.city : null,
+          region:
+            typeof row.region === "string" ? row.region : null,
+          country:
+            typeof row.country === "string" ? row.country : null,
+        }];
+      })
+    : [];
+
+  return {
+    total: Math.max(0, Number(data?.total ?? 0)),
+    limit,
+    offset,
+    rows,
+  };
+}
+
 export async function getPlatformAnalytics(
   query: PlatformAnalyticsQuery = {},
 ): Promise<PlatformAnalytics> {

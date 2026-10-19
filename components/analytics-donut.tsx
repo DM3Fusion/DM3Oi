@@ -55,7 +55,7 @@ export function AnalyticsDonut({
         <div className="analytics-donut-layout">
           <div className="analytics-donut-chart">
             <svg
-              aria-label={`${title} donut chart`}
+              aria-label={`${title} distribution across ${total.toLocaleString("en-US")} page views`}
               role="img"
               viewBox="0 0 120 120"
             >
@@ -115,7 +115,7 @@ export function AnalyticsDonut({
             </svg>
 
             <div className="analytics-donut-center">
-              <strong>{total}</strong>
+              <strong>{total.toLocaleString("en-US")}</strong>
               <span>{centerLabel}</span>
             </div>
           </div>
@@ -146,8 +146,8 @@ export function AnalyticsDonut({
                     )}
                   </strong>
 
-                  <small>
-                    {item.value}
+                  <small title={`${item.value.toLocaleString("en-US")} page views`}>
+                    {item.value.toLocaleString("en-US")}
                   </small>
                 </div>
               ),

@@ -19,6 +19,7 @@ import { getPlatformDashboard } from "@/lib/data/platform-dashboard-repository";
 import {
   getOverviewDownloadCount,
   getPlatformAnalytics,
+  getPlatformGeographicDeviceActivity,
 } from "@/lib/data/platform-analytics-repository";
 import { getUnreadNotificationCount } from "@/lib/data/communications-repository";
 import { getOperationalIntelligence } from "@/lib/data/operational-intelligence-repository";
@@ -59,12 +60,17 @@ export default async function Page({
   if (experience === "PLATFORM") {
     const query = await searchParams;
 
-    const [dashboardData, analytics, overviewDownloadCount] =
-      await Promise.all([
-        getPlatformDashboard(),
-        getPlatformAnalytics(query),
-        getOverviewDownloadCount(),
-      ]);
+    const [
+      dashboardData,
+      analytics,
+      geographicDeviceActivity,
+      overviewDownloadCount,
+    ] = await Promise.all([
+      getPlatformDashboard(),
+      getPlatformAnalytics(query),
+      getPlatformGeographicDeviceActivity(query),
+      getOverviewDownloadCount(),
+    ]);
 
     return (
       <>
@@ -74,6 +80,7 @@ export default async function Page({
         />
         <PlatformDashboard
           analytics={analytics}
+          geographicDeviceActivity={geographicDeviceActivity}
           customerSummary={dashboardData.customerSummary}
           organizations={dashboardData.organizations}
           overviewDownloadCount={overviewDownloadCount}

@@ -162,7 +162,7 @@ test("Platform Console reads the all-time metric through its authenticated SUPER
   assert.match(page, /overviewDownloadCount=\{overviewDownloadCount\}/);
 });
 
-test("Overview Downloads renders in the intended independent dashboard position", () => {
+test("Overview Downloads renders within Organizations after Platform Analytics", () => {
   const metricPosition = dashboard.indexOf(
     'className="metric platform-overview-download-metric"',
   );
@@ -172,13 +172,22 @@ test("Overview Downloads renders in the intended independent dashboard position"
   const analyticsPosition = dashboard.indexOf(
     'className="admin-analytics"',
   );
+  const organizationsPosition = dashboard.indexOf(
+    'className="panel platform-organizations"',
+  );
+  const workspacesPosition = dashboard.indexOf(
+    'className="panel platform-ready"',
+  );
   const metricMarkup =
     dashboard.match(
-      /<section[\s\S]*?className="metric platform-overview-download-metric"[\s\S]*?<\/section>/,
+      /<section\s+aria-label="Overview download metric"\s+className="metric platform-overview-download-metric"[\s\S]*?<\/section>/,
     )?.[0] ?? "";
 
-  assert.ok(platformKpisPosition < metricPosition);
-  assert.ok(metricPosition < analyticsPosition);
+  assert.ok(analyticsPosition >= 0);
+  assert.ok(organizationsPosition > analyticsPosition);
+  assert.ok(platformKpisPosition > organizationsPosition);
+  assert.ok(metricPosition > platformKpisPosition);
+  assert.ok(workspacesPosition > metricPosition);
   assert.match(metricMarkup, /Overview Downloads/);
   assert.match(metricMarkup, /DM3Oi Overview served/);
   assert.match(metricMarkup, /overviewDownloadCount/);

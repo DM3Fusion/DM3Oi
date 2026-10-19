@@ -1,13 +1,17 @@
 import Link from "next/link";
 
-import { AdminGeography } from "@/components/admin-geography";
+import { PlatformGeography } from "@/components/platform/platform-geography";
 import { AdminTopPages } from "@/components/admin-top-pages";
 import { AnalyticsDonut } from "@/components/analytics-donut";
+import { DeviceSummary } from "@/components/platform/device-summary";
 import { ApplicationIcon } from "@/components/application-icon";
 import { AuthenticatedAccessAnalytics } from "@/components/platform/authenticated-access-analytics";
 import { OrganizationTable } from "@/components/platform/organization-table";
 import type { ApplicationIconName } from "@/lib/application-icons";
-import type { PlatformAnalytics } from "@/lib/data/platform-analytics-repository";
+import type {
+  PlatformAnalytics,
+  PlatformGeographicDeviceActivity,
+} from "@/lib/data/platform-analytics-repository";
 import type {
   OrganizationAdminRow,
   PlatformCustomerSummary,
@@ -38,12 +42,14 @@ export function PlatformDashboard({
   customerSummary,
   organizations,
   analytics,
+  geographicDeviceActivity,
   overviewDownloadCount,
 }: {
   summary: PlatformSummary;
   customerSummary: PlatformCustomerSummary;
   organizations: readonly OrganizationAdminRow[];
   analytics: PlatformAnalytics;
+  geographicDeviceActivity: PlatformGeographicDeviceActivity;
   overviewDownloadCount: number;
 }) {
   const metrics: {
@@ -96,71 +102,6 @@ export function PlatformDashboard({
         <ApplicationIcon name="platform" />
         <span>SUPER ADMIN</span>
       </div>
-
-      <div className="metric-grid platform-metrics">
-        {metrics.map(
-          ({ label, value, icon, tone }) => (
-            <article
-              className={`metric tone-${tone}`}
-              key={label}
-            >
-              <div>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </div>
-
-              <span className="metric-icon">
-                <ApplicationIcon name={icon} />
-              </span>
-            </article>
-          ),
-        )}
-      </div>
-
-      <div className="platform-supporting-metrics">
-        <section
-          aria-label="Overview download metric"
-          className="metric platform-overview-download-metric"
-        >
-          <span>Overview Downloads</span>
-          <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
-          <small>DM3Oi Overview served</small>
-        </section>
-
-        <section
-          aria-label="Total customer metric"
-          className="metric platform-total-customers-metric"
-        >
-          <span>Total Customers</span>
-          <strong>{customerSummary.totalCustomers.toLocaleString("en-US")}</strong>
-          <small>Across all organizations</small>
-        </section>
-      </div>
-
-      {customerSummary.byOrganization.length ? (
-        <section
-          aria-labelledby="platform-customer-breakdown-heading"
-          className="panel platform-customer-breakdown"
-        >
-          <div className="section-head">
-            <div>
-              <h2 id="platform-customer-breakdown-heading">
-                Customers by Organization
-              </h2>
-              <p>Aggregate Customer records only.</p>
-            </div>
-          </div>
-
-          <div className="admin-analytics-breakdown">
-            {customerSummary.byOrganization.map((organization) => (
-              <div key={organization.organizationId}>
-                <span>{organization.organizationName}</span>
-                <strong>{organization.customerCount.toLocaleString("en-US")}</strong>
-              </div>
-            ))}
-          </div>
-        </section>
-      ) : null}
 
       <section className="admin-analytics">
         <div className="admin-analytics-heading">
@@ -359,20 +300,94 @@ export function PlatformDashboard({
               }
               title="Traffic Type"
             />
+
+            <DeviceSummary
+              data={analytics.deviceBreakdown}
+            />
           </article>
 
           <AdminTopPages
             pages={analytics.topPages}
           />
 
-          <AdminGeography
-            rows={analytics.geography}
+          <PlatformGeography
+            activity={geographicDeviceActivity}
+            analyticsRange={analytics.range}
+            analyticsFrom={analytics.from}
+            analyticsThrough={analytics.through}
           />
         </div>
+      </section>
 
-        <AuthenticatedAccessAnalytics
-          data={analytics.authenticatedAccess}
-        />
+      <section className="panel platform-organizations" aria-labelledby="platform-organizations-heading">
+        <div className="section-head">
+          <h2 id="platform-organizations-heading">Organizations</h2>
+        </div>
+      <div className="metric-grid platform-metrics">
+        {metrics.map(
+          ({ label, value, icon, tone }) => (
+            <article
+              className={`metric tone-${tone}`}
+              key={label}
+            >
+              <div>
+                <span>{label}</span>
+                <strong>{value}</strong>
+              </div>
+
+              <span className="metric-icon">
+                <ApplicationIcon name={icon} />
+              </span>
+            </article>
+          ),
+        )}
+      </div>
+
+      <div className="platform-supporting-metrics">
+        <section
+          aria-label="Overview download metric"
+          className="metric platform-overview-download-metric"
+        >
+          <span>Overview Downloads</span>
+          <strong>{overviewDownloadCount.toLocaleString("en-US")}</strong>
+          <small>DM3Oi Overview served</small>
+        </section>
+
+        <section
+          aria-label="Total customer metric"
+          className="metric platform-total-customers-metric"
+        >
+          <span>Total Customers</span>
+          <strong>{customerSummary.totalCustomers.toLocaleString("en-US")}</strong>
+          <small>Across all organizations</small>
+        </section>
+      </div>
+
+      {customerSummary.byOrganization.length ? (
+        <section
+          aria-labelledby="platform-customer-breakdown-heading"
+          className="panel platform-customer-breakdown"
+        >
+          <div className="section-head">
+            <div>
+              <h2 id="platform-customer-breakdown-heading">
+                Customers by Organization
+              </h2>
+              <p>Aggregate Customer records only.</p>
+            </div>
+          </div>
+
+          <div className="admin-analytics-breakdown">
+            {customerSummary.byOrganization.map((organization) => (
+              <div key={organization.organizationId}>
+                <span>{organization.organizationName}</span>
+                <strong>{organization.customerCount.toLocaleString("en-US")}</strong>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       </section>
 
       {summary.organizations === 0 ? (
@@ -402,6 +417,13 @@ export function PlatformDashboard({
           <OrganizationTable organizations={organizations} />
         </section>
       )}
+
+      <section className="platform-authenticated-access" aria-label="Authenticated Access">
+        <AuthenticatedAccessAnalytics
+          data={analytics.authenticatedAccess}
+        />
+      </section>
+
     </>
   );
 }

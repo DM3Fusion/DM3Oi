@@ -39,6 +39,11 @@ export function AdminTopPages({
   const canToggle =
     !normalizedQuery && pages.length > 6;
 
+  const maxPageViews = Math.max(
+    0,
+    ...pages.map((page) => page.pageViews),
+  );
+
   return (
     <article className="admin-analytics-panel">
       <div className="admin-analytics-panel-heading admin-top-pages-heading">
@@ -88,14 +93,37 @@ export function AdminTopPages({
             No pages match this filter.
           </p>
         ) : (
-          visiblePages.map((page) => (
-            <div key={page.path}>
-              <code>{page.path}</code>
-              <strong>
-                {page.pageViews}
-              </strong>
-            </div>
-          ))
+          visiblePages.map((page) => {
+            const percentage = maxPageViews > 0
+              ? (page.pageViews / maxPageViews) * 100
+              : 0;
+
+            return (
+              <div
+                className="admin-top-pages-row"
+                key={page.path}
+              >
+                <div className="admin-top-pages-row-heading">
+                  <code title={page.path}>{page.path}</code>
+                  <strong>
+                    {page.pageViews.toLocaleString("en-US")}
+                    <span className="sr-only"> page views</span>
+                  </strong>
+                </div>
+
+                <div
+                  aria-label={`${page.path}: ${page.pageViews} page views`}
+                  className="admin-top-pages-track"
+                  role="img"
+                >
+                  <span
+                    className="admin-top-pages-fill"
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
 
