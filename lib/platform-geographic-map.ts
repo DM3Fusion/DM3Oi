@@ -5,7 +5,18 @@ export type GeographicDevice =
   | "other"
   | "unknown";
 
-export const GEOGRAPHIC_RADIUS_OPTIONS = [25, 50, 75, 100] as const;
+export const GEOGRAPHIC_ALL_LOCATIONS = "all" as const;
+
+export const GEOGRAPHIC_RADIUS_OPTIONS = [
+  25,
+  50,
+  75,
+  100,
+  250,
+  500,
+  1000,
+  GEOGRAPHIC_ALL_LOCATIONS,
+] as const;
 
 export type GeographicRadius =
   (typeof GEOGRAPHIC_RADIUS_OPTIONS)[number];
@@ -73,7 +84,7 @@ export function geographicMarkerDiameter(pageViews: number): number {
 export function geographicWithinRadius(
   latitude: number,
   longitude: number,
-  radiusMiles: GeographicRadius,
+  radiusMiles: Exclude<GeographicRadius, typeof GEOGRAPHIC_ALL_LOCATIONS>,
 ): boolean {
   return geographicDistanceMiles(
     GEOGRAPHIC_RADIUS_CENTER.latitude,
@@ -81,4 +92,56 @@ export function geographicWithinRadius(
     latitude,
     longitude,
   ) <= radiusMiles;
+}
+
+export function geographicHasValidCoordinates(point: {
+  latitude: number;
+  longitude: number;
+}): boolean {
+  return (
+    Number.isFinite(point.latitude) &&
+    point.latitude >= -90 &&
+    point.latitude <= 90 &&
+    Number.isFinite(point.longitude) &&
+    point.longitude >= -180 &&
+    point.longitude <= 180 &&
+    !(point.latitude === 0 && point.longitude === 0)
+  );
+}
+
+export function geographicPointsForRadius<
+  Point extends { latitude: number; longitude: number },
+>(points: readonly Point[], radius: GeographicRadius): Point[] {
+  return points.filter(
+    (point) =>
+      geographicHasValidCoordinates(point) &&
+      (radius === GEOGRAPHIC_ALL_LOCATIONS ||
+        geographicWithinRadius(
+          point.latitude,
+          point.longitude,
+          radius,
+        )),
+  );
+}
+
+export function summarizeGeographicPoints(
+  points: readonly {
+    pageViews: number;
+    desktop: number;
+    mobile: number;
+    tablet: number;
+    other: number;
+    unknown: number;
+  }[],
+) {
+  return points.reduce(
+    (summary, point) => ({
+      pageViews: summary.pageViews + point.pageViews,
+      desktop: summary.desktop + point.desktop,
+      mobile: summary.mobile + point.mobile,
+      tablet: summary.tablet + point.tablet,
+      other: summary.other + point.other + point.unknown,
+    }),
+    { pageViews: 0, desktop: 0, mobile: 0, tablet: 0, other: 0 },
+  );
 }

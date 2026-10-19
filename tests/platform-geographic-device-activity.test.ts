@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
+  GEOGRAPHIC_ALL_LOCATIONS,
   GEOGRAPHIC_DEVICE_COLORS,
+  GEOGRAPHIC_RADIUS_CENTER,
+  GEOGRAPHIC_RADIUS_OPTIONS,
   geographicMarkerDiameter,
+  geographicPointsForRadius,
+  summarizeGeographicPoints,
 } from "../lib/platform-geographic-map.ts";
 
 const migration = readFileSync(
@@ -161,7 +166,22 @@ test("geography uses a heading radius control and compact radius summary", () =>
   assert.match(geography, /platform-geography-radius-control/);
   assert.match(geography, /GEOGRAPHIC_RADIUS_OPTIONS\.map/);
   assert.match(geography, /Views inside radius/);
+  assert.match(geography, /Views across all locations/);
+  assert.match(geography, /All Locations/);
   assert.match(geography, /radius=\{radius\}/);
+});
+
+test("geography offers every approved radius and All Locations", () => {
+  assert.deepEqual(GEOGRAPHIC_RADIUS_OPTIONS, [
+    25,
+    50,
+    75,
+    100,
+    250,
+    500,
+    1000,
+    GEOGRAPHIC_ALL_LOCATIONS,
+  ]);
 });
 
 test("map uses the 3DCM dashed radius boundary and boundary framing", () => {
@@ -171,7 +191,26 @@ test("map uses the 3DCM dashed radius boundary and boundary framing", () => {
   assert.match(geographicMap, /fillOpacity: 0\.045/);
   assert.match(
     geographicMap,
-    /fitBounds\(boundary\.getBounds\(\), \{[\s\S]*padding: \[18, 18\]/,
+    /if \(boundary\) \{[\s\S]*fitBounds\(boundary\.getBounds\(\), \{[\s\S]*padding: \[18, 18\]/,
+  );
+});
+
+test("All Locations hides the boundary and frames every valid point", () => {
+  assert.match(
+    geographicMap,
+    /const boundary = radius === GEOGRAPHIC_ALL_LOCATIONS[\s\S]*\? null[\s\S]*: leaflet\.circle/,
+  );
+  assert.match(
+    geographicMap,
+    /const pointBounds = leaflet\.latLngBounds\([\s\S]*visiblePoints\.map/,
+  );
+  assert.match(
+    geographicMap,
+    /fitBounds\(pointBounds, \{[\s\S]*padding: \[18, 18\][\s\S]*maxZoom: 10/,
+  );
+  assert.match(
+    geographicMap,
+    /leafletMap\.setView\(center, 8, \{ animate: false \}\)/,
   );
 });
 
@@ -212,7 +251,7 @@ test("map matches 3DCM marker sizing, borders, and device colors", () => {
 test("radius selection filters markers and preserves location history clicks", () => {
   assert.match(
     geographicMap,
-    /const visiblePoints = points\.filter\(\(point\) =>[\s\S]*geographicWithinRadius\(/,
+    /const visiblePoints = geographicPointsForRadius\(points, radius\)/,
   );
   assert.match(
     geographicMap,
@@ -224,4 +263,76 @@ test("radius selection filters markers and preserves location history clicks", (
   );
   assert.match(geography, /onSelectLocation=\{setSelectedLocation\}/);
   assert.match(geography, /<GeographicLocationHistoryModal/);
+});
+
+test("every numeric radius filters from ZIP 20613 and All Locations includes all valid points", () => {
+  const points = [10, 40, 60, 90, 200, 400, 800, 1200].map(
+    (distanceMiles, index) => ({
+      id: index,
+      latitude:
+        GEOGRAPHIC_RADIUS_CENTER.latitude + distanceMiles / 69,
+      longitude: GEOGRAPHIC_RADIUS_CENTER.longitude,
+    }),
+  );
+
+  const expectedCounts = new Map([
+    [25, 1],
+    [50, 2],
+    [75, 3],
+    [100, 4],
+    [250, 5],
+    [500, 6],
+    [1000, 7],
+  ] as const);
+
+  for (const [radius, expectedCount] of expectedCounts) {
+    assert.equal(
+      geographicPointsForRadius(points, radius).length,
+      expectedCount,
+    );
+  }
+
+  const invalidPoints = [
+    { id: 8, latitude: Number.NaN, longitude: -76 },
+    { id: 9, latitude: 0, longitude: 0 },
+    { id: 10, latitude: 91, longitude: -76 },
+  ];
+
+  assert.deepEqual(
+    geographicPointsForRadius(
+      [...points, ...invalidPoints],
+      GEOGRAPHIC_ALL_LOCATIONS,
+    ).map((point) => point.id),
+    points.map((point) => point.id),
+  );
+});
+
+test("radius summaries use only selected points and retain unknown devices", () => {
+  const summary = summarizeGeographicPoints([
+    {
+      pageViews: 12,
+      desktop: 5,
+      mobile: 3,
+      tablet: 1,
+      other: 1,
+      unknown: 2,
+    },
+    {
+      pageViews: 8,
+      desktop: 1,
+      mobile: 4,
+      tablet: 2,
+      other: 1,
+      unknown: 0,
+    },
+  ]);
+
+  assert.deepEqual(summary, {
+    pageViews: 20,
+    desktop: 6,
+    mobile: 7,
+    tablet: 3,
+    other: 4,
+  });
+  assert.match(geography, /activity\.unknownCoordinatePageViews/);
 });

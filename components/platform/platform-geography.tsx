@@ -8,9 +8,11 @@ import type {
   PlatformGeographicDevicePoint,
 } from "@/lib/data/platform-analytics-repository";
 import {
+  GEOGRAPHIC_ALL_LOCATIONS,
   GEOGRAPHIC_DEFAULT_RADIUS,
   GEOGRAPHIC_RADIUS_OPTIONS,
-  geographicWithinRadius,
+  geographicPointsForRadius,
+  summarizeGeographicPoints,
   type GeographicRadius,
 } from "@/lib/platform-geographic-map";
 
@@ -33,24 +35,12 @@ export function PlatformGeography({
     GEOGRAPHIC_DEFAULT_RADIUS,
   );
 
-  const nearbyPoints = activity.points.filter((point) =>
-    geographicWithinRadius(
-      point.latitude,
-      point.longitude,
-      radius,
-    ),
+  const selectedPoints = geographicPointsForRadius(
+    activity.points,
+    radius,
   );
-
-  const nearbySummary = nearbyPoints.reduce(
-    (summary, point) => ({
-      pageViews: summary.pageViews + point.pageViews,
-      desktop: summary.desktop + point.desktop,
-      mobile: summary.mobile + point.mobile,
-      tablet: summary.tablet + point.tablet,
-      other: summary.other + point.other + point.unknown,
-    }),
-    { pageViews: 0, desktop: 0, mobile: 0, tablet: 0, other: 0 },
-  );
+  const selectedSummary = summarizeGeographicPoints(selectedPoints);
+  const allLocations = radius === GEOGRAPHIC_ALL_LOCATIONS;
 
   return (
     <article className="admin-analytics-panel platform-geography-panel">
@@ -69,16 +59,21 @@ export function PlatformGeography({
             <select
               aria-controls="platform-geographic-device-map"
               aria-label="Geographic radius"
-              onChange={(event) =>
+              onChange={(event) => {
+                const value = event.target.value;
                 setRadius(
-                  Number(event.target.value) as GeographicRadius,
-                )
-              }
+                  value === GEOGRAPHIC_ALL_LOCATIONS
+                    ? GEOGRAPHIC_ALL_LOCATIONS
+                    : Number(value) as GeographicRadius,
+                );
+              }}
               value={radius}
             >
               {GEOGRAPHIC_RADIUS_OPTIONS.map((option) => (
                 <option key={option} value={option}>
-                  {option} miles
+                  {option === GEOGRAPHIC_ALL_LOCATIONS
+                    ? "All Locations"
+                    : `${option} miles`}
                 </option>
               ))}
             </select>
@@ -95,40 +90,44 @@ export function PlatformGeography({
         <div className="platform-geography-content">
           <div className="platform-geography-metrics">
             <div>
-              <span>Views inside radius</span>
+              <span>
+                {allLocations
+                  ? "Views across all locations"
+                  : "Views inside radius"}
+              </span>
               <strong>
-                {nearbySummary.pageViews.toLocaleString("en-US")}
+                {selectedSummary.pageViews.toLocaleString("en-US")}
               </strong>
               <small>
-                {nearbyPoints.length.toLocaleString("en-US")} mapped locations
+                {selectedPoints.length.toLocaleString("en-US")} mapped locations
               </small>
             </div>
 
             <div>
               <span>Desktop</span>
               <strong>
-                {nearbySummary.desktop.toLocaleString("en-US")}
+                {selectedSummary.desktop.toLocaleString("en-US")}
               </strong>
             </div>
 
             <div>
               <span>Mobile</span>
               <strong>
-                {nearbySummary.mobile.toLocaleString("en-US")}
+                {selectedSummary.mobile.toLocaleString("en-US")}
               </strong>
             </div>
 
             <div>
               <span>Tablet</span>
               <strong>
-                {nearbySummary.tablet.toLocaleString("en-US")}
+                {selectedSummary.tablet.toLocaleString("en-US")}
               </strong>
             </div>
 
             <div>
               <span>Other / Unknown</span>
               <strong>
-                {nearbySummary.other.toLocaleString("en-US")}
+                {selectedSummary.other.toLocaleString("en-US")}
               </strong>
             </div>
 

@@ -3,11 +3,12 @@
 import { useEffect, useRef } from "react";
 import type { PlatformGeographicDevicePoint } from "@/lib/data/platform-analytics-repository";
 import {
+  GEOGRAPHIC_ALL_LOCATIONS,
   GEOGRAPHIC_DEVICE_COLORS,
   GEOGRAPHIC_RADIUS_CENTER,
   geographicDistanceMiles,
   geographicMarkerDiameter,
-  geographicWithinRadius,
+  geographicPointsForRadius,
   type GeographicDevice,
   type GeographicRadius,
 } from "@/lib/platform-geographic-map";
@@ -103,16 +104,18 @@ export function GeographicDeviceMap({
 
       leaflet.control.scale({ imperial: true, metric: false }).addTo(leafletMap);
 
-      const boundary = leaflet.circle(center, {
-        radius: radius * 1609.344,
-        color: GEOGRAPHIC_DEVICE_COLORS.desktop,
-        weight: 2,
-        opacity: 0.78,
-        fillColor: GEOGRAPHIC_DEVICE_COLORS.desktop,
-        fillOpacity: 0.045,
-        dashArray: "7 6",
-        interactive: false,
-      }).addTo(leafletMap);
+      const boundary = radius === GEOGRAPHIC_ALL_LOCATIONS
+        ? null
+        : leaflet.circle(center, {
+            radius: radius * 1609.344,
+            color: GEOGRAPHIC_DEVICE_COLORS.desktop,
+            weight: 2,
+            opacity: 0.78,
+            fillColor: GEOGRAPHIC_DEVICE_COLORS.desktop,
+            fillOpacity: 0.045,
+            dashArray: "7 6",
+            interactive: false,
+          }).addTo(leafletMap);
 
       leaflet.circleMarker(center, {
         radius: 4,
@@ -124,13 +127,7 @@ export function GeographicDeviceMap({
         .bindTooltip("ZIP 20613 center", { direction: "top" })
         .addTo(leafletMap);
 
-      const visiblePoints = points.filter((point) =>
-        geographicWithinRadius(
-          point.latitude,
-          point.longitude,
-          radius,
-        ),
-      );
+      const visiblePoints = geographicPointsForRadius(points, radius);
 
       for (const point of visiblePoints) {
         const activeDevices = GEOGRAPHIC_DEVICES.filter(
@@ -189,10 +186,27 @@ export function GeographicDeviceMap({
         }
       }
 
-      leafletMap.fitBounds(boundary.getBounds(), {
-        padding: [18, 18],
-        animate: false,
-      });
+      if (boundary) {
+        leafletMap.fitBounds(boundary.getBounds(), {
+          padding: [18, 18],
+          animate: false,
+        });
+      } else if (visiblePoints.length > 0) {
+        const pointBounds = leaflet.latLngBounds(
+          visiblePoints.map((point) => [
+            point.latitude,
+            point.longitude,
+          ]),
+        );
+
+        leafletMap.fitBounds(pointBounds, {
+          padding: [18, 18],
+          maxZoom: 10,
+          animate: false,
+        });
+      } else {
+        leafletMap.setView(center, 8, { animate: false });
+      }
 
       const resizeMap = () => {
         if (!cancelled) {
@@ -223,7 +237,11 @@ export function GeographicDeviceMap({
         ref={containerRef}
         id="platform-geographic-device-map"
         className="platform-geographic-map"
-        aria-label={`Interactive map of geographic device activity within ${radius} miles of ZIP 20613`}
+        aria-label={
+          radius === GEOGRAPHIC_ALL_LOCATIONS
+            ? "Interactive map of geographic device activity across all mapped locations"
+            : `Interactive map of geographic device activity within ${radius} miles of ZIP 20613`
+        }
       />
 
       <div className="platform-geographic-map-legend">
