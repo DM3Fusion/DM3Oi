@@ -17,6 +17,7 @@ import type {
   PlatformAnalyticsDatum,
   PlatformGeographicDevicePoint,
   PlatformPageViewHistory,
+  PlatformPageViewHistoryRow,
 } from "@/lib/data/platform-analytics-repository";
 import {
   aggregateGeographicLocations,
@@ -115,6 +116,29 @@ export function PlatformAnalyticsDetails({
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const historyRequestId = useRef(0);
+  const [selectedPageView, setSelectedPageView] =
+    useState<PlatformPageViewHistoryRow | null>(null);
+  const selectedPageViewTrigger = useRef<HTMLButtonElement | null>(null);
+
+  function closePageViewDetails() {
+    setSelectedPageView(null);
+    requestAnimationFrame(() => selectedPageViewTrigger.current?.focus());
+  }
+
+  useEffect(() => {
+    if (!selectedPageView) return;
+
+    function onEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setSelectedPageView(null);
+        requestAnimationFrame(() => selectedPageViewTrigger.current?.focus());
+      }
+    }
+
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [selectedPageView]);
 
   const groupedLocations = useMemo(
     () => aggregateGeographicLocations(points),
@@ -366,20 +390,42 @@ export function PlatformAnalyticsDetails({
                 </tr>
               </thead>
               <tbody>
-                {history.rows.map((row, index) => (
-                  <tr key={`${row.timestamp}-${row.path}-${index}`}>
-                    <td>{formatTimestamp(row.timestamp)}</td>
-                    <td><code>{row.path}</code></td>
-                    <td>{row.deviceType}</td>
-                    <td>{row.browser}</td>
-                    <td>{row.operatingSystem}</td>
-                    <td>
-                      {[row.city, row.region, row.country]
-                        .filter(Boolean)
-                        .join(", ") || "Unknown"}
-                    </td>
-                  </tr>
-                ))}
+                {history.rows.map((row, index) => {
+                  const location =
+                    [row.city, row.region, row.country]
+                      .filter(Boolean)
+                      .join(", ") || "Unknown";
+
+                  const cells = [
+                    formatTimestamp(row.timestamp),
+                    row.path,
+                    row.deviceType,
+                    row.browser,
+                    row.operatingSystem,
+                    location,
+                  ];
+
+                  return (
+                    <tr key={`${row.timestamp}-${row.path}-${index}`}>
+                      {cells.map((value, cellIndex) => (
+                        <td key={cellIndex}>
+                          <button
+                            aria-label={`View page-view details: ${formatTimestamp(row.timestamp)}, ${row.path}`}
+                            className="platform-page-view-row-button"
+                            onClick={(event) => {
+                              selectedPageViewTrigger.current = event.currentTarget;
+                              setSelectedPageView(row);
+                            }}
+                            title={value}
+                            type="button"
+                          >
+                            {cellIndex === 1 ? <code>{value}</code> : value}
+                          </button>
+                        </td>
+                      ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -411,6 +457,87 @@ export function PlatformAnalyticsDetails({
           </nav>
         ) : null}
       </section>
+
+      {selectedPageView ? (
+        <div
+          className="platform-page-view-details-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closePageViewDetails();
+          }}
+          role="presentation"
+        >
+          <section
+            aria-labelledby="platform-page-view-details-heading"
+            aria-modal="true"
+            className="platform-page-view-details-modal"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                event.stopPropagation();
+                closePageViewDetails();
+              }
+
+              if (event.key === "Tab") {
+                const focusable = Array.from(
+                  event.currentTarget.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                  ),
+                );
+
+                if (focusable.length === 0) {
+                  event.preventDefault();
+                  return;
+                }
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+
+                if (event.shiftKey && document.activeElement === first) {
+                  event.preventDefault();
+                  last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                  event.preventDefault();
+                  first.focus();
+                }
+              }
+            }}
+            role="dialog"
+          >
+            <header>
+              <h3 id="platform-page-view-details-heading">Page-View Details</h3>
+              <button
+                autoFocus
+                onClick={closePageViewDetails}
+                type="button"
+              >
+                Close
+              </button>
+            </header>
+            <dl>
+              {[
+                ["Timestamp (UTC)", formatTimestamp(selectedPageView.timestamp)],
+                ["Page", selectedPageView.path],
+                ["Device", selectedPageView.deviceType],
+                ["Browser", selectedPageView.browser],
+                ["Operating System", selectedPageView.operatingSystem],
+                [
+                  "Approximate Location",
+                  [
+                    selectedPageView.city,
+                    selectedPageView.region,
+                    selectedPageView.country,
+                  ].filter(Boolean).join(", ") || "Unknown",
+                ],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt>{label}</dt>
+                  <dd>{value}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        </div>
+      ) : null}
 
       {showLocations ? (
         <div

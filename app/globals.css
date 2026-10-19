@@ -17785,3 +17785,148 @@ dialog.intake-save-progress-modal {
     margin-inline: 16px;
   }
 }
+
+
+/* Compact Page-View Activity History */
+.platform-activity-history-table-scroll table {
+  min-width: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.platform-activity-history-table-scroll th,
+.platform-activity-history-table-scroll td {
+  padding: 8px 6px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-activity-history-table-scroll th:nth-child(1) { width: 18%; }
+.platform-activity-history-table-scroll th:nth-child(2) { width: 25%; }
+.platform-activity-history-table-scroll th:nth-child(3) { width: 10%; }
+.platform-activity-history-table-scroll th:nth-child(4) { width: 12%; }
+.platform-activity-history-table-scroll th:nth-child(5) { width: 15%; }
+.platform-activity-history-table-scroll th:nth-child(6) { width: 20%; }
+
+.platform-activity-history-table-scroll code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-activity-history-table-scroll tbody tr:hover {
+  background: #f0f6fc;
+}
+
+.platform-page-view-row-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.platform-page-view-row-button:focus-visible {
+  outline: 2px solid #1473d2;
+  outline-offset: 3px;
+}
+
+.platform-page-view-details-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(15 23 42 / 65%);
+}
+
+.platform-page-view-details-modal {
+  width: min(100%, 560px);
+  max-height: 90vh;
+  overflow: auto;
+  border-radius: 9px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
+}
+
+.platform-page-view-details-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e1e7ef;
+}
+
+.platform-page-view-details-modal h3 {
+  margin: 0;
+  color: #10233f;
+  font-size: 18px;
+}
+
+.platform-page-view-details-modal dl {
+  margin: 0;
+  padding: 12px 20px 20px;
+}
+
+.platform-page-view-details-modal dl > div {
+  padding: 11px 0;
+  border-bottom: 1px solid #edf1f5;
+}
+
+.platform-page-view-details-modal dt {
+  color: #66778a;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.platform-page-view-details-modal dd {
+  margin: 5px 0 0;
+  color: #263d52;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 700px) {
+  .platform-activity-history-table-scroll table {
+    min-width: 700px;
+  }
+}
+
+
+/* Full-cell accessible page-view actions */
+.platform-activity-history-table-scroll td {
+  padding: 0;
+}
+
+.platform-page-view-row-button {
+  display: block;
+  width: 100%;
+  padding: 8px 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.platform-page-view-row-button code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-activity-history-table-scroll tbody tr {
+  cursor: pointer;
+}
+
+.platform-activity-history-table-scroll tbody tr:focus-within {
+  background: #eaf3fd;
+}
