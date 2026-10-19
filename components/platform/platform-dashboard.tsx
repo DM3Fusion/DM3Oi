@@ -7,6 +7,7 @@ import { DeviceSummary } from "@/components/platform/device-summary";
 import { ApplicationIcon } from "@/components/application-icon";
 import { AuthenticatedAccessAnalytics } from "@/components/platform/authenticated-access-analytics";
 import { OrganizationTable } from "@/components/platform/organization-table";
+import { PlatformAnalyticsDetails } from "@/components/platform/platform-analytics-details";
 import type { ApplicationIconName } from "@/lib/application-icons";
 import type {
   PlatformAnalytics,
@@ -312,6 +313,15 @@ export function PlatformDashboard({
               data={analytics.deviceBreakdown}
             />
           </article>
+
+          <PlatformAnalyticsDetails
+            analytics={analytics}
+            points={geographicDeviceActivity.points}
+            locationDataAvailable={geographicDeviceActivity.available}
+            analyticsRange={analytics.range}
+            analyticsFrom={analytics.from}
+            analyticsThrough={analytics.through}
+          />
 
           <AdminTopPages
             pages={analytics.topPages}

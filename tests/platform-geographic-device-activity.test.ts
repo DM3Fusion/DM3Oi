@@ -140,6 +140,7 @@ test("Platform Analytics follows the approved compact section order", () => {
     "<PlatformGeography",
     'admin-analytics-panel admin-analytics-composition',
     "<DeviceSummary",
+    "<PlatformAnalyticsDetails",
     "<AdminTopPages",
   ].map((marker) => dashboard.indexOf(marker));
 

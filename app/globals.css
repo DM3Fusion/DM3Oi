@@ -4887,6 +4887,517 @@ button:active,a:active{transform:translateY(1px)}button.is-pending{cursor:wait;o
   }
 }
 
+/* Platform Console Analytics Details */
+.platform-analytics-details {
+  grid-column: 1 / -1;
+  padding-bottom: 12px;
+}
+
+.platform-analytics-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 0 12px 12px;
+}
+
+.platform-analytics-detail-card {
+  min-width: 0;
+  min-height: 154px;
+  padding: 12px;
+  border: 1px solid #e1e7ef;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.platform-analytics-detail-card h4 {
+  margin: 0 0 10px;
+  color: #63758e;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.platform-detail-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.platform-detail-card-heading button,
+.platform-activity-history-toolbar button,
+.platform-activity-history-pagination button,
+.platform-all-locations-modal header button {
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
+  background: #fff;
+  color: #40506a;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.platform-detail-card-heading button {
+  margin-top: -4px;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+
+.platform-detail-ranked-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.platform-detail-ranked-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+  border-top: 1px solid #edf1f5;
+  color: #52677d;
+  font-size: 11px;
+}
+
+.platform-detail-ranked-list li:first-child {
+  border-top: 0;
+}
+
+.platform-detail-ranked-list span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.platform-detail-ranked-list strong {
+  color: #10233f;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.platform-detail-empty,
+.platform-detail-unavailable p,
+.platform-detail-metric-card p {
+  margin: 0;
+  color: #66778a;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.platform-detail-unavailable {
+  display: grid;
+  gap: 7px;
+  padding: 10px;
+  border: 1px dashed #d5dee7;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.platform-detail-unavailable > strong {
+  color: #52677d;
+  font-size: 12px;
+}
+
+.platform-detail-metric-card > strong {
+  display: block;
+  margin: 4px 0 8px;
+  color: #10233f;
+  font-size: 28px;
+  font-variant-numeric: tabular-nums;
+}
+
+.platform-activity-history {
+  margin: 0 12px;
+  border: 1px solid #e1e7ef;
+  border-radius: 7px;
+  overflow: hidden;
+}
+
+.platform-activity-history-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px;
+  border-bottom: 1px solid #e6ebf0;
+}
+
+.platform-activity-history-heading h4,
+.platform-activity-history-heading p {
+  margin: 0;
+}
+
+.platform-activity-history-heading h4 {
+  color: #10233f;
+  font-size: 14px;
+}
+
+.platform-activity-history-heading p,
+.platform-activity-history-heading > span {
+  margin-top: 3px;
+  color: #66778a;
+  font-size: 11px;
+}
+
+.platform-activity-history-heading > span {
+  flex: none;
+}
+
+.platform-activity-history-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 12px;
+  background: #f8fafc;
+}
+
+.platform-activity-history-toolbar form {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 520px;
+  gap: 6px;
+}
+
+.platform-activity-history-toolbar form label {
+  min-width: 0;
+  max-width: 520px;
+  flex: 1;
+}
+
+.platform-activity-history-toolbar input,
+.platform-activity-history-toolbar select,
+.platform-all-locations-search input {
+  width: 100%;
+  height: 34px;
+  border: 1px solid #d3dce5;
+  border-radius: 6px;
+  background: #fff;
+  padding: 0 9px;
+  color: #263d52;
+  font-size: 12px;
+}
+
+.platform-activity-history-toolbar button {
+  min-height: 34px;
+  padding: 0 11px;
+}
+
+.platform-activity-history-limit {
+  display: flex;
+  align-items: center;
+  flex: none;
+  gap: 7px;
+  color: #52677d;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.platform-activity-history-limit select {
+  width: 72px;
+}
+
+.platform-activity-history-table-scroll {
+  width: 100%;
+  max-height: 390px;
+  overflow: auto;
+}
+
+.platform-activity-history-table-scroll table {
+  width: 100%;
+  min-width: 850px;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.platform-activity-history-table-scroll th,
+.platform-activity-history-table-scroll td {
+  padding: 9px 10px;
+  border-bottom: 1px solid #e6ebf0;
+  color: #52677d;
+  font-size: 11px;
+  vertical-align: top;
+}
+
+.platform-activity-history-table-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+  color: #40506a;
+  font-weight: 750;
+}
+
+.platform-activity-history-table-scroll code {
+  color: #263d52;
+  overflow-wrap: anywhere;
+}
+
+.platform-activity-history-status {
+  margin: 0;
+  padding: 24px 12px;
+  color: #66778a;
+  font-size: 12px;
+}
+
+.platform-activity-history-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #52677d;
+  font-size: 11px;
+}
+
+.platform-activity-history-pagination button {
+  padding: 6px 9px;
+}
+
+.platform-activity-history-pagination button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.platform-all-locations-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgb(12 24 36 / 68%);
+}
+
+.platform-all-locations-modal {
+  width: min(100%, 880px);
+  max-height: min(90vh, 780px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+}
+
+.platform-all-locations-modal > header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #e0e6eb;
+  background: #fff;
+}
+
+.platform-all-locations-modal header h3,
+.platform-all-locations-modal header p {
+  margin: 0;
+}
+
+.platform-all-locations-modal header h3 {
+  margin-top: 4px;
+  color: #10233f;
+  font-size: 21px;
+}
+
+.platform-all-locations-modal header p {
+  margin-top: 4px;
+  color: #66778a;
+  font-size: 12px;
+}
+
+.platform-all-locations-modal header button {
+  padding: 8px 12px;
+}
+
+.platform-all-locations-content {
+  min-height: 0;
+  overflow: hidden;
+  padding: 14px 20px 20px;
+}
+
+.platform-all-locations-search {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.platform-all-locations-table {
+  overflow: hidden;
+  border: 1px solid #dce3e8;
+  border-radius: 7px;
+}
+
+.platform-all-locations-columns,
+.platform-all-locations-results > button {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(90px, auto);
+  align-items: center;
+  gap: 12px;
+}
+
+.platform-all-locations-columns {
+  padding: 9px 12px;
+  border-bottom: 1px solid #dce3e8;
+  background: #f3f6f8;
+  color: #52677d;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.platform-all-locations-columns span:last-child {
+  text-align: right;
+}
+
+.platform-all-locations-results {
+  max-height: min(54vh, 500px);
+  overflow-y: auto;
+}
+
+.platform-all-locations-results > button {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid #e5eaf0;
+  border-radius: 0;
+  background: #fff;
+  color: #40566b;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.platform-all-locations-results > button:last-child {
+  border-bottom: 0;
+}
+
+.platform-all-locations-results > button:hover {
+  background: #f5f8fa;
+}
+
+.platform-all-locations-results > button:focus-visible {
+  position: relative;
+  z-index: 1;
+  outline: 3px solid rgb(51 200 228 / 28%);
+  outline-offset: -3px;
+}
+
+.platform-all-locations-results > button span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.platform-all-locations-results > button strong {
+  color: #10233f;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.platform-all-locations-results > p {
+  margin: 0;
+  padding: 24px 12px;
+  color: #66778a;
+  font-size: 12px;
+}
+
+/* Keep Top Pages labels, activity bars, and totals in fixed columns. */
+.admin-top-pages-panel .admin-analytics-breakdown > .admin-top-pages-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.8fr) minmax(140px, 2fr) auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.admin-top-pages-path {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-top-pages-count {
+  min-width: 48px;
+  color: #10233f;
+  text-align: right;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .platform-analytics-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .platform-activity-history-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .platform-activity-history-toolbar form {
+    flex-basis: auto;
+  }
+
+  .platform-activity-history-limit {
+    justify-content: flex-end;
+  }
+
+  .platform-all-locations-columns,
+  .platform-all-locations-results > button {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-top-pages-panel .admin-analytics-breakdown > .admin-top-pages-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 12px;
+  }
+
+  .admin-top-pages-track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-width: 620px) {
+  .platform-analytics-detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .platform-analytics-detail-card {
+    min-height: 0;
+  }
+
+  .platform-activity-history-heading {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .platform-all-locations-overlay {
+    padding: 10px;
+  }
+
+  .platform-all-locations-modal {
+    max-height: 95vh;
+  }
+
+  .platform-all-locations-modal > header,
+  .platform-all-locations-content {
+    padding-inline: 14px;
+  }
+}
+
 /* ============================================================
    Public landing — Business Workflow light presentation
    ============================================================ */

@@ -6,11 +6,10 @@ import {
   analyticsOperatingSystem,
   analyticsReferrerHost,
   analyticsTrafficClassification,
-  coarseAnalyticsNetworkCoordinate,
-  decodeAnalyticsHeader,
   isExcludedAnalyticsGeo,
   normalizeAnalyticsPath,
 } from "@/lib/analytics";
+import { analyticsGeographyFromRequest } from "@/lib/analytics-geography";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { getOrCreateAnalyticsSessionId } from "@/lib/analytics-session";
@@ -226,31 +225,7 @@ export async function POST(request: NextRequest) {
     webdriver,
   );
 
-  const countryCode =
-    request.headers.get("x-vercel-ip-country");
-  const regionCode =
-    request.headers.get("x-vercel-ip-country-region");
-  const city = decodeAnalyticsHeader(
-    request.headers.get("x-vercel-ip-city"),
-  );
-  const postalCode =
-    decodeAnalyticsHeader(
-      request.headers.get("x-vercel-ip-postal-code"),
-    )
-      ?.trim()
-      .slice(0, 32) || null;
-  const networkLatitude =
-    coarseAnalyticsNetworkCoordinate(
-      request.headers.get("x-vercel-ip-latitude"),
-      -90,
-      90,
-    );
-  const networkLongitude =
-    coarseAnalyticsNetworkCoordinate(
-      request.headers.get("x-vercel-ip-longitude"),
-      -180,
-      180,
-    );
+  const geography = analyticsGeographyFromRequest(request);
 
   const bypassGeographicExclusion =
     accessType === "INTERNAL" &&
@@ -259,9 +234,9 @@ export async function POST(request: NextRequest) {
   if (
     !bypassGeographicExclusion &&
     isExcludedAnalyticsGeo(
-      countryCode,
-      regionCode,
-      city,
+      geography.country,
+      geography.region,
+      geography.city,
     )
   ) {
     return NextResponse.json({
@@ -311,12 +286,13 @@ export async function POST(request: NextRequest) {
         target_device_model: deviceModel,
         target_browser: browser,
         target_operating_system: operatingSystem,
-        target_country_code: countryCode,
-        target_region_code: regionCode,
-        target_city: city,
-        target_postal_code: postalCode,
-        target_network_latitude: networkLatitude,
-        target_network_longitude: networkLongitude,
+        target_country_code: geography.country,
+        target_region_code: geography.region,
+        target_city: geography.city,
+        target_postal_code: geography.postalCode,
+        target_network_latitude: geography.latitude,
+        target_network_longitude: geography.longitude,
+        target_network_timezone: geography.timezone,
         target_traffic_type: trafficType,
         target_traffic_signal: trafficSignal,
       },

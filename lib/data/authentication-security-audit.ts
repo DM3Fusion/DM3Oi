@@ -5,34 +5,11 @@ import {
   analyticsBrowser,
   analyticsDeviceType,
   analyticsOperatingSystem,
-  coarseAnalyticsNetworkCoordinate,
-  decodeAnalyticsHeader,
 } from "@/lib/analytics";
+import { analyticsGeographyFromHeaders } from "@/lib/analytics-geography";
 
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function optionalGeographyHeader(
-  value: string | null,
-  maximumLength: number,
-  decode = false,
-): string | null {
-  if (value === null) return null;
-
-  const normalized = (
-    decode ? decodeAnalyticsHeader(value) : value
-  )?.trim();
-
-  if (
-    !normalized ||
-    normalized.length > maximumLength ||
-    /[\u0000-\u001f\u007f]/.test(normalized)
-  ) {
-    return null;
-  }
-
-  return normalized;
-}
 
 type AuthenticationSecurityEventArgs = {
   target_event_type: "AUTHENTICATION_SUCCESS";
@@ -65,6 +42,7 @@ export async function recordAuthenticationSecuritySuccess(
   }
 
   const userAgent = requestHeaders.get("user-agent") ?? "";
+  const geography = analyticsGeographyFromHeaders(requestHeaders);
 
   const args: AuthenticationSecurityEventArgs = {
     target_event_type: "AUTHENTICATION_SUCCESS",
@@ -74,34 +52,12 @@ export async function recordAuthenticationSecuritySuccess(
     target_access_category: null,
     target_organization_id: null,
     target_application_role: null,
-    target_country_code: optionalGeographyHeader(
-      requestHeaders.get("x-vercel-ip-country"),
-      8,
-    ),
-    target_region_code: optionalGeographyHeader(
-      requestHeaders.get("x-vercel-ip-country-region"),
-      100,
-    ),
-    target_city: optionalGeographyHeader(
-      requestHeaders.get("x-vercel-ip-city"),
-      200,
-      true,
-    ),
-    target_postal_code: optionalGeographyHeader(
-      requestHeaders.get("x-vercel-ip-postal-code"),
-      32,
-      true,
-    ),
-    target_network_latitude: coarseAnalyticsNetworkCoordinate(
-      requestHeaders.get("x-vercel-ip-latitude"),
-      -90,
-      90,
-    ),
-    target_network_longitude: coarseAnalyticsNetworkCoordinate(
-      requestHeaders.get("x-vercel-ip-longitude"),
-      -180,
-      180,
-    ),
+    target_country_code: geography.country,
+    target_region_code: geography.region,
+    target_city: geography.city,
+    target_postal_code: geography.postalCode,
+    target_network_latitude: geography.latitude,
+    target_network_longitude: geography.longitude,
     target_device_category: analyticsDeviceType(userAgent),
     target_browser: analyticsBrowser(userAgent),
     target_operating_system: analyticsOperatingSystem(userAgent),

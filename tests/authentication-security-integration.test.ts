@@ -7,6 +7,10 @@ const service = fs.readFileSync(
   "lib/data/authentication-security-audit.ts",
   "utf8",
 );
+const geography = fs.readFileSync(
+  "lib/analytics-geography.ts",
+  "utf8",
+);
 
 test("OTP verification precedes authentication security recording", () => {
   assert.ok(
@@ -65,14 +69,10 @@ test("authentication identity and session IDs are validated", () => {
 });
 
 test("network geography uses bounded, coarse coordinates", () => {
-  assert.match(
-    service,
-    /coarseAnalyticsNetworkCoordinate\([\s\S]*?"x-vercel-ip-latitude"[\s\S]*?-90,\s*90/,
-  );
-  assert.match(
-    service,
-    /coarseAnalyticsNetworkCoordinate\([\s\S]*?"x-vercel-ip-longitude"[\s\S]*?-180,\s*180/,
-  );
+  assert.match(service, /analyticsGeographyFromHeaders/);
+  assert.match(geography, /normalizedCoordinate\(latitude, -90, 90\)/);
+  assert.match(geography, /normalizedCoordinate\(longitude, -180, 180\)/);
+  assert.match(geography, /coordinate\.toFixed\(2\)/);
 });
 
 test("device and browser classification reuse existing utilities", () => {
@@ -98,12 +98,12 @@ test("security event payload excludes credentials and tokens", () => {
 
 test("optional geography rejects control characters and excessive length", () => {
   assert.match(
-    service,
-    /normalized\.length > maximumLength/,
+    geography,
+    /normalized\.slice\(0, maximumLength\)/,
   );
 
   assert.ok(
-    service.includes(String.raw`/[\u0000-\u001f\u007f]/`),
+    geography.includes(String.raw`/[\u0000-\u001f\u007f]/`),
   );
 
   assert.doesNotMatch(

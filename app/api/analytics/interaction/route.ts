@@ -5,9 +5,9 @@ import {
 
 import {
   analyticsTrafficClassification,
-  decodeAnalyticsHeader,
   isExcludedAnalyticsGeo,
 } from "@/lib/analytics";
+import { analyticsGeographyFromRequest } from "@/lib/analytics-geography";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAnalyticsSessionId } from "@/lib/analytics-session";
 
@@ -36,21 +36,13 @@ export async function POST(
     );
   }
 
-  const countryCode =
-    request.headers.get("x-vercel-ip-country");
-  const regionCode =
-    request.headers.get(
-      "x-vercel-ip-country-region",
-    );
-  const city = decodeAnalyticsHeader(
-    request.headers.get("x-vercel-ip-city"),
-  );
+  const geography = analyticsGeographyFromRequest(request);
 
   if (
     isExcludedAnalyticsGeo(
-      countryCode,
-      regionCode,
-      city,
+      geography.country,
+      geography.region,
+      geography.city,
     )
   ) {
     return NextResponse.json({

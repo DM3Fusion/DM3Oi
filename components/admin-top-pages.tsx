@@ -103,13 +103,9 @@ export function AdminTopPages({
                 className="admin-top-pages-row"
                 key={page.path}
               >
-                <div className="admin-top-pages-row-heading">
-                  <code title={page.path}>{page.path}</code>
-                  <strong>
-                    {page.pageViews.toLocaleString("en-US")}
-                    <span className="sr-only"> page views</span>
-                  </strong>
-                </div>
+                <code className="admin-top-pages-path" title={page.path}>
+                  {page.path}
+                </code>
 
                 <div
                   aria-label={`${page.path}: ${page.pageViews} page views`}
@@ -121,6 +117,11 @@ export function AdminTopPages({
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
+
+                <strong className="admin-top-pages-count">
+                  {page.pageViews.toLocaleString("en-US")}
+                  <span className="sr-only"> page views</span>
+                </strong>
               </div>
             );
           })
